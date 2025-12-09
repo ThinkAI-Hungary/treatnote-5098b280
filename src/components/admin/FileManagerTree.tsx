@@ -129,7 +129,10 @@ function TreeNode({
 }
 
 export function FileManagerTree({ tree, currentPath, onNavigate, onDelete, onDownload }: FileManagerTreeProps) {
-  if (tree.length === 0) {
+  // Ensure tree is always an array
+  const treeArray = Array.isArray(tree) ? tree : [];
+  
+  if (treeArray.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         Nincsenek fájlok ebben a mappában
@@ -139,7 +142,7 @@ export function FileManagerTree({ tree, currentPath, onNavigate, onDelete, onDow
 
   return (
     <div className="border rounded-md p-2">
-      {tree.map((node, idx) => (
+      {treeArray.map((node, idx) => (
         <TreeNode
           key={`${node.name}-${idx}`}
           node={node}
