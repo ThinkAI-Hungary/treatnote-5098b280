@@ -142,7 +142,13 @@ export default function Admin() {
         throw new Error(error.message);
       }
 
-      setUsers(data.users || []);
+      // Map user_id to id for consistency
+      const mappedUsers = (data.users || []).map((u: any) => ({
+        ...u,
+        id: u.user_id,
+      }));
+
+      setUsers(mappedUsers);
       setCompanies(data.companies || []);
       setTelephelyek(data.telephelyek || []);
     } catch (error: any) {
