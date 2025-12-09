@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -67,26 +68,33 @@ export function FileManager() {
   };
 
   const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim()) {
+      toast.error('Kérem adjon meg egy mappanevet');
+      return;
+    }
 
     try {
       const folderPath = currentPath 
-        ? `${currentPath}/${newFolderName}` 
-        : newFolderName;
+        ? `${currentPath}/${newFolderName.trim()}` 
+        : newFolderName.trim();
 
-      const { error } = await supabase.functions.invoke('admin-file-manager', {
+      console.log('Creating folder:', folderPath);
+
+      const { data, error } = await supabase.functions.invoke('admin-file-manager', {
         body: { operation: 'create-folder', path: folderPath }
       });
+
+      console.log('Create folder response:', data, error);
 
       if (error) throw error;
       
       toast.success('Mappa létrehozva');
       setNewFolderName('');
       setShowNewFolderDialog(false);
-      fetchTree();
+      await fetchTree();
     } catch (error: any) {
       console.error('Error creating folder:', error);
-      toast.error('Hiba a mappa létrehozásakor');
+      toast.error('Hiba a mappa létrehozásakor: ' + (error.message || 'Ismeretlen hiba'));
     }
   };
 
@@ -277,18 +285,22 @@ export function FileManager() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Új mappa létrehozása</DialogTitle>
+            <DialogDescription>
+              Adja meg az új mappa nevét
+            </DialogDescription>
           </DialogHeader>
           <Input
             placeholder="Mappa neve"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            autoFocus
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewFolderDialog(false)}>
               Mégse
             </Button>
-            <Button onClick={handleCreateFolder}>
+            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
               Létrehozás
             </Button>
           </DialogFooter>
