@@ -13,6 +13,7 @@ interface UseVoiceRecorderReturn {
   stopRecording: () => void;
   pauseRecording: () => void;
   resumeRecording: () => void;
+  resetRecording: () => void;
   audioBlob: Blob | null;
   audioUrl: string | null;
 }
@@ -143,6 +144,29 @@ export function useVoiceRecorder({
     }
   }, [isRecording, isPaused]);
 
+  const resetRecording = useCallback(() => {
+    // Clean up any existing URL
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    
+    // Reset all state
+    chunksRef.current = [];
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setDuration(0);
+    setIsRecording(false);
+    setIsPaused(false);
+    pausedDurationRef.current = 0;
+    startTimeRef.current = 0;
+    
+    // Clear timer if running
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, [audioUrl]);
+
   return {
     isRecording,
     isPaused,
@@ -151,6 +175,7 @@ export function useVoiceRecorder({
     stopRecording,
     pauseRecording,
     resumeRecording,
+    resetRecording,
     audioBlob,
     audioUrl,
   };
