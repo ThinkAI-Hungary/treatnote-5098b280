@@ -545,6 +545,7 @@ export default function Admin() {
                       <TableHead>Email</TableHead>
                       <TableHead>Név</TableHead>
                       <TableHead>Cég</TableHead>
+                      <TableHead>Telephely</TableHead>
                       <TableHead>Státusz</TableHead>
                       <TableHead>Szerep</TableHead>
                       <TableHead className="text-right">Műveletek</TableHead>
@@ -556,6 +557,7 @@ export default function Admin() {
                         <TableCell className="font-medium">{userData.email}</TableCell>
                         <TableCell>{userData.full_name || '-'}</TableCell>
                         <TableCell>{userData.company_name || '-'}</TableCell>
+                        <TableCell>{userData.telephely_name || '-'}</TableCell>
                         <TableCell>
                           <Badge variant={userData.subscription_status === 'active' ? 'default' : 'secondary'}>
                             {userData.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
