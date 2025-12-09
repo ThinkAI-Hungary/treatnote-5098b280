@@ -1,135 +1,258 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/hooks/useProfile';
-import { User, Link2 } from 'lucide-react';
-import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
+import { X, Check, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { hu } from 'date-fns/locale';
 
-export default function Profile() {
+interface FlexiAuth {
+  flexi_username: string | null;
+  created_at: string;
+}
+
+const Profile = () => {
   const { user } = useAuth();
-  const { profile, loading } = useProfile();
-  const [flexiEmail, setFlexiEmail] = useState('');
-  const [flexiPassword, setFlexiPassword] = useState('');
-  const [connecting, setConnecting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [loading, setLoading] = useState(false);
+  const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
+  const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
+  const [unlinking, setUnlinking] = useState(false);
+  const [profile, setProfile] = useState({
+    full_name: '',
+    company_name: '',
+    phone: '',
+  });
 
-  const handleFlexiConnect = async () => {
-    if (!flexiEmail || !flexiPassword) {
-      toast.error('Kérjük töltse ki mindkét mezőt');
-      return;
+  useEffect(() => {
+    loadProfile();
+    loadFlexiAuth();
+  }, [user]);
+
+  // Auto-open Flexi dialog if URL param is present
+  useEffect(() => {
+    if (searchParams.get('openFlexi') === 'true' && !flexiAuth) {
+      setFlexiDialogOpen(true);
+      setSearchParams({});
     }
+  }, [searchParams, flexiAuth, setSearchParams]);
 
-    setConnecting(true);
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke('flexi-connect', {
-        body: { flexiEmail, flexiPassword },
+  const loadProfile = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (data) {
+      setProfile({
+        full_name: data.full_name || '',
+        company_name: data.company_name || '',
+        phone: data.phone || '',
+      });
+    }
+  };
+
+  const loadFlexiAuth = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('flexi_auth')
+      .select('flexi_username, created_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setFlexiAuth(data);
+  };
+
+  const handleUnlinkFlexi = async () => {
+    if (!user) return;
+
+    setUnlinking(true);
+    const { error } = await supabase
+      .from('flexi_auth')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast.error('Nem sikerült a Flexi-Dent leválasztása');
+    } else {
+      setFlexiAuth(null);
+      toast.success('Flexi-Dent sikeresen leválasztva');
+    }
+    setUnlinking(false);
+  };
+
+  const handleFlexiDialogClose = (open: boolean) => {
+    setFlexiDialogOpen(open);
+    if (!open) {
+      loadFlexiAuth();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoading(true);
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: user.id,
+        ...profile,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      toast.success('Flexi-Dent fiók sikeresen összekapcsolva');
-      setFlexiEmail('');
-      setFlexiPassword('');
-    } catch (error: any) {
-      toast.error(error.message || 'Hiba történt az összekapcsolás során');
-    } finally {
-      setConnecting(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Profil sikeresen frissítve');
     }
+
+    setLoading(false);
   };
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="max-w-2xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Profil</h1>
-          <p className="text-muted-foreground mt-1">
-            Felhasználói fiók beállításai
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
+          <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Fiók adatok
-              </CardTitle>
-              <CardDescription>
-                Az Ön fiókjának alapvető információi
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Személyes adatok
+            </CardTitle>
+            <CardDescription>Profil adatok módosítása</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Email cím</Label>
-                <Input value={user?.email || ''} disabled />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={user?.email || ''} disabled />
               </div>
               <div className="space-y-2">
-                <Label>Teljes név</Label>
-                <Input value={profile?.full_name || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefonszám</Label>
-                <Input value={profile?.phone || ''} disabled />
-              </div>
-              {profile?.company_name && (
-                <div className="space-y-2">
-                  <Label>Cég</Label>
-                  <Input value={profile.company_name} disabled />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Link2 className="h-5 w-5" />
-                Flexi-Dent összekapcsolás
-              </CardTitle>
-              <CardDescription>
-                Kapcsolja össze Flexi-Dent fiókját a TreatNote-tal
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="flexi-email">Flexi-Dent email</Label>
+                <Label htmlFor="full_name">Teljes név</Label>
                 <Input
-                  id="flexi-email"
-                  type="email"
-                  placeholder="flexi@example.com"
-                  value={flexiEmail}
-                  onChange={(e) => setFlexiEmail(e.target.value)}
+                  id="full_name"
+                  type="text"
+                  value={profile.full_name}
+                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="flexi-password">Flexi-Dent jelszó</Label>
+                <Label htmlFor="company_name">Cég neve</Label>
                 <Input
-                  id="flexi-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={flexiPassword}
-                  onChange={(e) => setFlexiPassword(e.target.value)}
+                  id="company_name"
+                  type="text"
+                  value={profile.company_name}
+                  onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
                 />
               </div>
-              <Button
-                onClick={handleFlexiConnect}
-                disabled={connecting}
-                className="w-full"
-              >
-                {connecting ? 'Összekapcsolás...' : 'Flexi-Dent összekapcsolása'}
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefonszám</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                />
+              </div>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Mentés...' : 'Változások mentése'}
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Flexi-Dent Integráció</CardTitle>
+            <CardDescription>Csatlakoztassa Flexi-Dent fiókját</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {flexiAuth ? (
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Check className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{flexiAuth.flexi_username}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Csatlakoztatva: {format(new Date(flexiAuth.created_at), 'yyyy. MMMM d. HH:mm', { locale: hu })}
+                    </p>
+                  </div>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={unlinking}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Flexi-Dent leválasztása</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Biztosan le szeretné választani a Flexi-Dent fiókját ({flexiAuth.flexi_username})? 
+                        A művelet nem vonható vissza, és újra be kell jelentkeznie a csatlakoztatáshoz.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Mégse</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleUnlinkFlexi} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Leválasztás
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            ) : (
+              <Button onClick={() => setFlexiDialogOpen(true)}>
+                Flexi hozzácsatolás
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <FlexiConnectDialog 
+          open={flexiDialogOpen} 
+          onOpenChange={handleFlexiDialogClose} 
+        />
       </div>
     </Layout>
   );
-}
+};
+
+export default Profile;
