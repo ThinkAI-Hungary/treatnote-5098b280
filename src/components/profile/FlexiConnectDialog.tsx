@@ -73,16 +73,23 @@ const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => 
         let errorMessage = 'Nem sikerült a Flexi-Dent hozzácsatolás';
         try {
           // Per Supabase docs: use instanceof FunctionsHttpError and await error.context.json()
-          if (error instanceof FunctionsHttpError) {
+          if (error instanceof FunctionsHttpError && error.context) {
             const responseBody = await error.context.json();
             if (responseBody?.message) {
               errorMessage = responseBody.message;
             }
+          } else if (error.message) {
+            // Fallback to error.message if available
+            errorMessage = error.message;
           }
         } catch {
-          // If parsing fails, use default message
+          // If parsing fails, check if error has message property
+          if (error.message) {
+            errorMessage = error.message;
+          }
         }
         toast.error(errorMessage);
+        setLoading(false);
         return;
       }
 
