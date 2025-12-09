@@ -3,19 +3,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2 } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useFlexiConnection } from '@/hooks/useFlexiConnection';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type RecordingMode = 'voxis' | 'treatnote';
 
 export default function VoiceRecording() {
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>('treatnote');
   const [isUploading, setIsUploading] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -39,6 +44,10 @@ export default function VoiceRecording() {
       toast.error('Hiba a felvétel során: ' + error.message);
     },
   });
+
+  const handleOpenFlexiDialog = () => {
+    navigate('/profile?openFlexi=true');
+  };
 
   const handleToggleRecording = () => {
     if (isRecording) {
@@ -134,6 +143,37 @@ export default function VoiceRecording() {
       setIsUploading(false);
     }
   };
+
+  // Show message if Flexi is not connected
+  if (!isFlexiLoading && !isFlexiConnected) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Hangfelvétel</h1>
+            <p className="text-muted-foreground mt-1">
+              Vizsgálati jegyzőkönyv diktálása
+            </p>
+          </div>
+
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>FlexiDent fiók szükséges</AlertTitle>
+            <AlertDescription>
+              Jelenleg nincs hozzácsatolva felhasználóhoz FlexiDent fiók - kérem csatolja hozzá fiókját{' '}
+              <button
+                onClick={handleOpenFlexiDialog}
+                className="underline font-medium hover:text-destructive-foreground/80"
+              >
+                itt
+              </button>
+              !
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
