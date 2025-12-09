@@ -129,23 +129,23 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 ) : (
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <SidebarMenuButton
-                          className="flex items-center gap-2 opacity-50 cursor-not-allowed"
+                          className="flex items-center gap-2 opacity-50 cursor-pointer"
                           onClick={handleFlexiLinkClick}
                         >
                           <Mic className="h-4 w-4" />
                           <span>Hangfelvétel</span>
                         </SidebarMenuButton>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
-                        <p>
+                      <TooltipContent side="right" className="max-w-xs p-3">
+                        <p className="text-sm">
                           Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
                           <button
                             onClick={handleFlexiLinkClick}
-                            className="underline text-primary hover:text-primary/80"
+                            className="underline text-blue-500 hover:text-blue-400 font-medium"
                           >
                             kérem csatolja hozzá fiókját itt!
                           </button>
