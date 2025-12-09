@@ -56,6 +56,7 @@ serve(async (req) => {
     const timestamp = formData.get("timestamp") as string;
     const filename = formData.get("filename") as string;
     const userId = formData.get("user_id") as string;
+    const companyId = formData.get("company_id") as string;
     const telephelyId = formData.get("telephely_id") as string;
 
     if (!audio || !mode) {
@@ -98,7 +99,7 @@ serve(async (req) => {
 
     // Use provided filename or fall back to audio.name
     const finalFilename = filename || audio.name;
-    console.log(`Processing voice recording - Mode: ${mode}, Timestamp: ${timestamp}, Filename: ${finalFilename}, User: ${userId}, Telephely: ${telephelyId}, FlexiUser: ${flexiUsername}`);
+    console.log(`Processing voice recording - Mode: ${mode}, Timestamp: ${timestamp}, Filename: ${finalFilename}, User: ${userId}, Company: ${companyId}, Telephely: ${telephelyId}, FlexiUser: ${flexiUsername}`);
 
     // Get webhook URLs based on mode
     let webhookUrls: string[] = [];
@@ -131,6 +132,7 @@ serve(async (req) => {
       webhookFormData.append("mode", mode);
       webhookFormData.append("timestamp", timestamp || new Date().toISOString());
       webhookFormData.append("user_id", userId || "");
+      webhookFormData.append("company_id", companyId || "");
       webhookFormData.append("telephely_id", telephelyId || "");
       webhookFormData.append("flexi_username", flexiUsername);
       webhookFormData.append("flexi_pw", decryptedFlexiPw);
