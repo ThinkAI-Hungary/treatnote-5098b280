@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, fullName } = await req.json();
+    const { email, password, fullName, role } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email/username and password are required" }), {
@@ -68,6 +68,10 @@ serve(async (req) => {
       });
     }
 
+    // Validate role if provided
+    const validRoles = ['user', 'admin'];
+    const userRole = role && validRoles.includes(role) ? role : 'user';
+
     // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -76,18 +80,18 @@ serve(async (req) => {
       },
     });
 
-    // Determine if it's an email or username
-    const isEmail = email.includes("@");
+    // Determine if it's an email or username (check if it ends with @localuser.com)
+    const isLocalUser = email.endsWith("@localuser.com");
     
     // Create the user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: isEmail ? email : `${email}@placeholder.local`,
+      email: email,
       password,
       email_confirm: true, // Auto-confirm since admin is creating
       user_metadata: {
-        full_name: fullName || (isEmail ? email.split("@")[0] : email),
-        is_username_login: !isEmail,
-        original_username: !isEmail ? email : undefined,
+        full_name: fullName || email.split("@")[0],
+        is_username_login: isLocalUser,
+        original_username: isLocalUser ? email.split("@")[0] : undefined,
       },
     });
 
@@ -104,19 +108,19 @@ serve(async (req) => {
       .from("profiles")
       .insert({
         user_id: newUser.user.id,
-        full_name: fullName || (isEmail ? email.split("@")[0] : email),
+        full_name: fullName || email.split("@")[0],
       });
 
     if (profileError) {
       console.error("Error creating profile:", profileError);
     }
 
-    // Create user role
+    // Create user role with the specified role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
         user_id: newUser.user.id,
-        role: "user",
+        role: userRole,
       });
 
     if (roleError) {

@@ -72,7 +72,9 @@ export default function Admin() {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserConfirmPassword, setNewUserConfirmPassword] = useState('');
   const [newUserFullName, setNewUserFullName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
   const [creatingUser, setCreatingUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -185,17 +187,33 @@ export default function Admin() {
 
   const handleCreateUser = async () => {
     if (!newUserEmail.trim() || !newUserPassword.trim()) {
-      toast.error('Kérjük töltse ki az email és jelszó mezőket');
+      toast.error('Kérjük töltse ki az email/felhasználónév és jelszó mezőket');
       return;
     }
+
+    if (newUserPassword !== newUserConfirmPassword) {
+      toast.error('A jelszavak nem egyeznek');
+      return;
+    }
+
+    if (newUserPassword.length < 6) {
+      toast.error('A jelszónak legalább 6 karakter hosszúnak kell lennie');
+      return;
+    }
+
+    // Transform username to email if no @ present
+    const finalEmail = newUserEmail.includes('@') 
+      ? newUserEmail 
+      : `${newUserEmail}@localuser.com`;
 
     setCreatingUser(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { 
-          email: newUserEmail, 
+          email: finalEmail, 
           password: newUserPassword,
-          fullName: newUserFullName 
+          fullName: newUserFullName,
+          role: newUserRole
         },
       });
 
@@ -206,7 +224,9 @@ export default function Admin() {
       toast.success('Felhasználó sikeresen létrehozva');
       setNewUserEmail('');
       setNewUserPassword('');
+      setNewUserConfirmPassword('');
       setNewUserFullName('');
+      setNewUserRole('user');
       setCreateUserOpen(false);
       loadUsersWithRoles();
     } catch (error: any) {
@@ -530,13 +550,16 @@ export default function Admin() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label>Email</Label>
+                      <Label>Email / Felhasználónév</Label>
                       <Input
-                        type="email"
-                        placeholder="email@example.com"
+                        type="text"
+                        placeholder="email@example.com vagy felhasználónév"
                         value={newUserEmail}
                         onChange={(e) => setNewUserEmail(e.target.value)}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Ha nem tartalmaz @ jelet, automatikusan @localuser.com végződést kap
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label>Teljes név</Label>
@@ -566,12 +589,46 @@ export default function Admin() {
                         </Button>
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Jelszó megerősítése</Label>
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Jelszó megerősítése"
+                        value={newUserConfirmPassword}
+                        onChange={(e) => setNewUserConfirmPassword(e.target.value)}
+                      />
+                      {newUserConfirmPassword && newUserPassword !== newUserConfirmPassword && (
+                        <p className="text-xs text-destructive">A jelszavak nem egyeznek</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Szerepkör</Label>
+                      <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin')}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Válasszon szerepkört" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">Felhasználó</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setCreateUserOpen(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setCreateUserOpen(false);
+                      setNewUserEmail('');
+                      setNewUserPassword('');
+                      setNewUserConfirmPassword('');
+                      setNewUserFullName('');
+                      setNewUserRole('user');
+                    }}>
                       Mégse
                     </Button>
-                    <Button onClick={handleCreateUser} disabled={creatingUser}>
+                    <Button 
+                      onClick={handleCreateUser} 
+                      disabled={creatingUser || (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword)}
+                    >
                       {creatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Létrehozás
                     </Button>
