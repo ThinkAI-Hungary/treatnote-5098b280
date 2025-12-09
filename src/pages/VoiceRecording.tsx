@@ -100,6 +100,7 @@ export default function VoiceRecording() {
       formData.append('timestamp', timestamp);
       formData.append('filename', filename);
       formData.append('user_id', user.id);
+      formData.append('company_id', profile?.company_id || '');
       formData.append('telephely_id', profile?.telephely_id || '');
 
       // Call edge function directly with fetch since supabase.functions.invoke doesn't handle FormData properly
