@@ -433,23 +433,33 @@ async function listRecursive(
 
 // Helper: Build a tree structure - returns array of children for given path
 async function buildTree(supabase: any, basePath: string): Promise<any[]> {
-  const normalizedPath = basePath.endsWith("/") ? basePath : `${basePath}/`;
+  // For root, use empty string; for paths, don't add trailing slash for list
+  const listPath = basePath || "";
+  
+  console.log(`Listing storage path: "${listPath}"`);
   
   const { data: items, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .list(normalizedPath, { limit: 1000 });
+    .list(listPath, { limit: 1000 });
 
-  if (error || !items) {
-    console.error(`Error listing ${normalizedPath}:`, error);
+  if (error) {
+    console.error(`Error listing "${listPath}":`, error);
     return [];
   }
+  
+  if (!items || items.length === 0) {
+    console.log(`No items found at "${listPath}"`);
+    return [];
+  }
+
+  console.log(`Found ${items.length} items at "${listPath}":`, items.map((i: any) => i.name));
 
   const children: any[] = [];
 
   for (const item of items) {
     if (item.name === ".folder_placeholder") continue;
     
-    const itemPath = `${normalizedPath}${item.name}`;
+    const itemPath = basePath ? `${basePath}/${item.name}` : item.name;
     
     if (item.id === null) {
       // Folder - recurse to get its children
