@@ -1,10 +1,9 @@
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Shield, Users, FolderTree, Plus, Trash2 } from 'lucide-react';
+import { FileManager } from '@/components/admin/FileManager';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -161,15 +160,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="files" className="space-y-4">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FolderTree className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium">Fájlkezelő</h3>
-                <p className="text-muted-foreground text-center max-w-sm mt-1">
-                  A fájlkezelő funkció fejlesztés alatt áll.
-                </p>
-              </CardContent>
-            </Card>
+            <FileManager />
           </TabsContent>
         </Tabs>
       </div>
