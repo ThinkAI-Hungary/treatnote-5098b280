@@ -14,16 +14,809 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_type: string | null
+          company_id: string | null
+          created_at: string
+          end_time: string
+          id: string
+          notes: string | null
+          patient_id: string
+          reminder_sent: boolean | null
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          reminder_sent?: boolean | null
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          reminder_sent?: boolean | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bridge_actions: {
+        Row: {
+          blue_teeth: number[]
+          created_at: string
+          examination_id: string
+          id: string
+          is_sin: boolean | null
+          yellow_teeth: number[]
+        }
+        Insert: {
+          blue_teeth?: number[]
+          created_at?: string
+          examination_id: string
+          id?: string
+          is_sin?: boolean | null
+          yellow_teeth?: number[]
+        }
+        Update: {
+          blue_teeth?: number[]
+          created_at?: string
+          examination_id?: string
+          id?: string
+          is_sin?: boolean | null
+          yellow_teeth?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_actions_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+          telephely: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+          telephely?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          telephely?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      company_app_config: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          enforce_mandatory_update: boolean
+          min_required_version: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          enforce_mandatory_update?: boolean
+          min_required_version?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          enforce_mandatory_update?: boolean
+          min_required_version?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_app_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnoses: {
+        Row: {
+          created_at: string
+          description: string
+          examination_id: string
+          id: string
+          tooth_number: number | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          examination_id: string
+          id?: string
+          tooth_number?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          examination_id?: string
+          id?: string
+          tooth_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnoses_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examinations: {
+        Row: {
+          all_on_4_lower: boolean | null
+          all_on_4_upper: boolean | null
+          allergies: string[] | null
+          appliances: boolean | null
+          asa_class: number | null
+          chief_complaint: string | null
+          company_id: string | null
+          conditions: string[] | null
+          created_at: string
+          csak_hid: boolean | null
+          diet_frequency: boolean | null
+          egybeontott_korona: boolean | null
+          fluoride_exposure: boolean | null
+          full_lower_prosthesis: boolean | null
+          full_upper_prosthesis: boolean | null
+          history_notes: string | null
+          id: string
+          manual_override: boolean | null
+          medications: string[] | null
+          pain_scale: number | null
+          partial_removable_prosthesis: boolean | null
+          patient_id: string
+          recent_caries: boolean | null
+          risk_level: string | null
+          risk_rationale: string | null
+          saliva_adequacy: boolean | null
+          smoker: boolean | null
+          updated_at: string
+          user_id: string
+          visible_plaque: boolean | null
+        }
+        Insert: {
+          all_on_4_lower?: boolean | null
+          all_on_4_upper?: boolean | null
+          allergies?: string[] | null
+          appliances?: boolean | null
+          asa_class?: number | null
+          chief_complaint?: string | null
+          company_id?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          csak_hid?: boolean | null
+          diet_frequency?: boolean | null
+          egybeontott_korona?: boolean | null
+          fluoride_exposure?: boolean | null
+          full_lower_prosthesis?: boolean | null
+          full_upper_prosthesis?: boolean | null
+          history_notes?: string | null
+          id?: string
+          manual_override?: boolean | null
+          medications?: string[] | null
+          pain_scale?: number | null
+          partial_removable_prosthesis?: boolean | null
+          patient_id: string
+          recent_caries?: boolean | null
+          risk_level?: string | null
+          risk_rationale?: string | null
+          saliva_adequacy?: boolean | null
+          smoker?: boolean | null
+          updated_at?: string
+          user_id: string
+          visible_plaque?: boolean | null
+        }
+        Update: {
+          all_on_4_lower?: boolean | null
+          all_on_4_upper?: boolean | null
+          allergies?: string[] | null
+          appliances?: boolean | null
+          asa_class?: number | null
+          chief_complaint?: string | null
+          company_id?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          csak_hid?: boolean | null
+          diet_frequency?: boolean | null
+          egybeontott_korona?: boolean | null
+          fluoride_exposure?: boolean | null
+          full_lower_prosthesis?: boolean | null
+          full_upper_prosthesis?: boolean | null
+          history_notes?: string | null
+          id?: string
+          manual_override?: boolean | null
+          medications?: string[] | null
+          pain_scale?: number | null
+          partial_removable_prosthesis?: boolean | null
+          patient_id?: string
+          recent_caries?: boolean | null
+          risk_level?: string | null
+          risk_rationale?: string | null
+          saliva_adequacy?: boolean | null
+          smoker?: boolean | null
+          updated_at?: string
+          user_id?: string
+          visible_plaque?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examinations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examinations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_hashes: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          path: string
+          sha256: string
+          size: number
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          path: string
+          sha256: string
+          size: number
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          path?: string
+          sha256?: string
+          size?: number
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_hashes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flexi_auth: {
+        Row: {
+          created_at: string
+          flexi_pw: string | null
+          flexi_username: string | null
+          id: string
+          name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flexi_pw?: string | null
+          flexi_username?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flexi_pw?: string | null
+          flexi_username?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      folder_access: {
+        Row: {
+          folder_id: string
+          granted_at: string | null
+          granted_by: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          folder_id: string
+          granted_at?: string | null
+          granted_by: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          folder_id?: string
+          granted_at?: string | null
+          granted_by?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_access_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folder_structure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folder_structure: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string
+          folder_path: string
+          id: string
+          is_client_folder: boolean
+          parent_path: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          folder_path: string
+          id?: string
+          is_client_folder?: boolean
+          parent_path?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          folder_path?: string
+          id?: string
+          is_client_folder?: boolean
+          parent_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_structure_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          date_of_birth: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          date_of_birth: string
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          date_of_birth?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          can_create_users: boolean
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          subscription_amount: number | null
+          subscription_end_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
+          subscription_status: string
+          telephely_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          can_create_users?: boolean
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          can_create_users?: boolean
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teeth: {
+        Row: {
+          bridge: string
+          caries: boolean | null
+          caries_locations: string[] | null
+          created_at: string
+          crown: string
+          endo_status: string
+          examination_id: string
+          fissure_sealing: boolean | null
+          id: string
+          mobility: number | null
+          notes: string | null
+          pathology: string
+          present: boolean | null
+          prosthesis: string
+          restoration: string
+          restoration_locations: string[] | null
+          tooth_number: number
+          tooth_type: string
+          treatment_plan: string
+          updated_at: string
+        }
+        Insert: {
+          bridge?: string
+          caries?: boolean | null
+          caries_locations?: string[] | null
+          created_at?: string
+          crown?: string
+          endo_status?: string
+          examination_id: string
+          fissure_sealing?: boolean | null
+          id?: string
+          mobility?: number | null
+          notes?: string | null
+          pathology?: string
+          present?: boolean | null
+          prosthesis?: string
+          restoration?: string
+          restoration_locations?: string[] | null
+          tooth_number: number
+          tooth_type?: string
+          treatment_plan?: string
+          updated_at?: string
+        }
+        Update: {
+          bridge?: string
+          caries?: boolean | null
+          caries_locations?: string[] | null
+          created_at?: string
+          crown?: string
+          endo_status?: string
+          examination_id?: string
+          fissure_sealing?: boolean | null
+          id?: string
+          mobility?: number | null
+          notes?: string | null
+          pathology?: string
+          present?: boolean | null
+          prosthesis?: string
+          restoration?: string
+          restoration_locations?: string[] | null
+          tooth_number?: number
+          tooth_type?: string
+          treatment_plan?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teeth_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telephely: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telephely_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          estimated_cost: number | null
+          examination_id: string
+          id: string
+          label: string
+          notes: string | null
+          priority: string | null
+          status: string | null
+          tooth_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order: number
+          estimated_cost?: number | null
+          examination_id: string
+          id?: string
+          label: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tooth_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          estimated_cost?: number | null
+          examination_id?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tooth_number?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_items_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_company_version: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_access_path: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
+      get_company_names: {
+        Args: never
+        Returns: {
+          company_name: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +943,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
