@@ -20,6 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
+import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { X, Check, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
@@ -98,6 +99,7 @@ const Profile = () => {
       toast.error('Nem sikerült a Flexi-Dent leválasztása');
     } else {
       setFlexiAuth(null);
+      notifyFlexiConnectionChanged(); // Notify sidebar immediately
       toast.success('Flexi-Dent sikeresen leválasztva');
     }
     setUnlinking(false);
@@ -107,6 +109,7 @@ const Profile = () => {
     setFlexiDialogOpen(open);
     if (!open) {
       loadFlexiAuth();
+      notifyFlexiConnectionChanged(); // Notify sidebar immediately
     }
   };
 
