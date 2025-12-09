@@ -278,8 +278,21 @@ export default function Admin() {
       
       if (company && telephely) {
         try {
+          // Sanitize names to remove special characters that Storage doesn't support
+          const sanitizeName = (name: string) => {
+            return name
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+              .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Keep only alphanumeric, spaces, hyphens, underscores
+              .trim();
+          };
+          
+          const sanitizedCompany = sanitizeName(company.name);
+          const sanitizedTelephely = sanitizeName(telephely.name);
+          const sanitizedUser = sanitizeName(userName);
+          
           // Create folder path: TreatNote/Companies/{company_name}/{telephely_name}/{user_name}
-          const folderPath = `TreatNote/Companies/${company.name}/${telephely.name}/${userName}`;
+          const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
           
           await supabase.functions.invoke('admin-file-manager', {
             body: { operation: 'create-folder', path: folderPath }
