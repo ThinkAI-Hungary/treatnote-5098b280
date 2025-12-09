@@ -12,6 +12,7 @@ import {
   LogOut,
   Shield,
   Stethoscope,
+  Grid3X3,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +44,7 @@ const mainNavItems = [
   { title: 'Páciensek', url: '/patients', icon: Users },
   { title: 'Időpontok', url: '/appointments', icon: Calendar },
   { title: 'Vizsgálatok', url: '/examinations', icon: Stethoscope },
+  { title: 'Fogstátusz', url: '/dental-charting', icon: Grid3X3 },
   { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic },
 ];
 
