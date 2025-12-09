@@ -138,7 +138,7 @@ serve(async (req) => {
       }
 
       case "create-folder": {
-        // Create a folder using placeholder file
+        // Create a folder using placeholder file, including all parent folders
         if (!path) {
           return new Response(
             JSON.stringify({ success: false, error: "Missing 'path' parameter" }),
@@ -146,30 +146,37 @@ serve(async (req) => {
           );
         }
 
-        const normalizedPath = path.endsWith("/") ? path : `${path}/`;
-        const placeholderPath = `${normalizedPath}.folder_placeholder`;
+        console.log(`Creating folder with parents: ${path}`);
+
+        // Split path into parts and create each folder
+        const pathParts = path.split('/').filter((p: string) => p.length > 0);
+        const createdFolders: string[] = [];
         
-        console.log(`Creating folder: ${normalizedPath}`);
+        for (let i = 0; i < pathParts.length; i++) {
+          const currentPath = pathParts.slice(0, i + 1).join('/');
+          const placeholderPath = `${currentPath}/.folder_placeholder`;
+          
+          const placeholderContent = new Blob([""], { type: "text/plain" });
+          const { error: uploadError } = await supabaseAdmin.storage
+            .from(BUCKET_NAME)
+            .upload(placeholderPath, placeholderContent, {
+              upsert: true
+            });
 
-        const placeholderContent = new Blob([""], { type: "text/plain" });
-        const { error: uploadError } = await supabaseAdmin.storage
-          .from(BUCKET_NAME)
-          .upload(placeholderPath, placeholderContent, {
-            upsert: true
-          });
-
-        if (uploadError) {
-          console.error("Create folder error:", uploadError);
-          return new Response(
-            JSON.stringify({ success: false, error: uploadError.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          if (uploadError && !uploadError.message.includes('already exists')) {
+            console.error(`Error creating folder ${currentPath}:`, uploadError);
+          } else {
+            createdFolders.push(currentPath);
+          }
         }
+
+        console.log(`Created folders: ${createdFolders.join(', ')}`);
 
         result = {
           success: true,
-          message: `Folder created: ${normalizedPath}`,
-          path: normalizedPath
+          message: `Folder created: ${path}`,
+          path: path,
+          createdFolders
         };
         break;
       }

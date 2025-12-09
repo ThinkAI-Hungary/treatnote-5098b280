@@ -264,6 +264,29 @@ export default function Admin() {
       }
     }
 
+    // Create folder structure if company and telephely are assigned
+    if (editCompanyId && editTelephelyId) {
+      const company = companies.find(c => c.id === editCompanyId);
+      const telephely = telephelyek.find(t => t.id === editTelephelyId);
+      const userName = editingUser.full_name || editingUser.email.split('@')[0];
+      
+      if (company && telephely) {
+        try {
+          // Create folder path: TreatNote/Companies/{company_name}/{telephely_name}/{user_name}
+          const folderPath = `TreatNote/Companies/${company.name}/${telephely.name}/${userName}`;
+          
+          await supabase.functions.invoke('admin-file-manager', {
+            body: { operation: 'create-folder', path: folderPath }
+          });
+          
+          console.log(`Created folder: ${folderPath}`);
+        } catch (folderError) {
+          console.error('Error creating user folder:', folderError);
+          // Don't fail the save if folder creation fails
+        }
+      }
+    }
+
     toast.success('Felhasználó sikeresen frissítve');
     setEditDialogOpen(false);
     setEditingUser(null);
