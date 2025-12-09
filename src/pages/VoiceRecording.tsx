@@ -34,6 +34,7 @@ export default function VoiceRecording() {
     stopRecording,
     pauseRecording,
     resumeRecording,
+    resetRecording,
     audioBlob,
     audioUrl,
   } = useVoiceRecorder({
@@ -77,11 +78,7 @@ export default function VoiceRecording() {
   };
 
   const handleClearRecording = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    // Reset by starting and immediately stopping - or just reload
-    window.location.reload();
+    resetRecording();
   };
 
   const handleUpload = async () => {
@@ -128,11 +125,7 @@ export default function VoiceRecording() {
 
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
-        // Clear the recording
-        if (audioUrl) {
-          URL.revokeObjectURL(audioUrl);
-        }
-        window.location.reload();
+        resetRecording();
       } else {
         throw new Error(data?.error || 'Ismeretlen hiba');
       }
