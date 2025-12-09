@@ -87,22 +87,35 @@ export default function VoiceRecording() {
       const timestamp = new Date().toISOString();
       const filename = `recording_${timestamp.replace(/[:.]/g, '-')}.webm`;
 
-      // Convert blob to base64 for FormData
+      // Create FormData with correct field names matching edge function
       const formData = new FormData();
-      formData.append('data', audioBlob, filename);
+      formData.append('audio', audioBlob, filename);
       formData.append('mode', mode);
       formData.append('timestamp', timestamp);
       formData.append('filename', filename);
       formData.append('user_id', user.id);
       formData.append('telephely_id', profile?.telephely_id || '');
 
-      const { data, error } = await supabase.functions.invoke('voice-recording-webhook', {
-        body: formData,
-      });
+      // Call edge function directly with fetch since supabase.functions.invoke doesn't handle FormData properly
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `https://bpjzgapmoyhtgryglcke.supabase.co/functions/v1/voice-recording-webhook`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: formData,
+        }
+      );
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
+
+      const data = await response.json();
 
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
