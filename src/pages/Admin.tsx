@@ -258,15 +258,20 @@ export default function Admin() {
       return;
     }
 
-    // Update role if changed
+    // Update role if changed - ensure only one role per user
     const currentRole = editingUser.role;
     if (editRole !== currentRole) {
-      if (editRole === 'admin' && currentRole === 'user') {
-        await supabase.from('user_roles').delete().eq('user_id', editingUser.id).eq('role', 'user');
-        await supabase.from('user_roles').upsert({ user_id: editingUser.id, role: 'admin' }, { onConflict: 'user_id,role' });
-      } else if (editRole === 'user' && currentRole === 'admin') {
-        await supabase.from('user_roles').delete().eq('user_id', editingUser.id).eq('role', 'admin');
-        await supabase.from('user_roles').upsert({ user_id: editingUser.id, role: 'user' }, { onConflict: 'user_id,role' });
+      // Delete ALL existing roles for this user first
+      await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
+      
+      // Insert the new role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: editingUser.id, role: editRole });
+      
+      if (roleError) {
+        console.error('Error updating role:', roleError);
+        toast.error('Hiba a szerepkör frissítésekor');
       }
     }
 
