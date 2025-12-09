@@ -23,7 +23,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -49,7 +49,7 @@ const Auth = () => {
           }
         } else {
           toast.success('Welcome back!');
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         const { error } = await signUp(email, password);
