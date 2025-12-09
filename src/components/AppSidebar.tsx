@@ -132,13 +132,10 @@ export function AppSidebar() {
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <SidebarMenuButton
-                          className="flex items-center gap-2 opacity-50 cursor-pointer"
-                          onClick={handleFlexiLinkClick}
-                        >
+                        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full">
                           <Mic className="h-4 w-4" />
                           <span>Hangfelvétel</span>
-                        </SidebarMenuButton>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs p-3">
                         <p className="text-sm">
