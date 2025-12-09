@@ -17,6 +17,8 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useFlexiConnection } from '@/hooks/useFlexiConnection';
+import { useNavigate } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +40,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const mainNavItems = [
   { title: 'Irányítópult', url: '/dashboard', icon: LayoutDashboard },
@@ -45,7 +53,6 @@ const mainNavItems = [
   { title: 'Időpontok', url: '/appointments', icon: Calendar },
   { title: 'Vizsgálatok', url: '/examinations', icon: Stethoscope },
   { title: 'Fogstátusz', url: '/dental-charting', icon: Grid3X3 },
-  { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic },
 ];
 
 const secondaryNavItems = [
@@ -63,9 +70,15 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isConnected: isFlexiConnected } = useFlexiConnection();
+  const navigate = useNavigate();
   const collapsed = state === 'collapsed';
 
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';
+
+  const handleFlexiLinkClick = () => {
+    navigate('/profile?openFlexi=true');
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -101,6 +114,47 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Hangfelvétel - conditionally active based on Flexi connection */}
+              <SidebarMenuItem>
+                {isFlexiConnected ? (
+                  <SidebarMenuButton asChild tooltip="Hangfelvétel">
+                    <NavLink
+                      to="/voice-recording"
+                      className="flex items-center gap-2"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                    >
+                      <Mic className="h-4 w-4" />
+                      <span>Hangfelvétel</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SidebarMenuButton
+                          className="flex items-center gap-2 opacity-50 cursor-not-allowed"
+                          onClick={handleFlexiLinkClick}
+                        >
+                          <Mic className="h-4 w-4" />
+                          <span>Hangfelvétel</span>
+                        </SidebarMenuButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>
+                          Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+                          <button
+                            onClick={handleFlexiLinkClick}
+                            className="underline text-primary hover:text-primary/80"
+                          >
+                            kérem csatolja hozzá fiókját itt!
+                          </button>
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
