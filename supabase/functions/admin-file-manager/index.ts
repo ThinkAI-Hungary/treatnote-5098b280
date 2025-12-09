@@ -356,9 +356,9 @@ serve(async (req) => {
       }
 
       case "get-tree": {
-        // Get folder tree structure
-        const basePath = path || "Molaire";
-        console.log(`Getting tree for: ${basePath}`);
+        // Get folder tree structure - returns array of items at the path
+        const basePath = path || "";
+        console.log(`Getting tree for: ${basePath || "(root)"}`);
 
         const tree = await buildTree(supabaseAdmin, basePath);
         result = {
@@ -431,8 +431,8 @@ async function listRecursive(
   return results;
 }
 
-// Helper: Build a tree structure
-async function buildTree(supabase: any, basePath: string): Promise<any> {
+// Helper: Build a tree structure - returns array of children for given path
+async function buildTree(supabase: any, basePath: string): Promise<any[]> {
   const normalizedPath = basePath.endsWith("/") ? basePath : `${basePath}/`;
   
   const { data: items, error } = await supabase.storage
@@ -440,14 +440,11 @@ async function buildTree(supabase: any, basePath: string): Promise<any> {
     .list(normalizedPath, { limit: 1000 });
 
   if (error || !items) {
-    return { name: basePath.split("/").pop(), children: [], error: error?.message };
+    console.error(`Error listing ${normalizedPath}:`, error);
+    return [];
   }
 
-  const tree: any = {
-    name: basePath.split("/").pop() || basePath,
-    path: normalizedPath,
-    children: []
-  };
+  const children: any[] = [];
 
   for (const item of items) {
     if (item.name === ".folder_placeholder") continue;
@@ -455,12 +452,17 @@ async function buildTree(supabase: any, basePath: string): Promise<any> {
     const itemPath = `${normalizedPath}${item.name}`;
     
     if (item.id === null) {
-      // Folder - recurse
-      const subtree = await buildTree(supabase, itemPath);
-      tree.children.push(subtree);
+      // Folder - recurse to get its children
+      const subChildren = await buildTree(supabase, itemPath);
+      children.push({
+        name: item.name,
+        path: itemPath,
+        type: "folder",
+        children: subChildren
+      });
     } else {
       // File
-      tree.children.push({
+      children.push({
         name: item.name,
         path: itemPath,
         type: "file",
@@ -469,5 +471,5 @@ async function buildTree(supabase: any, basePath: string): Promise<any> {
     }
   }
 
-  return tree;
+  return children;
 }
