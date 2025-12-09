@@ -40,6 +40,9 @@ enable_confirmations = true
 
 [functions.get-file-metadata]
 
+[functions.get-subscription]
+verify_jwt = false
+
 [functions.list-version-files]
 
 [functions.voice-recording-webhook]
