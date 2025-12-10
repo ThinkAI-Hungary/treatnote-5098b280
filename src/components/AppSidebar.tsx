@@ -50,8 +50,6 @@ import {
 const mainNavItems: { title: string; url: string; icon: typeof LayoutDashboard }[] = [];
 
 const secondaryNavItems = [
-  { title: 'Analitika', url: '/analytics', icon: BarChart3 },
-  { title: 'Letöltések', url: '/downloads', icon: Download },
   { title: 'Számlázás', url: '/billing', icon: CreditCard },
 ];
 
