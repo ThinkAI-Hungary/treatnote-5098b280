@@ -47,13 +47,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const mainNavItems = [
-  { title: 'Irányítópult', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Páciensek', url: '/patients', icon: Users },
-  { title: 'Időpontok', url: '/appointments', icon: Calendar },
-  { title: 'Vizsgálatok', url: '/examinations', icon: Stethoscope },
-  { title: 'Fogstátusz', url: '/dental-charting', icon: Grid3X3 },
-];
+const mainNavItems: { title: string; url: string; icon: typeof LayoutDashboard }[] = [];
 
 const secondaryNavItems = [
   { title: 'Analitika', url: '/analytics', icon: BarChart3 },
