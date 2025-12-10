@@ -115,6 +115,12 @@ serve(async (req) => {
       console.error("Error creating profile:", profileError);
     }
 
+    // Delete any existing roles first (trigger may have created a 'user' role)
+    await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", newUser.user.id);
+
     // Create user role with the specified role
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
@@ -126,6 +132,8 @@ serve(async (req) => {
     if (roleError) {
       console.error("Error creating role:", roleError);
     }
+
+    console.log(`User created with role: ${userRole}`);
 
     return new Response(
       JSON.stringify({
