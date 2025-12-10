@@ -8,6 +8,22 @@ const corsHeaders = {
 
 const BUCKET_NAME = "client-files";
 
+// Sanitize path by converting Hungarian/special characters to ASCII equivalents
+function sanitizePath(path: string): string {
+  const charMap: Record<string, string> = {
+    'á': 'a', 'Á': 'A',
+    'é': 'e', 'É': 'E',
+    'í': 'i', 'Í': 'I',
+    'ó': 'o', 'Ó': 'O',
+    'ö': 'o', 'Ö': 'O',
+    'ő': 'o', 'Ő': 'O',
+    'ú': 'u', 'Ú': 'U',
+    'ü': 'u', 'Ü': 'U',
+    'ű': 'u', 'Ű': 'U',
+  };
+  return path.split('').map(char => charMap[char] || char).join('');
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -61,7 +77,16 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { operation, path, content, newPath, recursive } = body;
+    const { operation, path: rawPath, content, newPath: rawNewPath, recursive } = body;
+    
+    // Sanitize paths to handle Hungarian special characters
+    const path = rawPath ? sanitizePath(rawPath) : rawPath;
+    const newPath = rawNewPath ? sanitizePath(rawNewPath) : rawNewPath;
+    
+    // Log path transformation if different
+    if (rawPath && rawPath !== path) {
+      console.log(`Path sanitized: "${rawPath}" -> "${path}"`);
+    }
 
     if (!operation) {
       return new Response(
@@ -107,6 +132,7 @@ serve(async (req) => {
         result = {
           success: true,
           path: normalizedPath,
+          originalPath: rawPath,
           folders: folders.map(f => f.name),
           files: actualFiles.map(f => ({
             name: f.name,
@@ -132,6 +158,7 @@ serve(async (req) => {
         result = {
           success: true,
           path,
+          originalPath: rawPath,
           items: allFiles
         };
         break;
@@ -176,6 +203,7 @@ serve(async (req) => {
           success: true,
           message: `Folder created: ${path}`,
           path: path,
+          originalPath: rawPath,
           createdFolders
         };
         break;
@@ -213,7 +241,8 @@ serve(async (req) => {
         result = {
           success: true,
           message: `File uploaded: ${path}`,
-          path
+          path,
+          originalPath: rawPath
         };
         break;
       }
@@ -247,6 +276,7 @@ serve(async (req) => {
         result = {
           success: true,
           path,
+          originalPath: rawPath,
           content: base64,
           size: arrayBuffer.byteLength
         };
@@ -279,7 +309,8 @@ serve(async (req) => {
         result = {
           success: true,
           message: `File deleted: ${path}`,
-          path
+          path,
+          originalPath: rawPath
         };
         break;
       }
@@ -325,7 +356,8 @@ serve(async (req) => {
           success: true,
           message: `Folder deleted: ${path}`,
           deleted: filePaths.length,
-          files: filePaths
+          files: filePaths,
+          originalPath: rawPath
         };
         break;
       }
@@ -357,7 +389,9 @@ serve(async (req) => {
           success: true,
           message: `File moved: ${path} -> ${newPath}`,
           from: path,
-          to: newPath
+          to: newPath,
+          originalFrom: rawPath,
+          originalTo: rawNewPath
         };
         break;
       }
@@ -371,6 +405,7 @@ serve(async (req) => {
         result = {
           success: true,
           path: basePath,
+          originalPath: rawPath,
           tree
         };
         break;
