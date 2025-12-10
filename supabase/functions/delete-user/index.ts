@@ -68,22 +68,19 @@ serve(async (req) => {
 
     console.log(`Admin ${user.id} attempting to delete user ${userId}`);
 
-    // Check the target user's role
+    // Check the target user's role (optional - user might not have a role)
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (roleError) {
       console.error('Error fetching user role:', roleError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user role' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Continue anyway - we'll still try to delete the user
     }
 
-    const targetRole = roleData?.role;
+    const targetRole = roleData?.role || 'unknown';
     console.log(`Target user ${userId} has role: ${targetRole}`);
 
     // Delete from auth.users (cascades to profiles and user_roles)
