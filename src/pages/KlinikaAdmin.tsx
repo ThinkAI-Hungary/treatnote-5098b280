@@ -171,7 +171,7 @@ export default function KlinikaAdmin() {
 
       if (error) throw error;
 
-      toast.success('Felhasználó eltávolítva a csapatból');
+      toast.success('Felhasználó eltávolítva az organizációból');
       loadUsers();
     } catch (error: any) {
       console.error('Error removing user:', error);
@@ -217,7 +217,7 @@ export default function KlinikaAdmin() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Klinika Admin</h1>
           <p className="text-muted-foreground mt-1">
-            {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Csapat kezelése'}
+            {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
           </p>
         </div>
 
@@ -225,7 +225,7 @@ export default function KlinikaAdmin() {
           <TabsList>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Csapattagok
+              Tagok
             </TabsTrigger>
             <TabsTrigger value="invite" className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
@@ -235,7 +235,7 @@ export default function KlinikaAdmin() {
 
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Csapattagok kezelése</h2>
+              <h2 className="text-xl font-semibold">Organizáció kezelése</h2>
               <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -247,7 +247,7 @@ export default function KlinikaAdmin() {
                   <DialogHeader>
                     <DialogTitle>Új felhasználó létrehozása</DialogTitle>
                     <DialogDescription>
-                      Az új felhasználó automatikusan a csapathoz kerül: {companyName} - {telephelyName}
+                      Az új felhasználó automatikusan az organizációhoz kerül: {companyName} - {telephelyName}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -334,7 +334,7 @@ export default function KlinikaAdmin() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">Még nincsenek csapattagok</p>
+                  <p className="text-muted-foreground">Még nincsenek tagok</p>
                 </CardContent>
               </Card>
             ) : (
@@ -392,7 +392,7 @@ export default function KlinikaAdmin() {
                   Felhasználók meghívása
                 </CardTitle>
                 <CardDescription>
-                  Meglévő felhasználók meghívása a csapatba: {companyName} - {telephelyName}
+                  Meglévő felhasználók meghívása az organizációba: {companyName} - {telephelyName}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -408,7 +408,7 @@ export default function KlinikaAdmin() {
                 <DialogHeader>
                   <DialogTitle>Felhasználók meghívása</DialogTitle>
                   <DialogDescription>
-                    Válasszon felhasználókat a csapatba való meghíváshoz
+                    Válasszon felhasználókat az organizációba való meghíváshoz
                   </DialogDescription>
                 </DialogHeader>
                 {loadingAvailable ? (
@@ -434,7 +434,7 @@ export default function KlinikaAdmin() {
                             )}
                             {user.has_company && (
                               <Badge variant="outline" className="mt-1 text-xs">
-                                Másik csapatban
+                                Másik organizációban
                               </Badge>
                             )}
                           </div>
