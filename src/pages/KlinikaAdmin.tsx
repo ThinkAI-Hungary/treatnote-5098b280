@@ -360,7 +360,15 @@ export default function KlinikaAdmin() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' || user.role === 'klinika_admin' ? 'default' : 'outline'}>
+                          <Badge 
+                            className={
+                              user.role === 'admin' 
+                                ? 'bg-red-500 text-white hover:bg-red-600' 
+                                : user.role === 'klinika_admin' 
+                                  ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }
+                          >
                             {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
                           </Badge>
                         </TableCell>
