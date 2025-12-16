@@ -360,12 +360,12 @@ export default function KlinikaAdmin() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'klinika_admin' ? 'default' : 'outline'}>
-                            {user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+                          <Badge variant={user.role === 'admin' || user.role === 'klinika_admin' ? 'default' : 'outline'}>
+                            {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {user.role !== 'klinika_admin' && (
+                          {user.role !== 'klinika_admin' && user.role !== 'admin' && (
                             <Button
                               variant="ghost"
                               size="icon"
