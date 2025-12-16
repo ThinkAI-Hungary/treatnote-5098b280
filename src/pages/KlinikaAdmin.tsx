@@ -204,7 +204,22 @@ export default function KlinikaAdmin() {
         body: { operation: 'invite-user', userId },
       });
 
-      if (error) throw error;
+      if (error) {
+        // supabase-js returns a FunctionsHttpError for non-2xx responses (e.g. 409)
+        let message = error.message;
+        const body = (error as any)?.context?.body;
+        if (typeof body === 'string') {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed?.error) message = parsed.error;
+          } catch {
+            // ignore JSON parse errors
+          }
+        }
+        toast.error(message);
+        return;
+      }
+
       if (data?.error) {
         toast.error(data.error);
         return;
@@ -220,7 +235,7 @@ export default function KlinikaAdmin() {
       loadSentInvitations();
     } catch (error: any) {
       console.error('Error inviting user:', error);
-      toast.error(error.message || 'Hiba a felhasználó meghívásakor');
+      toast.error(error?.message || 'Hiba a felhasználó meghívásakor');
     } finally {
       setInvitingUserId(null);
     }
