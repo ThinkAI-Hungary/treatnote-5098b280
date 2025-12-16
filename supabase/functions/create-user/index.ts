@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     // Validate role if provided
-    const validRoles = ['user', 'admin'];
+    const validRoles = ['user', 'admin', 'klinika_admin'];
     const userRole = role && validRoles.includes(role) ? role : 'user';
 
     // Create admin client with service role key
