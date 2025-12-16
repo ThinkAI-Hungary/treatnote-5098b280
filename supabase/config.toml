@@ -46,3 +46,5 @@ verify_jwt = false
 [functions.list-version-files]
 
 [functions.voice-recording-webhook]
+
+[functions.klinika-admin]

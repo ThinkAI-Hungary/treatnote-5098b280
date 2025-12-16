@@ -13,10 +13,12 @@ import {
   Shield,
   Stethoscope,
   Grid3X3,
+  Building2,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -62,6 +64,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { isKlinikaAdmin } = useKlinikaAdminRole();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
@@ -192,6 +195,28 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
+        {isKlinikaAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Klinika</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Klinika Admin">
+                    <NavLink
+                      to="/klinika-admin"
+                      className="flex items-center gap-2"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                    >
+                      <Building2 className="h-4 w-4" />
+                      <span>Klinika Admin</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>Fiók</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -236,7 +261,7 @@ export function AppSidebar() {
                         {user?.email}
                       </span>
                       <span className="text-xs text-sidebar-foreground/60">
-                        {isAdmin ? 'Admin' : 'Felhasználó'}
+                        {isAdmin ? 'Admin' : isKlinikaAdmin ? 'Klinika Admin' : 'Felhasználó'}
                       </span>
                     </div>
                   )}
