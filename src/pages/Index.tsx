@@ -33,11 +33,11 @@ const Index = () => {
           Signed in as {user.email}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={() => navigate('/voice-recording')}>
-            Tovább az oldalra
-          </Button>
           <Button variant="outline" onClick={signOut}>
             Sign out
+          </Button>
+          <Button onClick={() => navigate('/voice-recording')}>
+            Tovább az oldalra
           </Button>
         </div>
       </div>
