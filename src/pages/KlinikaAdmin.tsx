@@ -205,6 +205,10 @@ export default function KlinikaAdmin() {
       });
 
       if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       if (data.type === 'direct') {
         toast.success('Felhasználó sikeresen hozzáadva az organizációhoz');
