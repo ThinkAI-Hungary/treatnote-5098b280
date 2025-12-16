@@ -311,12 +311,11 @@ serve(async (req) => {
           .select("user_id, role")
           .in("user_id", allUserIds);
 
-        // Get pending invitations for this company/telephely
+        // Get pending invitations (any company/telephely)
+        // This prevents duplicate invites when there is a global unique constraint on pending invitations.
         const { data: pendingInvitations } = await supabaseAdmin
           .from("invitations")
           .select("invited_user_id")
-          .eq("company_id", companyId)
-          .eq("telephely_id", telephelyId)
           .eq("status", "pending");
 
         const pendingUserIds = pendingInvitations?.map(i => i.invited_user_id) || [];
