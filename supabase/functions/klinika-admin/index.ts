@@ -37,7 +37,146 @@ serve(async (req) => {
       });
     }
 
-    // Check if caller is klinika_admin or admin
+    // Create admin client
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Parse the operation first to determine access level needed
+    const { operation, ...params } = await req.json();
+    console.log(`Klinika Admin operation: ${operation} by user ${caller.id}`);
+
+    // Operations that any authenticated user can access
+    const userAccessOperations = ['get-pending-invitations', 'respond-invitation'];
+    
+    if (userAccessOperations.includes(operation)) {
+      // These operations don't require admin role, handle them separately
+      if (operation === 'get-pending-invitations') {
+        const { data: invitations, error } = await supabaseAdmin
+          .from("invitations")
+          .select(`
+            id,
+            created_at,
+            company_id,
+            telephely_id,
+            invited_by_user_id,
+            companies(name),
+            telephely(name)
+          `)
+          .eq("invited_user_id", caller.id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching invitations:", error);
+          return new Response(JSON.stringify({ error: "Failed to fetch invitations" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get inviter names
+        const inviterIds = invitations?.map(i => i.invited_by_user_id) || [];
+        const { data: inviterProfiles } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", inviterIds);
+
+        const formattedInvitations = invitations?.map(inv => {
+          const companyData = inv.companies as unknown as { name: string } | null;
+          const telephelyData = inv.telephely as unknown as { name: string } | null;
+          return {
+            id: inv.id,
+            created_at: inv.created_at,
+            company_name: companyData?.name || 'Unknown',
+            telephely_name: telephelyData?.name || 'Unknown',
+            invited_by_name: inviterProfiles?.find(p => p.user_id === inv.invited_by_user_id)?.full_name || 'Unknown',
+          };
+        }) || [];
+
+        return new Response(JSON.stringify({ invitations: formattedInvitations }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (operation === 'respond-invitation') {
+        const { invitationId, response } = params;
+        if (!invitationId || !response) {
+          return new Response(JSON.stringify({ error: "invitationId and response are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (response !== 'accepted' && response !== 'declined') {
+          return new Response(JSON.stringify({ error: "Response must be 'accepted' or 'declined'" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get invitation details
+        const { data: invitation, error: invitationError } = await supabaseAdmin
+          .from("invitations")
+          .select("*, companies(name), telephely(name)")
+          .eq("id", invitationId)
+          .eq("invited_user_id", caller.id)
+          .eq("status", "pending")
+          .single();
+
+        if (invitationError || !invitation) {
+          return new Response(JSON.stringify({ error: "Invitation not found or already responded" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update invitation status
+        const { error: updateInvError } = await supabaseAdmin
+          .from("invitations")
+          .update({ status: response, responded_at: new Date().toISOString() })
+          .eq("id", invitationId);
+
+        if (updateInvError) {
+          console.error("Error updating invitation:", updateInvError);
+          return new Response(JSON.stringify({ error: "Failed to update invitation" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (response === 'accepted') {
+          // Add user to company
+          const { error: profileError } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              company_id: invitation.company_id,
+              telephely_id: invitation.telephely_id,
+            })
+            .eq("user_id", caller.id);
+
+          if (profileError) {
+            console.error("Error adding user to company:", profileError);
+            return new Response(JSON.stringify({ error: "Failed to join company" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          console.log(`User ${caller.id} accepted invitation to company ${invitation.company_id}`);
+        } else {
+          console.log(`User ${caller.id} declined invitation to company ${invitation.company_id}`);
+        }
+
+        return new Response(JSON.stringify({ success: true, response }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // For all other operations, check if caller is klinika_admin or admin
     const { data: isKlinikaAdmin } = await supabaseClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "klinika_admin",
@@ -55,20 +194,12 @@ serve(async (req) => {
       });
     }
 
-    // Create admin client
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     // Get caller's company and telephely
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
       .select("company_id, telephely_id, company_name")
       .eq("user_id", caller.id)
       .single();
-
-    const { operation, ...params } = await req.json();
-    console.log(`Klinika Admin operation: ${operation} by user ${caller.id}`);
 
     // For klinika_admin, company and telephely are required
     // For admin, they can access but some operations require company/telephely
@@ -296,131 +427,6 @@ serve(async (req) => {
         });
       }
 
-      case "respond-invitation": {
-        const { invitationId, response } = params;
-        if (!invitationId || !response) {
-          return new Response(JSON.stringify({ error: "invitationId and response are required" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        if (response !== 'accepted' && response !== 'declined') {
-          return new Response(JSON.stringify({ error: "Response must be 'accepted' or 'declined'" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Get invitation details
-        const { data: invitation, error: invitationError } = await supabaseAdmin
-          .from("invitations")
-          .select("*, companies(name), telephely(name)")
-          .eq("id", invitationId)
-          .eq("invited_user_id", caller.id)
-          .eq("status", "pending")
-          .single();
-
-        if (invitationError || !invitation) {
-          return new Response(JSON.stringify({ error: "Invitation not found or already responded" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Update invitation status
-        const { error: updateInvError } = await supabaseAdmin
-          .from("invitations")
-          .update({ status: response, responded_at: new Date().toISOString() })
-          .eq("id", invitationId);
-
-        if (updateInvError) {
-          console.error("Error updating invitation:", updateInvError);
-          return new Response(JSON.stringify({ error: "Failed to update invitation" }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        if (response === 'accepted') {
-          // Add user to company
-          const { error: profileError } = await supabaseAdmin
-            .from("profiles")
-            .update({
-              company_id: invitation.company_id,
-              telephely_id: invitation.telephely_id,
-            })
-            .eq("user_id", caller.id);
-
-          if (profileError) {
-            console.error("Error adding user to company:", profileError);
-            return new Response(JSON.stringify({ error: "Failed to join company" }), {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-
-          console.log(`User ${caller.id} accepted invitation to company ${invitation.company_id}`);
-        } else {
-          console.log(`User ${caller.id} declined invitation to company ${invitation.company_id}`);
-        }
-
-        return new Response(JSON.stringify({ success: true, response }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      case "get-pending-invitations": {
-        // Get pending invitations for the caller (as invitee)
-        const { data: invitations, error } = await supabaseAdmin
-          .from("invitations")
-          .select(`
-            id,
-            created_at,
-            company_id,
-            telephely_id,
-            invited_by_user_id,
-            companies(name),
-            telephely(name)
-          `)
-          .eq("invited_user_id", caller.id)
-          .eq("status", "pending")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching invitations:", error);
-          return new Response(JSON.stringify({ error: "Failed to fetch invitations" }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Get inviter names
-        const inviterIds = invitations?.map(i => i.invited_by_user_id) || [];
-        const { data: inviterProfiles } = await supabaseAdmin
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", inviterIds);
-
-        const formattedInvitations = invitations?.map(inv => {
-          // Supabase returns single object for one-to-one relations
-          const companyData = inv.companies as unknown as { name: string } | null;
-          const telephelyData = inv.telephely as unknown as { name: string } | null;
-          return {
-            id: inv.id,
-            created_at: inv.created_at,
-            company_name: companyData?.name || 'Unknown',
-            telephely_name: telephelyData?.name || 'Unknown',
-            invited_by_name: inviterProfiles?.find(p => p.user_id === inv.invited_by_user_id)?.full_name || 'Unknown',
-          };
-        }) || [];
-
-        return new Response(JSON.stringify({ invitations: formattedInvitations }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       case "get-sent-invitations": {
         // Get invitations sent by the klinika admin
