@@ -406,8 +406,10 @@ serve(async (req) => {
 
         if (inviteError) {
           if (inviteError.code === '23505') {
-            return new Response(JSON.stringify({ error: "Már van függőben lévő meghívás ennek a felhasználónak" }), {
-              status: 409,
+            // Avoid surfacing this as an uncaught exception in the frontend by returning 200.
+            // The client will display the error message as a toast.
+            return new Response(JSON.stringify({ success: false, error: "Már van függőben lévő meghívás ennek a felhasználónak" }), {
+              status: 200,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
