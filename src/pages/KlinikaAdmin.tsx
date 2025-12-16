@@ -215,10 +215,10 @@ export default function KlinikaAdmin() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Klinika Admin</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">
             {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
-          </p>
+          </h1>
+          <p className="text-muted-foreground mt-1">Organizáció kezelése</p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
