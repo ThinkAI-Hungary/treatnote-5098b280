@@ -195,7 +195,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {isKlinikaAdmin && (
+        {(isKlinikaAdmin || isAdmin) && (
           <SidebarGroup>
             <SidebarGroupLabel>Klinika</SidebarGroupLabel>
             <SidebarGroupContent>
