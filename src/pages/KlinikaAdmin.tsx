@@ -32,6 +32,7 @@ interface AvailableUser {
   email: string;
   full_name: string | null;
   has_company: boolean;
+  is_local_user: boolean;
 }
 
 export default function KlinikaAdmin() {
@@ -143,16 +144,20 @@ export default function KlinikaAdmin() {
     }
   };
 
-  const handleInviteUser = async (userId: string) => {
+  const handleInviteUser = async (userId: string, isLocalUser: boolean) => {
     setInvitingUserId(userId);
     try {
-      const { error } = await supabase.functions.invoke('klinika-admin', {
+      const { data, error } = await supabase.functions.invoke('klinika-admin', {
         body: { operation: 'invite-user', userId },
       });
 
       if (error) throw error;
 
-      toast.success('Felhasználó sikeresen meghívva');
+      if (data.type === 'direct') {
+        toast.success('Felhasználó sikeresen hozzáadva az organizációhoz');
+      } else {
+        toast.success('Meghívó elküldve! A felhasználónak el kell fogadnia a meghívást.');
+      }
       loadUsers();
       loadAvailableUsers();
     } catch (error: any) {
@@ -448,7 +453,7 @@ export default function KlinikaAdmin() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => handleInviteUser(user.id)}
+                            onClick={() => handleInviteUser(user.id, user.is_local_user)}
                             disabled={invitingUserId === user.id}
                           >
                             {invitingUserId === user.id ? (
@@ -456,7 +461,7 @@ export default function KlinikaAdmin() {
                             ) : (
                               <>
                                 <UserPlus className="mr-2 h-4 w-4" />
-                                Meghívás
+                                {user.is_local_user ? 'Hozzáadás' : 'Meghívás'}
                               </>
                             )}
                           </Button>
