@@ -393,7 +393,8 @@ serve(async (req) => {
           });
         }
 
-        // For email users, create an invitation
+        // For email users, create (or re-open) an invitation
+        const nowIso = new Date().toISOString();
         const { error: inviteError } = await supabaseAdmin
           .from("invitations")
           .insert({
@@ -402,17 +403,72 @@ serve(async (req) => {
             company_id: companyId,
             telephely_id: telephelyId,
             status: 'pending',
+            responded_at: null,
+            created_at: nowIso,
           });
 
         if (inviteError) {
           if (inviteError.code === '23505') {
-            // Avoid surfacing this as an uncaught exception in the frontend by returning 200.
-            // The client will display the error message as a toast.
-            return new Response(JSON.stringify({ success: false, error: "Már van függőben lévő meghívás ennek a felhasználónak" }), {
-              status: 200,
+            // There is an existing invitation row (often due to a unique constraint not scoped by status).
+            // If it's already pending -> block. Otherwise, re-open it as pending.
+            const { data: existing, error: existingError } = await supabaseAdmin
+              .from('invitations')
+              .select('id, status')
+              .eq('invited_user_id', userId)
+              .eq('company_id', companyId)
+              .eq('telephely_id', telephelyId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (existingError) {
+              console.error('Error loading existing invitation:', existingError);
+              return new Response(JSON.stringify({ error: 'Failed to create invitation' }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+
+            if (existing?.status === 'pending') {
+              return new Response(
+                JSON.stringify({ success: false, error: 'Már van függőben lévő meghívás ennek a felhasználónak' }),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+              );
+            }
+
+            if (existing?.id) {
+              const { error: reopenError } = await supabaseAdmin
+                .from('invitations')
+                .update({
+                  status: 'pending',
+                  responded_at: null,
+                  invited_by_user_id: caller.id,
+                  created_at: nowIso,
+                })
+                .eq('id', existing.id);
+
+              if (reopenError) {
+                console.error('Error reopening invitation:', reopenError);
+                return new Response(JSON.stringify({ error: 'Failed to create invitation' }), {
+                  status: 500,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+              }
+
+              console.log(`Invitation reopened for user ${userId} to company ${companyId} by ${caller.id}`);
+              return new Response(JSON.stringify({ success: true, type: 'invitation', reopened: true }), {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+
+            // Fallback: unknown conflict
+            return new Response(JSON.stringify({ error: 'Failed to create invitation' }), {
+              status: 500,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
+
           console.error("Error creating invitation:", inviteError);
           return new Response(JSON.stringify({ error: "Failed to create invitation" }), {
             status: 500,
