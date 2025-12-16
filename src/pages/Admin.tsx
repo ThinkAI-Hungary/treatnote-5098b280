@@ -74,7 +74,7 @@ export default function Admin() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState('');
   const [newUserFullName, setNewUserFullName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'klinika_admin'>('user');
   const [creatingUser, setCreatingUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -83,7 +83,7 @@ export default function Admin() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editCompanyId, setEditCompanyId] = useState<string>('');
   const [editTelephelyId, setEditTelephelyId] = useState<string>('');
-  const [editRole, setEditRole] = useState<'user' | 'admin'>('user');
+  const [editRole, setEditRole] = useState<'user' | 'admin' | 'klinika_admin'>('user');
   const [editCanCreateUsers, setEditCanCreateUsers] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
 
@@ -242,7 +242,7 @@ export default function Admin() {
     setEditCompanyId(userWithRole.company_id || '');
     setEditTelephelyId(userWithRole.telephely_id || '');
     setEditCanCreateUsers(userWithRole.can_create_users || false);
-    setEditRole(userWithRole.role as 'user' | 'admin');
+    setEditRole(userWithRole.role as 'user' | 'admin' | 'klinika_admin');
     setEditDialogOpen(true);
   };
 
@@ -603,12 +603,13 @@ export default function Admin() {
                     </div>
                     <div className="space-y-2">
                       <Label>Szerepkör</Label>
-                      <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin')}>
+                      <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin' | 'klinika_admin')}>
                         <SelectTrigger>
                           <SelectValue placeholder="Válasszon szerepkört" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="user">Felhasználó</SelectItem>
+                          <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -668,8 +669,8 @@ export default function Admin() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={userData.role === 'admin' ? 'destructive' : 'outline'}>
-                            {userData.role === 'admin' ? 'Admin' : 'Felhasználó'}
+                          <Badge variant={userData.role === 'admin' ? 'destructive' : userData.role === 'klinika_admin' ? 'default' : 'outline'}>
+                            {userData.role === 'admin' ? 'Admin' : userData.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -941,12 +942,13 @@ export default function Admin() {
             </div>
             <div className="space-y-2">
               <Label>Szerepkör</Label>
-              <Select value={editRole} onValueChange={(val) => setEditRole(val as 'user' | 'admin')}>
+              <Select value={editRole} onValueChange={(val) => setEditRole(val as 'user' | 'admin' | 'klinika_admin')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">Felhasználó</SelectItem>
+                  <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
