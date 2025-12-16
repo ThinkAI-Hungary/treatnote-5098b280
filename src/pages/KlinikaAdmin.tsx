@@ -9,13 +9,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, X
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { hu } from 'date-fns/locale';
 
 interface KlinikaUser {
   id: string;
@@ -33,6 +35,15 @@ interface AvailableUser {
   full_name: string | null;
   has_company: boolean;
   is_local_user: boolean;
+}
+
+interface SentInvitation {
+  id: string;
+  email: string;
+  full_name: string | null;
+  status: string;
+  created_at: string;
+  responded_at: string | null;
 }
 
 export default function KlinikaAdmin() {
@@ -56,9 +67,15 @@ export default function KlinikaAdmin() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
+  // Sent invitations state
+  const [sentInvitations, setSentInvitations] = useState<SentInvitation[]>([]);
+  const [loadingSentInvitations, setLoadingSentInvitations] = useState(false);
+  const [cancellingInvitationId, setCancellingInvitationId] = useState<string | null>(null);
+
   useEffect(() => {
     if (isKlinikaAdmin || isAdmin) {
       loadUsers();
+      loadSentInvitations();
     }
   }, [isKlinikaAdmin, isAdmin]);
 
@@ -93,6 +110,42 @@ export default function KlinikaAdmin() {
       toast.error('Hiba a meghívható felhasználók betöltésekor');
     } finally {
       setLoadingAvailable(false);
+    }
+  };
+
+  const loadSentInvitations = async () => {
+    setLoadingSentInvitations(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('klinika-admin', {
+        body: { operation: 'get-sent-invitations' },
+      });
+
+      if (error) throw error;
+      setSentInvitations(data.invitations || []);
+    } catch (error: any) {
+      console.error('Error loading sent invitations:', error);
+    } finally {
+      setLoadingSentInvitations(false);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    setCancellingInvitationId(invitationId);
+    try {
+      const { error } = await supabase.functions.invoke('klinika-admin', {
+        body: { operation: 'cancel-invitation', invitationId },
+      });
+
+      if (error) throw error;
+
+      toast.success('Meghívó visszavonva');
+      loadSentInvitations();
+      loadAvailableUsers();
+    } catch (error: any) {
+      console.error('Error cancelling invitation:', error);
+      toast.error(error.message || 'Hiba a meghívó visszavonásakor');
+    } finally {
+      setCancellingInvitationId(null);
     }
   };
 
@@ -160,6 +213,7 @@ export default function KlinikaAdmin() {
       }
       loadUsers();
       loadAvailableUsers();
+      loadSentInvitations();
     } catch (error: any) {
       console.error('Error inviting user:', error);
       toast.error(error.message || 'Hiba a felhasználó meghívásakor');
@@ -178,6 +232,7 @@ export default function KlinikaAdmin() {
 
       toast.success('Felhasználó eltávolítva az organizációból');
       loadUsers();
+      loadSentInvitations();
     } catch (error: any) {
       console.error('Error removing user:', error);
       toast.error(error.message || 'Hiba a felhasználó eltávolításakor');
@@ -472,6 +527,85 @@ export default function KlinikaAdmin() {
                 )}
               </DialogContent>
             </Dialog>
+
+            {/* Sent Invitations List */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Elküldött meghívók
+                </CardTitle>
+                <CardDescription>
+                  Az Ön által elküldött meghívók listája
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingSentInvitations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : sentInvitations.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nincs elküldött meghívó
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Név</TableHead>
+                          <TableHead>Státusz</TableHead>
+                          <TableHead>Elküldve</TableHead>
+                          <TableHead className="text-right">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sentInvitations.map((invitation) => (
+                          <TableRow key={invitation.id}>
+                            <TableCell className="font-medium">{invitation.email}</TableCell>
+                            <TableCell>{invitation.full_name || '-'}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  invitation.status === 'pending' ? 'secondary' : 
+                                  invitation.status === 'accepted' ? 'default' : 
+                                  'destructive'
+                                }
+                              >
+                                {invitation.status === 'pending' ? 'Függőben' : 
+                                 invitation.status === 'accepted' ? 'Elfogadva' : 
+                                 'Elutasítva'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(invitation.created_at), 'yyyy. MMM d.', { locale: hu })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {invitation.status === 'pending' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleCancelInvitation(invitation.id)}
+                                  disabled={cancellingInvitationId === invitation.id}
+                                >
+                                  {cancellingInvitationId === invitation.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
