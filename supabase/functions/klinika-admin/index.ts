@@ -324,18 +324,21 @@ serve(async (req) => {
           });
         }
 
-        // Create profile with the klinika admin's company and telephely
+        // Create or update profile with the klinika admin's company and telephely
+        // Using upsert because the handle_email_confirmation trigger may have already created the profile
         const { error: profileError } = await supabaseAdmin
           .from("profiles")
-          .insert({
+          .upsert({
             user_id: newUser.user.id,
             full_name: fullName || email.split("@")[0],
             company_id: companyId,
             telephely_id: telephelyId,
+          }, {
+            onConflict: 'user_id',
           });
 
         if (profileError) {
-          console.error("Error creating profile:", profileError);
+          console.error("Error creating/updating profile:", profileError);
         }
 
         // Delete any existing roles and create user role
