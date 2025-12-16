@@ -180,6 +180,16 @@ serve(async (req) => {
           .select("user_id, role")
           .in("user_id", allUserIds);
 
+        // Get pending invitations for this company/telephely
+        const { data: pendingInvitations } = await supabaseAdmin
+          .from("invitations")
+          .select("invited_user_id")
+          .eq("company_id", companyId)
+          .eq("telephely_id", telephelyId)
+          .eq("status", "pending");
+
+        const pendingUserIds = pendingInvitations?.map(i => i.invited_user_id) || [];
+
         const availableUsers = confirmedUsers
           .filter(authUser => {
             const profile = profiles?.find(p => p.user_id === authUser.id);
@@ -187,6 +197,9 @@ serve(async (req) => {
             // But exclude admins and klinika_admins
             const userRole = roles?.find(r => r.user_id === authUser.id);
             if (userRole?.role === 'admin' || userRole?.role === 'klinika_admin') return false;
+            
+            // Exclude users with pending invitations
+            if (pendingUserIds.includes(authUser.id)) return false;
             
             if (!profile) return true;
             return !profile.company_id || !profile.telephely_id || 
@@ -200,6 +213,7 @@ serve(async (req) => {
               email: authUser.email,
               full_name: profile?.full_name || null,
               has_company: !!profile?.company_id,
+              is_local_user: authUser.email?.endsWith('@localuser.com') || false,
             };
           });
 
@@ -218,24 +232,270 @@ serve(async (req) => {
           });
         }
 
-        // Update the user's profile with the klinika admin's company and telephely
-        const { error: updateError } = await supabaseAdmin
-          .from("profiles")
-          .update({
+        // Get user email to check if local user
+        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+        const targetUser = authUsers?.find(u => u.id === userId);
+        const isLocalUser = targetUser?.email?.endsWith('@localuser.com') || false;
+
+        if (isLocalUser) {
+          // Local users get added directly
+          const { error: updateError } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              company_id: companyId,
+              telephely_id: telephelyId,
+            })
+            .eq("user_id", userId);
+
+          if (updateError) {
+            console.error("Error adding local user:", updateError);
+            return new Response(JSON.stringify({ error: "Failed to add user" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          console.log(`Local user ${userId} added directly to company ${companyId} and telephely ${telephelyId}`);
+
+          return new Response(JSON.stringify({ success: true, type: 'direct' }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // For email users, create an invitation
+        const { error: inviteError } = await supabaseAdmin
+          .from("invitations")
+          .insert({
+            invited_user_id: userId,
+            invited_by_user_id: caller.id,
             company_id: companyId,
             telephely_id: telephelyId,
-          })
-          .eq("user_id", userId);
+            status: 'pending',
+          });
 
-        if (updateError) {
-          console.error("Error inviting user:", updateError);
-          return new Response(JSON.stringify({ error: "Failed to invite user" }), {
+        if (inviteError) {
+          if (inviteError.code === '23505') {
+            return new Response(JSON.stringify({ error: "Már van függőben lévő meghívás ennek a felhasználónak" }), {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          console.error("Error creating invitation:", inviteError);
+          return new Response(JSON.stringify({ error: "Failed to create invitation" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        console.log(`User ${userId} invited to company ${companyId} and telephely ${telephelyId}`);
+        console.log(`Invitation created for user ${userId} to company ${companyId} by ${caller.id}`);
+
+        return new Response(JSON.stringify({ success: true, type: 'invitation' }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "respond-invitation": {
+        const { invitationId, response } = params;
+        if (!invitationId || !response) {
+          return new Response(JSON.stringify({ error: "invitationId and response are required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (response !== 'accepted' && response !== 'declined') {
+          return new Response(JSON.stringify({ error: "Response must be 'accepted' or 'declined'" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get invitation details
+        const { data: invitation, error: invitationError } = await supabaseAdmin
+          .from("invitations")
+          .select("*, companies(name), telephely(name)")
+          .eq("id", invitationId)
+          .eq("invited_user_id", caller.id)
+          .eq("status", "pending")
+          .single();
+
+        if (invitationError || !invitation) {
+          return new Response(JSON.stringify({ error: "Invitation not found or already responded" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update invitation status
+        const { error: updateInvError } = await supabaseAdmin
+          .from("invitations")
+          .update({ status: response, responded_at: new Date().toISOString() })
+          .eq("id", invitationId);
+
+        if (updateInvError) {
+          console.error("Error updating invitation:", updateInvError);
+          return new Response(JSON.stringify({ error: "Failed to update invitation" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (response === 'accepted') {
+          // Add user to company
+          const { error: profileError } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              company_id: invitation.company_id,
+              telephely_id: invitation.telephely_id,
+            })
+            .eq("user_id", caller.id);
+
+          if (profileError) {
+            console.error("Error adding user to company:", profileError);
+            return new Response(JSON.stringify({ error: "Failed to join company" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          console.log(`User ${caller.id} accepted invitation to company ${invitation.company_id}`);
+        } else {
+          console.log(`User ${caller.id} declined invitation to company ${invitation.company_id}`);
+        }
+
+        return new Response(JSON.stringify({ success: true, response }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get-pending-invitations": {
+        // Get pending invitations for the caller (as invitee)
+        const { data: invitations, error } = await supabaseAdmin
+          .from("invitations")
+          .select(`
+            id,
+            created_at,
+            company_id,
+            telephely_id,
+            invited_by_user_id,
+            companies(name),
+            telephely(name)
+          `)
+          .eq("invited_user_id", caller.id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching invitations:", error);
+          return new Response(JSON.stringify({ error: "Failed to fetch invitations" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get inviter names
+        const inviterIds = invitations?.map(i => i.invited_by_user_id) || [];
+        const { data: inviterProfiles } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", inviterIds);
+
+        const formattedInvitations = invitations?.map(inv => {
+          // Supabase returns single object for one-to-one relations
+          const companyData = inv.companies as unknown as { name: string } | null;
+          const telephelyData = inv.telephely as unknown as { name: string } | null;
+          return {
+            id: inv.id,
+            created_at: inv.created_at,
+            company_name: companyData?.name || 'Unknown',
+            telephely_name: telephelyData?.name || 'Unknown',
+            invited_by_name: inviterProfiles?.find(p => p.user_id === inv.invited_by_user_id)?.full_name || 'Unknown',
+          };
+        }) || [];
+
+        return new Response(JSON.stringify({ invitations: formattedInvitations }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "get-sent-invitations": {
+        // Get invitations sent by the klinika admin
+        const { data: invitations, error } = await supabaseAdmin
+          .from("invitations")
+          .select(`
+            id,
+            status,
+            created_at,
+            responded_at,
+            invited_user_id
+          `)
+          .eq("invited_by_user_id", caller.id)
+          .eq("company_id", companyId)
+          .eq("telephely_id", telephelyId)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching sent invitations:", error);
+          return new Response(JSON.stringify({ error: "Failed to fetch invitations" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get invitee details
+        const inviteeIds = invitations?.map(i => i.invited_user_id) || [];
+        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: profiles } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", inviteeIds);
+
+        const formattedInvitations = invitations?.map(inv => {
+          const authUser = authUsers?.find(u => u.id === inv.invited_user_id);
+          const profile = profiles?.find(p => p.user_id === inv.invited_user_id);
+          return {
+            id: inv.id,
+            status: inv.status,
+            created_at: inv.created_at,
+            responded_at: inv.responded_at,
+            email: authUser?.email || 'Unknown',
+            full_name: profile?.full_name || null,
+          };
+        }) || [];
+
+        return new Response(JSON.stringify({ invitations: formattedInvitations }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "cancel-invitation": {
+        const { invitationId } = params;
+        if (!invitationId) {
+          return new Response(JSON.stringify({ error: "invitationId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error } = await supabaseAdmin
+          .from("invitations")
+          .delete()
+          .eq("id", invitationId)
+          .eq("invited_by_user_id", caller.id)
+          .eq("status", "pending");
+
+        if (error) {
+          console.error("Error canceling invitation:", error);
+          return new Response(JSON.stringify({ error: "Failed to cancel invitation" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
         return new Response(JSON.stringify({ success: true }), {
           status: 200,

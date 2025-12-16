@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
+import { InvitationBanner } from '@/components/InvitationBanner';
 import { Loader2 } from 'lucide-react';
 
 interface LayoutProps {
@@ -40,6 +41,7 @@ export function Layout({ children }: LayoutProps) {
             <SidebarTrigger className="-ml-1" />
           </header>
           <main className="flex-1 p-6">
+            <InvitationBanner />
             {children}
           </main>
         </SidebarInset>

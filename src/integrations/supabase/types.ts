@@ -485,6 +485,54 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          invited_by_user_id: string
+          invited_user_id: string
+          responded_at: string | null
+          status: string
+          telephely_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          invited_by_user_id: string
+          invited_user_id: string
+          responded_at?: string | null
+          status?: string
+          telephely_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          invited_by_user_id?: string
+          invited_user_id?: string
+          responded_at?: string | null
+          status?: string
+          telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           company_id: string | null
