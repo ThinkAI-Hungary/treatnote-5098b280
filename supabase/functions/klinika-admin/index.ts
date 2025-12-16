@@ -37,14 +37,19 @@ serve(async (req) => {
       });
     }
 
-    // Check if caller is klinika_admin
+    // Check if caller is klinika_admin or admin
     const { data: isKlinikaAdmin } = await supabaseClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "klinika_admin",
     });
 
-    if (!isKlinikaAdmin) {
-      return new Response(JSON.stringify({ error: "Klinika Admin access required" }), {
+    const { data: isAdmin } = await supabaseClient.rpc("has_role", {
+      _user_id: caller.id,
+      _role: "admin",
+    });
+
+    if (!isKlinikaAdmin && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Klinika Admin or Admin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -62,15 +67,38 @@ serve(async (req) => {
       .eq("user_id", caller.id)
       .single();
 
-    if (!callerProfile?.company_id || !callerProfile?.telephely_id) {
+    const { operation, ...params } = await req.json();
+    console.log(`Klinika Admin operation: ${operation} by user ${caller.id}`);
+
+    // For klinika_admin, company and telephely are required
+    // For admin, they can access but some operations require company/telephely
+    const hasCompanyAndTelephely = callerProfile?.company_id && callerProfile?.telephely_id;
+    
+    if (!isAdmin && !hasCompanyAndTelephely) {
       return new Response(JSON.stringify({ error: "Klinika Admin must have company and telephely assigned" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { operation, ...params } = await req.json();
-    console.log(`Klinika Admin operation: ${operation} by user ${caller.id}`);
+    // If admin without company/telephely, return empty data for get-users
+    if (!hasCompanyAndTelephely) {
+      if (operation === 'get-users') {
+        return new Response(JSON.stringify({ users: [], companyName: null, telephelyName: null, message: "No company/telephely assigned" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Company and telephely required for this operation" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // At this point, callerProfile is guaranteed to have company_id and telephely_id
+    const companyId = callerProfile.company_id!;
+    const telephelyId = callerProfile.telephely_id!;
+    const companyName = callerProfile.company_name;
 
     switch (operation) {
       case "get-users": {
@@ -87,8 +115,8 @@ serve(async (req) => {
             subscription_plan,
             subscription_end_date
           `)
-          .eq("company_id", callerProfile.company_id)
-          .eq("telephely_id", callerProfile.telephely_id);
+          .eq("company_id", companyId)
+          .eq("telephely_id", telephelyId);
 
         if (profilesError) {
           console.error("Error fetching profiles:", profilesError);
@@ -112,7 +140,7 @@ serve(async (req) => {
         const { data: telephely } = await supabaseAdmin
           .from("telephely")
           .select("name")
-          .eq("id", callerProfile.telephely_id)
+          .eq("id", telephelyId)
           .single();
 
         // Combine data
@@ -130,7 +158,7 @@ serve(async (req) => {
           };
         }) || [];
 
-        return new Response(JSON.stringify({ users, companyName: callerProfile.company_name, telephelyName: telephely?.name }), {
+        return new Response(JSON.stringify({ users, companyName: companyName, telephelyName: telephely?.name }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -162,8 +190,8 @@ serve(async (req) => {
             
             if (!profile) return true;
             return !profile.company_id || !profile.telephely_id || 
-                   profile.company_id !== callerProfile.company_id || 
-                   profile.telephely_id !== callerProfile.telephely_id;
+                   profile.company_id !== companyId || 
+                   profile.telephely_id !== telephelyId;
           })
           .map(authUser => {
             const profile = profiles?.find(p => p.user_id === authUser.id);
@@ -194,8 +222,8 @@ serve(async (req) => {
         const { error: updateError } = await supabaseAdmin
           .from("profiles")
           .update({
-            company_id: callerProfile.company_id,
-            telephely_id: callerProfile.telephely_id,
+            company_id: companyId,
+            telephely_id: telephelyId,
           })
           .eq("user_id", userId);
 
@@ -207,7 +235,7 @@ serve(async (req) => {
           });
         }
 
-        console.log(`User ${userId} invited to company ${callerProfile.company_id} and telephely ${callerProfile.telephely_id}`);
+        console.log(`User ${userId} invited to company ${companyId} and telephely ${telephelyId}`);
 
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
@@ -240,8 +268,8 @@ serve(async (req) => {
             telephely_id: null,
           })
           .eq("user_id", userId)
-          .eq("company_id", callerProfile.company_id)
-          .eq("telephely_id", callerProfile.telephely_id);
+          .eq("company_id", companyId)
+          .eq("telephely_id", telephelyId);
 
         if (updateError) {
           console.error("Error removing user:", updateError);
@@ -302,8 +330,8 @@ serve(async (req) => {
           .insert({
             user_id: newUser.user.id,
             full_name: fullName || email.split("@")[0],
-            company_id: callerProfile.company_id,
-            telephely_id: callerProfile.telephely_id,
+            company_id: companyId,
+            telephely_id: telephelyId,
           });
 
         if (profileError) {
@@ -321,7 +349,7 @@ serve(async (req) => {
           console.error("Error creating role:", roleError);
         }
 
-        console.log(`User ${newUser.user.id} created by klinika_admin ${caller.id} with company ${callerProfile.company_id}`);
+        console.log(`User ${newUser.user.id} created by klinika_admin ${caller.id} with company ${companyId}`);
 
         return new Response(JSON.stringify({
           success: true,

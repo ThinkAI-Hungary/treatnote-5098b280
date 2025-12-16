@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 
 interface KlinikaUser {
@@ -35,6 +36,7 @@ interface AvailableUser {
 
 export default function KlinikaAdmin() {
   const { isKlinikaAdmin, companyName, telephelyName, loading: roleLoading } = useKlinikaAdminRole();
+  const { isAdmin, loading: adminRoleLoading } = useUserRole();
   const [users, setUsers] = useState<KlinikaUser[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,10 +56,10 @@ export default function KlinikaAdmin() {
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isKlinikaAdmin) {
+    if (isKlinikaAdmin || isAdmin) {
       loadUsers();
     }
-  }, [isKlinikaAdmin]);
+  }, [isKlinikaAdmin, isAdmin]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -182,7 +184,7 @@ export default function KlinikaAdmin() {
     loadAvailableUsers();
   };
 
-  if (roleLoading) {
+  if (roleLoading || adminRoleLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-12">
@@ -192,7 +194,8 @@ export default function KlinikaAdmin() {
     );
   }
 
-  if (!isKlinikaAdmin) {
+  // Allow access for both klinika_admin and admin roles
+  if (!isKlinikaAdmin && !isAdmin) {
     return (
       <Layout>
         <Card>
