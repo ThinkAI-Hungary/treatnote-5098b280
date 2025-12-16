@@ -36,7 +36,7 @@ const Index = () => {
           <Button variant="outline" onClick={signOut}>
             Sign out
           </Button>
-          <Button onClick={() => navigate('/voice-recording')}>
+          <Button onClick={() => navigate('/profile')}>
             Tovább az oldalra
           </Button>
         </div>
