@@ -8,18 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
-  Shield, Users, FolderTree, Plus, Trash2, Upload, Mail, CheckCircle2, XCircle, Edit, 
-  AlertTriangle, X, FolderPlus, ChevronRight, ChevronDown, Folder, File, MoreVertical, 
-  Building2, RefreshCw, Pencil, FolderCog, Loader2, Eye, EyeOff
+  Shield, Users, FolderTree, Plus, Trash2, 
+  AlertTriangle, ChevronRight, ChevronDown, Folder, 
+  Building2, Loader2, Eye, EyeOff, FolderCog
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
-import { useState, useEffect, useRef } from 'react';
+import { UsersTable } from '@/components/admin/UsersTable';
+import { CompanyManagement } from '@/components/admin/CompanyManagement';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useUserRole } from '@/hooks/useUserRole';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -60,7 +60,7 @@ interface FolderStructure {
 }
 
 export default function Admin() {
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useCachedRoles();
   const { user } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -93,12 +93,6 @@ export default function Admin() {
   const [reAuthAction, setReAuthAction] = useState<'promote' | 'delete-user' | 'delete-folder' | null>(null);
   const [reAuthenticating, setReAuthenticating] = useState(false);
   const [pendingDeleteUserId, setPendingDeleteUserId] = useState<string | null>(null);
-
-  // Telephely state
-  const [addTelephelyOpen, setAddTelephelyOpen] = useState(false);
-  const [newTelephelyName, setNewTelephelyName] = useState('');
-  const [newTelephelyCompanyId, setNewTelephelyCompanyId] = useState('');
-  const [savingTelephely, setSavingTelephely] = useState(false);
 
   // Folder access state
   const [userFolderAccess, setUserFolderAccess] = useState<Record<string, string[]>>({});
@@ -391,45 +385,7 @@ export default function Admin() {
     }
   };
 
-  const handleAddTelephely = async () => {
-    if (!newTelephelyName.trim() || !newTelephelyCompanyId) {
-      toast.error('Kérjük töltse ki a kötelező mezőket');
-      return;
-    }
-
-    setSavingTelephely(true);
-    const { error } = await supabase
-      .from('telephely')
-      .insert({
-        name: newTelephelyName,
-        company_id: newTelephelyCompanyId,
-      });
-
-    if (error) {
-      toast.error('Hiba a telephely létrehozásakor');
-    } else {
-      toast.success('Telephely sikeresen létrehozva');
-      setNewTelephelyName('');
-      setNewTelephelyCompanyId('');
-      setAddTelephelyOpen(false);
-      loadAllData();
-    }
-    setSavingTelephely(false);
-  };
-
-  const handleDeleteTelephely = async (id: string) => {
-    const { error } = await supabase
-      .from('telephely')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      toast.error('Hiba a telephely törlésekor');
-    } else {
-      toast.success('Telephely törölve');
-      loadAllData();
-    }
-  };
+  // handleAddTelephely and handleDeleteTelephely are now in CompanyManagement component
 
   const toggleUser = (userId: string) => {
     setExpandedUsers(prev => {
@@ -527,9 +483,9 @@ export default function Admin() {
               <FolderCog className="h-4 w-4" />
               Hozzáférések
             </TabsTrigger>
-            <TabsTrigger value="telephely" className="flex items-center gap-2">
+            <TabsTrigger value="companies" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Telephelyek
+              Cégek és telephelyek
             </TabsTrigger>
           </TabsList>
 
@@ -643,60 +599,13 @@ export default function Admin() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="rounded-md border panel-float-in" style={{ animationDelay: '150ms' }}>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Név</TableHead>
-                      <TableHead>Cég</TableHead>
-                      <TableHead>Telephely</TableHead>
-                      <TableHead>Státusz</TableHead>
-                      <TableHead>Szerep</TableHead>
-                      <TableHead className="text-right">Műveletek</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((userData) => (
-                      <TableRow key={userData.id}>
-                        <TableCell className="font-medium">{userData.email}</TableCell>
-                        <TableCell>{userData.full_name || '-'}</TableCell>
-                        <TableCell>{userData.company_name || '-'}</TableCell>
-                        <TableCell>{userData.telephely_name || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant={userData.subscription_status === 'active' ? 'default' : 'secondary'}>
-                            {userData.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={userData.role === 'admin' ? 'destructive' : userData.role === 'klinika_admin' ? 'default' : 'outline'}>
-                            {userData.role === 'admin' ? 'Admin' : userData.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(userData)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteUser(userData.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <UsersTable 
+                users={users}
+                companies={companies}
+                telephelyek={telephelyek}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteUser}
+              />
             )}
           </TabsContent>
 
@@ -791,104 +700,12 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="telephely" className="space-y-4 panel-float-in">
-            <Card className="panel-float-in" style={{ animationDelay: '50ms' }}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5" />
-                      Telephely kezelés
-                    </CardTitle>
-                    <CardDescription>Telephelyek létrehozása és kezelése</CardDescription>
-                  </div>
-                  <Dialog open={addTelephelyOpen} onOpenChange={setAddTelephelyOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Új telephely
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Új telephely hozzáadása</DialogTitle>
-                        <DialogDescription>Telephely létrehozása egy céghez</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>Cég</Label>
-                          <Select value={newTelephelyCompanyId || 'none'} onValueChange={(val) => setNewTelephelyCompanyId(val === 'none' ? '' : val)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Válasszon céget" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Válasszon céget...</SelectItem>
-                              {companies.map((company) => (
-                                <SelectItem key={company.id} value={company.id}>
-                                  {company.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Telephely neve</Label>
-                          <Input
-                            placeholder="Telephely neve"
-                            value={newTelephelyName}
-                            onChange={(e) => setNewTelephelyName(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddTelephelyOpen(false)}>
-                          Mégse
-                        </Button>
-                        <Button onClick={handleAddTelephely} disabled={savingTelephely || !newTelephelyName.trim() || !newTelephelyCompanyId}>
-                          {savingTelephely ? 'Létrehozás...' : 'Telephely létrehozása'}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {telephelyek.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nincsenek telephelyek</p>
-                ) : (
-                  <div className="space-y-4">
-                    {companies.map(company => {
-                      const companyTelephelyek = telephelyek.filter(t => t.company_id === company.id);
-                      if (companyTelephelyek.length === 0) return null;
-                      
-                      return (
-                        <div key={company.id} className="space-y-2">
-                          <h3 className="font-medium text-sm text-muted-foreground">{company.name}</h3>
-                          <div className="space-y-1">
-                            {companyTelephelyek.map(telephely => (
-                              <div key={telephely.id} className="flex items-center justify-between p-2 border rounded-md">
-                                <div className="flex items-center gap-2">
-                                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm">{telephely.name}</span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive hover:text-destructive"
-                                  onClick={() => handleDeleteTelephely(telephely.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="companies" className="space-y-4 panel-float-in">
+            <CompanyManagement 
+              companies={companies}
+              telephelyek={telephelyek}
+              onDataChange={loadAllData}
+            />
           </TabsContent>
         </Tabs>
       </div>

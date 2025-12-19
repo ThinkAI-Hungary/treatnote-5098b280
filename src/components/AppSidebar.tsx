@@ -17,8 +17,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -48,6 +47,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 
 const mainNavItems: { title: string; url: string; icon: typeof LayoutDashboard }[] = [];
@@ -94,8 +98,7 @@ function SidebarNavItem({
 export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useUserRole();
-  const { isKlinikaAdmin } = useKlinikaAdminRole();
+  const { isAdmin, isKlinikaAdmin } = useCachedRoles();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
@@ -151,35 +154,34 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 ) : (
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full sidebar-menu-hover rounded-md">
-                          <Mic className="h-4 w-4 shrink-0" />
-                          <span className={cn(
-                            "transition-opacity duration-200",
-                            collapsed ? "opacity-0 w-0" : "opacity-100"
-                          )}>Hangfelvétel</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent 
-                        side="right" 
-                        align="start"
-                        sideOffset={16}
-                        className="max-w-xs p-3 z-[100] bg-popover border border-border shadow-lg"
-                      >
-                        <p className="text-sm">
-                          Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
-                          <button
-                            onClick={handleFlexiLinkClick}
-                            className="underline text-primary hover:text-primary/80 font-medium"
-                          >
-                            kérem csatolja hozzá fiókját itt!
-                          </button>
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <HoverCard openDelay={0} closeDelay={200}>
+                    <HoverCardTrigger asChild>
+                      <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full sidebar-menu-hover rounded-md">
+                        <Mic className="h-4 w-4 shrink-0" />
+                        <span className={cn(
+                          "transition-opacity duration-200",
+                          collapsed ? "opacity-0 w-0" : "opacity-100"
+                        )}>Hangfelvétel</span>
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent 
+                      side="right" 
+                      align="start"
+                      sideOffset={8}
+                      alignOffset={-40}
+                      className="w-72 p-4 z-[100] bg-popover border border-border shadow-lg animate-in slide-in-from-left-2 duration-300"
+                    >
+                      <p className="text-sm">
+                        Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+                        <button
+                          onClick={handleFlexiLinkClick}
+                          className="underline text-primary hover:text-primary/80 font-medium"
+                        >
+                          kérem csatolja hozzá fiókját itt!
+                        </button>
+                      </p>
+                    </HoverCardContent>
+                  </HoverCard>
                 )}
               </SidebarMenuItem>
             </SidebarMenu>
