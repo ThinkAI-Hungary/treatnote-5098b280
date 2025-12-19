@@ -280,6 +280,89 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     animation: none !important;
     transition: none !important;
   }
+
+  /* Sidebar menu hover effect - blueish purple fade 0.5s */
+  .sidebar-menu-hover {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s ease-out;
+  }
+  
+  .sidebar-menu-hover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      hsl(270 70% 55% / 0.12) 0%,
+      hsl(195 85% 55% / 0.15) 50%,
+      hsl(270 70% 55% / 0.08) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+  
+  .sidebar-menu-hover:hover::before {
+    opacity: 1;
+  }
+
+  /* Folder slide animation */
+  .folder-slide-in {
+    animation: folderSlide 0.3s ease-out forwards;
+  }
+
+  /* Panel float in animation */
+  .panel-float-in {
+    animation: panelFloat 0.3s ease-out forwards;
+  }
+
+  /* Flowing color orbs for background */
+  .color-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    opacity: 0;
+    animation: orbFloat 20s ease-in-out infinite;
+  }
+
+  .color-orb-1 {
+    width: 400px;
+    height: 400px;
+    background: hsl(270 70% 50% / 0.15);
+    top: 10%;
+    left: -100px;
+    animation-delay: 0s;
+  }
+
+  .color-orb-2 {
+    width: 350px;
+    height: 350px;
+    background: hsl(195 85% 50% / 0.12);
+    top: 50%;
+    right: -80px;
+    animation-delay: 5s;
+  }
+
+  .color-orb-3 {
+    width: 300px;
+    height: 300px;
+    background: hsl(300 60% 50% / 0.1);
+    bottom: 10%;
+    left: 30%;
+    animation-delay: 10s;
+  }
+
+  .color-orb-4 {
+    width: 250px;
+    height: 250px;
+    background: hsl(220 80% 50% / 0.08);
+    top: 30%;
+    right: 30%;
+    animation-delay: 15s;
+  }
 }
 
 @keyframes fadeIn {
@@ -373,6 +456,45 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes folderSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelFloat {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orbFloat {
+  0%, 100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1);
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.4;
+    transform: translate(50px, 30px) scale(1.1);
+  }
+  90% {
+    opacity: 0.6;
   }
 }
 
