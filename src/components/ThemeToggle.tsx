@@ -17,8 +17,8 @@ export function ThemeToggle() {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "fixed bottom-6 left-6 z-50",
-        "h-14 w-14 rounded-full",
+        "fixed bottom-6 right-6 z-50",
+        "h-12 w-12 rounded-full",
         "flex items-center justify-center",
         "bg-gradient-to-br from-primary to-accent",
         "shadow-lg transition-all duration-500 ease-out",
@@ -48,18 +48,11 @@ export function ThemeToggle() {
           isHovered ? "opacity-100 -top-1 -right-1 scale-100" : "opacity-0 top-2 right-2 scale-0"
         )}
       />
-      <Sparkles 
-        className={cn(
-          "absolute h-2 w-2 text-primary-foreground/40 transition-all duration-500",
-          isHovered ? "opacity-100 -bottom-0.5 -left-0.5 scale-100" : "opacity-0 bottom-2 left-2 scale-0"
-        )}
-        style={{ animationDelay: "150ms" }}
-      />
 
       {/* Sun icon */}
       <Sun 
         className={cn(
-          "absolute h-6 w-6 text-primary-foreground transition-all duration-500",
+          "absolute h-5 w-5 text-primary-foreground transition-all duration-500",
           resolvedTheme === "dark" 
             ? "rotate-0 scale-100 opacity-100" 
             : "rotate-90 scale-0 opacity-0"
@@ -69,19 +62,10 @@ export function ThemeToggle() {
       {/* Moon icon */}
       <Moon 
         className={cn(
-          "absolute h-6 w-6 text-primary-foreground transition-all duration-500",
+          "absolute h-5 w-5 text-primary-foreground transition-all duration-500",
           resolvedTheme === "dark" 
             ? "-rotate-90 scale-0 opacity-0" 
             : "rotate-0 scale-100 opacity-100"
-        )}
-      />
-
-      {/* Ripple effect on hover */}
-      <div 
-        className={cn(
-          "absolute inset-0 rounded-full border-2 border-primary-foreground/30",
-          "transition-all duration-500",
-          isHovered ? "scale-125 opacity-0" : "scale-100 opacity-0"
         )}
       />
     </button>

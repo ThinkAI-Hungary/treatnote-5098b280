@@ -508,13 +508,13 @@ export default function Admin() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
+        <div className="panel-float-in">
           <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
+          <TabsList className="panel-float-in" style={{ animationDelay: '50ms' }}>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Felhasználók
@@ -533,7 +533,7 @@ export default function Admin() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-4">
+          <TabsContent value="users" className="space-y-4 panel-float-in" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
               <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
@@ -643,7 +643,7 @@ export default function Admin() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border panel-float-in" style={{ animationDelay: '150ms' }}>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -700,12 +700,12 @@ export default function Admin() {
             )}
           </TabsContent>
 
-          <TabsContent value="files" className="space-y-4">
+          <TabsContent value="files" className="space-y-4 panel-float-in">
             <FileManager />
           </TabsContent>
 
-          <TabsContent value="access" className="space-y-4">
-            <Card>
+          <TabsContent value="access" className="space-y-4 panel-float-in">
+            <Card className="panel-float-in" style={{ animationDelay: '50ms' }}>
               <CardHeader>
                 <CardTitle>Mappa hozzáférések kezelése</CardTitle>
                 <CardDescription>Felhasználók mappához való hozzáférésének kezelése</CardDescription>
@@ -791,8 +791,8 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="telephely" className="space-y-4">
-            <Card>
+          <TabsContent value="telephely" className="space-y-4 panel-float-in">
+            <Card className="panel-float-in" style={{ animationDelay: '50ms' }}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>

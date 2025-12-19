@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { InvitationBanner } from '@/components/InvitationBanner';
+import { BackgroundEffects } from '@/components/BackgroundEffects';
 import { Loader2 } from 'lucide-react';
 
 interface LayoutProps {
@@ -34,10 +35,13 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full relative">
+        {/* Background flowing colors */}
+        <BackgroundEffects />
+        
         <AppSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <SidebarInset className="flex-1 relative z-10">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="-ml-1" />
           </header>
           <main className="flex-1 p-6">
