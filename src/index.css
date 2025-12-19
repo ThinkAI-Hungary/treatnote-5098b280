@@ -4,87 +4,112 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
+
+Color Theme: Galaxy Purple & Sparkling Light Blue
+- Primary: Deep galaxy purple
+- Accent: Sparkling cyan/light blue
+- Background: Deep space dark with purple tints
 */
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 220 20% 10%;
+    --background: 240 10% 96%;
+    --foreground: 260 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 260 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 260 30% 15%;
 
-    --primary: 174 60% 40%;
+    --primary: 270 60% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 94%;
-    --secondary-foreground: 220 20% 20%;
+    --secondary: 260 20% 92%;
+    --secondary-foreground: 260 30% 25%;
 
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 260 15% 92%;
+    --muted-foreground: 260 10% 45%;
 
-    --accent: 174 50% 92%;
-    --accent-foreground: 174 60% 25%;
+    --accent: 195 90% 55%;
+    --accent-foreground: 195 90% 15%;
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 174 60% 40%;
+    --border: 260 20% 88%;
+    --input: 260 20% 88%;
+    --ring: 270 60% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 10% 30%;
-    --sidebar-primary: 174 60% 40%;
+    --sidebar-background: 260 25% 98%;
+    --sidebar-foreground: 260 20% 30%;
+    --sidebar-primary: 270 60% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 50% 94%;
-    --sidebar-accent-foreground: 174 60% 25%;
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 174 60% 40%;
+    --sidebar-accent: 195 80% 92%;
+    --sidebar-accent-foreground: 195 90% 25%;
+    --sidebar-border: 260 20% 90%;
+    --sidebar-ring: 270 60% 55%;
+
+    /* Galaxy theme specific */
+    --galaxy-purple: 270 60% 55%;
+    --galaxy-purple-dark: 270 70% 35%;
+    --galaxy-purple-light: 270 50% 75%;
+    --sparkle-blue: 195 90% 55%;
+    --sparkle-blue-light: 195 80% 75%;
+    --sparkle-blue-dark: 195 90% 35%;
+    --nebula-pink: 300 60% 60%;
+    --star-white: 60 10% 95%;
   }
 
   .dark {
-    --background: 220 20% 8%;
+    --background: 260 40% 6%;
     --foreground: 0 0% 95%;
 
-    --card: 220 20% 12%;
+    --card: 260 35% 10%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 220 20% 12%;
+    --popover: 260 35% 10%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 174 60% 45%;
+    --primary: 270 70% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 260 30% 15%;
+    --secondary-foreground: 260 10% 85%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 260 30% 15%;
+    --muted-foreground: 260 15% 55%;
 
-    --accent: 174 40% 20%;
-    --accent-foreground: 174 60% 70%;
+    --accent: 195 85% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 60% 45%;
+    --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 174 60% 45%;
+    --border: 260 30% 18%;
+    --input: 260 30% 18%;
+    --ring: 270 70% 60%;
 
-    --sidebar-background: 220 20% 10%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-primary: 174 60% 45%;
+    --sidebar-background: 260 40% 8%;
+    --sidebar-foreground: 260 10% 80%;
+    --sidebar-primary: 270 70% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 174 40% 18%;
-    --sidebar-accent-foreground: 174 60% 70%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 174 60% 45%;
+    --sidebar-accent: 195 60% 20%;
+    --sidebar-accent-foreground: 195 80% 70%;
+    --sidebar-border: 260 30% 15%;
+    --sidebar-ring: 270 70% 60%;
+
+    /* Galaxy theme specific - dark mode */
+    --galaxy-purple: 270 70% 60%;
+    --galaxy-purple-dark: 270 80% 40%;
+    --galaxy-purple-light: 270 60% 70%;
+    --sparkle-blue: 195 85% 55%;
+    --sparkle-blue-light: 195 70% 70%;
+    --sparkle-blue-dark: 195 85% 40%;
+    --nebula-pink: 300 70% 65%;
+    --star-white: 60 20% 90%;
   }
 }
 
@@ -96,4 +121,274 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Galaxy animations */
+@layer utilities {
+  /* Smooth fade animations */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+  }
+  
+  .animate-fade-in-down {
+    animation: fadeInDown 0.4s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slideInLeft 0.4s ease-out forwards;
+  }
+
+  /* Glow effects */
+  .glow-purple {
+    box-shadow: 0 0 20px hsl(270 70% 60% / 0.3), 0 0 40px hsl(270 70% 60% / 0.15);
+  }
+  
+  .glow-blue {
+    box-shadow: 0 0 20px hsl(195 85% 55% / 0.3), 0 0 40px hsl(195 85% 55% / 0.15);
+  }
+  
+  .glow-subtle {
+    box-shadow: 0 0 30px hsl(270 70% 60% / 0.1), 0 0 60px hsl(195 85% 55% / 0.05);
+  }
+
+  /* Star sparkle effect */
+  .sparkle {
+    position: relative;
+  }
+  
+  .sparkle::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, hsl(195 85% 70%) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  /* Gradient backgrounds */
+  .bg-galaxy-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(260 40% 6%) 0%,
+      hsl(270 50% 12%) 25%,
+      hsl(260 45% 8%) 50%,
+      hsl(195 40% 10%) 75%,
+      hsl(260 40% 6%) 100%
+    );
+  }
+
+  .bg-galaxy-card {
+    background: linear-gradient(
+      145deg,
+      hsl(260 35% 12% / 0.9) 0%,
+      hsl(270 40% 10% / 0.95) 100%
+    );
+    backdrop-filter: blur(10px);
+  }
+
+  .bg-galaxy-header {
+    background: linear-gradient(
+      90deg,
+      hsl(270 70% 55% / 0.15) 0%,
+      hsl(195 85% 55% / 0.1) 50%,
+      hsl(270 70% 55% / 0.15) 100%
+    );
+  }
+
+  /* Nebula effect for backgrounds */
+  .nebula-overlay {
+    position: relative;
+  }
+  
+  .nebula-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 30%, hsl(270 70% 50% / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, hsl(195 85% 50% / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(300 60% 50% / 0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Smooth hover transitions */
+  .hover-lift {
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px hsl(270 70% 50% / 0.15);
+  }
+
+  /* Menu button fill effect */
+  .menu-fill-effect {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .menu-fill-effect::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      hsl(270 70% 55% / 0.15) 0%,
+      hsl(195 85% 55% / 0.08) 50%,
+      transparent 100%
+    );
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.3s ease-out;
+    pointer-events: none;
+  }
+  
+  .menu-fill-effect:hover::before {
+    transform: scaleY(1);
+  }
+
+  /* Pulse glow animation */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Stagger animation delays */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+
+  /* No animations mode */
+  .no-animations,
+  .no-animations * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(270 70% 60% / 0.2), 0 0 40px hsl(195 85% 55% / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px hsl(270 70% 60% / 0.4), 0 0 60px hsl(195 85% 55% / 0.2);
+  }
+}
+
+/* Star field background effect */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.star-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: hsl(195 85% 80%);
+  border-radius: 50%;
+  animation: twinkle 3s ease-in-out infinite;
 }
