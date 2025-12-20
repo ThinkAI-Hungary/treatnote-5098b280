@@ -161,6 +161,19 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       if (dbError) throw dbError;
 
+      // Ensure the Szabalyok folder persists by creating a placeholder if needed
+      if (companyName && telephelyName) {
+        const sanitizedCompany = sanitizeNameForStorage(companyName);
+        const sanitizedTelephely = sanitizeNameForStorage(telephelyName);
+        const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Szabalyok`;
+        
+        // Create placeholder to keep folder visible
+        const placeholderPath = `${folderPath}/.folder_placeholder`;
+        await supabase.storage
+          .from('client-files')
+          .upload(placeholderPath, new Blob(['']), { upsert: true });
+      }
+
       toast.success('Fájl törölve');
       loadFiles();
     } catch (err: any) {

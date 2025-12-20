@@ -498,8 +498,7 @@ export default function Admin() {
             <TabsContent value="users" className="space-y-6 mt-0">
               <AnimatedCard>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                  <h2 className="text-xl font-semibold">
                     Felhasználók kezelése
                   </h2>
                   <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>

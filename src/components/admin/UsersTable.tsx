@@ -250,10 +250,6 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
         )}
       </div>
 
-      {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        {filteredAndSortedUsers.length} / {users.length} felhasználó
-      </div>
 
       {/* Table */}
       <AnimatedTable
