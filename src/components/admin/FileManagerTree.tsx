@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { ChevronRight, ChevronDown, Folder, File, Trash2, Download, Building2, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -53,7 +53,10 @@ function getFolderIcon(depth: number, nodeName: string) {
   return <Stethoscope className="h-4 w-4 text-primary" />;
 }
 
-function TreeNode({ 
+// Use a global set to track expanded paths across re-renders
+const expandedPaths = new Set<string>();
+
+const TreeNode = memo(function TreeNode({ 
   node, 
   path, 
   depth,
@@ -70,9 +73,23 @@ function TreeNode({
   onDelete: (path: string, isFolder: boolean) => void;
   onDownload: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const fullPath = path ? `${path}/${node.name}` : node.name;
   const isFolder = node.type === 'folder';
+  
+  // Use the global set to persist expanded state
+  const [expanded, setExpanded] = useState(() => expandedPaths.has(fullPath));
+
+  const handleToggle = useCallback(() => {
+    setExpanded(prev => {
+      const newValue = !prev;
+      if (newValue) {
+        expandedPaths.add(fullPath);
+      } else {
+        expandedPaths.delete(fullPath);
+      }
+      return newValue;
+    });
+  }, [fullPath]);
 
   const formatSize = (bytes?: number) => {
     if (!bytes) return '';
@@ -89,13 +106,13 @@ function TreeNode({
       <div 
         className={cn(
           "flex items-center gap-2 py-1.5 px-2 hover:bg-muted/50 rounded-md group cursor-pointer",
-          "transition-all duration-300 sidebar-menu-hover"
+          "transition-colors duration-200"
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         {isFolder ? (
           <button 
-            onClick={() => setExpanded(!expanded)}
+            onClick={handleToggle}
             className="p-0.5 hover:bg-muted rounded transition-transform duration-200"
           >
             <ChevronRight 
@@ -168,7 +185,7 @@ function TreeNode({
       )}
     </div>
   );
-}
+});
 
 export function FileManagerTree({ tree, currentPath, onNavigate, onDelete, onDownload }: FileManagerTreeProps) {
   // Ensure tree is always an array

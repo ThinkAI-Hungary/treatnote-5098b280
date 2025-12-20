@@ -159,9 +159,31 @@ export function FileManager() {
       });
 
       if (error) throw error;
+
+      // If deleting a file from a Szabalyok folder, ensure the folder persists
+      if (!isFolder && path.includes('/Szabalyok/')) {
+        const folderPath = path.substring(0, path.lastIndexOf('/'));
+        const placeholderPath = `${folderPath}/.folder_placeholder`;
+        
+        await supabase.functions.invoke('admin-file-manager', {
+          body: { 
+            operation: 'upload', 
+            path: placeholderPath,
+            content: btoa(''),
+            upsert: true
+          }
+        });
+      }
       
       toast.success(isFolder ? 'Mappa törölve' : 'Fájl törölve');
-      fetchTree();
+      
+      // Refresh tree without resetting expanded states - just refetch data
+      const { data, error: fetchError } = await supabase.functions.invoke('admin-file-manager', {
+        body: { operation: 'get-tree', path: currentPath }
+      });
+      if (!fetchError) {
+        setTree(data.tree || []);
+      }
     } catch (error: any) {
       console.error('Error deleting:', error);
       toast.error('Hiba a törlés során');
