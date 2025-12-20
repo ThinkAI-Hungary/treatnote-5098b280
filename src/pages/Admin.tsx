@@ -25,6 +25,7 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { sanitizePathName } from '@/lib/hungarianNormalizer';
+import { USERS_DATA_CHANGED } from '@/lib/userSyncEvents';
 
 interface AdminUser {
   id: string;
@@ -108,6 +109,18 @@ export default function Admin() {
       loadAllData();
       setupRealtimeSubscriptions();
     }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const handleUsersChanged = () => {
+      loadUsersWithRoles();
+      loadAllUserFolderAccess();
+    };
+
+    window.addEventListener(USERS_DATA_CHANGED, handleUsersChanged);
+    return () => window.removeEventListener(USERS_DATA_CHANGED, handleUsersChanged);
   }, [isAdmin]);
 
   const setupRealtimeSubscriptions = () => {

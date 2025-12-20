@@ -39,7 +39,7 @@ interface FileManagerTreeProps {
 function getFolderIcon(depth: number, nodeName: string) {
   // Szabalyok folders always get an alert/exclamation icon
   if (nodeName === 'Szabalyok') {
-    return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    return <AlertTriangle className="h-4 w-4 text-accent" />;
   }
   // Top level (Molaire, TreatNote) - tooth icon
   if (depth === 0) {

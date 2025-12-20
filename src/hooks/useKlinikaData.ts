@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
+import { USERS_DATA_CHANGED } from '@/lib/userSyncEvents';
 
 interface KlinikaUser {
   id: string;
@@ -157,6 +158,19 @@ export function useKlinikaData() {
       console.error('Error refreshing invitations:', err);
     }
   }, []);
+
+  // Same-tab sync (e.g., deletions triggered from the Admin File Manager tab)
+  useEffect(() => {
+    if (!state.isAdmin && !state.isKlinikaAdmin) return;
+
+    const handleUsersChanged = () => {
+      refreshUsers();
+      refreshInvitations();
+    };
+
+    window.addEventListener(USERS_DATA_CHANGED, handleUsersChanged);
+    return () => window.removeEventListener(USERS_DATA_CHANGED, handleUsersChanged);
+  }, [state.isAdmin, state.isKlinikaAdmin, refreshUsers, refreshInvitations]);
 
   useEffect(() => {
     mountedRef.current = true;
