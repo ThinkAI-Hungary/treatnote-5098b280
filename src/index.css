@@ -958,50 +958,92 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 }
 
-/* Running neon snake border - flows from top middle, around edges, back to top middle */
+/* Running neon snake border - travels around edges like a snake */
 .dropdown-neon-snake {
   position: relative;
+  overflow: visible;
 }
 
-.dropdown-neon-snake::before {
+.dropdown-neon-snake::before,
+.dropdown-neon-snake::after {
   content: '';
   position: absolute;
   inset: -2px;
   border-radius: calc(var(--radius) + 2px);
   padding: 2px;
-  background: conic-gradient(
-    from 270deg at 50% 0%,
-    hsl(240 85% 60%) 0deg,
-    hsl(220 85% 58%) 30deg,
-    hsl(195 90% 55%) 60deg,
-    hsl(240 80% 58%) 90deg,
-    hsl(270 70% 55%) 120deg,
-    hsl(290 70% 58%) 150deg,
-    hsl(300 70% 60%) 180deg,
-    hsl(290 70% 58%) 210deg,
-    hsl(270 70% 55%) 240deg,
-    hsl(240 80% 58%) 270deg,
-    hsl(195 90% 55%) 300deg,
-    hsl(220 85% 58%) 330deg,
-    hsl(240 85% 60%) 360deg
-  );
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  clip-path: inset(0 50% 100% 50%);
-  transition: clip-path 0.3s ease-out;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.dropdown-neon-snake[data-state="open"]::before {
-  clip-path: inset(0 0% 0% 0%);
-  filter: drop-shadow(0 0 4px hsl(270 70% 55% / 0.5)) drop-shadow(0 0 8px hsl(195 85% 55% / 0.3));
-  transition: clip-path 0.3s ease-out;
+/* The snake head - a short segment that travels */
+.dropdown-neon-snake::before {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    hsl(195 90% 60%) 0deg,
+    hsl(220 85% 60%) 15deg,
+    hsl(270 70% 58%) 30deg,
+    hsl(300 70% 60%) 45deg,
+    hsl(300 70% 55% / 0.5) 60deg,
+    transparent 90deg,
+    transparent 360deg
+  );
+  transition: opacity 0.15s ease-out;
 }
 
-/* When closing, animate back to top middle */
-.dropdown-neon-snake:not([data-state="open"])::before {
-  clip-path: inset(0 50% 100% 50%);
-  transition: clip-path 0.3s ease-in;
+/* The glow trail */
+.dropdown-neon-snake::after {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    hsl(195 90% 60% / 0.3) 0deg,
+    hsl(270 70% 55% / 0.15) 60deg,
+    transparent 120deg,
+    transparent 360deg
+  );
+  filter: blur(3px);
+  transition: opacity 0.15s ease-out;
+}
+
+/* Snake travels when open */
+@keyframes snakeTravel {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.dropdown-neon-snake[data-state="open"]::before,
+.dropdown-neon-snake[data-state="open"]::after {
+  opacity: 1;
+  animation: snakeTravel 1.5s linear infinite;
+}
+
+.dropdown-neon-snake[data-state="open"]::after {
+  animation-delay: -0.1s;
+}
+
+/* When closing - snake exits to top */
+@keyframes snakeExit {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--exit-rotation, 0deg));
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--exit-rotation, 0deg) + 180deg));
+  }
+}
+
+.dropdown-neon-snake:not([data-state="open"])::before,
+.dropdown-neon-snake:not([data-state="open"])::after {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
 }
