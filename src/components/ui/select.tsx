@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { motion, useAnimation } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -10,34 +11,163 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
+// SVG Border Animation Component
+function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number; height: number }) {
+  const controls = useAnimation();
+  const borderRadius = 8;
+  const strokeWidth = 2;
+  const padding = strokeWidth;
+  
+  React.useEffect(() => {
+    if (isOpen) {
+      controls.start({
+        pathLength: 1,
+        opacity: 1,
+        transition: {
+          pathLength: { duration: 0.3, ease: "easeOut" },
+          opacity: { duration: 0.05 },
+        },
+      });
+    } else {
+      controls.start({
+        pathLength: 0,
+        opacity: 0,
+        transition: {
+          pathLength: { duration: 0.15, ease: "easeIn" },
+          opacity: { duration: 0.1, delay: 0.1 },
+        },
+      });
+    }
+  }, [isOpen, controls]);
+
+  if (width === 0 || height === 0) return null;
+
+  const svgWidth = width + padding * 2;
+  const svgHeight = height + padding * 2;
+
+  // Create a path that starts from top center and goes clockwise
+  const createRoundedRectPath = () => {
+    const x = padding;
+    const y = padding;
+    const w = width;
+    const h = height;
+    const r = borderRadius;
+    
+    // Start from top center, go right (clockwise)
+    return `
+      M ${x + w / 2} ${y}
+      L ${x + w - r} ${y}
+      Q ${x + w} ${y} ${x + w} ${y + r}
+      L ${x + w} ${y + h - r}
+      Q ${x + w} ${y + h} ${x + w - r} ${y + h}
+      L ${x + r} ${y + h}
+      Q ${x} ${y + h} ${x} ${y + h - r}
+      L ${x} ${y + r}
+      Q ${x} ${y} ${x + r} ${y}
+      L ${x + w / 2} ${y}
+    `;
+  };
+
+  return (
+    <svg
+      width={svgWidth}
+      height={svgHeight}
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="absolute pointer-events-none"
+      style={{ 
+        top: -padding, 
+        left: -padding,
+        overflow: 'visible',
+      }}
+    >
+      <defs>
+        <linearGradient id="snakeBorderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="hsl(195, 90%, 55%)" />
+          <stop offset="33%" stopColor="hsl(270, 70%, 55%)" />
+          <stop offset="66%" stopColor="hsl(300, 70%, 60%)" />
+          <stop offset="100%" stopColor="hsl(195, 90%, 55%)" />
+        </linearGradient>
+        <filter id="snakeBorderGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <motion.path
+        d={createRoundedRectPath()}
+        stroke="url(#snakeBorderGradient)"
+        strokeWidth={strokeWidth}
+        fill="none"
+        filter="url(#snakeBorderGlow)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={controls}
+      />
+    </svg>
+  );
+}
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "flex h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm",
-      "bg-background/80 backdrop-blur-sm",
-      "border border-input/50 ring-offset-background",
-      "placeholder:text-muted-foreground",
-      "focus:outline-none focus:ring-2 focus:ring-ring/50 focus:ring-offset-2",
-      "focus:border-primary/50 focus:shadow-[0_0_15px_hsl(270_70%_60%/0.2)]",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      "[&>span]:line-clamp-1",
-      "transition-all duration-300 ease-out",
-      "hover:border-primary/30 hover:shadow-[0_0_10px_hsl(195_85%_55%/0.1)]",
-      "dropdown-neon-snake",
-      className,
-    )}
-    {...props}
-  >
-    {children}
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50 transition-transform duration-200" />
-    </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
-));
+>(({ className, children, ...props }, ref) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+
+    updateDimensions();
+    const observer = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <SelectPrimitive.Trigger
+        ref={ref}
+        className={cn(
+          "flex h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm",
+          "bg-background/80 backdrop-blur-sm",
+          "border border-input/50 ring-offset-background",
+          "placeholder:text-muted-foreground",
+          "focus:outline-none focus:ring-0 focus:border-primary/50",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          "[&>span]:line-clamp-1",
+          "transition-all duration-300 ease-out",
+          "hover:border-primary/30 hover:shadow-[0_0_10px_hsl(195_85%_55%/0.1)]",
+          className,
+        )}
+        onPointerDown={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        data-state={isOpen ? "open" : "closed"}
+        {...props}
+      >
+        {children}
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown className="h-4 w-4 opacity-50 transition-transform duration-200" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+      <SnakeBorder isOpen={isOpen} width={dimensions.width} height={dimensions.height} />
+    </div>
+  );
+});
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectScrollUpButton = React.forwardRef<
