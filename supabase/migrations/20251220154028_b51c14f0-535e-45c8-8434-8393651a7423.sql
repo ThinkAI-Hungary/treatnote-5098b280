@@ -1,0 +1,1 @@
+DELETE FROM flexi_auth WHERE user_id = '9318a3c8-18bf-40e9-a7fb-a618063639ad';
