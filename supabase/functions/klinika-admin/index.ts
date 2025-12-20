@@ -233,6 +233,8 @@ serve(async (req) => {
 
     switch (operation) {
       case "get-users": {
+        console.log(`get-users: Fetching users for company ${companyId}, telephely ${telephelyId}`);
+        
         // Get all users in the same company and telephely
         const { data: profiles, error: profilesError } = await supabaseAdmin
           .from("profiles")
@@ -256,6 +258,8 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        console.log(`get-users: Found ${profiles?.length || 0} profiles for telephely ${telephelyId}`);
 
         // Get auth users for email info
         const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
@@ -288,6 +292,8 @@ serve(async (req) => {
             role: userRole?.role || "user",
           };
         }) || [];
+
+        console.log(`get-users: Returning ${users.length} users for ${companyName} - ${telephely?.name}`);
 
         return new Response(JSON.stringify({ users, companyName: companyName, telephelyName: telephely?.name }), {
           status: 200,
