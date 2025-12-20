@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface PendingInvitation {
@@ -24,12 +25,13 @@ export function useInvitations() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'get-pending-invitations' },
-      });
+      const { data, error } = await invokeWithRetry<{ invitations: PendingInvitation[] }>(
+        'klinika-admin',
+        { operation: 'get-pending-invitations' }
+      );
 
       if (error) throw error;
-      setInvitations(data.invitations || []);
+      setInvitations(data?.invitations || []);
     } catch (error) {
       console.error('Error loading invitations:', error);
       setInvitations([]);
@@ -45,15 +47,16 @@ export function useInvitations() {
   const respondToInvitation = async (invitationId: string, response: 'accepted' | 'declined') => {
     setResponding(invitationId);
     try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'respond-invitation', invitationId, response },
-      });
+      const { data, error } = await invokeWithRetry<{ success: boolean; response: string }>(
+        'klinika-admin',
+        { operation: 'respond-invitation', invitationId, response }
+      );
 
       if (error) throw error;
       
       // Reload invitations after responding
       await loadInvitations();
-      return { success: true, response: data.response };
+      return { success: true, response: data?.response };
     } catch (error: any) {
       console.error('Error responding to invitation:', error);
       throw error;
