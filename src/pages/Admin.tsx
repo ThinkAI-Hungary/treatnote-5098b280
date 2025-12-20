@@ -1,4 +1,5 @@
 import { Layout } from '@/components/Layout';
+import { PageLoader } from '@/components/PageLoader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Shield, Users, FolderTree, Plus, Trash2, 
   AlertTriangle, ChevronRight, ChevronDown, Folder, 
-  Building2, Loader2, Eye, EyeOff, FolderCog
+  Building2, Eye, EyeOff, Loader2
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
@@ -431,12 +432,10 @@ export default function Admin() {
     loadAllUserFolderAccess();
   };
 
-  if (roleLoading) {
+  if (roleLoading || loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <PageLoader />
       </Layout>
     );
   }

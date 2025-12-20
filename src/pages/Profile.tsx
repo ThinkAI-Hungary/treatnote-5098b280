@@ -140,13 +140,13 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="animate-fade-in-down">
+      <div className="max-w-2xl mx-auto space-y-8 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
+        <div>
           <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
           <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
         </div>
 
-        <Card className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -194,7 +194,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <Card>
           <CardHeader>
             <CardTitle>Flexi-Dent Integráció</CardTitle>
             <CardDescription>Csatlakoztassa Flexi-Dent fiókját</CardDescription>

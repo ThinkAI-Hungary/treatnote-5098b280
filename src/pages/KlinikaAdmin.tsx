@@ -1,4 +1,5 @@
 import { Layout } from '@/components/Layout';
+import { PageLoader } from '@/components/PageLoader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -355,12 +356,7 @@ export default function KlinikaAdmin() {
   if (roleLoading || adminRoleLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center py-12">
-          <div className="relative">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <div className="absolute inset-0 animate-pulse-glow rounded-full" />
-          </div>
-        </div>
+        <PageLoader />
       </Layout>
     );
   }
@@ -391,7 +387,7 @@ export default function KlinikaAdmin() {
 
   return (
     <Layout>
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
         {/* Star field background */}
         <StarField />
         
