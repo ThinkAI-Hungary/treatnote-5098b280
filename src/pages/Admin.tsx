@@ -1,4 +1,4 @@
-import { Layout } from '@/components/Layout';
+
 import { PageLoader } from '@/components/PageLoader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -433,26 +433,20 @@ export default function Admin() {
   };
 
   if (roleLoading || loading) {
-    return (
-      <Layout>
-        <PageLoader />
-      </Layout>
-    );
+    return <PageLoader />;
   }
 
   if (!isAdmin) {
     return (
-      <Layout>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Shield className="h-12 w-12 text-destructive/50 mb-4" />
-            <h3 className="text-lg font-medium">Hozzáférés megtagadva</h3>
-            <p className="text-muted-foreground text-center max-w-sm mt-1">
-              Ez az oldal csak adminisztrátorok számára érhető el.
-            </p>
-          </CardContent>
-        </Card>
-      </Layout>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Shield className="h-12 w-12 text-destructive/50 mb-4" />
+          <h3 className="text-lg font-medium">Hozzáférés megtagadva</h3>
+          <p className="text-muted-foreground text-center max-w-sm mt-1">
+            Ez az oldal csak adminisztrátorok számára érhető el.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 

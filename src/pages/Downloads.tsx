@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -142,88 +141,86 @@ const Downloads = () => {
   };
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Letöltések</h1>
-          <p className="text-muted-foreground mt-2">Elérhető fájlok</p>
-        </div>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Letöltések</h1>
+        <p className="text-muted-foreground mt-2">Elérhető fájlok</p>
+      </div>
 
-        {profile && !canDownload() && (
-          <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/10">
-            <CardContent className="flex items-start gap-3 pt-6">
-              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
-                  Előfizetés szükséges
-                </h3>
-                <p className="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
-                  Az előfizetése {profile.subscription_status === 'active' ? 'aktív' : 'inaktív'}. Aktív előfizetés szükséges a fájlok letöltéséhez.
-                </p>
-                <Link to="/billing">
-                  <Button variant="outline" size="sm" className="mt-3">
-                    Előfizetési lehetőségek
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Fájlok</span>
-              {profile && (
-                <Badge variant={canDownload() ? 'default' : 'secondary'}>
-                  {profile.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {files.length} fájl elérhető
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-muted-foreground text-center py-8">Fájlok betöltése...</p>
-            ) : files.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Még nincsenek elérhető fájlok</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {files.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div>
-                        <p className="font-medium">{file.file_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString('hu-HU')}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => handleDownload(file.file_url, file.file_name)}
-                      size="sm"
-                      disabled={!canDownload()}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Letöltés
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+      {profile && !canDownload() && (
+        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/10">
+          <CardContent className="flex items-start gap-3 pt-6">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
+                Előfizetés szükséges
+              </h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-200 mt-1">
+                Az előfizetése {profile.subscription_status === 'active' ? 'aktív' : 'inaktív'}. Aktív előfizetés szükséges a fájlok letöltéséhez.
+              </p>
+              <Link to="/billing">
+                <Button variant="outline" size="sm" className="mt-3">
+                  Előfizetési lehetőségek
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
-      </div>
-    </Layout>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Fájlok</span>
+            {profile && (
+              <Badge variant={canDownload() ? 'default' : 'secondary'}>
+                {profile.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
+              </Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {files.length} fájl elérhető
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-muted-foreground text-center py-8">Fájlok betöltése...</p>
+          ) : files.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Még nincsenek elérhető fájlok</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {files.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-medium">{file.file_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleDateString('hu-HU')}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleDownload(file.file_url, file.file_name)}
+                    size="sm"
+                    disabled={!canDownload()}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Letöltés
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

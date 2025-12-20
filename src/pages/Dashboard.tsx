@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Layout } from '@/components/Layout';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -91,122 +91,120 @@ export default function Dashboard() {
   ];
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Itt láthatja a napi összefoglalót és a legfontosabb információkat.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((stat) => (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {loading ? '...' : stat.value}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gyors műveletek</CardTitle>
-              <CardDescription>Gyakran használt funkciók</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <a
-                href="/patients"
-                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-              >
-                <Users className="h-5 w-5 text-primary" />
-                <div>
-                  <div className="font-medium">Új páciens felvétele</div>
-                  <div className="text-sm text-muted-foreground">
-                    Páciens adatainak rögzítése
-                  </div>
-                </div>
-              </a>
-              <a
-                href="/appointments"
-                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-              >
-                <Calendar className="h-5 w-5 text-primary" />
-                <div>
-                  <div className="font-medium">Időpontfoglalás</div>
-                  <div className="text-sm text-muted-foreground">
-                    Új időpont rögzítése
-                  </div>
-                </div>
-              </a>
-              <a
-                href="/voice-recording"
-                className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
-              >
-                <Stethoscope className="h-5 w-5 text-primary" />
-                <div>
-                  <div className="font-medium">Hangfelvétel készítése</div>
-                  <div className="text-sm text-muted-foreground">
-                    Vizsgálati jegyzőkönyv diktálása
-                  </div>
-                </div>
-              </a>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Rendszer információ</CardTitle>
-              <CardDescription>Fiók és előfizetés adatok</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-muted-foreground">Email</span>
-                <span className="font-medium">{user?.email}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-muted-foreground">Előfizetés</span>
-                <span className="font-medium">
-                  {profile?.subscription_status === 'active' ? (
-                    <span className="text-green-600">Aktív</span>
-                  ) : (
-                    <span className="text-yellow-600">Inaktív</span>
-                  )}
-                </span>
-              </div>
-              {profile?.company_name && (
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-muted-foreground">Cég</span>
-                  <span className="font-medium">{profile.company_name}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Csomag</span>
-                <span className="font-medium">
-                  {profile?.subscription_plan || 'Nincs megadva'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Itt láthatja a napi összefoglalót és a legfontosabb információkat.
+        </p>
       </div>
-    </Layout>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? '...' : stat.value}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stat.description}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gyors műveletek</CardTitle>
+            <CardDescription>Gyakran használt funkciók</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <Link
+              to="/patients"
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <div className="font-medium">Új páciens felvétele</div>
+                <div className="text-sm text-muted-foreground">
+                  Páciens adatainak rögzítése
+                </div>
+              </div>
+            </Link>
+            <Link
+              to="/appointments"
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <Calendar className="h-5 w-5 text-primary" />
+              <div>
+                <div className="font-medium">Időpontfoglalás</div>
+                <div className="text-sm text-muted-foreground">
+                  Új időpont rögzítése
+                </div>
+              </div>
+            </Link>
+            <Link
+              to="/voice-recording"
+              className="flex items-center gap-3 rounded-lg border p-3 hover:bg-accent transition-colors"
+            >
+              <Stethoscope className="h-5 w-5 text-primary" />
+              <div>
+                <div className="font-medium">Hangfelvétel készítése</div>
+                <div className="text-sm text-muted-foreground">
+                  Vizsgálati jegyzőkönyv diktálása
+                </div>
+              </div>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Rendszer információ</CardTitle>
+            <CardDescription>Fiók és előfizetés adatok</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Email</span>
+              <span className="font-medium">{user?.email}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">Előfizetés</span>
+              <span className="font-medium">
+                {profile?.subscription_status === 'active' ? (
+                  <span className="text-green-600">Aktív</span>
+                ) : (
+                  <span className="text-yellow-600">Inaktív</span>
+                )}
+              </span>
+            </div>
+            {profile?.company_name && (
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-muted-foreground">Cég</span>
+                <span className="font-medium">{profile.company_name}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center py-2">
+              <span className="text-muted-foreground">Csomag</span>
+              <span className="font-medium">
+                {profile?.subscription_plan || 'Nincs megadva'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
