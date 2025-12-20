@@ -478,16 +478,25 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="bg-card/50 backdrop-blur-sm border border-primary/10 p-1">
-            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+          <TabsList className="bg-secondary/30 backdrop-blur-sm border border-primary/20 p-1.5 gap-1">
+            <TabsTrigger 
+              value="users" 
+              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+            >
               <Users className="h-4 w-4" />
               Felhasználók
             </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+            <TabsTrigger 
+              value="files" 
+              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+            >
               <FolderTree className="h-4 w-4" />
               Fájlkezelő
             </TabsTrigger>
-            <TabsTrigger value="companies" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+            <TabsTrigger 
+              value="companies" 
+              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+            >
               <Building2 className="h-4 w-4" />
               Cégek és telephelyek
             </TabsTrigger>

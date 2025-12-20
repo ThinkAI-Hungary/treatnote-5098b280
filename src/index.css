@@ -122,9 +122,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     @apply bg-background text-foreground;
   }
 
-  /* Focus styles - show outline immediately on click */
+  /* Focus styles - removed white flash on click */
   *:focus {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none;
   }
 
   *:focus:not(:focus-visible) {
@@ -724,7 +724,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   animation: iconLevitate 2s ease-in-out infinite;
 }
 
-/* Sidebar menu item with gradient hover - no solid background */
+/* Sidebar menu item with gradient hover - fades all the way to top */
 .sidebar-menu-gradient {
   position: relative;
   overflow: hidden;
@@ -740,9 +740,10 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   height: 100%;
   background: linear-gradient(
     to top,
-    hsl(300 60% 55% / 0.25) 0%,
-    hsl(270 70% 55% / 0.15) 50%,
-    transparent 50%
+    hsl(300 60% 55% / 0.3) 0%,
+    hsl(270 70% 55% / 0.2) 30%,
+    hsl(195 85% 55% / 0.1) 60%,
+    transparent 100%
   );
   opacity: 0;
   transition: opacity 0.3s ease-out;
@@ -754,13 +755,27 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   opacity: 1;
 }
 
-/* Active menu item - pulsing gradient */
+/* Active menu item - slow pulsing gradient */
 @keyframes gradientPulse {
   0%, 100% {
-    opacity: 0.6;
+    opacity: 0.5;
+    background: linear-gradient(
+      to top,
+      hsl(300 60% 55% / 0.25) 0%,
+      hsl(270 70% 55% / 0.15) 30%,
+      hsl(195 85% 55% / 0.08) 60%,
+      transparent 100%
+    );
   }
   50% {
     opacity: 1;
+    background: linear-gradient(
+      to top,
+      hsl(300 60% 55% / 0.35) 0%,
+      hsl(270 70% 55% / 0.25) 30%,
+      hsl(195 85% 55% / 0.15) 60%,
+      transparent 100%
+    );
   }
 }
 
@@ -904,7 +919,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 }
 
-/* Simpler conic gradient snake that ends at top middle */
+/* Running neon snake border - flows from top middle, around edges, back to top middle */
 .dropdown-neon-snake {
   position: relative;
 }
@@ -916,39 +931,33 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   border-radius: calc(var(--radius) + 2px);
   padding: 2px;
   background: conic-gradient(
-    from 90deg at 50% 0%,
-    transparent 0deg,
-    hsl(300 70% 60% / 0) 0deg,
-    hsl(300 70% 60%) 30deg,
+    from 270deg at 50% 0%,
+    hsl(195 90% 60%) 0deg,
+    hsl(220 85% 55%) 45deg,
     hsl(270 70% 55%) 90deg,
-    hsl(195 85% 55%) 180deg,
-    hsl(270 70% 55%) 270deg,
-    hsl(300 70% 60%) 330deg,
-    hsl(300 70% 60% / 0) 360deg,
-    transparent 360deg
+    hsl(300 70% 60%) 135deg,
+    hsl(300 70% 60%) 180deg,
+    hsl(270 70% 55%) 225deg,
+    hsl(220 85% 55%) 270deg,
+    hsl(195 90% 60%) 315deg,
+    hsl(195 90% 60%) 360deg
   );
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: 0;
-  transform: scale(1);
-  filter: blur(0px);
-  transition: all 0.4s ease-out;
+  clip-path: inset(0 50% 100% 50%);
+  transition: clip-path 0.3s ease-out;
 }
 
 .dropdown-neon-snake[data-state="open"]::before {
-  opacity: 1;
-  filter: drop-shadow(0 0 6px hsl(270 70% 55% / 0.6)) drop-shadow(0 0 12px hsl(195 85% 55% / 0.4));
-  animation: snakePulse 2s ease-in-out infinite;
+  clip-path: inset(0 0% 0% 0%);
+  filter: drop-shadow(0 0 4px hsl(270 70% 55% / 0.5)) drop-shadow(0 0 8px hsl(195 85% 55% / 0.3));
 }
 
-@keyframes snakePulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 4px hsl(270 70% 55% / 0.5)) drop-shadow(0 0 8px hsl(195 85% 55% / 0.3));
-  }
-  50% {
-    filter: drop-shadow(0 0 8px hsl(270 70% 55% / 0.8)) drop-shadow(0 0 16px hsl(195 85% 55% / 0.5));
-  }
+/* When closing, animate back to top middle */
+.dropdown-neon-snake:not([data-state="open"])::before {
+  clip-path: inset(0 50% 100% 50%);
+  transition: clip-path 0.3s ease-in;
 }
