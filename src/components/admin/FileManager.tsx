@@ -7,9 +7,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
 import { 
   FolderPlus, 
-  Upload, 
   RefreshCw, 
-  Home,
   ChevronRight,
   Loader2
 } from 'lucide-react';
@@ -221,20 +219,6 @@ export function FileManager() {
             Új mappa
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="border-primary/20 hover:border-primary/40"
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
-            Feltöltés
-          </Button>
-          <Button
             variant="ghost"
             size="icon"
             onClick={fetchTree}
@@ -253,7 +237,7 @@ export function FileManager() {
           className="h-7 px-2"
           onClick={handleGoHome}
         >
-          <Home className="h-4 w-4" />
+          /
         </Button>
         {pathParts.map((part, idx) => (
           <div key={idx} className="flex items-center">

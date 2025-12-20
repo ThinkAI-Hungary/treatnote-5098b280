@@ -239,13 +239,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     pointer-events: none;
   }
 
-  /* Smooth hover transitions */
+  /* Smooth hover transitions - no movement */
   .hover-lift {
-    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    transition: box-shadow 0.3s ease-out;
   }
   
   .hover-lift:hover {
-    transform: translateY(-2px);
     box-shadow: 0 8px 30px hsl(270 70% 50% / 0.15);
   }
 
