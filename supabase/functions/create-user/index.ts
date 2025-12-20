@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, fullName, role } = await req.json();
+    const { email, password, fullName, role, telephely } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email/username and password are required" }), {
@@ -103,13 +103,19 @@ serve(async (req) => {
       });
     }
 
-    // Create profile for the new user
+    // Create profile for the new user with telephely
+    const profileData: Record<string, any> = {
+      user_id: newUser.user.id,
+      full_name: fullName || email.split("@")[0],
+    };
+    
+    if (telephely) {
+      profileData.telephely = telephely;
+    }
+
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
-      .insert({
-        user_id: newUser.user.id,
-        full_name: fullName || email.split("@")[0],
-      });
+      .insert(profileData);
 
     if (profileError) {
       console.error("Error creating profile:", profileError);
@@ -133,7 +139,7 @@ serve(async (req) => {
       console.error("Error creating role:", roleError);
     }
 
-    console.log(`User created with role: ${userRole}`);
+    console.log(`User created with role: ${userRole}, telephely: ${telephely || 'none'}`);
 
     return new Response(
       JSON.stringify({

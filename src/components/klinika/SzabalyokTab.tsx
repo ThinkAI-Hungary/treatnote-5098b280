@@ -20,9 +20,21 @@ interface UploadedPdf {
 interface SzabalyokTabProps {
   companyId: string | null;
   telephelyId: string | null;
+  companyName: string | null;
+  telephelyName: string | null;
 }
 
-export function SzabalyokTab({ companyId, telephelyId }: SzabalyokTabProps) {
+// Sanitize names to remove special characters that Storage doesn't support
+const sanitizeName = (name: string) => {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Keep only alphanumeric, spaces, hyphens, underscores
+    .trim()
+    .replace(/\s+/g, '_'); // Replace spaces with underscores
+};
+
+export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyName }: SzabalyokTabProps) {
   const [files, setFiles] = useState<UploadedPdf[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -62,6 +74,11 @@ export function SzabalyokTab({ companyId, telephelyId }: SzabalyokTabProps) {
       return;
     }
 
+    if (!companyName || !telephelyName) {
+      toast.error('Hiányzó cég vagy telephely név');
+      return;
+    }
+
     // Validate PDF
     if (file.type !== 'application/pdf') {
       setError('Csak PDF fájlok tölthetők fel! A kiválasztott fájl típusa: ' + file.type);
@@ -76,10 +93,15 @@ export function SzabalyokTab({ companyId, telephelyId }: SzabalyokTabProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Nincs bejelentkezett felhasználó');
 
-      // Create unique file path
+      // Create folder structure: {CompanyName}/{TelephelyName}/Szabalyok/
+      const sanitizedCompany = sanitizeName(companyName);
+      const sanitizedTelephely = sanitizeName(telephelyName);
+      const folderPath = `${sanitizedCompany}/${sanitizedTelephely}/Szabalyok`;
+
+      // Create unique file path with timestamp
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `${companyId}/${telephelyId}/${timestamp}_${sanitizedFileName}`;
+      const filePath = `${folderPath}/${timestamp}_${sanitizedFileName}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -188,6 +210,11 @@ export function SzabalyokTab({ companyId, telephelyId }: SzabalyokTabProps) {
           </CardTitle>
           <CardDescription>
             Húzza ide a PDF fájlt vagy kattintson a feltöltéshez
+            {companyName && telephelyName && (
+              <span className="block mt-1 text-xs">
+                Mentési hely: {companyName} / {telephelyName} / Szabályok
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
