@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { FileManagerTree } from './FileManagerTree';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
 import { 
   FolderPlus, 
   RefreshCw, 
@@ -40,6 +41,12 @@ export function FileManager() {
   const [pendingDelete, setPendingDelete] = useState<{ path: string; isFolder: boolean } | null>(null);
   const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Upload confirmation dialog state
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [uploadReference, setUploadReference] = useState('');
 
   const fetchTree = async () => {
     setLoading(true);
@@ -97,41 +104,78 @@ export function FileManager() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Get filename without extension for the default name
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    
+    setPendingFile(file);
+    setUploadFileName(nameWithoutExt);
+    setUploadReference('');
+    setShowUploadDialog(true);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUploadConfirm = async () => {
+    if (!pendingFile || !uploadFileName.trim()) return;
+
     setUploading(true);
+    setShowUploadDialog(false);
+    
     try {
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = (reader.result as string).split(',')[1];
-        const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
+        // Get the file extension from original file
+        const ext = pendingFile.name.includes('.') ? '.' + pendingFile.name.split('.').pop() : '';
+        const finalFileName = uploadFileName.trim() + ext;
+        const filePath = currentPath ? `${currentPath}/${finalFileName}` : finalFileName;
 
         const { error } = await supabase.functions.invoke('admin-file-manager', {
           body: { 
             operation: 'upload', 
             path: filePath,
             content: base64,
-            contentType: file.type
+            contentType: pendingFile.type,
+            reference: uploadReference.trim() || undefined
           }
         });
 
         if (error) throw error;
         
         toast.success('Fájl feltöltve');
-        fetchTree();
+        
+        // Refresh tree without resetting expanded states
+        const { data, error: fetchError } = await supabase.functions.invoke('admin-file-manager', {
+          body: { operation: 'get-tree', path: currentPath }
+        });
+        if (!fetchError) {
+          setTree(data.tree || []);
+        }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(pendingFile);
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast.error('Hiba a fájl feltöltésekor');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setPendingFile(null);
+      setUploadFileName('');
+      setUploadReference('');
     }
+  };
+
+  const handleUploadCancel = () => {
+    setShowUploadDialog(false);
+    setPendingFile(null);
+    setUploadFileName('');
+    setUploadReference('');
   };
 
   const handleDelete = (path: string, isFolder: boolean, event?: MouseEvent) => {
@@ -311,8 +355,58 @@ export function FileManager() {
         ref={fileInputRef}
         type="file"
         className="hidden"
-        onChange={handleUpload}
+        onChange={handleFileSelect}
       />
+
+      {/* Upload confirmation dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={(open) => !open && handleUploadCancel()}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle>Fájl feltöltése</DialogTitle>
+            <DialogDescription>
+              Adja meg a fájl adatait a feltöltéshez
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fileName">Mi legyen a file neve?</Label>
+              <Input
+                id="fileName"
+                placeholder="Fájl neve"
+                value={uploadFileName}
+                onChange={(e) => setUploadFileName(e.target.value)}
+                className="border-primary/20 focus:border-primary/40"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Hogyan szeretnének rá hivatkozni?</Label>
+              <Textarea
+                id="reference"
+                placeholder="Hivatkozás (opcionális)"
+                value={uploadReference}
+                onChange={(e) => setUploadReference(e.target.value)}
+                className="border-primary/20 focus:border-primary/40 min-h-[80px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleUploadCancel}>
+              Mégse
+            </Button>
+            <GalaxyButton onClick={handleUploadConfirm} disabled={!uploadFileName.trim() || uploading}>
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Feltöltés...
+                </>
+              ) : (
+                'Feltöltés'
+              )}
+            </GalaxyButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
         <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
