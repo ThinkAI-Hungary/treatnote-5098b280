@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw
 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -224,18 +224,22 @@ export default function KlinikaAdmin() {
     }
   }, [refreshUsers, refreshInvitations]);
 
-  const handleRemoveUser = useCallback(async (userId: string) => {
+  const handleDeleteUser = useCallback(async (userId: string, userEmail: string) => {
     try {
-      const { error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'remove-user', userId },
+      const { data, error } = await supabase.functions.invoke('klinika-admin', {
+        body: { operation: 'delete-user-completely', email: userEmail },
       });
       if (error) throw error;
-      toast.success('Felhasználó eltávolítva az organizációból');
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success('Felhasználó sikeresen törölve');
       refreshUsers();
       refreshInvitations();
     } catch (error: any) {
-      console.error('Error removing user:', error);
-      toast.error(error.message || 'Hiba a felhasználó eltávolításakor');
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Hiba a felhasználó törlésekor');
     }
   }, [refreshUsers, refreshInvitations]);
 
@@ -495,7 +499,7 @@ export default function KlinikaAdmin() {
                                     variant="ghost"
                                     size="icon"
                                     className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleRemoveUser(user.id)}
+                                    onClick={() => handleDeleteUser(user.id, user.email)}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>

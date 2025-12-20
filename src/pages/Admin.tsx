@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { 
   Shield, Users, FolderTree, Plus, 
   AlertTriangle, 
-  Building2, Eye, EyeOff, Loader2, Sparkles, Star
+  Building2, Eye, EyeOff, Loader2, Sparkles, Star, RefreshCw
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
@@ -544,13 +544,23 @@ export default function Admin() {
                   <h2 className="text-xl font-semibold">
                     Felhasználók kezelése
                   </h2>
-                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                    <DialogTrigger asChild>
-                      <GalaxyButton>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Új felhasználó
-                      </GalaxyButton>
-                    </DialogTrigger>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadAllData(false)}
+                      className="border-primary/20 hover:bg-primary/10"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Frissítés
+                    </Button>
+                    <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                      <DialogTrigger asChild>
+                        <GalaxyButton>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Új felhasználó
+                        </GalaxyButton>
+                      </DialogTrigger>
                     <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
                       <DialogHeader>
                         <DialogTitle>Új felhasználó létrehozása</DialogTitle>
@@ -658,8 +668,8 @@ export default function Admin() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
-
                 <UsersTable 
                   users={users}
                   companies={companies}
