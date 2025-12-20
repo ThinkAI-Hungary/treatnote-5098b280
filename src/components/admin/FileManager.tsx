@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, MouseEvent } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,12 +51,13 @@ export function FileManager() {
   const fetchTree = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-file-manager', {
-        body: { operation: 'get-tree', path: currentPath }
+      const { data, error } = await invokeWithRetry<{ tree: FileNode[] }>('admin-file-manager', {
+        operation: 'get-tree',
+        path: currentPath
       });
 
       if (error) throw error;
-      setTree(data.tree || []);
+      setTree(data?.tree || []);
     } catch (error: any) {
       console.error('Error fetching file tree:', error);
       toast.error('Hiba a fájlok betöltésekor');
@@ -88,8 +89,9 @@ export function FileManager() {
         ? `${currentPath}/${newFolderName.trim()}` 
         : newFolderName.trim();
 
-      const { data, error } = await supabase.functions.invoke('admin-file-manager', {
-        body: { operation: 'create-folder', path: folderPath }
+      const { data, error } = await invokeWithRetry('admin-file-manager', {
+        operation: 'create-folder',
+        path: folderPath
       });
 
       if (error) throw error;
@@ -137,26 +139,25 @@ export function FileManager() {
         const finalFileName = uploadFileName.trim() + ext;
         const filePath = currentPath ? `${currentPath}/${finalFileName}` : finalFileName;
 
-        const { error } = await supabase.functions.invoke('admin-file-manager', {
-          body: { 
-            operation: 'upload', 
-            path: filePath,
-            content: base64,
-            contentType: pendingFile.type,
-            reference: uploadReference.trim() || undefined
-          }
+        const { error } = await invokeWithRetry('admin-file-manager', { 
+          operation: 'upload', 
+          path: filePath,
+          content: base64,
+          contentType: pendingFile.type,
+          reference: uploadReference.trim() || undefined
         });
 
         if (error) throw error;
         
         toast.success('Fájl feltöltve');
         
-        // Refresh tree without resetting expanded states
-        const { data, error: fetchError } = await supabase.functions.invoke('admin-file-manager', {
-          body: { operation: 'get-tree', path: currentPath }
+        // Refresh tree without resetting expanded states - just refetch data
+        const { data: treeData, error: fetchError } = await invokeWithRetry<{ tree: FileNode[] }>('admin-file-manager', {
+          operation: 'get-tree',
+          path: currentPath
         });
         if (!fetchError) {
-          setTree(data.tree || []);
+          setTree(treeData?.tree || []);
         }
       };
       reader.readAsDataURL(pendingFile);
@@ -198,9 +199,7 @@ export function FileManager() {
 
     try {
       const operation = isFolder ? 'delete-folder' : 'delete';
-      const { error } = await supabase.functions.invoke('admin-file-manager', {
-        body: { operation, path }
-      });
+      const { error } = await invokeWithRetry('admin-file-manager', { operation, path });
 
       if (error) throw error;
 
@@ -209,24 +208,23 @@ export function FileManager() {
         const folderPath = path.substring(0, path.lastIndexOf('/'));
         const placeholderPath = `${folderPath}/.folder_placeholder`;
         
-        await supabase.functions.invoke('admin-file-manager', {
-          body: { 
-            operation: 'upload', 
-            path: placeholderPath,
-            content: btoa(''),
-            upsert: true
-          }
+        await invokeWithRetry('admin-file-manager', { 
+          operation: 'upload', 
+          path: placeholderPath,
+          content: btoa(''),
+          upsert: true
         });
       }
       
       toast.success(isFolder ? 'Mappa törölve' : 'Fájl törölve');
       
       // Refresh tree without resetting expanded states - just refetch data
-      const { data, error: fetchError } = await supabase.functions.invoke('admin-file-manager', {
-        body: { operation: 'get-tree', path: currentPath }
+      const { data: treeData, error: fetchError } = await invokeWithRetry<{ tree: FileNode[] }>('admin-file-manager', {
+        operation: 'get-tree',
+        path: currentPath
       });
       if (!fetchError) {
-        setTree(data.tree || []);
+        setTree(treeData?.tree || []);
       }
     } catch (error: any) {
       console.error('Error deleting:', error);
@@ -236,8 +234,9 @@ export function FileManager() {
 
   const handleDownload = async (path: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('admin-file-manager', {
-        body: { operation: 'download', path }
+      const { data, error } = await invokeWithRetry<{ content: string; contentType: string }>('admin-file-manager', {
+        operation: 'download',
+        path
       });
 
       if (error) throw error;

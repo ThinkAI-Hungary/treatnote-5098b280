@@ -20,6 +20,7 @@ import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -135,20 +136,24 @@ export default function Admin() {
 
   const loadUsersWithRoles = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-all-users');
+      const { data, error } = await invokeWithRetry<{
+        users: any[];
+        companies: Company[];
+        telephelyek: Telephely[];
+      }>('get-all-users');
 
       if (error) {
         throw new Error(error.message);
       }
 
-      const mappedUsers = (data.users || []).map((u: any) => ({
+      const mappedUsers = (data?.users || []).map((u: any) => ({
         ...u,
         id: u.user_id,
       }));
 
       setUsers(mappedUsers);
-      setCompanies(data.companies || []);
-      setTelephelyek(data.telephelyek || []);
+      setCompanies(data?.companies || []);
+      setTelephelyek(data?.telephelyek || []);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error('Hiba a felhasználók betöltésekor');
@@ -203,14 +208,12 @@ export default function Admin() {
 
     setCreatingUser(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-user', {
-        body: { 
-          email: finalEmail, 
-          password: newUserPassword,
-          fullName: newUserFullName,
-          role: newUserRole,
-          telephely: newUserTelephely
-        },
+      const { data, error } = await invokeWithRetry('create-user', { 
+        email: finalEmail, 
+        password: newUserPassword,
+        fullName: newUserFullName,
+        role: newUserRole,
+        telephely: newUserTelephely
       });
 
       if (error) {
@@ -302,9 +305,7 @@ export default function Admin() {
           
           const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
           
-          await supabase.functions.invoke('admin-file-manager', {
-            body: { operation: 'create-folder', path: folderPath }
-          });
+          await invokeWithRetry('admin-file-manager', { operation: 'create-folder', path: folderPath });
           
           console.log(`Created folder: ${folderPath}`);
         } catch (folderError) {
@@ -327,9 +328,7 @@ export default function Admin() {
   };
 
   const performUserDelete = async (userId: string) => {
-    const { data, error } = await supabase.functions.invoke('delete-user', {
-      body: { userId },
-    });
+    const { data, error } = await invokeWithRetry<{ message: string }>('delete-user', { userId });
 
     if (error) {
       toast.error(error.message);
