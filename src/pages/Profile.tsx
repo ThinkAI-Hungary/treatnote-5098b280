@@ -20,13 +20,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
-import { X, Check, User } from 'lucide-react';
+import { X, Check, User, Building2, MapPin, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 
 interface FlexiAuth {
   flexi_username: string | null;
   created_at: string;
+}
+
+interface ProfileData {
+  full_name: string;
+  phone: string;
+  company_id: string | null;
+  company_name: string | null;
+  telephely_id: string | null;
+  telephely_name: string | null;
 }
 
 const Profile = () => {
@@ -36,11 +45,13 @@ const Profile = () => {
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
   const [unlinking, setUnlinking] = useState(false);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
-    company_name: '',
     phone: '',
-    telephely: '',
+    company_id: null,
+    company_name: null,
+    telephely_id: null,
+    telephely_name: null,
   });
 
   useEffect(() => {
@@ -61,16 +72,41 @@ const Profile = () => {
 
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('full_name, phone, company_id, telephely_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (data) {
+      let companyName: string | null = null;
+      let telephelyName: string | null = null;
+
+      // Fetch company name if company_id exists
+      if (data.company_id) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', data.company_id)
+          .single();
+        companyName = companyData?.name || null;
+      }
+
+      // Fetch telephely name if telephely_id exists
+      if (data.telephely_id) {
+        const { data: telephelyData } = await supabase
+          .from('telephely')
+          .select('name')
+          .eq('id', data.telephely_id)
+          .single();
+        telephelyName = telephelyData?.name || null;
+      }
+
       setProfile({
         full_name: data.full_name || '',
-        company_name: data.company_name || '',
         phone: data.phone || '',
-        telephely: (data as any).telephely || '',
+        company_id: data.company_id,
+        company_name: companyName,
+        telephely_id: data.telephely_id,
+        telephely_name: telephelyName,
       });
     }
   };
@@ -100,7 +136,7 @@ const Profile = () => {
       toast.error('Nem sikerült a Flexi-Dent leválasztása');
     } else {
       setFlexiAuth(null);
-      notifyFlexiConnectionChanged(); // Notify sidebar immediately
+      notifyFlexiConnectionChanged();
       toast.success('Flexi-Dent sikeresen leválasztva');
     }
     setUnlinking(false);
@@ -110,7 +146,7 @@ const Profile = () => {
     setFlexiDialogOpen(open);
     if (!open) {
       loadFlexiAuth();
-      notifyFlexiConnectionChanged(); // Notify sidebar immediately
+      notifyFlexiConnectionChanged();
     }
   };
 
@@ -122,13 +158,12 @@ const Profile = () => {
 
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        user_id: user.id,
-        ...profile,
+      .update({
+        full_name: profile.full_name,
+        phone: profile.phone,
         updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
-      });
+      })
+      .eq('user_id', user.id);
 
     if (error) {
       toast.error(error.message);
@@ -158,7 +193,7 @@ const Profile = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={user?.email || ''} disabled />
+              <Input id="email" type="email" value={user?.email || ''} disabled className="bg-muted" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="full_name">Teljes név</Label>
@@ -169,36 +204,64 @@ const Profile = () => {
                 onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
               />
             </div>
+            
+            {/* Company - Read Only */}
             <div className="space-y-2">
-              <Label htmlFor="company_name">Cég neve</Label>
+              <Label htmlFor="company" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                Cég neve
+              </Label>
               <Input
-                id="company_name"
+                id="company"
                 type="text"
-                value={profile.company_name}
-                onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
+                value={profile.company_name || 'Nincs hozzárendelve'}
+                disabled
+                className="bg-muted"
               />
+              {!profile.company_id && (
+                <p className="text-xs text-muted-foreground">
+                  A cég hozzárendelést egy admin vagy klinika admin végezheti el.
+                </p>
+              )}
             </div>
+
+            {/* Telephely - Read Only */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefonszám</Label>
+              <Label htmlFor="telephely" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Telephely
+              </Label>
+              <Input
+                id="telephely"
+                type="text"
+                value={profile.telephely_name || 'Nincs hozzárendelve'}
+                disabled
+                className="bg-muted"
+              />
+              {!profile.telephely_id && (
+                <p className="text-xs text-muted-foreground">
+                  A telephely hozzárendelést egy admin vagy klinika admin végezheti el.
+                </p>
+              )}
+            </div>
+
+            {/* Phone - Editable */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                Telefonszám
+              </Label>
               <Input
                 id="phone"
                 type="tel"
+                placeholder="+36 XX XXX XXXX"
                 value={profile.phone}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="telephely">Telephely</Label>
-              <Input
-                id="telephely"
-                type="text"
-                placeholder="Pl. Budapest, Szeged, stb."
-                value={profile.telephely}
-                onChange={(e) => setProfile({ ...profile, telephely: e.target.value })}
-              />
-            </div>
+
             <Button type="submit" disabled={loading}>
-              {loading ? 'Mentés...' : 'Változások mentése'}
+              {loading ? 'Mentés...' : 'Változtatások mentése'}
             </Button>
           </form>
         </CardContent>

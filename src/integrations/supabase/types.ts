@@ -538,7 +538,9 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          invitation_token: string | null
           invited_by_user_id: string
+          invited_email: string | null
           invited_user_id: string
           responded_at: string | null
           status: string
@@ -548,7 +550,9 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          invitation_token?: string | null
           invited_by_user_id: string
+          invited_email?: string | null
           invited_user_id: string
           responded_at?: string | null
           status?: string
@@ -558,7 +562,9 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          invitation_token?: string | null
           invited_by_user_id?: string
+          invited_email?: string | null
           invited_user_id?: string
           responded_at?: string | null
           status?: string

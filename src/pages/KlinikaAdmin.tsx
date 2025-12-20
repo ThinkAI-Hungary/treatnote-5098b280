@@ -48,9 +48,10 @@ export default function KlinikaAdmin() {
     refreshInvitations,
   } = useKlinikaData();
 
-  // Available users for invite dialog
-  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
-  const [loadingAvailable, setLoadingAvailable] = useState(false);
+  // Email invitation state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [lastInvitationUrl, setLastInvitationUrl] = useState<string | null>(null);
 
   // Create user state
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -68,21 +69,35 @@ export default function KlinikaAdmin() {
   // Cancelling invitation state
   const [cancellingInvitationId, setCancellingInvitationId] = useState<string | null>(null);
 
-  const loadAvailableUsers = useCallback(async () => {
-    setLoadingAvailable(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'get-available-users' },
-      });
-      if (error) throw error;
-      setAvailableUsers(data.users || []);
-    } catch (error: any) {
-      console.error('Error loading available users:', error);
-      toast.error('Hiba a meghívható felhasználók betöltésekor');
-    } finally {
-      setLoadingAvailable(false);
+  const handleSendEmailInvitation = useCallback(async () => {
+    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
+      toast.error('Kérjük adjon meg egy érvényes email címet');
+      return;
     }
-  }, []);
+
+    setSendingInvite(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invitation-handler', {
+        body: { operation: 'send-invitation-email', email: inviteEmail.trim() },
+      });
+
+      if (error) throw error;
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setLastInvitationUrl(data.invitation_url);
+      toast.success(`Meghívó létrehozva: ${inviteEmail}`);
+      setInviteEmail('');
+      refreshInvitations();
+    } catch (error: any) {
+      console.error('Error sending invitation:', error);
+      toast.error(error.message || 'Hiba a meghívó küldésekor');
+    } finally {
+      setSendingInvite(false);
+    }
+  }, [inviteEmail, refreshInvitations]);
 
   const handleCancelInvitation = useCallback(async (invitationId: string) => {
     setCancellingInvitationId(invitationId);
@@ -93,14 +108,13 @@ export default function KlinikaAdmin() {
       if (error) throw error;
       toast.success('Meghívó visszavonva');
       refreshInvitations();
-      loadAvailableUsers();
     } catch (error: any) {
       console.error('Error cancelling invitation:', error);
       toast.error(error.message || 'Hiba a meghívó visszavonásakor');
     } finally {
       setCancellingInvitationId(null);
     }
-  }, [refreshInvitations, loadAvailableUsers]);
+  }, [refreshInvitations]);
 
   const handleCreateUser = useCallback(async () => {
     if (!newUserEmail.trim() || !newUserPassword.trim()) {
@@ -146,6 +160,7 @@ export default function KlinikaAdmin() {
     }
   }, [newUserEmail, newUserPassword, newUserConfirmPassword, newUserFullName, refreshUsers]);
 
+  // Keep handleInviteUser for local users (created by admin)
   const handleInviteUser = useCallback(async (userId: string, isLocalUser: boolean) => {
     setInvitingUserId(userId);
     try {
@@ -171,13 +186,8 @@ export default function KlinikaAdmin() {
         return;
       }
 
-      if (data.type === 'direct') {
-        toast.success('Felhasználó sikeresen hozzáadva az organizációhoz');
-      } else {
-        toast.success('Meghívó elküldve! A felhasználónak el kell fogadnia a meghívást.');
-      }
+      toast.success('Felhasználó sikeresen hozzáadva az organizációhoz');
       refreshUsers();
-      loadAvailableUsers();
       refreshInvitations();
     } catch (error: any) {
       console.error('Error inviting user:', error);
@@ -185,7 +195,7 @@ export default function KlinikaAdmin() {
     } finally {
       setInvitingUserId(null);
     }
-  }, [refreshUsers, refreshInvitations, loadAvailableUsers]);
+  }, [refreshUsers, refreshInvitations]);
 
   const handleRemoveUser = useCallback(async (userId: string) => {
     try {
@@ -204,8 +214,9 @@ export default function KlinikaAdmin() {
 
   const openInviteDialog = useCallback(() => {
     setInviteDialogOpen(true);
-    loadAvailableUsers();
-  }, [loadAvailableUsers]);
+    setInviteEmail('');
+    setLastInvitationUrl(null);
+  }, []);
 
   // Single loading gate - loader stays until ALL data is ready
   if (isLoading) {
@@ -489,84 +500,62 @@ export default function KlinikaAdmin() {
                       Felhasználók meghívása
                     </CardTitle>
                     <CardDescription>
-                      Meglévő felhasználók meghívása az organizációba: {companyName} - {telephelyName}
+                      Küldjön meghívót email címre az organizációba: {companyName} - {telephelyName}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6">
-                    <GalaxyButton onClick={openInviteDialog}>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Felhasználók böngészése
-                    </GalaxyButton>
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="flex gap-3">
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        className="flex-1 border-primary/20 focus:border-primary/40"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSendEmailInvitation();
+                          }
+                        }}
+                      />
+                      <GalaxyButton onClick={handleSendEmailInvitation} disabled={sendingInvite || !inviteEmail.trim()}>
+                        {sendingInvite ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Meghívó küldése
+                          </>
+                        )}
+                      </GalaxyButton>
+                    </div>
+                    
+                    {lastInvitationUrl && (
+                      <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          A meghívó link létrehozva. Ossza meg a felhasználóval:
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            value={lastInvitationUrl}
+                            readOnly
+                            className="flex-1 text-xs bg-background"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(lastInvitationUrl);
+                              toast.success('Link másolva a vágólapra');
+                            }}
+                          >
+                            Másolás
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </AnimatedCard>
-
-                <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                  <DialogContent className="max-w-2xl border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-accent" />
-                        Felhasználók meghívása
-                      </DialogTitle>
-                      <DialogDescription>
-                        Válasszon felhasználókat az organizációba való meghíváshoz
-                      </DialogDescription>
-                    </DialogHeader>
-                    {loadingAvailable ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : availableUsers.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                        Nincs meghívható felhasználó
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[400px] pr-4">
-                        <div className="space-y-3">
-                          {availableUsers.map((user) => (
-                            <div
-                              key={user.id}
-                              className="group flex items-center justify-between p-4 border border-primary/10 rounded-xl bg-card/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-primary">
-                                    {user.email.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div>
-                                  <div className="font-medium">{user.email}</div>
-                                  {user.full_name && (
-                                    <div className="text-sm text-muted-foreground">{user.full_name}</div>
-                                  )}
-                                  {user.has_company && (
-                                    <Badge variant="outline" className="mt-1 text-xs border-accent/30 text-accent">
-                                      Másik organizációban
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                              <GalaxyButton
-                                size="sm"
-                                onClick={() => handleInviteUser(user.id, user.is_local_user)}
-                                disabled={invitingUserId === user.id}
-                              >
-                                {invitingUserId === user.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    {user.is_local_user ? 'Hozzáadás' : 'Meghívás'}
-                                  </>
-                                )}
-                              </GalaxyButton>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </DialogContent>
-                </Dialog>
 
                 {/* Sent Invitations List */}
                 <AnimatedCard>

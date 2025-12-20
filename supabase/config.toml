@@ -48,3 +48,6 @@ verify_jwt = false
 [functions.voice-recording-webhook]
 
 [functions.klinika-admin]
+
+[functions.invitation-handler]
+verify_jwt = false
