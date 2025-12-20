@@ -246,7 +246,7 @@ export default function KlinikaAdmin() {
         
         {/* Content layer - slides up after background */}
         <div 
-          className="relative z-10 space-y-8 pb-8 animate-fade-in-up" 
+          className="relative z-10 space-y-8 pb-8 px-6 pt-6 animate-fade-in-up" 
           style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
         >
           {/* Header section */}

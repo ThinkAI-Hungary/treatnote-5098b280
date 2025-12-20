@@ -103,7 +103,7 @@ export function AnimatedTableRow({
   return (
     <TableRow
       className={cn(
-        "group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300 table-row-animate",
+        "group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-colors duration-200 table-row-animate",
         className
       )}
       style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }}

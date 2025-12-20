@@ -8,14 +8,13 @@ interface AnimatedCardProps {
   [key: string]: any;
 }
 
-// Static card wrapper - no delay animations, instant render
+// Static card wrapper - no movement animations
 export function AnimatedCard({ children, className, ...props }: AnimatedCardProps) {
   return (
     <Card 
       className={cn(
-        "hover-lift border-primary/20 bg-card/80 backdrop-blur-sm",
+        "border-primary/20 bg-card/80 backdrop-blur-sm p-6",
         "dark:bg-card/60 dark:border-sparkle-blue/20",
-        "transition-transform duration-300",
         className
       )} 
       {...props}
