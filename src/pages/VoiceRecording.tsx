@@ -2,8 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Plus } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -15,15 +16,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type RecordingMode = 'voxis' | 'treatnote';
 
+interface RecordingItem {
+  id: string;
+  blob: Blob;
+  url: string;
+  duration: number;
+  timestamp: Date;
+  mode: RecordingMode;
+}
+
 export default function VoiceRecording() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
   const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>('treatnote');
-  const [isUploading, setIsUploading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
+  const [recordings, setRecordings] = useState<RecordingItem[]>([]);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
 
   const {
     isRecording,
@@ -65,44 +76,81 @@ export default function VoiceRecording() {
     }
   };
 
-  const handlePlayPause = () => {
-    if (!audioRef.current) return;
+  const handlePlayPause = useCallback((recordingId: string) => {
+    const audioEl = audioRefs.current[recordingId];
+    if (!audioEl) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
+    if (playingId === recordingId) {
+      audioEl.pause();
+      setPlayingId(null);
     } else {
-      audioRef.current.play();
+      if (playingId && audioRefs.current[playingId]) {
+        audioRefs.current[playingId]?.pause();
+      }
+      audioEl.play();
+      setPlayingId(recordingId);
     }
-    setIsPlaying(!isPlaying);
-  };
+  }, [playingId]);
 
-  const handleClearRecording = () => {
+  const handleAudioEnded = useCallback((recordingId: string) => {
+    if (playingId === recordingId) {
+      setPlayingId(null);
+    }
+  }, [playingId]);
+
+  const handleAddToList = useCallback(() => {
+    if (!audioBlob || !audioUrl) return;
+    
+    const newRecording: RecordingItem = {
+      id: crypto.randomUUID(),
+      blob: audioBlob,
+      url: audioUrl,
+      duration: duration,
+      timestamp: new Date(),
+      mode: mode,
+    };
+    
+    setRecordings(prev => [...prev, newRecording]);
+    resetRecording();
+    toast.success('Felvétel hozzáadva a listához');
+  }, [audioBlob, audioUrl, duration, mode, resetRecording]);
+
+  const handleRemoveRecording = useCallback((recordingId: string) => {
+    const recording = recordings.find(r => r.id === recordingId);
+    setRecordings(prev => prev.filter(r => r.id !== recordingId));
+    if (playingId === recordingId) {
+      setPlayingId(null);
+    }
+    if (recording) {
+      URL.revokeObjectURL(recording.url);
+    }
+  }, [playingId, recordings]);
+
+  const handleClearCurrentRecording = () => {
     resetRecording();
   };
 
-  const handleUpload = async () => {
-    if (!audioBlob || !user) {
-      toast.error('Nincs felvétel a feltöltéshez');
+  const handleUploadRecording = async (recording: RecordingItem) => {
+    if (!user) {
+      toast.error('Nincs bejelentkezett felhasználó');
       return;
     }
 
-    setIsUploading(true);
+    setIsUploading(recording.id);
 
     try {
-      const timestamp = new Date().toISOString();
+      const timestamp = recording.timestamp.toISOString();
       const filename = `recording_${timestamp.replace(/[:.]/g, '-')}.webm`;
 
-      // Create FormData with correct field names matching edge function
       const formData = new FormData();
-      formData.append('audio', audioBlob, filename);
-      formData.append('mode', mode);
+      formData.append('audio', recording.blob, filename);
+      formData.append('mode', recording.mode);
       formData.append('timestamp', timestamp);
       formData.append('filename', filename);
       formData.append('user_id', user.id);
       formData.append('company_id', profile?.company_id || '');
       formData.append('telephely_id', profile?.telephely_id || '');
 
-      // Call edge function directly with fetch since supabase.functions.invoke doesn't handle FormData properly
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
@@ -125,7 +173,7 @@ export default function VoiceRecording() {
 
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
-        resetRecording();
+        handleRemoveRecording(recording.id);
       } else {
         throw new Error(data?.error || 'Ismeretlen hiba');
       }
@@ -133,11 +181,10 @@ export default function VoiceRecording() {
       console.error('Upload error:', error);
       toast.error('Hiba a feltöltés során: ' + (error.message || 'Ismeretlen hiba'));
     } finally {
-      setIsUploading(false);
+      setIsUploading(null);
     }
   };
 
-  // Show message if Flexi is not connected
   if (!isFlexiLoading && !isFlexiConnected) {
     return (
       <div className="space-y-6">
@@ -184,7 +231,6 @@ export default function VoiceRecording() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Mode selector */}
             <div className="space-y-2">
               <Label>Feldolgozási mód</Label>
               <Select
@@ -202,14 +248,11 @@ export default function VoiceRecording() {
               </Select>
             </div>
 
-            {/* Recording controls */}
             <div className="flex flex-col items-center py-8">
-              {/* Duration display */}
               <div className="text-4xl font-mono font-bold mb-6 text-foreground">
                 {formatDuration(duration)}
               </div>
 
-              {/* Recording indicator */}
               {isRecording && (
                 <div className="flex items-center gap-2 mb-4">
                   <div
@@ -223,7 +266,6 @@ export default function VoiceRecording() {
                 </div>
               )}
 
-              {/* Main controls */}
               <div className="flex items-center gap-4">
                 {isRecording && (
                   <Button
@@ -260,6 +302,29 @@ export default function VoiceRecording() {
                   : 'Kattintson a felvétel indításához'}
               </p>
             </div>
+
+            {audioUrl && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm text-muted-foreground">Aktuális felvétel: {formatDuration(duration)}</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleClearCurrentRecording}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Elvetés
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleAddToList}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Hozzáadás
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -267,68 +332,79 @@ export default function VoiceRecording() {
           <CardHeader>
             <CardTitle>Visszajátszás</CardTitle>
             <CardDescription>
-              A rögzített felvétel meghallgatása és feltöltése
+              A rögzített felvételek meghallgatása és feltöltése
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {audioUrl ? (
-              <>
-                {/* Audio player */}
-                <div className="space-y-4">
-                  <audio
-                    ref={audioRef}
-                    src={audioUrl}
-                    onEnded={() => setIsPlaying(false)}
-                    className="hidden"
-                  />
-
-                  <div className="flex items-center justify-center gap-4">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={handlePlayPause}
-                      className="h-14 w-14 rounded-full"
+          <CardContent>
+            {recordings.length > 0 ? (
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {recordings.map((recording, index) => (
+                    <div
+                      key={recording.id}
+                      className="p-4 rounded-lg border border-border bg-card/50 space-y-3"
                     >
-                      {isPlaying ? (
-                        <Pause className="h-6 w-6" />
-                      ) : (
-                        <Play className="h-6 w-6" />
-                      )}
-                    </Button>
-                  </div>
+                      <audio
+                        ref={(el) => { audioRefs.current[recording.id] = el; }}
+                        src={recording.url}
+                        onEnded={() => handleAudioEnded(recording.id)}
+                        className="hidden"
+                      />
 
-                  <div className="flex justify-center">
-                    <span className="text-sm text-muted-foreground">
-                      Felvétel hossza: {formatDuration(duration)}
-                    </span>
-                  </div>
-                </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handlePlayPause(recording.id)}
+                            className="h-10 w-10 rounded-full shrink-0"
+                          >
+                            {playingId === recording.id ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Felvétel #{index + 1}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDuration(recording.duration)} • {recording.mode.toUpperCase()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Actions */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleClearRecording}
-                    disabled={isUploading}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Törlés
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={handleUpload}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-4 w-4" />
-                    )}
-                    {isUploading ? 'Feltöltés...' : 'Feltöltés'}
-                  </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleRemoveRecording(recording.id)}
+                          disabled={isUploading === recording.id}
+                        >
+                          <Trash2 className="mr-2 h-3 w-3" />
+                          Törlés
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleUploadRecording(recording)}
+                          disabled={isUploading === recording.id}
+                        >
+                          {isUploading === recording.id ? (
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Upload className="mr-2 h-3 w-3" />
+                          )}
+                          {isUploading === recording.id ? 'Feltöltés...' : 'Feltöltés'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </>
+              </ScrollArea>
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
                 <Mic className="h-12 w-12 text-muted-foreground/30 mb-4" />
@@ -357,8 +433,8 @@ export default function VoiceRecording() {
             gombra és diktálja a jegyzőkönyvet.
           </p>
           <p>
-            <strong>3. Töltse fel a felvételt:</strong> A felvétel befejezése
-            után hallgassa meg, majd töltse fel feldolgozásra.
+            <strong>3. Adja hozzá a listához:</strong> A felvétel befejezése
+            után adja hozzá a listához, majd töltse fel feldolgozásra.
           </p>
         </CardContent>
       </Card>
