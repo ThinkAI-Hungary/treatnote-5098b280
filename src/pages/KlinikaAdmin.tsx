@@ -14,8 +14,8 @@ import {
 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -102,8 +102,9 @@ export default function KlinikaAdmin() {
   const handleCancelInvitation = useCallback(async (invitationId: string) => {
     setCancellingInvitationId(invitationId);
     try {
-      const { error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'cancel-invitation', invitationId },
+      const { error } = await invokeWithRetry('klinika-admin', {
+        operation: 'cancel-invitation',
+        invitationId,
       });
       if (error) throw error;
       toast.success('Meghívó visszavonva');
@@ -136,13 +137,11 @@ export default function KlinikaAdmin() {
 
     setCreatingUser(true);
     try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { 
-          operation: 'create-user',
-          email: finalEmail, 
-          password: newUserPassword,
-          fullName: newUserFullName,
-        },
+      const { data, error } = await invokeWithRetry('klinika-admin', {
+        operation: 'create-user',
+        email: finalEmail,
+        password: newUserPassword,
+        fullName: newUserFullName,
       });
       
       // Check for error in the response
@@ -208,8 +207,9 @@ export default function KlinikaAdmin() {
   const handleInviteUser = useCallback(async (userId: string, isLocalUser: boolean) => {
     setInvitingUserId(userId);
     try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'invite-user', userId },
+      const { data, error } = await invokeWithRetry('klinika-admin', {
+        operation: 'invite-user',
+        userId,
       });
 
       if (error) {
@@ -243,8 +243,9 @@ export default function KlinikaAdmin() {
 
   const handleDeleteUser = useCallback(async (userId: string, userEmail: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('klinika-admin', {
-        body: { operation: 'delete-user-completely', email: userEmail },
+      const { data, error } = await invokeWithRetry('klinika-admin', {
+        operation: 'delete-user-completely',
+        email: userEmail,
       });
       if (error) throw error;
       if (data?.error) {
