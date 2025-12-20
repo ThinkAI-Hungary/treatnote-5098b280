@@ -64,6 +64,15 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       .trim();
   };
 
+  const sanitizeName = (name: string) => {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9\s\-_]/g, '')
+      .replace(/\s+/g, '-')
+      .trim();
+  };
+
   const handleAddCompany = async () => {
     if (!newCompanyName.trim()) {
       toast.error('Kérjük adja meg a cég nevét');
@@ -71,17 +80,31 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
     }
 
     setSavingCompany(true);
-    const { error } = await supabase
+    
+    const { data: newCompany, error } = await supabase
       .from('companies')
       .insert({
         name: newCompanyName.trim(),
         slug: generateSlug(newCompanyName),
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error creating company:', error);
       toast.error('Hiba a cég létrehozásakor');
     } else {
+      // Create folder in file system
+      try {
+        const sanitizedCompanyName = sanitizeName(newCompanyName.trim());
+        const folderPath = `TreatNote/Companies/${sanitizedCompanyName}`;
+        await supabase.functions.invoke('admin-file-manager', {
+          body: { operation: 'create-folder', path: folderPath }
+        });
+      } catch (folderError) {
+        console.error('Error creating company folder:', folderError);
+      }
+
       toast.success('Cég sikeresen létrehozva');
       setNewCompanyName('');
       setAddCompanyOpen(false);
@@ -91,6 +114,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
   };
 
   const handleDeleteCompany = async (companyId: string) => {
+    const company = companies.find(c => c.id === companyId);
     const companyTelephelyek = telephelyek.filter(t => t.company_id === companyId);
     if (companyTelephelyek.length > 0) {
       toast.error('Először törölje a céghez tartozó telephelyeket');
@@ -106,6 +130,19 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting company:', error);
       toast.error('Hiba a cég törlésekor');
     } else {
+      // Delete folder from file system
+      if (company) {
+        try {
+          const sanitizedCompanyName = sanitizeName(company.name);
+          const folderPath = `TreatNote/Companies/${sanitizedCompanyName}`;
+          await supabase.functions.invoke('admin-file-manager', {
+            body: { operation: 'delete-folder', path: folderPath }
+          });
+        } catch (folderError) {
+          console.error('Error deleting company folder:', folderError);
+        }
+      }
+
       toast.success('Cég törölve');
       onDataChange();
     }
@@ -122,18 +159,36 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       return;
     }
 
+    const company = companies.find(c => c.id === selectedCompanyId);
+    
     setSavingTelephely(true);
-    const { error } = await supabase
+    const { data: newTelephely, error } = await supabase
       .from('telephely')
       .insert({
         name: newTelephelyName.trim(),
         company_id: selectedCompanyId,
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error creating telephely:', error);
       toast.error('Hiba a telephely létrehozásakor');
     } else {
+      // Create folder in file system
+      if (company) {
+        try {
+          const sanitizedCompanyName = sanitizeName(company.name);
+          const sanitizedTelephelyName = sanitizeName(newTelephelyName.trim());
+          const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
+          await supabase.functions.invoke('admin-file-manager', {
+            body: { operation: 'create-folder', path: folderPath }
+          });
+        } catch (folderError) {
+          console.error('Error creating telephely folder:', folderError);
+        }
+      }
+
       toast.success('Telephely sikeresen létrehozva');
       setNewTelephelyName('');
       setAddTelephelyOpen(false);
@@ -143,7 +198,9 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
     setSavingTelephely(false);
   };
 
-  const handleDeleteTelephely = async (telephelyId: string) => {
+  const handleDeleteTelephely = async (telephelyId: string, companyId: string, telephelyName: string) => {
+    const company = companies.find(c => c.id === companyId);
+    
     const { error } = await supabase
       .from('telephely')
       .delete()
@@ -153,6 +210,20 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting telephely:', error);
       toast.error('Hiba a telephely törlésekor');
     } else {
+      // Delete folder from file system
+      if (company) {
+        try {
+          const sanitizedCompanyName = sanitizeName(company.name);
+          const sanitizedTelephelyName = sanitizeName(telephelyName);
+          const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
+          await supabase.functions.invoke('admin-file-manager', {
+            body: { operation: 'delete-folder', path: folderPath }
+          });
+        } catch (folderError) {
+          console.error('Error deleting telephely folder:', folderError);
+        }
+      }
+
       toast.success('Telephely törölve');
       onDataChange();
     }
@@ -160,7 +231,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
 
   return (
     <>
-      <Card className="panel-float-in" style={{ animationDelay: '50ms' }}>
+      <Card className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -283,7 +354,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleDeleteTelephely(telephely.id)}
+                                  onClick={() => handleDeleteTelephely(telephely.id, company.id, telephely.name)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

@@ -464,13 +464,13 @@ export default function Admin() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="panel-float-in">
+        <div className="animate-fade-in-down">
           <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="panel-float-in" style={{ animationDelay: '50ms' }}>
+          <TabsList className="animate-fade-in" style={{ animationDelay: '50ms' }}>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Felhasználók
@@ -479,17 +479,13 @@ export default function Admin() {
               <FolderTree className="h-4 w-4" />
               Fájlkezelő
             </TabsTrigger>
-            <TabsTrigger value="access" className="flex items-center gap-2">
-              <FolderCog className="h-4 w-4" />
-              Hozzáférések
-            </TabsTrigger>
             <TabsTrigger value="companies" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               Cégek és telephelyek
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-4 panel-float-in" style={{ animationDelay: '100ms' }}>
+          <TabsContent value="users" className="space-y-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
               <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
@@ -609,98 +605,11 @@ export default function Admin() {
             )}
           </TabsContent>
 
-          <TabsContent value="files" className="space-y-4 panel-float-in">
+          <TabsContent value="files" className="space-y-4 animate-fade-in-up">
             <FileManager />
           </TabsContent>
 
-          <TabsContent value="access" className="space-y-4 panel-float-in">
-            <Card className="panel-float-in" style={{ animationDelay: '50ms' }}>
-              <CardHeader>
-                <CardTitle>Mappa hozzáférések kezelése</CardTitle>
-                <CardDescription>Felhasználók mappához való hozzáférésének kezelése</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {users.filter(u => u.role === 'user').length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nincsenek felhasználók</p>
-                ) : (
-                  <ScrollArea className="h-[500px]">
-                    <div className="space-y-2">
-                      {users.filter(u => u.role === 'user').map((userData) => {
-                        const isExpanded = expandedUsers.has(userData.id);
-                        const accessibleFolderIds = userFolderAccess[userData.id] || [];
-                        
-                        return (
-                          <div key={userData.id} className="border rounded-lg">
-                            <div
-                              className="flex items-center justify-between p-3 hover:bg-muted/30 cursor-pointer"
-                              onClick={() => toggleUser(userData.id)}
-                            >
-                              <div className="flex items-center gap-2 flex-1">
-                                <button className="p-0.5 hover:bg-muted rounded flex-shrink-0">
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </button>
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">
-                                    {userData.full_name || 'Ismeretlen'}
-                                    {userData.company_name && (
-                                      <span className="text-muted-foreground ml-2">({userData.company_name})</span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge variant={userData.subscription_status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                                      {userData.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      {accessibleFolderIds.length} mappa
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {isExpanded && (
-                              <div className="border-t p-3 bg-muted/20">
-                                {folders.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground text-center py-4">Nincsenek mappák</p>
-                                ) : (
-                                  <div className="space-y-2">
-                                    {folders.map(folder => {
-                                      const hasAccess = accessibleFolderIds.includes(folder.id);
-                                      return (
-                                        <div key={folder.id} className="flex items-center gap-3">
-                                          <Checkbox
-                                            checked={hasAccess}
-                                            onCheckedChange={() => handleToggleFolderAccess(userData.id, folder.id, hasAccess)}
-                                          />
-                                          <div className="flex items-center gap-2">
-                                            <Folder className="h-4 w-4 text-yellow-600" />
-                                            <span className="text-sm">{folder.folder_path}</span>
-                                            {folder.is_client_folder && (
-                                              <Badge variant="outline" className="text-xs">Kliens</Badge>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="companies" className="space-y-4 panel-float-in">
+          <TabsContent value="companies" className="space-y-4 animate-fade-in-up">
             <CompanyManagement 
               companies={companies}
               telephelyek={telephelyek}
