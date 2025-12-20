@@ -16,6 +16,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -137,7 +138,7 @@ export default function KlinikaAdmin() {
 
     setCreatingUser(true);
     try {
-      const { data, error } = await invokeWithRetry('klinika-admin', {
+      const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
         operation: 'create-user',
         email: finalEmail,
         password: newUserPassword,
@@ -207,7 +208,7 @@ export default function KlinikaAdmin() {
   const handleInviteUser = useCallback(async (userId: string, isLocalUser: boolean) => {
     setInvitingUserId(userId);
     try {
-      const { data, error } = await invokeWithRetry('klinika-admin', {
+      const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
         operation: 'invite-user',
         userId,
       });
@@ -243,7 +244,7 @@ export default function KlinikaAdmin() {
 
   const handleDeleteUser = useCallback(async (userId: string, userEmail: string) => {
     try {
-      const { data, error } = await invokeWithRetry('klinika-admin', {
+      const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
         operation: 'delete-user-completely',
         email: userEmail,
       });
