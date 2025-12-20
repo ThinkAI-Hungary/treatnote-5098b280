@@ -712,14 +712,6 @@ export default function Admin() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="can-create-users"
-                  checked={editCanCreateUsers}
-                  onCheckedChange={(checked) => setEditCanCreateUsers(checked as boolean)}
-                />
-                <Label htmlFor="can-create-users">Felhasználók létrehozása engedélyezve</Label>
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
