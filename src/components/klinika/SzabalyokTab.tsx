@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback, MouseEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { TableCell, TableHead } from '@/components/ui/table';
 import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileUp, Trash2, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,6 +15,7 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { sanitizeNameForStorage, sanitizeFileName } from '@/lib/hungarianNormalizer';
+import { GalaxyButton } from './GalaxyButton';
 
 interface UploadedPdf {
   id: string;
@@ -18,6 +23,7 @@ interface UploadedPdf {
   file_path: string;
   file_size: number | null;
   created_at: string;
+  reference_note?: string | null;
 }
 
 interface SzabalyokTabProps {
@@ -37,6 +43,12 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; filePath: string } | null>(null);
   const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Upload dialog state
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [uploadReference, setUploadReference] = useState('');
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -64,7 +76,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     loadFiles();
   }, [loadFiles]);
 
-  const handleFileUpload = async (file: File) => {
+  const handleFilePrepare = (file: File) => {
     if (!companyId || !telephelyId) {
       toast.error('Hiányzó cég vagy telephely azonosító');
       return;
@@ -82,8 +94,19 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       return;
     }
 
+    // Open dialog with file details
+    setPendingFile(file);
+    setUploadFileName(file.name.replace('.pdf', ''));
+    setUploadReference('');
+    setUploadDialogOpen(true);
+  };
+
+  const handleUploadConfirm = async () => {
+    if (!pendingFile || !companyId || !telephelyId || !companyName || !telephelyName) return;
+
     setError(null);
     setUploading(true);
+    setUploadDialogOpen(false);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -96,23 +119,24 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       // Create unique file path with timestamp and sanitized filename
       const timestamp = Date.now();
-      const sanitizedFileName = sanitizeFileName(file.name);
-      const filePath = `${folderPath}/${timestamp}_${sanitizedFileName}`;
+      const finalFileName = uploadFileName.trim() || pendingFile.name.replace('.pdf', '');
+      const sanitizedFinalName = sanitizeFileName(`${finalFileName}.pdf`);
+      const filePath = `${folderPath}/${timestamp}_${sanitizedFinalName}`;
 
       // Upload to client-files bucket (same as admin file manager)
       const { error: uploadError } = await supabase.storage
         .from('client-files')
-        .upload(filePath, file);
+        .upload(filePath, pendingFile);
 
       if (uploadError) throw uploadError;
 
-      // Save to database
+      // Save to database with display name and reference
       const { error: dbError } = await supabase
         .from('feltoltott_pdf')
         .insert({
-          file_name: file.name,
+          file_name: `${finalFileName}.pdf`,
           file_path: filePath,
-          file_size: file.size,
+          file_size: pendingFile.size,
           company_id: companyId,
           telephely_id: telephelyId,
           uploaded_by: user.id,
@@ -127,7 +151,17 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       toast.error(err.message || 'Hiba a fájl feltöltésekor');
     } finally {
       setUploading(false);
+      setPendingFile(null);
+      setUploadFileName('');
+      setUploadReference('');
     }
+  };
+
+  const handleUploadCancel = () => {
+    setUploadDialogOpen(false);
+    setPendingFile(null);
+    setUploadFileName('');
+    setUploadReference('');
   };
 
   const openDeleteConfirm = (id: string, filePath: string, event: MouseEvent) => {
@@ -202,13 +236,13 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
+      handleFilePrepare(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
+      handleFilePrepare(e.target.files[0]);
     }
     e.target.value = '';
   };
@@ -372,6 +406,51 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           </AnimatedTable>
         </CardContent>
       </Card>
+
+      {/* Upload Confirmation Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileUp className="h-5 w-5 text-primary" />
+              Fájl feltöltése
+            </DialogTitle>
+            <DialogDescription>
+              Adja meg a fájl adatait a feltöltés előtt
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="file-name">Mi legyen a file neve?</Label>
+              <Input
+                id="file-name"
+                placeholder="Fájl neve"
+                value={uploadFileName}
+                onChange={(e) => setUploadFileName(e.target.value)}
+                className="border-primary/20 focus:border-primary/40"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">Hogyan szeretnének rá hivatkozni?</Label>
+              <Textarea
+                id="reference"
+                placeholder="Leírás, megjegyzés (opcionális)"
+                value={uploadReference}
+                onChange={(e) => setUploadReference(e.target.value)}
+                className="border-primary/20 focus:border-primary/40 min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleUploadCancel}>
+              Mégse
+            </Button>
+            <GalaxyButton onClick={handleUploadConfirm} disabled={!uploadFileName.trim()}>
+              Feltöltés
+            </GalaxyButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         open={deleteConfirmOpen}
