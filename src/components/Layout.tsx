@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { InvitationBanner } from '@/components/InvitationBanner';
@@ -25,6 +26,7 @@ function LayoutHeader() {
 
 export function Layout({ children }: LayoutProps) {
   const { user, loading } = useAuth();
+  const { isInitialized: rolesInitialized } = useCachedRoles();
   const navigate = useNavigate();
   const [isReady, setIsReady] = useState(false);
 
@@ -34,16 +36,12 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [user, loading, navigate]);
 
-  // Wait a tick after auth loading is done to ensure everything is ready
+  // Wait for auth AND roles to be loaded before showing content
   useEffect(() => {
-    if (!loading && user) {
-      // Small delay to ensure all data is loaded before showing content
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (!loading && user && rolesInitialized) {
+      setIsReady(true);
     }
-  }, [loading, user]);
+  }, [loading, user, rolesInitialized]);
 
   if (loading || !isReady) {
     return (

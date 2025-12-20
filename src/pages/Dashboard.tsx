@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Calendar, Stethoscope, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, Calendar, Stethoscope, TrendingUp } from 'lucide-react';
+import { PageLoader } from '@/components/PageLoader';
 
 interface DashboardStats {
   totalPatients: number;
@@ -62,11 +63,7 @@ export default function Dashboard() {
   const isLoading = authLoading || profileLoading || statsLoading;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const statCards = [
