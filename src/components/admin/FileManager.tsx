@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +23,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
+import { sanitizePathName } from '@/lib/hungarianNormalizer';
 
 interface FileNode {
   name: string;
@@ -202,6 +204,66 @@ export function FileManager() {
       const { error } = await invokeWithRetry('admin-file-manager', { operation, path });
 
       if (error) throw error;
+
+      // Check if this is a company folder deletion (pattern: TreatNote/Companies/{companyName})
+      if (isFolder) {
+        const pathParts = path.split('/');
+        // Check if it matches the company folder pattern
+        if (pathParts.length === 3 && pathParts[0] === 'TreatNote' && pathParts[1] === 'Companies') {
+          const companyFolderName = pathParts[2];
+          // Find and delete the company from Supabase by matching the sanitized name
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id, name');
+          
+          if (companies) {
+            const matchingCompany = companies.find(c => 
+              sanitizePathName(c.name) === companyFolderName
+            );
+            
+            if (matchingCompany) {
+              await supabase.from('companies').delete().eq('id', matchingCompany.id);
+              console.log(`Deleted company "${matchingCompany.name}" from database`);
+            }
+          }
+        }
+        
+        // Check if it's a telephely folder deletion (pattern: TreatNote/Companies/{companyName}/{telephelyName})
+        if (pathParts.length === 4 && pathParts[0] === 'TreatNote' && pathParts[1] === 'Companies') {
+          const companyFolderName = pathParts[2];
+          const telephelyFolderName = pathParts[3];
+          
+          // Find company first
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id, name');
+          
+          if (companies) {
+            const matchingCompany = companies.find(c => 
+              sanitizePathName(c.name) === companyFolderName
+            );
+            
+            if (matchingCompany) {
+              // Find and delete telephely
+              const { data: telephelyek } = await supabase
+                .from('telephely')
+                .select('id, name')
+                .eq('company_id', matchingCompany.id);
+              
+              if (telephelyek) {
+                const matchingTelephely = telephelyek.find(t => 
+                  sanitizePathName(t.name) === telephelyFolderName
+                );
+                
+                if (matchingTelephely) {
+                  await supabase.from('telephely').delete().eq('id', matchingTelephely.id);
+                  console.log(`Deleted telephely "${matchingTelephely.name}" from database`);
+                }
+              }
+            }
+          }
+        }
+      }
 
       // If deleting a file from a Szabalyok folder, ensure the folder persists
       if (!isFolder && path.includes('/Szabalyok/')) {

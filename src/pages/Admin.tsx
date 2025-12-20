@@ -70,6 +70,7 @@ export default function Admin() {
   const [telephelyek, setTelephelyek] = useState<Telephely[]>([]);
   const [folders, setFolders] = useState<FolderStructure[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('users');
 
   // User creation state
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -125,14 +126,19 @@ export default function Admin() {
     };
   };
 
-  const loadAllData = async () => {
-    setLoading(true);
+  const loadAllData = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     await Promise.all([
       loadUsersWithRoles(),
       loadFolders(),
       loadAllUserFolderAccess(),
     ]);
-    setLoading(false);
+    if (showLoader) setLoading(false);
+  };
+
+  // Refresh only companies/telephelyek data without full reload
+  const refreshCompanyData = async () => {
+    await loadUsersWithRoles();
   };
 
   const loadUsersWithRoles = async () => {
@@ -477,7 +483,7 @@ export default function Admin() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
             <TabsTrigger 
               value="users" 
@@ -646,7 +652,7 @@ export default function Admin() {
               <CompanyManagement 
                 companies={companies}
                 telephelyek={telephelyek}
-                onDataChange={loadAllData}
+                onDataChange={refreshCompanyData}
               />
             </TabsContent>
           </div>
