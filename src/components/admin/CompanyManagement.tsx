@@ -127,12 +127,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
   };
 
   const handleDeleteCompany = async (companyId: string, companyName: string) => {
-    const companyTelephelyek = telephelyek.filter(t => t.company_id === companyId);
-    if (companyTelephelyek.length > 0) {
-      toast.error('Először törölje a céghez tartozó telephelyeket');
-      return;
-    }
-
+    // Cascade delete will automatically remove associated telephelyek
     const { error } = await supabase
       .from('companies')
       .delete()
@@ -152,7 +147,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
         console.error('Error deleting company folder:', folderError);
       }
 
-      toast.success('Cég törölve');
+      toast.success('Cég és telephelyek törölve');
       onDataChange();
     }
   };
