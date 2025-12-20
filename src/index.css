@@ -578,3 +578,107 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   border-radius: 50%;
   animation: twinkle 3s ease-in-out infinite;
 }
+
+/* Table row stagger animations */
+@keyframes tableRowEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.table-row-animate {
+  opacity: 0;
+  animation: tableRowEnter 0.3s ease-out forwards;
+}
+
+.table-row-animate:nth-child(1) { animation-delay: 0ms; }
+.table-row-animate:nth-child(2) { animation-delay: 30ms; }
+.table-row-animate:nth-child(3) { animation-delay: 60ms; }
+.table-row-animate:nth-child(4) { animation-delay: 90ms; }
+.table-row-animate:nth-child(5) { animation-delay: 120ms; }
+.table-row-animate:nth-child(6) { animation-delay: 150ms; }
+.table-row-animate:nth-child(7) { animation-delay: 180ms; }
+.table-row-animate:nth-child(8) { animation-delay: 210ms; }
+.table-row-animate:nth-child(9) { animation-delay: 240ms; }
+.table-row-animate:nth-child(10) { animation-delay: 270ms; }
+
+/* Menu item hover fill effect */
+@keyframes menuItemFill {
+  from {
+    background-position: 0% 100%;
+  }
+  to {
+    background-position: 0% 0%;
+  }
+}
+
+.menu-item-fill {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    to top,
+    hsl(270 70% 55% / 0.12) 0%,
+    hsl(195 85% 55% / 0.08) 50%,
+    transparent 50%
+  );
+  background-size: 100% 200%;
+  background-position: 0% 0%;
+  transition: background-position 0.3s ease-out;
+}
+
+.menu-item-fill:hover {
+  background-position: 0% 100%;
+}
+
+/* Dropdown item gradient hover */
+.dropdown-item-hover {
+  position: relative;
+  transition: all 0.2s ease-out;
+}
+
+.dropdown-item-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    hsl(270 70% 55% / 0.1) 0%,
+    hsl(195 85% 55% / 0.15) 50%,
+    hsl(270 70% 55% / 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dropdown-item-hover:hover::before,
+.dropdown-item-hover:focus::before {
+  opacity: 1;
+}
+
+/* Card hover with galaxy glow */
+.card-galaxy-hover {
+  transition: all 0.3s ease-out;
+}
+
+.card-galaxy-hover:hover {
+  box-shadow: 
+    0 4px 20px hsl(270 70% 55% / 0.1),
+    0 0 40px hsl(195 85% 55% / 0.05);
+  border-color: hsl(270 70% 55% / 0.3);
+}
+
+/* Table header sticky with blur */
+.table-header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: hsl(var(--card) / 0.9);
+}
