@@ -192,7 +192,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="animate-fade-in">
         {/* Főmenü - Always rendered */}
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Főmenü</SidebarGroupLabel>}
