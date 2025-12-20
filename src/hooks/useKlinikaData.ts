@@ -52,6 +52,33 @@ const initialState: KlinikaDataState = {
   error: null,
 };
 
+// Helper to invoke edge function with retry on 401
+async function invokeWithRetry<T>(
+  operation: string,
+  body: Record<string, unknown> = {},
+  retries = 1
+): Promise<{ data: T | null; error: Error | null }> {
+  const fullBody = { operation, ...body };
+  
+  const { data, error } = await supabase.functions.invoke<T>('klinika-admin', { body: fullBody });
+  
+  // Check for 401 error (unauthorized) - retry after session refresh
+  if (error && (error.message?.includes('401') || error.message?.includes('Unauthorized'))) {
+    if (retries > 0) {
+      console.log(`Got 401 for ${operation}, refreshing session and retrying...`);
+      // Refresh the session
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError) {
+        // Wait a brief moment for the new token to propagate
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return invokeWithRetry<T>(operation, body, retries - 1);
+      }
+    }
+  }
+  
+  return { data, error };
+}
+
 export function useKlinikaData() {
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<KlinikaDataState>(initialState);
@@ -105,10 +132,10 @@ export function useKlinikaData() {
         return;
       }
 
-      // Step 2: Fetch users and invitations in parallel
+      // Step 2: Fetch users and invitations in parallel with retry
       const [usersResponse, invitationsResponse] = await Promise.all([
-        supabase.functions.invoke('klinika-admin', { body: { operation: 'get-users' } }),
-        supabase.functions.invoke('klinika-admin', { body: { operation: 'get-sent-invitations' } }),
+        invokeWithRetry<{ users: KlinikaUser[] }>('get-users'),
+        invokeWithRetry<{ invitations: SentInvitation[] }>('get-sent-invitations'),
       ]);
 
       if (mountedRef.current) {
@@ -133,12 +160,10 @@ export function useKlinikaData() {
     }
   }, [user]);
 
-  // Refresh users only
+  // Refresh users only (with retry)
   const refreshUsers = useCallback(async () => {
     try {
-      const { data } = await supabase.functions.invoke('klinika-admin', { 
-        body: { operation: 'get-users' } 
-      });
+      const { data } = await invokeWithRetry<{ users: KlinikaUser[] }>('get-users');
       if (mountedRef.current) {
         setState(prev => ({ ...prev, users: data?.users || [] }));
       }
@@ -147,12 +172,10 @@ export function useKlinikaData() {
     }
   }, []);
 
-  // Refresh invitations only
+  // Refresh invitations only (with retry)
   const refreshInvitations = useCallback(async () => {
     try {
-      const { data } = await supabase.functions.invoke('klinika-admin', { 
-        body: { operation: 'get-sent-invitations' } 
-      });
+      const { data } = await invokeWithRetry<{ invitations: SentInvitation[] }>('get-sent-invitations');
       if (mountedRef.current) {
         setState(prev => ({ ...prev, sentInvitations: data?.invitations || [] }));
       }
