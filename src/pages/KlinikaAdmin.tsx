@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, X, Sparkles, Star
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, X, Sparkles, Star, FileText
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { SzabalyokTab } from '@/components/klinika/SzabalyokTab';
 
 interface KlinikaUser {
   id: string;
@@ -93,12 +94,11 @@ const AnimatedCard = ({
 }) => (
   <Card 
     className={cn(
-      "animate-fade-in-up hover-lift border-primary/20 bg-card/80 backdrop-blur-sm",
+      "hover-lift border-primary/20 bg-card/80 backdrop-blur-sm",
       "dark:bg-card/60 dark:border-sparkle-blue/20",
       "transition-all duration-300",
       className
     )} 
-    style={{ animationDelay: `${delay}ms` }}
     {...props}
   >
     {children}
@@ -138,12 +138,13 @@ const GalaxyButton = ({
 );
 
 export default function KlinikaAdmin() {
-  const { isKlinikaAdmin, companyName, telephelyName, loading: roleLoading } = useKlinikaAdminRole();
+  const { isKlinikaAdmin, companyName, telephelyName, companyId, telephelyId, loading: roleLoading } = useKlinikaAdminRole();
   const { isAdmin, loading: adminRoleLoading } = useUserRole();
   const [users, setUsers] = useState<KlinikaUser[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAvailable, setLoadingAvailable] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
 
   // Create user state
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -169,6 +170,16 @@ export default function KlinikaAdmin() {
       loadSentInvitations();
     }
   }, [isKlinikaAdmin, isAdmin]);
+
+  // Set content ready after data is loaded
+  useEffect(() => {
+    if (!roleLoading && !adminRoleLoading && !loading) {
+      const timer = setTimeout(() => {
+        setContentReady(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [roleLoading, adminRoleLoading, loading]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -353,7 +364,7 @@ export default function KlinikaAdmin() {
     loadAvailableUsers();
   };
 
-  if (roleLoading || adminRoleLoading) {
+  if (roleLoading || adminRoleLoading || !contentReady) {
     return (
       <Layout>
         <PageLoader />
@@ -364,7 +375,7 @@ export default function KlinikaAdmin() {
   if (!isKlinikaAdmin && !isAdmin) {
     return (
       <Layout>
-        <div className="relative min-h-[60vh]">
+        <div className="relative min-h-[60vh] opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
           <StarField />
           <AnimatedCard className="relative z-10 max-w-md mx-auto mt-20">
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -396,7 +407,7 @@ export default function KlinikaAdmin() {
         
         <div className="relative z-10 space-y-8 pb-8">
           {/* Header section with galaxy gradient */}
-          <div className="animate-fade-in-down">
+          <div>
             <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
               {/* Sparkle decoration */}
               <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" />
@@ -423,7 +434,7 @@ export default function KlinikaAdmin() {
 
           {/* Tabs with enhanced styling */}
           <Tabs defaultValue="users" className="space-y-6">
-            <TabsList className="animate-fade-in bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
+            <TabsList className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
               <TabsTrigger 
                 value="users" 
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-300"
@@ -438,9 +449,16 @@ export default function KlinikaAdmin() {
                 <UserPlus className="h-4 w-4" />
                 Meghívás
               </TabsTrigger>
+              <TabsTrigger 
+                value="szabalyok" 
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-300"
+              >
+                <FileText className="h-4 w-4" />
+                Szabályok
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="users" className="space-y-6 animate-fade-in">
+            <TabsContent value="users" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
@@ -517,7 +535,7 @@ export default function KlinikaAdmin() {
                           className="border-primary/20 focus:border-primary/40 transition-colors duration-200"
                         />
                         {newUserConfirmPassword && newUserPassword !== newUserConfirmPassword && (
-                          <p className="text-xs text-destructive animate-fade-in">A jelszavak nem egyeznek</p>
+                          <p className="text-xs text-destructive">A jelszavak nem egyeznek</p>
                         )}
                       </div>
                     </div>
@@ -578,11 +596,10 @@ export default function KlinikaAdmin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user, index) => (
+                        {users.map((user) => (
                           <TableRow 
                             key={user.id}
-                            className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300 animate-fade-in"
-                            style={{ animationDelay: `${index * 50}ms` }}
+                            className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300"
                           >
                             <TableCell className="font-medium">{user.email}</TableCell>
                             <TableCell>{user.full_name || '-'}</TableCell>
@@ -630,7 +647,7 @@ export default function KlinikaAdmin() {
               )}
             </TabsContent>
 
-            <TabsContent value="invite" className="space-y-6 animate-fade-in">
+            <TabsContent value="invite" className="space-y-6">
               <AnimatedCard>
                 <CardHeader className="border-b border-primary/10">
                   <CardTitle className="flex items-center gap-3">
@@ -677,11 +694,10 @@ export default function KlinikaAdmin() {
                   ) : (
                     <ScrollArea className="h-[400px] pr-4">
                       <div className="space-y-3">
-                        {availableUsers.map((user, index) => (
+                        {availableUsers.map((user) => (
                           <div
                             key={user.id}
-                            className="group flex items-center justify-between p-4 border border-primary/10 rounded-xl bg-card/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300 animate-fade-in"
-                            style={{ animationDelay: `${index * 50}ms` }}
+                            className="group flex items-center justify-between p-4 border border-primary/10 rounded-xl bg-card/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300"
                           >
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
@@ -724,7 +740,7 @@ export default function KlinikaAdmin() {
               </Dialog>
 
               {/* Sent Invitations List */}
-              <AnimatedCard delay={100}>
+              <AnimatedCard>
                 <CardHeader className="border-b border-primary/10">
                   <CardTitle className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-accent to-primary flex items-center justify-center">
@@ -762,11 +778,10 @@ export default function KlinikaAdmin() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {sentInvitations.map((invitation, index) => (
+                          {sentInvitations.map((invitation) => (
                             <TableRow 
                               key={invitation.id}
-                              className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300 animate-fade-in"
-                              style={{ animationDelay: `${index * 50}ms` }}
+                              className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300"
                             >
                               <TableCell className="font-medium">{invitation.email}</TableCell>
                               <TableCell>{invitation.full_name || '-'}</TableCell>
@@ -812,6 +827,10 @@ export default function KlinikaAdmin() {
                   )}
                 </CardContent>
               </AnimatedCard>
+            </TabsContent>
+
+            <TabsContent value="szabalyok" className="space-y-6">
+              <SzabalyokTab companyId={companyId} telephelyId={telephelyId} />
             </TabsContent>
           </Tabs>
         </div>

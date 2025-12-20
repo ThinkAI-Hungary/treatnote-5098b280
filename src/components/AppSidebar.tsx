@@ -59,7 +59,7 @@ const userMenuItems = [
   { title: 'Profil', url: '/profile', icon: User },
 ];
 
-// Static menu item component - visibility controlled by CSS, not conditional rendering
+// Static menu item component - completely static, no animations
 function StaticMenuItem({ 
   item, 
   collapsed,
@@ -78,12 +78,9 @@ function StaticMenuItem({
       <SidebarMenuItem>
         <HoverCard openDelay={0} closeDelay={200}>
           <HoverCardTrigger asChild>
-            <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full sidebar-menu-hover rounded-md">
+            <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full rounded-md">
               <item.icon className="h-4 w-4 shrink-0" />
-              <span className={cn(
-                "transition-opacity duration-200",
-                collapsed ? "opacity-0 w-0" : "opacity-100"
-              )}>{item.title}</span>
+              {!collapsed && <span>{item.title}</span>}
             </div>
           </HoverCardTrigger>
           <HoverCardContent 
@@ -91,7 +88,7 @@ function StaticMenuItem({
             align="start"
             sideOffset={8}
             alignOffset={-40}
-            className="w-72 p-4 z-[100] bg-popover border border-border shadow-lg animate-in slide-in-from-left-2 duration-300"
+            className="w-72 p-4 z-[100] bg-popover border border-border shadow-lg"
           >
             <p className="text-sm">
               {disabledMessage}{' '}
@@ -115,14 +112,11 @@ function StaticMenuItem({
       <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url}
-          className="flex items-center gap-2 sidebar-menu-hover rounded-md transition-all duration-300"
+          className="flex items-center gap-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          <span className={cn(
-            "transition-opacity duration-200",
-            collapsed ? "opacity-0 w-0" : "opacity-100"
-          )}>{item.title}</span>
+          {!collapsed && <span>{item.title}</span>}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -153,26 +147,25 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="z-30">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-3">
+        <div className={cn(
+          "flex items-center gap-2 py-3",
+          collapsed ? "px-0 justify-center" : "px-2"
+        )}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shrink-0">
             T
           </div>
-          <span className={cn(
-            "text-lg font-semibold text-sidebar-foreground transition-all duration-200",
-            collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-          )}>
-            TreatNote
-          </span>
+          {!collapsed && (
+            <span className="text-lg font-semibold text-sidebar-foreground">
+              TreatNote
+            </span>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         {/* Főmenü - Always rendered */}
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(
-            "transition-all duration-200",
-            collapsed ? "opacity-0" : "opacity-100"
-          )}>Főmenü</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Főmenü</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => (
@@ -191,10 +184,7 @@ export function AppSidebar() {
 
         {/* Egyéb - Always rendered */}
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(
-            "transition-all duration-200",
-            collapsed ? "opacity-0" : "opacity-100"
-          )}>Egyéb</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Egyéb</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryMenuItems.map((item) => (
@@ -204,48 +194,37 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Admin - Always rendered but hidden via CSS if no access */}
-        <SidebarGroup className={cn(
-          "transition-all duration-300",
-          !isAdmin && "h-0 overflow-hidden opacity-0 pointer-events-none m-0 p-0"
-        )}>
-          <SidebarGroupLabel className={cn(
-            "transition-all duration-200",
-            collapsed ? "opacity-0" : "opacity-100"
-          )}>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminMenuItems.map((item) => (
-                <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Admin - Hidden if no access */}
+        {isAdmin && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Admin</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminMenuItems.map((item) => (
+                  <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        {/* Klinika - Always rendered but hidden via CSS if no access */}
-        <SidebarGroup className={cn(
-          "transition-all duration-300",
-          !(isKlinikaAdmin || isAdmin) && "h-0 overflow-hidden opacity-0 pointer-events-none m-0 p-0"
-        )}>
-          <SidebarGroupLabel className={cn(
-            "transition-all duration-200",
-            collapsed ? "opacity-0" : "opacity-100"
-          )}>Klinika</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {klinikaMenuItems.map((item) => (
-                <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Klinika - Hidden if no access */}
+        {(isKlinikaAdmin || isAdmin) && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Klinika</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {klinikaMenuItems.map((item) => (
+                  <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Fiók - Always rendered */}
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(
-            "transition-all duration-200",
-            collapsed ? "opacity-0" : "opacity-100"
-          )}>Fiók</SidebarGroupLabel>
+          {!collapsed && <SidebarGroupLabel>Fiók</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {userMenuItems.map((item) => (
@@ -263,7 +242,10 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="w-full justify-start data-[state=open]:bg-sidebar-accent sidebar-menu-hover rounded-md transition-all duration-300"
+                  className={cn(
+                    "w-full data-[state=open]:bg-sidebar-accent rounded-md",
+                    collapsed ? "justify-center" : "justify-start"
+                  )}
                 >
                   <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage src="" />
@@ -271,17 +253,16 @@ export function AppSidebar() {
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
-                  <div className={cn(
-                    "flex flex-col items-start text-left transition-all duration-200",
-                    collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
-                  )}>
-                    <span className="text-sm font-medium truncate max-w-[140px]">
-                      {user?.email}
-                    </span>
-                    <span className="text-xs text-sidebar-foreground/60">
-                      {getRoleText()}
-                    </span>
-                  </div>
+                  {!collapsed && (
+                    <div className="flex flex-col items-start text-left">
+                      <span className="text-sm font-medium truncate max-w-[140px]">
+                        {user?.email}
+                      </span>
+                      <span className="text-xs text-sidebar-foreground/60">
+                        {getRoleText()}
+                      </span>
+                    </div>
+                  )}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 z-[100] bg-popover border border-border">
