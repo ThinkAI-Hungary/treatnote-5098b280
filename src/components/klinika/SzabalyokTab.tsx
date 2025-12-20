@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, MouseEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableHead } from '@/components/ui/table';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { sanitizeNameForStorage, sanitizeFileName } from '@/lib/hungarianNormalizer';
 
 interface UploadedPdf {
   id: string;
@@ -26,32 +27,6 @@ interface SzabalyokTabProps {
   telephelyName: string | null;
 }
 
-// Sanitize names to remove special characters that Storage doesn't support
-// Handles Hungarian characters: á→a, é→e, í→i, ó→o, ö→o, ő→o, ú→u, ü→u, ű→u
-const sanitizeName = (name: string) => {
-  const hungarianMap: Record<string, string> = {
-    'á': 'a', 'Á': 'A',
-    'é': 'e', 'É': 'E', 
-    'í': 'i', 'Í': 'I',
-    'ó': 'o', 'Ó': 'O',
-    'ö': 'o', 'Ö': 'O',
-    'ő': 'o', 'Ő': 'O',
-    'ú': 'u', 'Ú': 'U',
-    'ü': 'u', 'Ü': 'U',
-    'ű': 'u', 'Ű': 'U',
-  };
-  
-  return name
-    .split('')
-    .map(char => hungarianMap[char] || char)
-    .join('')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove any remaining diacritics
-    .replace(/[^a-zA-Z0-9\s\-_.]/g, '') // Keep alphanumeric, spaces, hyphens, underscores, dots
-    .trim()
-    .replace(/\s+/g, '_'); // Replace spaces with underscores
-};
-
 export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyName }: SzabalyokTabProps) {
   const [files, setFiles] = useState<UploadedPdf[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +36,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; filePath: string } | null>(null);
+  const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -113,14 +89,14 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Nincs bejelentkezett felhasználó');
 
-      // Create folder structure: TreatNote/Companies/{CompanyName}/{TelephelyName}/Szabalyok/
-      const sanitizedCompany = sanitizeName(companyName);
-      const sanitizedTelephely = sanitizeName(telephelyName);
+      // Create folder structure using the normalizer
+      const sanitizedCompany = sanitizeNameForStorage(companyName);
+      const sanitizedTelephely = sanitizeNameForStorage(telephelyName);
       const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Szabalyok`;
 
-      // Create unique file path with timestamp
+      // Create unique file path with timestamp and sanitized filename
       const timestamp = Date.now();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const sanitizedFileName = sanitizeFileName(file.name);
       const filePath = `${folderPath}/${timestamp}_${sanitizedFileName}`;
 
       // Upload to client-files bucket (same as admin file manager)
@@ -154,8 +130,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     }
   };
 
-  const openDeleteConfirm = (id: string, filePath: string) => {
+  const openDeleteConfirm = (id: string, filePath: string, event: MouseEvent) => {
     setPendingDelete({ id, filePath });
+    setDeleteAnchorPosition({ x: event.clientX, y: event.clientY });
     setDeleteConfirmOpen(true);
   };
 
@@ -192,6 +169,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     } finally {
       setDeletingId(null);
       setPendingDelete(null);
+      setDeleteAnchorPosition(null);
     }
   };
 
@@ -219,7 +197,6 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     if (e.target.files && e.target.files[0]) {
       handleFileUpload(e.target.files[0]);
     }
-    // Reset input so same file can be selected again
     e.target.value = '';
   };
 
@@ -367,7 +344,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => openDeleteConfirm(file.id, file.file_path)}
+                    onClick={(e) => openDeleteConfirm(file.id, file.file_path, e)}
                     disabled={deletingId === file.id}
                   >
                     {deletingId === file.id ? (
@@ -385,10 +362,17 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       <ConfirmDialog
         open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open) {
+            setPendingDelete(null);
+            setDeleteAnchorPosition(null);
+          }
+        }}
         title="PDF fájl törlése"
-        description="Biztosan törölni szeretné ezt a fájlt? Ez a művelet nem vonható vissza."
+        description="Biztosan törölni szeretné ezt a fájlt?"
         onConfirm={handleDelete}
+        anchorPosition={deleteAnchorPosition}
       />
     </div>
   );
