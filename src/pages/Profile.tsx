@@ -40,6 +40,7 @@ const Profile = () => {
     full_name: '',
     company_name: '',
     phone: '',
+    telephely: '',
   });
 
   useEffect(() => {
@@ -69,6 +70,7 @@ const Profile = () => {
         full_name: data.full_name || '',
         company_name: data.company_name || '',
         phone: data.phone || '',
+        telephely: (data as any).telephely || '',
       });
     }
   };
@@ -183,6 +185,16 @@ const Profile = () => {
                 type="tel"
                 value={profile.phone}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="telephely">Telephely</Label>
+              <Input
+                id="telephely"
+                type="text"
+                placeholder="Pl. Budapest, Szeged, stb."
+                value={profile.telephely}
+                onChange={(e) => setProfile({ ...profile, telephely: e.target.value })}
               />
             </div>
             <Button type="submit" disabled={loading}>

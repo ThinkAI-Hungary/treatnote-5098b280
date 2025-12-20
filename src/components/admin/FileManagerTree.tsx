@@ -84,7 +84,7 @@ function TreeNode({
   return (
     <div 
       className="folder-slide-in"
-      style={{ animationDelay: `${index * 30}ms` }}
+      style={{ animationDelay: `${Math.min(index, 15) * 30}ms` }}
     >
       <div 
         className={cn(
