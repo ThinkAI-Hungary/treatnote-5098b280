@@ -158,34 +158,44 @@ serve(async (req) => {
     const encryptedPassword = await encryptPassword(flexiPassword, encryptionKey);
     console.log('Password encrypted successfully');
 
-    // Store in flexi_auth table (upsert to handle existing records)
+    // Check if this flexi_username is already linked to another user
+    const { data: existingLink } = await supabaseAdmin
+      .from('flexi_auth')
+      .select('user_id')
+      .eq('flexi_username', flexiEmail)
+      .maybeSingle();
+
+    if (existingLink && existingLink.user_id !== user.id) {
+      console.log('Flexi account already linked to another user');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Flexi account already linked', 
+          success: false,
+          message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve.'
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Delete any existing record for this user first (to avoid unique constraint issues)
+    await supabaseAdmin
+      .from('flexi_auth')
+      .delete()
+      .eq('user_id', user.id);
+
+    // Insert new record
     const { error: insertError } = await supabaseAdmin
       .from('flexi_auth')
-      .upsert({
+      .insert({
         user_id: user.id,
         name: userName,
         flexi_username: flexiEmail,
         flexi_pw: encryptedPassword,
         updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
       });
 
     if (insertError) {
       console.error('Error storing flexi auth:', insertError);
-      
-      // Check for unique constraint violation on flexi_username
-      if (insertError.code === '23505' && insertError.message?.includes('flexi_username')) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Flexi account already linked', 
-            success: false,
-            message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve.'
-          }),
-          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
       return new Response(
         JSON.stringify({ error: 'Failed to save credentials', success: false }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
