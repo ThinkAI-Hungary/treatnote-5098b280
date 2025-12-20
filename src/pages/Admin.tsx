@@ -478,24 +478,24 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="bg-secondary/30 backdrop-blur-sm border border-primary/20 p-1.5 gap-1">
+          <TabsList className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
             <TabsTrigger 
               value="users" 
-              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
             >
               <Users className="h-4 w-4" />
               Felhasználók
             </TabsTrigger>
             <TabsTrigger 
               value="files" 
-              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
             >
               <FolderTree className="h-4 w-4" />
               Fájlkezelő
             </TabsTrigger>
             <TabsTrigger 
               value="companies" 
-              className="flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 data-[state=active]:bg-primary/30 data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_12px_hsl(270_70%_55%/0.3)] hover:bg-primary/10"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
             >
               <Building2 className="h-4 w-4" />
               Cégek és telephelyek

@@ -122,9 +122,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     @apply bg-background text-foreground;
   }
 
-  /* Focus styles - removed white flash on click */
+  /* Focus styles - completely removed white flash and focus ring on click */
   *:focus {
-    @apply outline-none;
+    @apply outline-none ring-0 ring-offset-0;
   }
 
   *:focus:not(:focus-visible) {
@@ -132,7 +132,58 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none ring-0 ring-offset-0;
+  }
+
+  /* Galaxy themed scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(260 40% 12%);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(300 70% 55%) 0%,
+      hsl(270 70% 55%) 50%,
+      hsl(195 85% 55%) 100%
+    );
+    border-radius: 3px;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(300 70% 65%) 0%,
+      hsl(270 70% 65%) 50%,
+      hsl(195 85% 65%) 100%
+    );
+  }
+
+  /* Light mode scrollbar */
+  :root:not(.dark) ::-webkit-scrollbar-track {
+    background: hsl(260 20% 92%);
+  }
+
+  :root:not(.dark) ::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(300 60% 60%) 0%,
+      hsl(270 60% 55%) 50%,
+      hsl(195 80% 55%) 100%
+    );
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(270 70% 55%) hsl(260 40% 12%);
   }
 }
 
@@ -724,7 +775,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   animation: iconLevitate 2s ease-in-out infinite;
 }
 
-/* Sidebar menu item with gradient hover - fades all the way to top */
+/* Sidebar menu item with gradient hover - neon pink fading to top completely */
 .sidebar-menu-gradient {
   position: relative;
   overflow: hidden;
@@ -740,13 +791,14 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   height: 100%;
   background: linear-gradient(
     to top,
-    hsl(300 60% 55% / 0.3) 0%,
-    hsl(270 70% 55% / 0.2) 30%,
-    hsl(195 85% 55% / 0.1) 60%,
+    hsl(300 70% 60% / 0.35) 0%,
+    hsl(300 65% 58% / 0.25) 25%,
+    hsl(300 60% 55% / 0.15) 50%,
+    hsl(300 55% 52% / 0.08) 75%,
     transparent 100%
   );
   opacity: 0;
-  transition: opacity 0.3s ease-out;
+  transition: opacity 0.5s ease-out;
   pointer-events: none;
   border-radius: inherit;
 }
@@ -755,33 +807,19 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   opacity: 1;
 }
 
-/* Active menu item - slow pulsing gradient */
-@keyframes gradientPulse {
+/* Active menu item - slow pulsing neon pink gradient (6s cycle = 2x slower) */
+@keyframes gradientPulseSlow {
   0%, 100% {
-    opacity: 0.5;
-    background: linear-gradient(
-      to top,
-      hsl(300 60% 55% / 0.25) 0%,
-      hsl(270 70% 55% / 0.15) 30%,
-      hsl(195 85% 55% / 0.08) 60%,
-      transparent 100%
-    );
+    opacity: 0.7;
   }
   50% {
     opacity: 1;
-    background: linear-gradient(
-      to top,
-      hsl(300 60% 55% / 0.35) 0%,
-      hsl(270 70% 55% / 0.25) 30%,
-      hsl(195 85% 55% / 0.15) 60%,
-      transparent 100%
-    );
   }
 }
 
 .sidebar-menu-gradient.active::before {
   opacity: 1;
-  animation: gradientPulse 3s ease-in-out infinite;
+  animation: gradientPulseSlow 6s ease-in-out infinite;
 }
 
 /* Snake border animation for dropdowns */
