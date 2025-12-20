@@ -68,6 +68,13 @@ serve(async (req) => {
 
     console.log(`Admin ${user.id} attempting to delete user ${userId}`);
 
+    // Get the user's profile info for folder deletion
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, company_id, telephely_id')
+      .eq('user_id', userId)
+      .single();
+
     // Check the target user's role (optional - user might not have a role)
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
@@ -82,6 +89,66 @@ serve(async (req) => {
 
     const targetRole = roleData?.role || 'unknown';
     console.log(`Target user ${userId} has role: ${targetRole}`);
+
+    // Delete user's folder from storage if they had a company and telephely
+    if (targetProfile?.company_id && targetProfile?.telephely_id) {
+      try {
+        // Get company and telephely names
+        const [companyResult, telephelyResult] = await Promise.all([
+          supabaseAdmin.from('companies').select('name').eq('id', targetProfile.company_id).single(),
+          supabaseAdmin.from('telephely').select('name').eq('id', targetProfile.telephely_id).single(),
+        ]);
+
+        if (companyResult.data?.name && telephelyResult.data?.name) {
+          // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+          const charMap: Record<string, string> = {
+            'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
+            'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
+            'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
+          };
+          const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+
+          // Get user's auth email for folder name
+          const { data: { users: authUsersList } } = await supabaseAdmin.auth.admin.listUsers();
+          const targetAuthUser = authUsersList?.find(u => u.id === userId);
+          const userName = targetProfile.full_name || targetAuthUser?.email?.split('@')[0] || userId;
+
+          const sanitizedCompany = sanitize(companyResult.data.name);
+          const sanitizedTelephely = sanitize(telephelyResult.data.name);
+          const sanitizedUser = sanitize(userName);
+          
+          const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
+          
+          console.log(`Deleting user folder: ${folderPath}`);
+          
+          // List all files in the user's folder
+          const { data: files, error: listError } = await supabaseAdmin.storage
+            .from('client-files')
+            .list(folderPath, { limit: 1000 });
+
+          if (listError) {
+            console.error('Error listing user folder:', listError);
+          } else if (files && files.length > 0) {
+            // Delete all files in the folder
+            const filePaths = files.map(f => `${folderPath}/${f.name}`);
+            const { error: deleteFilesError } = await supabaseAdmin.storage
+              .from('client-files')
+              .remove(filePaths);
+
+            if (deleteFilesError) {
+              console.error('Error deleting user files:', deleteFilesError);
+            } else {
+              console.log(`Deleted ${filePaths.length} files from user folder`);
+            }
+          } else {
+            console.log(`No files found in user folder: ${folderPath}`);
+          }
+        }
+      } catch (folderError) {
+        console.error('Error deleting user folder:', folderError);
+        // Continue with user deletion even if folder deletion fails
+      }
+    }
 
     // Delete related data first (no cascade from auth.users)
     console.log(`Deleting related data for user ${userId}...`);
@@ -124,7 +191,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`User ${userId} (role: ${targetRole}) fully deleted from all tables`);
+    console.log(`User ${userId} (role: ${targetRole}) fully deleted from all tables and storage`);
     return new Response(
       JSON.stringify({ success: true, message: 'User deleted successfully' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

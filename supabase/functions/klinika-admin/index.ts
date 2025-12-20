@@ -780,14 +780,15 @@ serve(async (req) => {
           });
         }
 
+        // Get the user's profile info for folder deletion
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name, company_id, telephely_id")
+          .eq("user_id", targetUserId)
+          .single();
+
         // For klinika_admin (not full admin), check if user is in their organization
         if (!isAdmin) {
-          const { data: targetProfile } = await supabaseAdmin
-            .from("profiles")
-            .select("company_id, telephely_id")
-            .eq("user_id", targetUserId)
-            .single();
-
           // User must be in same company/telephely OR have no company (orphan user)
           const isInOrg = targetProfile?.company_id === companyId && targetProfile?.telephely_id === telephelyId;
           const isOrphan = !targetProfile?.company_id && !targetProfile?.telephely_id;
@@ -797,6 +798,62 @@ serve(async (req) => {
               status: 403,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
+          }
+        }
+
+        // Delete user's folder from storage if they had a company and telephely
+        if (targetProfile?.company_id && targetProfile?.telephely_id) {
+          try {
+            // Get company and telephely names
+            const [companyResult, telephelyResult] = await Promise.all([
+              supabaseAdmin.from("companies").select("name").eq("id", targetProfile.company_id).single(),
+              supabaseAdmin.from("telephely").select("name").eq("id", targetProfile.telephely_id).single(),
+            ]);
+
+            if (companyResult.data?.name && telephelyResult.data?.name) {
+              // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+              const charMap: Record<string, string> = {
+                'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
+                'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
+                'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
+              };
+              const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+
+              const userName = targetProfile.full_name || email.split('@')[0];
+              const sanitizedCompany = sanitize(companyResult.data.name);
+              const sanitizedTelephely = sanitize(telephelyResult.data.name);
+              const sanitizedUser = sanitize(userName);
+              
+              const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
+              
+              console.log(`Deleting user folder: ${folderPath}`);
+              
+              // List all files in the user's folder
+              const { data: files, error: listError } = await supabaseAdmin.storage
+                .from("client-files")
+                .list(folderPath, { limit: 1000 });
+
+              if (listError) {
+                console.error("Error listing user folder:", listError);
+              } else if (files && files.length > 0) {
+                // Delete all files in the folder
+                const filePaths = files.map(f => `${folderPath}/${f.name}`);
+                const { error: deleteFilesError } = await supabaseAdmin.storage
+                  .from("client-files")
+                  .remove(filePaths);
+
+                if (deleteFilesError) {
+                  console.error("Error deleting user files:", deleteFilesError);
+                } else {
+                  console.log(`Deleted ${filePaths.length} files from user folder`);
+                }
+              } else {
+                console.log(`No files found in user folder: ${folderPath}`);
+              }
+            }
+          } catch (folderError) {
+            console.error("Error deleting user folder:", folderError);
+            // Continue with user deletion even if folder deletion fails
           }
         }
 
@@ -830,7 +887,7 @@ serve(async (req) => {
           });
         }
 
-        console.log(`User ${targetUserId} (${email}) completely deleted by ${caller.id}`);
+        console.log(`User ${targetUserId} (${email}) completely deleted (including storage folder) by ${caller.id}`);
 
         return new Response(JSON.stringify({ success: true, deletedEmail: email }), {
           status: 200,
