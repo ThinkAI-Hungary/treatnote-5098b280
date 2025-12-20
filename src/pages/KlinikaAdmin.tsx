@@ -181,7 +181,24 @@ export default function KlinikaAdmin() {
       refreshUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Hiba a felhasználó létrehozásakor');
+      // Try to extract error message from various formats
+      let errorMessage = error.message || '';
+      
+      // Check if error has context body (edge function error response)
+      const body = error?.context?.body;
+      if (typeof body === 'string') {
+        try {
+          const parsed = JSON.parse(body);
+          if (parsed?.error) errorMessage = parsed.error;
+        } catch {}
+      }
+      
+      // Check for duplicate email error
+      if (errorMessage.toLowerCase().includes('already') && errorMessage.toLowerCase().includes('registered')) {
+        toast.error('Ez az email cím már regisztrálva van a rendszerben');
+      } else {
+        toast.error(errorMessage || 'Hiba a felhasználó létrehozásakor');
+      }
     } finally {
       setCreatingUser(false);
     }
