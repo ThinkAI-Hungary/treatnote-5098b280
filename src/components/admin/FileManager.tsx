@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { sanitizePathName } from '@/lib/hungarianNormalizer';
+import { notifyUsersDataChanged } from '@/lib/userSyncEvents';
 
 interface FileNode {
   name: string;
@@ -287,15 +288,16 @@ export function FileManager() {
                 // Delete user completely using the delete-user edge function
                 try {
                   const { error: deleteError } = await invokeWithRetry('delete-user', {
-                    userId: matchingProfile.user_id
+                    userId: matchingProfile.user_id,
                   });
-                  
+
                   if (deleteError) {
                     console.error('Error deleting user from auth:', deleteError);
                     toast.error('Hiba a felhasználó törlésekor');
                   } else {
                     console.log(`Deleted user "${matchingProfile.full_name}" from database`);
                     toast.success(`Felhasználó "${matchingProfile.full_name}" törölve az adatbázisból`);
+                    notifyUsersDataChanged({ userId: matchingProfile.user_id, source: 'file-manager' });
                   }
                 } catch (deleteErr) {
                   console.error('Error invoking delete-user function:', deleteErr);
