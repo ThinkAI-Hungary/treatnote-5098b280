@@ -263,6 +263,45 @@ export function FileManager() {
             }
           }
         }
+        
+        // Check if it's a user folder deletion (pattern: TreatNote/Companies/{companyName}/{telephelyName}/Users/{userFolder})
+        // or pattern: TreatNote/Companies/{companyName}/Users/{userFolder}
+        const isUserFolder = pathParts.includes('Users') && pathParts[0] === 'TreatNote' && pathParts[1] === 'Companies';
+        if (isUserFolder) {
+          const usersIndex = pathParts.indexOf('Users');
+          // Only if there's a folder after 'Users'
+          if (usersIndex >= 0 && pathParts.length === usersIndex + 2) {
+            const userFolderName = pathParts[usersIndex + 1];
+            
+            // Try to find user by matching sanitized name with profiles
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('user_id, full_name');
+            
+            if (profiles) {
+              const matchingProfile = profiles.find(p => 
+                p.full_name && sanitizePathName(p.full_name) === userFolderName
+              );
+              
+              if (matchingProfile) {
+                // Delete user completely using the delete-user edge function
+                try {
+                  const { error: deleteError } = await supabase.functions.invoke('delete-user', {
+                    body: { userId: matchingProfile.user_id }
+                  });
+                  
+                  if (deleteError) {
+                    console.error('Error deleting user from auth:', deleteError);
+                  } else {
+                    console.log(`Deleted user "${matchingProfile.full_name}" from database`);
+                  }
+                } catch (deleteErr) {
+                  console.error('Error invoking delete-user function:', deleteErr);
+                }
+              }
+            }
+          }
+        }
       }
 
       // If deleting a file from a Szabalyok folder, ensure the folder persists

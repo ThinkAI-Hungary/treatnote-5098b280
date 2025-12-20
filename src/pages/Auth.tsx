@@ -14,11 +14,10 @@ const authSchema = z.object({
 });
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,29 +38,16 @@ const Auth = () => {
     }
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Invalid email or password');
-          } else {
-            toast.error(error.message);
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password');
         } else {
-          toast.success('Welcome back!');
-          navigate('/dashboard');
+          toast.error(error.message);
         }
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('This email is already registered');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Check your email to confirm your account');
-        }
+        toast.success('Welcome back!');
+        navigate('/dashboard');
       }
     } catch (err) {
       toast.error('An unexpected error occurred');
@@ -75,12 +61,10 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold">
-            {isLogin ? 'Welcome back' : 'Create an account'}
+            Welcome back
           </CardTitle>
           <CardDescription>
-            {isLogin
-              ? 'Enter your credentials to sign in'
-              : 'Enter your details to get started'}
+            Enter your credentials to sign in
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -108,19 +92,9 @@ const Auth = () => {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Loading...' : isLogin ? 'Sign in' : 'Sign up'}
+              {isLoading ? 'Loading...' : 'Sign in'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline font-medium"
-            >
-              {isLogin ? 'Sign up' : 'Sign in'}
-            </button>
-          </div>
         </CardContent>
       </Card>
     </div>
