@@ -160,17 +160,22 @@ export function useKlinikaData() {
   }, []);
 
   // Same-tab sync (e.g., deletions triggered from the Admin File Manager tab)
-  useEffect(() => {
-    if (!state.isAdmin && !state.isKlinikaAdmin) return;
+  // Listen for the event only after we've loaded and we have access
+  const hasAccess = state.isAdmin || state.isKlinikaAdmin;
+  const hasAccessRef = useRef(hasAccess);
+  hasAccessRef.current = hasAccess;
 
+  useEffect(() => {
     const handleUsersChanged = () => {
-      refreshUsers();
-      refreshInvitations();
+      if (hasAccessRef.current) {
+        refreshUsers();
+        refreshInvitations();
+      }
     };
 
     window.addEventListener(USERS_DATA_CHANGED, handleUsersChanged);
     return () => window.removeEventListener(USERS_DATA_CHANGED, handleUsersChanged);
-  }, [state.isAdmin, state.isKlinikaAdmin, refreshUsers, refreshInvitations]);
+  }, [refreshUsers, refreshInvitations]);
 
   useEffect(() => {
     mountedRef.current = true;
