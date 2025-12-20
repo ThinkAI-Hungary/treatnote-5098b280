@@ -12,14 +12,29 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 // SVG Border Animation Component
-function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number; height: number }) {
+function SnakeBorder({ 
+  isOpen, 
+  width, 
+  height,
+  uniqueId,
+}: { 
+  isOpen: boolean; 
+  width: number; 
+  height: number;
+  uniqueId: string;
+}) {
   const controls = useAnimation();
   const borderRadius = 8;
   const strokeWidth = 2;
   const padding = strokeWidth;
+  const prevIsOpenRef = React.useRef(isOpen);
   
   React.useEffect(() => {
-    if (isOpen) {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      // Opening: animate pathLength from 0 to 1
       controls.start({
         pathLength: 1,
         opacity: 1,
@@ -28,13 +43,14 @@ function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number
           opacity: { duration: 0.05 },
         },
       });
-    } else {
+    } else if (!isOpen && wasOpen) {
+      // Closing: reverse animation - pathLength from 1 to 0 with same duration
       controls.start({
         pathLength: 0,
-        opacity: 0,
+        opacity: [1, 1, 0],
         transition: {
-          pathLength: { duration: 0.15, ease: "easeIn" },
-          opacity: { duration: 0.1, delay: 0.1 },
+          pathLength: { duration: 0.3, ease: "easeIn" },
+          opacity: { duration: 0.3, times: [0, 0.9, 1] },
         },
       });
     }
@@ -68,6 +84,9 @@ function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number
     `;
   };
 
+  const gradientId = `snakeBorderGradient-${uniqueId}`;
+  const filterId = `snakeBorderGlow-${uniqueId}`;
+
   return (
     <svg
       width={svgWidth}
@@ -83,13 +102,13 @@ function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number
       }}
     >
       <defs>
-        <linearGradient id="snakeBorderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="hsl(195, 90%, 55%)" />
           <stop offset="33%" stopColor="hsl(270, 70%, 55%)" />
           <stop offset="66%" stopColor="hsl(300, 70%, 60%)" />
           <stop offset="100%" stopColor="hsl(195, 90%, 55%)" />
         </linearGradient>
-        <filter id="snakeBorderGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="2" result="coloredBlur" />
           <feMerge>
             <feMergeNode in="coloredBlur" />
@@ -100,10 +119,10 @@ function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number
 
       <motion.path
         d={createRoundedRectPath()}
-        stroke="url(#snakeBorderGradient)"
+        stroke={`url(#${gradientId})`}
         strokeWidth={strokeWidth}
         fill="none"
-        filter="url(#snakeBorderGlow)"
+        filter={`url(#${filterId})`}
         strokeLinecap="round"
         strokeLinejoin="round"
         initial={{ pathLength: 0, opacity: 0 }}
@@ -113,13 +132,40 @@ function SnakeBorder({ isOpen, width, height }: { isOpen: boolean; width: number
   );
 }
 
+// Context to share open state between Select and SelectTrigger
+const SelectOpenContext = React.createContext<{
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}>({ isOpen: false, setIsOpen: () => {} });
+
+// Wrapper for Select that tracks open state
+const SelectWithAnimation = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>
+>(({ onOpenChange, ...props }, ref) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
+
+  return (
+    <SelectOpenContext.Provider value={{ isOpen, setIsOpen }}>
+      <SelectPrimitive.Root onOpenChange={handleOpenChange} {...props} />
+    </SelectOpenContext.Provider>
+  );
+});
+SelectWithAnimation.displayName = "SelectWithAnimation";
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const { isOpen } = React.useContext(SelectOpenContext);
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const uniqueId = React.useId();
 
   React.useEffect(() => {
     const updateDimensions = () => {
@@ -154,9 +200,6 @@ const SelectTrigger = React.forwardRef<
           "hover:border-primary/30 hover:shadow-[0_0_10px_hsl(195_85%_55%/0.1)]",
           className,
         )}
-        onPointerDown={() => setIsOpen(true)}
-        onBlur={() => setIsOpen(false)}
-        data-state={isOpen ? "open" : "closed"}
         {...props}
       >
         {children}
@@ -164,7 +207,7 @@ const SelectTrigger = React.forwardRef<
           <ChevronDown className="h-4 w-4 opacity-50 transition-transform duration-200" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
-      <SnakeBorder isOpen={isOpen} width={dimensions.width} height={dimensions.height} />
+      <SnakeBorder isOpen={isOpen} width={dimensions.width} height={dimensions.height} uniqueId={uniqueId} />
     </div>
   );
 });
@@ -304,7 +347,7 @@ const SelectSeparator = React.forwardRef<
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
 export {
-  Select,
+  SelectWithAnimation as Select,
   SelectGroup,
   SelectValue,
   SelectTrigger,
