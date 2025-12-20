@@ -5,6 +5,7 @@ import {
   LogOut,
   Shield,
   Building2,
+  Home,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +41,7 @@ import { cn } from '@/lib/utils';
 
 // All menu items defined statically - no conditional rendering
 const mainMenuItems = [
+  { title: 'Főoldal', url: '/dashboard', icon: Home },
   { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true },
 ];
 

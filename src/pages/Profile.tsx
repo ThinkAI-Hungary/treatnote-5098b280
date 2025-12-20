@@ -42,7 +42,7 @@ const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [dataReady, setDataReady] = useState(false);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
   const [unlinking, setUnlinking] = useState(false);
@@ -58,15 +58,15 @@ const Profile = () => {
   useEffect(() => {
     const loadAllData = async () => {
       if (!user) {
-        setInitialLoading(false);
+        setDataReady(true);
         return;
       }
       
-      setInitialLoading(true);
+      setDataReady(false);
       try {
         await Promise.all([loadProfile(), loadFlexiAuth()]);
       } finally {
-        setInitialLoading(false);
+        setDataReady(true);
       }
     };
 
@@ -191,7 +191,7 @@ const Profile = () => {
   };
 
   // Show loading spinner until all data is loaded
-  if (authLoading || initialLoading) {
+  if (authLoading || !dataReady) {
     return (
       <div className="max-w-2xl mx-auto flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
