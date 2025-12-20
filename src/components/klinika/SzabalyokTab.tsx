@@ -93,19 +93,19 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Nincs bejelentkezett felhasználó');
 
-      // Create folder structure: {CompanyName}/{TelephelyName}/Szabalyok/
+      // Create folder structure: TreatNote/Companies/{CompanyName}/{TelephelyName}/Szabalyok/
       const sanitizedCompany = sanitizeName(companyName);
       const sanitizedTelephely = sanitizeName(telephelyName);
-      const folderPath = `${sanitizedCompany}/${sanitizedTelephely}/Szabalyok`;
+      const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Szabalyok`;
 
       // Create unique file path with timestamp
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${folderPath}/${timestamp}_${sanitizedFileName}`;
 
-      // Upload to storage
+      // Upload to client-files bucket (same as admin file manager)
       const { error: uploadError } = await supabase.storage
-        .from('szabalyok-pdf')
+        .from('client-files')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
@@ -137,9 +137,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const handleDelete = async (id: string, filePath: string) => {
     setDeletingId(id);
     try {
-      // Delete from storage
+      // Delete from client-files bucket
       const { error: storageError } = await supabase.storage
-        .from('szabalyok-pdf')
+        .from('client-files')
         .remove([filePath]);
 
       if (storageError) {
@@ -212,7 +212,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
             Húzza ide a PDF fájlt vagy kattintson a feltöltéshez
             {companyName && telephelyName && (
               <span className="block mt-1 text-xs">
-                Mentési hely: {companyName} / {telephelyName} / Szabályok
+                Mentési hely: TreatNote/Companies/{companyName}/{telephelyName}/Szabalyok
               </span>
             )}
           </CardDescription>
