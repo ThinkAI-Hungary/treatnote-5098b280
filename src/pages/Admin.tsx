@@ -455,14 +455,14 @@ export default function Admin() {
     : [];
 
   return (
-    <div className="space-y-6 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
+    <div className="space-y-6 animate-fade-in-up">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <TabsList>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Felhasználók
@@ -477,7 +477,7 @@ export default function Admin() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <TabsContent value="users" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
               <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
@@ -597,11 +597,11 @@ export default function Admin() {
             )}
           </TabsContent>
 
-          <TabsContent value="files" className="space-y-4 animate-fade-in-up">
+          <TabsContent value="files" className="space-y-4">
             <FileManager />
           </TabsContent>
 
-          <TabsContent value="companies" className="space-y-4 animate-fade-in-up">
+          <TabsContent value="companies" className="space-y-4">
             <CompanyManagement 
               companies={companies}
               telephelyek={telephelyek}

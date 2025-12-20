@@ -506,25 +506,33 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 @keyframes folderSlide {
-  from {
+  0% {
     opacity: 0;
     transform: translateX(-10px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
+.folder-slide-in {
+  animation: folderSlide 0.3s ease-out both;
+}
+
 @keyframes panelFloat {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(10px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.panel-float-in {
+  animation: panelFloat 0.4s ease-out both;
 }
 
 @keyframes borderGlow {
@@ -592,8 +600,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 .table-row-animate {
-  opacity: 0;
-  animation: tableRowEnter 0.3s ease-out forwards;
+  animation: tableRowEnter 0.3s ease-out both;
 }
 
 .table-row-animate:nth-child(1) { animation-delay: 0ms; }
