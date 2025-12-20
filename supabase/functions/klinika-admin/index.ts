@@ -699,6 +699,95 @@ serve(async (req) => {
         });
       }
 
+      case "delete-user-completely": {
+        const { email } = params;
+        
+        if (!email) {
+          return new Response(JSON.stringify({ error: "Email is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Find the user by email
+        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+        const targetUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        
+        if (!targetUser) {
+          return new Response(JSON.stringify({ error: "User not found with this email" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const targetUserId = targetUser.id;
+
+        // Don't allow deleting yourself
+        if (targetUserId === caller.id) {
+          return new Response(JSON.stringify({ error: "Cannot delete yourself" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // For klinika_admin (not full admin), check if user is in their organization
+        if (!isAdmin) {
+          const { data: targetProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("company_id, telephely_id")
+            .eq("user_id", targetUserId)
+            .single();
+
+          // User must be in same company/telephely OR have no company (orphan user)
+          const isInOrg = targetProfile?.company_id === companyId && targetProfile?.telephely_id === telephelyId;
+          const isOrphan = !targetProfile?.company_id && !targetProfile?.telephely_id;
+          
+          if (!isInOrg && !isOrphan) {
+            return new Response(JSON.stringify({ error: "You can only delete users within your organization" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        // Delete from all related tables first (foreign key safety)
+        console.log(`Deleting user ${targetUserId} (${email}) - cleaning up related data...`);
+
+        // Delete invitations (both sent and received)
+        await supabaseAdmin.from("invitations").delete().eq("invited_user_id", targetUserId);
+        await supabaseAdmin.from("invitations").delete().eq("invited_by_user_id", targetUserId);
+
+        // Delete user roles
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", targetUserId);
+
+        // Delete folder access
+        await supabaseAdmin.from("folder_access").delete().eq("user_id", targetUserId);
+
+        // Delete flexi auth
+        await supabaseAdmin.from("flexi_auth").delete().eq("user_id", targetUserId);
+
+        // Delete profile
+        await supabaseAdmin.from("profiles").delete().eq("user_id", targetUserId);
+
+        // Finally, delete the auth user
+        const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
+        
+        if (deleteAuthError) {
+          console.error("Error deleting auth user:", deleteAuthError);
+          return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteAuthError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`User ${targetUserId} (${email}) completely deleted by ${caller.id}`);
+
+        return new Response(JSON.stringify({ success: true, deletedEmail: email }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown operation" }), {
           status: 400,
