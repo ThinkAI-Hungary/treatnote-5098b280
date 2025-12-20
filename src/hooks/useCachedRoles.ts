@@ -13,11 +13,16 @@ interface CachedRolesData {
   isInitialized: boolean;
 }
 
-// Static cache that persists across component mounts
+// Session-based cache - only valid for navigation within the same page session
+// Uses a session key that changes on page refresh
+const SESSION_KEY = `role_cache_${Date.now()}`;
+
 const roleCache: {
+  sessionKey: string;
   userId: string | null;
   data: Omit<CachedRolesData, 'loading' | 'isInitialized'> | null;
 } = {
+  sessionKey: SESSION_KEY,
   userId: null,
   data: null,
 };
@@ -37,9 +42,13 @@ export function useCachedRoles(): CachedRolesData {
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    // If same user and we have cached data, use it immediately
-    if (user && roleCache.userId === user.id && roleCache.data) {
-      setData(roleCache.data);
+    // Only use cache if it's from the same page session AND same user
+    const cacheIsValid = roleCache.sessionKey === SESSION_KEY && 
+                         roleCache.userId === user?.id && 
+                         roleCache.data !== null;
+
+    if (user && cacheIsValid) {
+      setData(roleCache.data!);
       setLoading(false);
       setIsInitialized(true);
       return;
@@ -63,12 +72,12 @@ export function useCachedRoles(): CachedRolesData {
         return;
       }
 
-      // Prevent duplicate fetches
+      // Prevent duplicate fetches within the same render cycle
       if (fetchedRef.current) return;
       fetchedRef.current = true;
 
       try {
-        // Fetch both roles in parallel
+        // Fetch roles and profile in parallel
         const [adminResult, klinikaResult, profileResult] = await Promise.all([
           supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
           supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' }),
@@ -94,7 +103,8 @@ export function useCachedRoles(): CachedRolesData {
           telephelyName,
         };
 
-        // Cache the data
+        // Cache the data with current session key
+        roleCache.sessionKey = SESSION_KEY;
         roleCache.userId = user.id;
         roleCache.data = newData;
 
