@@ -767,7 +767,8 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   transition: transform 0.3s ease-out;
 }
 
-.sidebar-icon-hover:hover {
+/* Icon rotates when hovering over the entire menu item (parent) */
+.sidebar-menu-gradient:hover .sidebar-icon-hover {
   transform: scale(1.5) rotate(-30deg);
 }
 
@@ -970,15 +971,19 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   padding: 2px;
   background: conic-gradient(
     from 270deg at 50% 0%,
-    hsl(195 90% 60%) 0deg,
-    hsl(220 85% 55%) 45deg,
-    hsl(270 70% 55%) 90deg,
-    hsl(300 70% 60%) 135deg,
+    hsl(240 85% 60%) 0deg,
+    hsl(220 85% 58%) 30deg,
+    hsl(195 90% 55%) 60deg,
+    hsl(240 80% 58%) 90deg,
+    hsl(270 70% 55%) 120deg,
+    hsl(290 70% 58%) 150deg,
     hsl(300 70% 60%) 180deg,
-    hsl(270 70% 55%) 225deg,
-    hsl(220 85% 55%) 270deg,
-    hsl(195 90% 60%) 315deg,
-    hsl(195 90% 60%) 360deg
+    hsl(290 70% 58%) 210deg,
+    hsl(270 70% 55%) 240deg,
+    hsl(240 80% 58%) 270deg,
+    hsl(195 90% 55%) 300deg,
+    hsl(220 85% 58%) 330deg,
+    hsl(240 85% 60%) 360deg
   );
   -webkit-mask: 
     linear-gradient(#fff 0 0) content-box, 
@@ -992,6 +997,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 .dropdown-neon-snake[data-state="open"]::before {
   clip-path: inset(0 0% 0% 0%);
   filter: drop-shadow(0 0 4px hsl(270 70% 55% / 0.5)) drop-shadow(0 0 8px hsl(195 85% 55% / 0.3));
+  transition: clip-path 0.3s ease-out;
 }
 
 /* When closing, animate back to top middle */
