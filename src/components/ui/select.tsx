@@ -164,30 +164,48 @@ const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { isOpen } = React.useContext(SelectOpenContext);
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
   const uniqueId = React.useId();
+
+  // Combine refs
+  const combinedRef = React.useCallback(
+    (node: HTMLButtonElement | null) => {
+      (triggerRef as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    },
+    [ref]
+  );
 
   React.useEffect(() => {
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
         setDimensions({ width: rect.width, height: rect.height });
       }
     };
 
-    updateDimensions();
+    // Initial measurement after a short delay to ensure layout is stable
+    const timeout = setTimeout(updateDimensions, 10);
+    
     const observer = new ResizeObserver(updateDimensions);
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    if (triggerRef.current) {
+      observer.observe(triggerRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative">
       <SelectPrimitive.Trigger
-        ref={ref}
+        ref={combinedRef}
         className={cn(
           "flex h-10 w-full items-center justify-between rounded-lg px-3 py-2 text-sm",
           "bg-background/80 backdrop-blur-sm",
