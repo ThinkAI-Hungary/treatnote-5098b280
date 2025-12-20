@@ -1,8 +1,8 @@
-import { memo } from "react";
+import React from "react";
 import { useTheme } from "./ThemeProvider";
 
 // Memoized to prevent re-renders from parent state changes
-export const BackgroundEffects = memo(function BackgroundEffects() {
+export const BackgroundEffects = React.memo(function BackgroundEffects() {
   const { resolvedTheme } = useTheme();
 
   // Only show flowing orbs in dark mode
