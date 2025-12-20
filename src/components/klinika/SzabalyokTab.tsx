@@ -25,11 +25,27 @@ interface SzabalyokTabProps {
 }
 
 // Sanitize names to remove special characters that Storage doesn't support
+// Handles Hungarian characters: á→a, é→e, í→i, ó→o, ö→o, ő→o, ú→u, ü→u, ű→u
 const sanitizeName = (name: string) => {
+  const hungarianMap: Record<string, string> = {
+    'á': 'a', 'Á': 'A',
+    'é': 'e', 'É': 'E', 
+    'í': 'i', 'Í': 'I',
+    'ó': 'o', 'Ó': 'O',
+    'ö': 'o', 'Ö': 'O',
+    'ő': 'o', 'Ő': 'O',
+    'ú': 'u', 'Ú': 'U',
+    'ü': 'u', 'Ü': 'U',
+    'ű': 'u', 'Ű': 'U',
+  };
+  
   return name
+    .split('')
+    .map(char => hungarianMap[char] || char)
+    .join('')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Keep only alphanumeric, spaces, hyphens, underscores
+    .replace(/[\u0300-\u036f]/g, '') // Remove any remaining diacritics
+    .replace(/[^a-zA-Z0-9\s\-_.]/g, '') // Keep alphanumeric, spaces, hyphens, underscores, dots
     .trim()
     .replace(/\s+/g, '_'); // Replace spaces with underscores
 };
