@@ -724,10 +724,11 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   animation: iconLevitate 2s ease-in-out infinite;
 }
 
-/* Sidebar menu item with gradient hover */
+/* Sidebar menu item with gradient hover - no solid background */
 .sidebar-menu-gradient {
   position: relative;
   overflow: hidden;
+  background: transparent !important;
 }
 
 .sidebar-menu-gradient::before {
@@ -739,8 +740,8 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   height: 100%;
   background: linear-gradient(
     to top,
-    hsl(300 60% 55% / 0.2) 0%,
-    hsl(270 70% 55% / 0.12) 50%,
+    hsl(300 60% 55% / 0.25) 0%,
+    hsl(270 70% 55% / 0.15) 50%,
     transparent 50%
   );
   opacity: 0;
@@ -751,4 +752,203 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 .sidebar-menu-gradient:hover::before {
   opacity: 1;
+}
+
+/* Active menu item - pulsing gradient */
+@keyframes gradientPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.sidebar-menu-gradient.active::before {
+  opacity: 1;
+  animation: gradientPulse 3s ease-in-out infinite;
+}
+
+/* Snake border animation for dropdowns */
+@keyframes snakeBorderIn {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes snakeBorderOut {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1000;
+  }
+}
+
+.dropdown-snake-border {
+  position: relative;
+}
+
+.dropdown-snake-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius) + 2px);
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    hsl(300 70% 60%) 0%,
+    hsl(270 70% 55%) 33%,
+    hsl(195 85% 55%) 66%,
+    hsl(300 70% 60%) 100%
+  );
+  background-size: 300% 100%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  animation: neonGradientFlow 2s linear infinite;
+}
+
+@keyframes neonGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+.dropdown-snake-border[data-state="open"]::before {
+  opacity: 1;
+}
+
+/* SVG-based snake border for precise control */
+.snake-border-wrapper {
+  position: relative;
+}
+
+.snake-border-wrapper svg.snake-border {
+  position: absolute;
+  inset: -3px;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.snake-border-wrapper svg.snake-border rect {
+  fill: none;
+  stroke: url(#neonGradient);
+  stroke-width: 2;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease-out;
+}
+
+.snake-border-wrapper[data-state="open"] svg.snake-border rect {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.4s ease-out;
+}
+
+/* Dropdown trigger with snake animation */
+.select-snake-border {
+  position: relative;
+  overflow: visible;
+}
+
+.select-snake-border::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius) + 2px);
+  background: conic-gradient(
+    from 270deg at 50% 0%,
+    transparent 0deg,
+    hsl(300 70% 60%) 60deg,
+    hsl(270 70% 55%) 120deg,
+    hsl(195 85% 55%) 180deg,
+    hsl(270 70% 55%) 240deg,
+    hsl(300 70% 60%) 300deg,
+    transparent 360deg
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  opacity: 0;
+  transform: rotate(0deg);
+  transition: opacity 0.3s ease-out, transform 0.6s ease-out;
+}
+
+.select-snake-border[data-state="open"]::after {
+  opacity: 1;
+  animation: snakeRotate 3s linear infinite;
+}
+
+@keyframes snakeRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Simpler conic gradient snake that ends at top middle */
+.dropdown-neon-snake {
+  position: relative;
+}
+
+.dropdown-neon-snake::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius) + 2px);
+  padding: 2px;
+  background: conic-gradient(
+    from 90deg at 50% 0%,
+    transparent 0deg,
+    hsl(300 70% 60% / 0) 0deg,
+    hsl(300 70% 60%) 30deg,
+    hsl(270 70% 55%) 90deg,
+    hsl(195 85% 55%) 180deg,
+    hsl(270 70% 55%) 270deg,
+    hsl(300 70% 60%) 330deg,
+    hsl(300 70% 60% / 0) 360deg,
+    transparent 360deg
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transform: scale(1);
+  filter: blur(0px);
+  transition: all 0.4s ease-out;
+}
+
+.dropdown-neon-snake[data-state="open"]::before {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px hsl(270 70% 55% / 0.6)) drop-shadow(0 0 12px hsl(195 85% 55% / 0.4));
+  animation: snakePulse 2s ease-in-out infinite;
+}
+
+@keyframes snakePulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px hsl(270 70% 55% / 0.5)) drop-shadow(0 0 8px hsl(195 85% 55% / 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px hsl(270 70% 55% / 0.8)) drop-shadow(0 0 16px hsl(195 85% 55% / 0.5));
+  }
 }

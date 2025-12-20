@@ -27,6 +27,7 @@ const SelectTrigger = React.forwardRef<
       "[&>span]:line-clamp-1",
       "transition-all duration-300 ease-out",
       "hover:border-primary/30 hover:shadow-[0_0_10px_hsl(195_85%_55%/0.1)]",
+      "dropdown-neon-snake",
       className,
     )}
     {...props}
