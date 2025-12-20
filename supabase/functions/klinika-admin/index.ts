@@ -685,6 +685,50 @@ serve(async (req) => {
           console.error("Error creating role:", roleError);
         }
 
+        // Create user folder in storage
+        try {
+          // Get telephely name for folder path
+          const { data: telephelyData } = await supabaseAdmin
+            .from("telephely")
+            .select("name")
+            .eq("id", telephelyId)
+            .single();
+
+          if (telephelyData && companyName) {
+            // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+            const charMap: Record<string, string> = {
+              'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
+              'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
+              'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
+            };
+            const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+            
+            const sanitizedCompany = sanitize(companyName);
+            const sanitizedTelephely = sanitize(telephelyData.name);
+            const userName = fullName || email.split("@")[0];
+            const sanitizedUser = sanitize(userName);
+            
+            const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
+            
+            // Create folder by uploading a placeholder file
+            const { error: storageError } = await supabaseAdmin.storage
+              .from("client-files")
+              .upload(`${folderPath}/.folder_placeholder`, new Uint8Array(0), {
+                contentType: "application/octet-stream",
+                upsert: true,
+              });
+
+            if (storageError) {
+              console.error("Error creating user folder:", storageError);
+            } else {
+              console.log(`Created user folder: ${folderPath}`);
+            }
+          }
+        } catch (folderError) {
+          console.error("Error creating user folder:", folderError);
+          // Don't fail the user creation if folder creation fails
+        }
+
         console.log(`User ${newUser.user.id} created by klinika_admin ${caller.id} with company ${companyId}`);
 
         return new Response(JSON.stringify({
