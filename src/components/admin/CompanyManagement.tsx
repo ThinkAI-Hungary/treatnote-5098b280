@@ -241,8 +241,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       <AnimatedCard>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+            <h2 className="text-xl font-semibold">
               Cégek és telephelyek kezelése
             </h2>
             <p className="text-sm text-muted-foreground mt-1">Cégek létrehozása és telephelyek kezelése</p>

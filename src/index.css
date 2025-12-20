@@ -121,6 +121,19 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Focus styles - show outline immediately on click */
+  *:focus {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  *:focus:not(:focus-visible) {
+    @apply ring-0 ring-offset-0;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
 }
 
 /* Galaxy animations */

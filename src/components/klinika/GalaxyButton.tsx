@@ -24,11 +24,7 @@ export function GalaxyButton({
         "relative overflow-hidden transition-all duration-300",
         variant === 'default' && [
           "bg-gradient-to-r from-primary to-accent text-primary-foreground",
-          "hover:shadow-lg hover:shadow-primary/25",
-          "before:absolute before:inset-0 before:bg-gradient-to-r before:from-accent before:to-primary",
-          "before:opacity-0 before:transition-opacity before:duration-300",
-          "hover:before:opacity-100",
-          "[&>*]:relative [&>*]:z-10"
+          "hover:shadow-lg hover:shadow-primary/25"
         ],
         className
       )}

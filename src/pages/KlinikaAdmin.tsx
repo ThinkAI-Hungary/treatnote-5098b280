@@ -302,8 +302,7 @@ export default function KlinikaAdmin() {
             <div className="min-h-[400px]">
               <TabsContent value="users" className="space-y-6 mt-0">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                  <h2 className="text-xl font-semibold">
                     Szervezeti tagok
                   </h2>
                   <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
