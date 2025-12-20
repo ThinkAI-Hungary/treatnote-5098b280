@@ -455,8 +455,7 @@ export default function Admin() {
     : [];
 
   return (
-    <Layout>
-      <div className="space-y-6 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
+    <div className="space-y-6 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
@@ -610,9 +609,8 @@ export default function Admin() {
             />
           </TabsContent>
         </Tabs>
-      </div>
 
-      {/* Edit User Dialog */}
+        {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -739,6 +737,6 @@ export default function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </div>
   );
 }
