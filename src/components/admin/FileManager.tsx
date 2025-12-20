@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileManagerTree } from './FileManagerTree';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
 import { 
   FolderPlus, 
   Upload, 
@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 
 interface FileNode {
   name: string;
@@ -39,6 +40,7 @@ export function FileManager() {
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ path: string; isFolder: boolean } | null>(null);
+  const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTree = async () => {
@@ -81,13 +83,9 @@ export function FileManager() {
         ? `${currentPath}/${newFolderName.trim()}` 
         : newFolderName.trim();
 
-      console.log('Creating folder:', folderPath);
-
       const { data, error } = await supabase.functions.invoke('admin-file-manager', {
         body: { operation: 'create-folder', path: folderPath }
       });
-
-      console.log('Create folder response:', data, error);
 
       if (error) throw error;
       
@@ -138,8 +136,13 @@ export function FileManager() {
     }
   };
 
-  const handleDelete = (path: string, isFolder: boolean) => {
+  const handleDelete = (path: string, isFolder: boolean, event?: MouseEvent) => {
     setPendingDelete({ path, isFolder });
+    if (event) {
+      setDeleteAnchorPosition({ x: event.clientX, y: event.clientY });
+    } else {
+      setDeleteAnchorPosition(null);
+    }
     setDeleteConfirmOpen(true);
   };
 
@@ -149,6 +152,7 @@ export function FileManager() {
     const { path, isFolder } = pendingDelete;
     setDeleteConfirmOpen(false);
     setPendingDelete(null);
+    setDeleteAnchorPosition(null);
 
     try {
       const operation = isFolder ? 'delete-folder' : 'delete';
@@ -201,84 +205,102 @@ export function FileManager() {
   const pathParts = currentPath.split('/').filter(Boolean);
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Fájlkezelő</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowNewFolderDialog(true)}
-            >
-              <FolderPlus className="h-4 w-4 mr-2" />
-              Új mappa
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              Feltöltés
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={fetchTree}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
-        
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1 text-sm mt-2">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+          Fájlkezelő
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNewFolderDialog(true)}
+            className="border-primary/20 hover:border-primary/40"
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Új mappa
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="border-primary/20 hover:border-primary/40"
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Feltöltés
+          </Button>
           <Button
             variant="ghost"
-            size="sm"
-            className="h-7 px-2"
-            onClick={handleGoHome}
+            size="icon"
+            onClick={fetchTree}
+            disabled={loading}
           >
-            <Home className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
-          {pathParts.map((part, idx) => (
-            <div key={idx} className="flex items-center">
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2"
-                onClick={() => handleNavigate(pathParts.slice(0, idx + 1).join('/'))}
-              >
-                {part}
-              </Button>
-            </div>
-          ))}
         </div>
-      </CardHeader>
+      </div>
       
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2"
+          onClick={handleGoHome}
+        >
+          <Home className="h-4 w-4" />
+        </Button>
+        {pathParts.map((part, idx) => (
+          <div key={idx} className="flex items-center">
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => handleNavigate(pathParts.slice(0, idx + 1).join('/'))}
+            >
+              {part}
+            </Button>
           </div>
-        ) : (
-          <FileManagerTree
-            tree={tree}
-            currentPath={currentPath}
-            onNavigate={handleNavigate}
-            onDelete={handleDelete}
-            onDownload={handleDownload}
-          />
-        )}
-      </CardContent>
+        ))}
+      </div>
+
+      {/* File Tree */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative">
+              <Loader2 
+                className="h-10 w-10 animate-spin"
+                style={{ stroke: 'url(#loader-gradient-fm)' }}
+              />
+              <svg width="0" height="0">
+                <defs>
+                  <linearGradient id="loader-gradient-fm" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                    <stop offset="100%" stopColor="hsl(var(--accent))" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span className="text-sm text-muted-foreground">Betöltés...</span>
+          </div>
+        </div>
+      ) : (
+        <FileManagerTree
+          tree={tree}
+          currentPath={currentPath}
+          onNavigate={handleNavigate}
+          onDelete={(path, isFolder) => handleDelete(path, isFolder)}
+          onDownload={handleDownload}
+        />
+      )}
 
       <input
         ref={fileInputRef}
@@ -288,7 +310,7 @@ export function FileManager() {
       />
 
       <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
-        <DialogContent>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>Új mappa létrehozása</DialogTitle>
             <DialogDescription>
@@ -301,29 +323,34 @@ export function FileManager() {
             onChange={(e) => setNewFolderName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
             autoFocus
+            className="border-primary/20 focus:border-primary/40"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewFolderDialog(false)}>
               Mégse
             </Button>
-            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+            <GalaxyButton onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
               Létrehozás
-            </Button>
+            </GalaxyButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open) setDeleteAnchorPosition(null);
+        }}
         title={pendingDelete?.isFolder ? 'Mappa törlése' : 'Fájl törlése'}
         description={
           pendingDelete?.isFolder
-            ? 'Biztosan törölni szeretné ezt a mappát és annak teljes tartalmát? Ez a művelet nem vonható vissza.'
-            : 'Biztosan törölni szeretné ezt a fájlt? Ez a művelet nem vonható vissza.'
+            ? 'Biztosan törölni szeretné ezt a mappát és annak teljes tartalmát?'
+            : 'Biztosan törölni szeretné ezt a fájlt?'
         }
         onConfirm={confirmDelete}
+        anchorPosition={deleteAnchorPosition}
       />
-    </Card>
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,8 @@ interface ConfirmDialogProps {
   cancelText?: string;
   onConfirm: () => void;
   variant?: 'danger' | 'warning';
+  /** Position the dialog near the trigger element */
+  anchorPosition?: { x: number; y: number } | null;
 }
 
 export function ConfirmDialog({
@@ -30,78 +33,97 @@ export function ConfirmDialog({
   cancelText = 'Mégse',
   onConfirm,
   variant = 'danger',
+  anchorPosition,
 }: ConfirmDialogProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top?: string; left?: string; transform?: string }>({});
+
+  useEffect(() => {
+    if (open && anchorPosition && contentRef.current) {
+      const { x, y } = anchorPosition;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const dialogWidth = 320;
+      const dialogHeight = 180;
+
+      let left = Math.min(x, viewportWidth - dialogWidth - 20);
+      let top = Math.min(y, viewportHeight - dialogHeight - 20);
+      
+      left = Math.max(20, left);
+      top = Math.max(20, top);
+
+      setPosition({
+        top: `${top}px`,
+        left: `${left}px`,
+        transform: 'none',
+      });
+    } else {
+      setPosition({});
+    }
+  }, [open, anchorPosition]);
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="border-0 bg-card/95 backdrop-blur-xl overflow-hidden">
-        {/* Neon glow background */}
-        <div className="absolute inset-0 pointer-events-none">
+      <AlertDialogContent 
+        ref={contentRef}
+        className="border border-primary/20 bg-card/98 backdrop-blur-xl overflow-hidden max-w-[320px] p-4"
+        style={anchorPosition ? { 
+          position: 'fixed',
+          ...position,
+        } : undefined}
+      >
+        {/* Subtle glow background */}
+        <div className="absolute inset-0 pointer-events-none opacity-50">
           <div 
-            className="absolute -top-20 -left-20 w-40 h-40 rounded-full blur-3xl opacity-30"
-            style={{ background: 'hsl(300 70% 50%)' }}
+            className="absolute -top-10 -left-10 w-20 h-20 rounded-full blur-2xl"
+            style={{ background: 'hsl(var(--primary) / 0.2)' }}
           />
           <div 
-            className="absolute -bottom-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-30"
-            style={{ background: 'hsl(270 70% 60%)' }}
+            className="absolute -bottom-10 -right-10 w-20 h-20 rounded-full blur-2xl"
+            style={{ background: 'hsl(var(--accent) / 0.2)' }}
           />
         </div>
         
-        <AlertDialogHeader className="relative z-10">
-          <div className="flex items-center gap-4">
+        <AlertDialogHeader className="relative z-10 space-y-2">
+          <div className="flex items-center gap-3">
             <div 
-              className="h-12 w-12 rounded-xl flex items-center justify-center animate-pulse"
+              className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{
                 background: variant === 'danger' 
-                  ? 'linear-gradient(135deg, hsl(300 70% 50%), hsl(350 70% 50%))'
+                  ? 'linear-gradient(135deg, hsl(var(--destructive)), hsl(var(--primary)))'
                   : 'linear-gradient(135deg, hsl(40 90% 50%), hsl(30 90% 50%))',
-                boxShadow: variant === 'danger'
-                  ? '0 0 30px hsl(300 70% 50% / 0.4), 0 0 60px hsl(300 70% 50% / 0.2)'
-                  : '0 0 30px hsl(40 90% 50% / 0.4), 0 0 60px hsl(40 90% 50% / 0.2)',
               }}
             >
               {variant === 'danger' ? (
-                <Trash2 className="h-6 w-6 text-white" />
+                <Trash2 className="h-4 w-4 text-white" />
               ) : (
-                <AlertTriangle className="h-6 w-6 text-white" />
+                <AlertTriangle className="h-4 w-4 text-white" />
               )}
             </div>
-            <div>
-              <AlertDialogTitle 
-                className="text-xl font-bold"
-                style={{
-                  background: variant === 'danger'
-                    ? 'linear-gradient(135deg, hsl(300 70% 60%), hsl(270 70% 70%))'
-                    : 'linear-gradient(135deg, hsl(40 90% 60%), hsl(30 90% 50%))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
+            <div className="flex-1 min-w-0">
+              <AlertDialogTitle className="text-base font-semibold text-foreground">
                 {title}
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground mt-1">
+              <AlertDialogDescription className="text-sm text-muted-foreground mt-0.5">
                 {description}
               </AlertDialogDescription>
             </div>
           </div>
         </AlertDialogHeader>
         
-        <AlertDialogFooter className="relative z-10 mt-6">
+        <AlertDialogFooter className="relative z-10 mt-4 gap-2">
           <AlertDialogCancel 
-            className="border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300"
+            className="flex-1 h-8 text-sm border-border hover:bg-muted transition-colors"
           >
             {cancelText}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="border-0 text-white transition-all duration-300 hover:scale-105"
+            className="flex-1 h-8 text-sm border-0 text-white transition-colors"
             style={{
               background: variant === 'danger'
-                ? 'linear-gradient(135deg, hsl(300 70% 50%), hsl(350 70% 50%))'
-                : 'linear-gradient(135deg, hsl(40 90% 50%), hsl(30 90% 50%))',
-              boxShadow: variant === 'danger'
-                ? '0 4px 20px hsl(300 70% 50% / 0.4)'
-                : '0 4px 20px hsl(40 90% 50% / 0.4)',
+                ? 'hsl(var(--destructive))'
+                : 'hsl(40 90% 50%)',
             }}
           >
             {confirmText}

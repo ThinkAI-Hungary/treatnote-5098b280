@@ -1,28 +1,29 @@
-
 import { PageLoader } from '@/components/PageLoader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Shield, Users, FolderTree, Plus, Trash2, 
-  AlertTriangle, ChevronRight, ChevronDown, Folder, 
-  Building2, Eye, EyeOff, Loader2
+  Shield, Users, FolderTree, Plus, 
+  AlertTriangle, 
+  Building2, Eye, EyeOff, Loader2, Sparkles, Star
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { CompanyManagement } from '@/components/admin/CompanyManagement';
+import { StarField } from '@/components/klinika/StarField';
+import { AnimatedCard } from '@/components/klinika/AnimatedCard';
+import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { sanitizePathName } from '@/lib/hungarianNormalizer';
 
 interface AdminUser {
   id: string;
@@ -140,7 +141,6 @@ export default function Admin() {
         throw new Error(error.message);
       }
 
-      // Map user_id to id for consistency
       const mappedUsers = (data.users || []).map((u: any) => ({
         ...u,
         id: u.user_id,
@@ -197,7 +197,6 @@ export default function Admin() {
       return;
     }
 
-    // Transform username to email if no @ present
     const finalEmail = newUserEmail.includes('@') 
       ? newUserEmail 
       : `${newUserEmail}@localuser.com`;
@@ -276,13 +275,10 @@ export default function Admin() {
       return;
     }
 
-    // Update role if changed - ensure only one role per user
     const currentRole = editingUser.role;
     if (editRole !== currentRole) {
-      // Delete ALL existing roles for this user first
       await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
       
-      // Insert the new role
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({ user_id: editingUser.id, role: editRole });
@@ -293,7 +289,6 @@ export default function Admin() {
       }
     }
 
-    // Create folder structure if company and telephely are assigned
     if (editCompanyId && editTelephelyId) {
       const company = companies.find(c => c.id === editCompanyId);
       const telephely = telephelyek.find(t => t.id === editTelephelyId);
@@ -301,20 +296,10 @@ export default function Admin() {
       
       if (company && telephely) {
         try {
-          // Sanitize names to remove special characters that Storage doesn't support
-          const sanitizeName = (name: string) => {
-            return name
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-              .replace(/[^a-zA-Z0-9\s\-_]/g, '') // Keep only alphanumeric, spaces, hyphens, underscores
-              .trim();
-          };
+          const sanitizedCompany = sanitizePathName(company.name);
+          const sanitizedTelephely = sanitizePathName(telephely.name);
+          const sanitizedUser = sanitizePathName(userName);
           
-          const sanitizedCompany = sanitizeName(company.name);
-          const sanitizedTelephely = sanitizeName(telephely.name);
-          const sanitizedUser = sanitizeName(userName);
-          
-          // Create folder path: TreatNote/Companies/{company_name}/{telephely_name}/{user_name}
           const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
           
           await supabase.functions.invoke('admin-file-manager', {
@@ -324,7 +309,6 @@ export default function Admin() {
           console.log(`Created folder: ${folderPath}`);
         } catch (folderError) {
           console.error('Error creating user folder:', folderError);
-          // Don't fail the save if folder creation fails
         }
       }
     }
@@ -389,8 +373,6 @@ export default function Admin() {
     }
   };
 
-  // handleAddTelephely and handleDeleteTelephely are now in CompanyManagement component
-
   const toggleUser = (userId: string) => {
     setExpandedUsers(prev => {
       const newSet = new Set(prev);
@@ -405,7 +387,6 @@ export default function Admin() {
 
   const handleToggleFolderAccess = async (userId: string, folderId: string, hasAccess: boolean) => {
     if (hasAccess) {
-      // Remove access
       const { error } = await supabase
         .from('folder_access')
         .delete()
@@ -417,7 +398,6 @@ export default function Admin() {
         return;
       }
     } else {
-      // Grant access
       const { error } = await supabase
         .from('folder_access')
         .insert({
@@ -435,6 +415,7 @@ export default function Admin() {
     loadAllUserFolderAccess();
   };
 
+  // Single loading gate
   if (roleLoading || loading) {
     return <PageLoader />;
   }
@@ -458,297 +439,340 @@ export default function Admin() {
     : [];
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
-          <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Background layer */}
+      <div className="fixed inset-0 z-0">
+        <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
+          <StarField />
+          <div className="absolute inset-0 pointer-events-none nebula-overlay" />
+        </div>
+      </div>
+
+      {/* Content layer */}
+      <div 
+        className="relative z-10 space-y-8 pb-8 animate-fade-in-up p-6" 
+        style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
+      >
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
+          <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
+          <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+                <Shield className="h-7 w-7 text-primary-foreground" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                Admin Panel
+              </h1>
+              <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Rendszer adminisztráció
+              </p>
+            </div>
+          </div>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+        {/* Tabs */}
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="bg-card/50 backdrop-blur-sm border border-primary/10 p-1">
+            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <Users className="h-4 w-4" />
               Felhasználók
             </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-2">
+            <TabsTrigger value="files" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <FolderTree className="h-4 w-4" />
               Fájlkezelő
             </TabsTrigger>
-            <TabsTrigger value="companies" className="flex items-center gap-2">
+            <TabsTrigger value="companies" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <Building2 className="h-4 w-4" />
               Cégek és telephelyek
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Felhasználók kezelése</h2>
-              <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Új felhasználó
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Új felhasználó létrehozása</DialogTitle>
-                    <DialogDescription>Adja meg az új felhasználó adatait</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Email / Felhasználónév</Label>
-                      <Input
-                        type="text"
-                        placeholder="email@example.com vagy felhasználónév"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Ha nem tartalmaz @ jelet, automatikusan @localuser.com végződést kap
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Teljes név</Label>
-                      <Input
-                        placeholder="Teljes név"
-                        value={newUserFullName}
-                        onChange={(e) => setNewUserFullName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jelszó</Label>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Jelszó"
-                          value={newUserPassword}
-                          onChange={(e) => setNewUserPassword(e.target.value)}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-0 top-0 h-full"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
+          {/* Tab content with min-height to prevent layout jumps */}
+          <div className="min-h-[400px]">
+            <TabsContent value="users" className="space-y-6 mt-0">
+              <AnimatedCard>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent" />
+                    Felhasználók kezelése
+                  </h2>
+                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                    <DialogTrigger asChild>
+                      <GalaxyButton>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Új felhasználó
+                      </GalaxyButton>
+                    </DialogTrigger>
+                    <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+                      <DialogHeader>
+                        <DialogTitle>Új felhasználó létrehozása</DialogTitle>
+                        <DialogDescription>Adja meg az új felhasználó adatait</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Email / Felhasználónév</Label>
+                          <Input
+                            type="text"
+                            placeholder="email@example.com vagy felhasználónév"
+                            value={newUserEmail}
+                            onChange={(e) => setNewUserEmail(e.target.value)}
+                            className="border-primary/20 focus:border-primary/40"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Ha nem tartalmaz @ jelet, automatikusan @localuser.com végződést kap
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Teljes név</Label>
+                          <Input
+                            placeholder="Teljes név"
+                            value={newUserFullName}
+                            onChange={(e) => setNewUserFullName(e.target.value)}
+                            className="border-primary/20 focus:border-primary/40"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Jelszó</Label>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Jelszó"
+                              value={newUserPassword}
+                              onChange={(e) => setNewUserPassword(e.target.value)}
+                              className="border-primary/20 focus:border-primary/40"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Jelszó megerősítése</Label>
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Jelszó megerősítése"
+                            value={newUserConfirmPassword}
+                            onChange={(e) => setNewUserConfirmPassword(e.target.value)}
+                            className="border-primary/20 focus:border-primary/40"
+                          />
+                          {newUserConfirmPassword && newUserPassword !== newUserConfirmPassword && (
+                            <p className="text-xs text-destructive">A jelszavak nem egyeznek</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Telephely</Label>
+                          <Input
+                            placeholder="Telephely neve (pl. Budapest, Szeged)"
+                            value={newUserTelephely}
+                            onChange={(e) => setNewUserTelephely(e.target.value)}
+                            className="border-primary/20 focus:border-primary/40"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Szerepkör</Label>
+                          <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin' | 'klinika_admin')}>
+                            <SelectTrigger className="border-primary/20">
+                              <SelectValue placeholder="Válasszon szerepkört" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">Felhasználó</SelectItem>
+                              <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Jelszó megerősítése</Label>
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Jelszó megerősítése"
-                        value={newUserConfirmPassword}
-                        onChange={(e) => setNewUserConfirmPassword(e.target.value)}
-                      />
-                      {newUserConfirmPassword && newUserPassword !== newUserConfirmPassword && (
-                        <p className="text-xs text-destructive">A jelszavak nem egyeznek</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Telephely</Label>
-                      <Input
-                        placeholder="Telephely neve (pl. Budapest, Szeged)"
-                        value={newUserTelephely}
-                        onChange={(e) => setNewUserTelephely(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Szerepkör</Label>
-                      <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin' | 'klinika_admin')}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon szerepkört" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">Felhasználó</SelectItem>
-                          <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setCreateUserOpen(false);
-                      setNewUserEmail('');
-                      setNewUserPassword('');
-                      setNewUserConfirmPassword('');
-                      setNewUserFullName('');
-                      setNewUserTelephely('');
-                      setNewUserRole('user');
-                    }}>
-                      Mégse
-                    </Button>
-                    <Button 
-                      onClick={handleCreateUser} 
-                      disabled={creatingUser || (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword)}
-                    >
-                      {creatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Létrehozás
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setCreateUserOpen(false);
+                          setNewUserEmail('');
+                          setNewUserPassword('');
+                          setNewUserConfirmPassword('');
+                          setNewUserFullName('');
+                          setNewUserTelephely('');
+                          setNewUserRole('user');
+                        }}>
+                          Mégse
+                        </Button>
+                        <GalaxyButton 
+                          onClick={handleCreateUser} 
+                          disabled={creatingUser || (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword)}
+                        >
+                          {creatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Létrehozás
+                        </GalaxyButton>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <UsersTable 
-                users={users}
+                <UsersTable 
+                  users={users}
+                  companies={companies}
+                  telephelyek={telephelyek}
+                  onEdit={openEditDialog}
+                  onDelete={handleDeleteUser}
+                />
+              </AnimatedCard>
+            </TabsContent>
+
+            <TabsContent value="files" className="space-y-6 mt-0">
+              <AnimatedCard>
+                <FileManager />
+              </AnimatedCard>
+            </TabsContent>
+
+            <TabsContent value="companies" className="space-y-6 mt-0">
+              <CompanyManagement 
                 companies={companies}
                 telephelyek={telephelyek}
-                onEdit={openEditDialog}
-                onDelete={handleDeleteUser}
+                onDataChange={loadAllData}
               />
-            )}
-          </TabsContent>
-
-          <TabsContent value="files" className="space-y-4">
-            <FileManager />
-          </TabsContent>
-
-          <TabsContent value="companies" className="space-y-4">
-            <CompanyManagement 
-              companies={companies}
-              telephelyek={telephelyek}
-              onDataChange={loadAllData}
-            />
-          </TabsContent>
+            </TabsContent>
+          </div>
         </Tabs>
 
         {/* Edit User Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Felhasználó szerkesztése</DialogTitle>
-            <DialogDescription>{editingUser?.email}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Cég</Label>
-              <Select value={editCompanyId || 'none'} onValueChange={(val) => {
-                setEditCompanyId(val === 'none' ? '' : val);
-                setEditTelephelyId('');
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Válasszon céget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nincs cég</SelectItem>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+            <DialogHeader>
+              <DialogTitle>Felhasználó szerkesztése</DialogTitle>
+              <DialogDescription>{editingUser?.email}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Cég</Label>
+                <Select value={editCompanyId || 'none'} onValueChange={(val) => {
+                  setEditCompanyId(val === 'none' ? '' : val);
+                  setEditTelephelyId('');
+                }}>
+                  <SelectTrigger className="border-primary/20">
+                    <SelectValue placeholder="Válasszon céget" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nincs cég</SelectItem>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Telephely</Label>
+                <Select 
+                  value={editTelephelyId || 'none'} 
+                  onValueChange={(val) => setEditTelephelyId(val === 'none' ? '' : val)}
+                  disabled={!editCompanyId}
+                >
+                  <SelectTrigger className="border-primary/20">
+                    <SelectValue placeholder="Válasszon telephelyet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nincs telephely</SelectItem>
+                    {filteredTelephelyek.map((telephely) => (
+                      <SelectItem key={telephely.id} value={telephely.id}>
+                        {telephely.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Szerepkör</Label>
+                <Select value={editRole} onValueChange={(val) => setEditRole(val as 'user' | 'admin' | 'klinika_admin')}>
+                  <SelectTrigger className="border-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Felhasználó</SelectItem>
+                    <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="can-create-users"
+                  checked={editCanCreateUsers}
+                  onCheckedChange={(checked) => setEditCanCreateUsers(checked as boolean)}
+                />
+                <Label htmlFor="can-create-users">Felhasználók létrehozása engedélyezve</Label>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Telephely</Label>
-              <Select 
-                value={editTelephelyId || 'none'} 
-                onValueChange={(val) => setEditTelephelyId(val === 'none' ? '' : val)}
-                disabled={!editCompanyId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Válasszon telephelyet" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nincs telephely</SelectItem>
-                  {filteredTelephelyek.map((telephely) => (
-                    <SelectItem key={telephely.id} value={telephely.id}>
-                      {telephely.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Szerepkör</Label>
-              <Select value={editRole} onValueChange={(val) => setEditRole(val as 'user' | 'admin' | 'klinika_admin')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Felhasználó</SelectItem>
-                  <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="can-create-users"
-                checked={editCanCreateUsers}
-                onCheckedChange={(checked) => setEditCanCreateUsers(checked as boolean)}
-              />
-              <Label htmlFor="can-create-users">Felhasználók létrehozása engedélyezve</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Mégse
-            </Button>
-            <Button onClick={handleSaveUser} disabled={savingUser}>
-              {savingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Mentés
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Mégse
+              </Button>
+              <GalaxyButton onClick={handleSaveUser} disabled={savingUser}>
+                {savingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Mentés
+              </GalaxyButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Re-authentication Dialog */}
-      <Dialog open={reAuthDialogOpen} onOpenChange={(open) => {
-        if (!open && reAuthenticating) return;
-        setReAuthDialogOpen(open);
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Hitelesítés szükséges
-            </DialogTitle>
-            <DialogDescription>
-              {reAuthAction === 'promote' && 'Admin jogosultság megadásához kérjük adja meg a jelszavát.'}
-              {reAuthAction === 'delete-user' && 'Felhasználó törléséhez kérjük adja meg a jelszavát.'}
-              {reAuthAction === 'delete-folder' && 'Mappa törléséhez kérjük adja meg a jelszavát.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Jelszó</Label>
-              <Input
-                type="password"
-                value={reAuthPassword}
-                onChange={(e) => setReAuthPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleReAuthenticate()}
-              />
+        {/* Re-authentication Dialog */}
+        <Dialog open={reAuthDialogOpen} onOpenChange={(open) => {
+          if (!open && reAuthenticating) return;
+          setReAuthDialogOpen(open);
+        }}>
+          <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                Hitelesítés szükséges
+              </DialogTitle>
+              <DialogDescription>
+                {reAuthAction === 'promote' && 'Admin jogosultság megadásához kérjük adja meg a jelszavát.'}
+                {reAuthAction === 'delete-user' && 'Felhasználó törléséhez kérjük adja meg a jelszavát.'}
+                {reAuthAction === 'delete-folder' && 'Mappa törléséhez kérjük adja meg a jelszavát.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Jelszó</Label>
+                <Input
+                  type="password"
+                  value={reAuthPassword}
+                  onChange={(e) => setReAuthPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleReAuthenticate()}
+                  className="border-primary/20 focus:border-primary/40"
+                />
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setReAuthDialogOpen(false);
-                setReAuthPassword('');
-                setPendingDeleteUserId(null);
-              }}
-            >
-              Mégse
-            </Button>
-            <Button onClick={handleReAuthenticate} disabled={reAuthenticating || !reAuthPassword}>
-              {reAuthenticating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Megerősítés
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setReAuthDialogOpen(false);
+                  setReAuthPassword('');
+                  setPendingDeleteUserId(null);
+                }}
+              >
+                Mégse
+              </Button>
+              <GalaxyButton onClick={handleReAuthenticate} disabled={reAuthenticating || !reAuthPassword}>
+                {reAuthenticating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Megerősítés
+              </GalaxyButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
