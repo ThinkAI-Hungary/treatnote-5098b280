@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 interface Star {
   id: number;
@@ -9,7 +9,7 @@ interface Star {
 }
 
 // Memoized StarField component - prevents re-renders when table data changes
-export const StarField = memo(function StarField() {
+export const StarField = React.memo(function StarField() {
   const stars = useMemo<Star[]>(() => {
     return Array.from({ length: 50 }, (_, i) => ({
       id: i,
