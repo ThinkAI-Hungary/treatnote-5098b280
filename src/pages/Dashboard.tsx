@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Calendar, Stethoscope, TrendingUp } from 'lucide-react';
+import { Users, Calendar, Stethoscope, TrendingUp, Loader2 } from 'lucide-react';
 
 interface DashboardStats {
   totalPatients: number;
@@ -14,19 +14,22 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const [stats, setStats] = useState<DashboardStats>({
     totalPatients: 0,
     todayAppointments: 0,
     totalExaminations: 0,
     recentExaminations: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
-      if (!user) return;
+      if (!user) {
+        setStatsLoading(false);
+        return;
+      }
 
       try {
         const today = new Date().toISOString().split('T')[0];
@@ -48,12 +51,23 @@ export default function Dashboard() {
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
-        setLoading(false);
+        setStatsLoading(false);
       }
     }
 
     fetchStats();
   }, [user]);
+
+  // Show loading spinner until all data is loaded
+  const isLoading = authLoading || profileLoading || statsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const statCards = [
     {
@@ -114,7 +128,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {loading ? '...' : stat.value}
+                {stat.value}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {stat.description}
