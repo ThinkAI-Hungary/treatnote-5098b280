@@ -136,7 +136,7 @@ export default function KlinikaAdmin() {
 
     setCreatingUser(true);
     try {
-      const { error } = await supabase.functions.invoke('klinika-admin', {
+      const { data, error } = await supabase.functions.invoke('klinika-admin', {
         body: { 
           operation: 'create-user',
           email: finalEmail, 
@@ -144,7 +144,26 @@ export default function KlinikaAdmin() {
           fullName: newUserFullName,
         },
       });
-      if (error) throw error;
+      
+      if (error) {
+        // Try to extract error message from context body
+        let message = error.message;
+        const body = (error as any)?.context?.body;
+        if (typeof body === 'string') {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed?.error) message = parsed.error;
+          } catch {}
+        }
+        toast.error(message || 'Hiba a felhasználó létrehozásakor');
+        return;
+      }
+      
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      
       toast.success('Felhasználó sikeresen létrehozva');
       setNewUserEmail('');
       setNewUserPassword('');
