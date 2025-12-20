@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileManagerTree } from './FileManagerTree';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { 
   FolderPlus, 
   Upload, 
@@ -36,6 +37,8 @@ export function FileManager() {
   const [uploading, setUploading] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ path: string; isFolder: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTree = async () => {
@@ -135,14 +138,17 @@ export function FileManager() {
     }
   };
 
-  const handleDelete = async (path: string, isFolder: boolean) => {
-    const confirmed = window.confirm(
-      isFolder 
-        ? 'Biztosan törölni szeretné ezt a mappát és tartalmát?' 
-        : 'Biztosan törölni szeretné ezt a fájlt?'
-    );
+  const handleDelete = (path: string, isFolder: boolean) => {
+    setPendingDelete({ path, isFolder });
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
     
-    if (!confirmed) return;
+    const { path, isFolder } = pendingDelete;
+    setDeleteConfirmOpen(false);
+    setPendingDelete(null);
 
     try {
       const operation = isFolder ? 'delete-folder' : 'delete';
@@ -306,6 +312,18 @@ export function FileManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title={pendingDelete?.isFolder ? 'Mappa törlése' : 'Fájl törlése'}
+        description={
+          pendingDelete?.isFolder
+            ? 'Biztosan törölni szeretné ezt a mappát és annak teljes tartalmát? Ez a művelet nem vonható vissza.'
+            : 'Biztosan törölni szeretné ezt a fájlt? Ez a művelet nem vonható vissza.'
+        }
+        onConfirm={confirmDelete}
+      />
     </Card>
   );
 }

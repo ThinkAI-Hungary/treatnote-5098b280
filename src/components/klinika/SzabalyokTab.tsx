@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableCell, TableHead } from '@/components/ui/table';
+import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FileUp, Trash2, Loader2, FileText, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -57,6 +59,8 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; filePath: string } | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -150,8 +154,18 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     }
   };
 
-  const handleDelete = async (id: string, filePath: string) => {
+  const openDeleteConfirm = (id: string, filePath: string) => {
+    setPendingDelete({ id, filePath });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    
+    const { id, filePath } = pendingDelete;
+    setDeleteConfirmOpen(false);
     setDeletingId(id);
+    
     try {
       // Delete from client-files bucket
       const { error: storageError } = await supabase.storage
@@ -177,6 +191,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       toast.error('Hiba a fájl törlésekor');
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   };
 
@@ -323,63 +338,58 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : files.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Még nincsenek feltöltött fájlok</p>
-            </div>
-          ) : (
-            <div className="rounded-lg overflow-hidden border border-primary/10">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
-                    <TableHead className="font-semibold">Fájlnév</TableHead>
-                    <TableHead className="font-semibold">Méret</TableHead>
-                    <TableHead className="font-semibold">Feltöltve</TableHead>
-                    <TableHead className="text-right font-semibold">Műveletek</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {files.map((file) => (
-                    <TableRow 
-                      key={file.id}
-                      className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
-                    >
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-primary/60" />
-                        {file.file_name}
-                      </TableCell>
-                      <TableCell>{formatFileSize(file.file_size)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleDelete(file.id, file.file_path)}
-                          disabled={deletingId === file.id}
-                        >
-                          {deletingId === file.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <AnimatedTable
+            loading={loading}
+            headers={
+              <>
+                <TableHead className="font-semibold">Fájlnév</TableHead>
+                <TableHead className="font-semibold">Méret</TableHead>
+                <TableHead className="font-semibold">Feltöltve</TableHead>
+                <TableHead className="text-right font-semibold">Műveletek</TableHead>
+              </>
+            }
+            isEmpty={files.length === 0}
+            emptyMessage="Még nincsenek feltöltött fájlok"
+            emptyIcon={<FileText className="h-12 w-12" />}
+          >
+            {files.map((file, index) => (
+              <AnimatedTableRow key={file.id} index={index}>
+                <TableCell className="font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary/60" />
+                  {file.file_name}
+                </TableCell>
+                <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => openDeleteConfirm(file.id, file.file_path)}
+                    disabled={deletingId === file.id}
+                  >
+                    {deletingId === file.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TableCell>
+              </AnimatedTableRow>
+            ))}
+          </AnimatedTable>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="PDF fájl törlése"
+        description="Biztosan törölni szeretné ezt a fájlt? Ez a művelet nem vonható vissza."
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

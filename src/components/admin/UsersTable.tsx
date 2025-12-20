@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown, X } from 'lucide-react';
+import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
+import { Edit, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown, X, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AdminUser {
@@ -41,11 +42,12 @@ interface UsersTableProps {
   users: AdminUser[];
   companies: Company[];
   telephelyek: Telephely[];
+  loading?: boolean;
   onEdit: (user: AdminUser) => void;
   onDelete: (userId: string) => void;
 }
 
-export function UsersTable({ users, companies, telephelyek, onEdit, onDelete }: UsersTableProps) {
+export function UsersTable({ users, companies, telephelyek, loading = false, onEdit, onDelete }: UsersTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCompany, setFilterCompany] = useState<string>('all');
   const [filterTelephely, setFilterTelephely] = useState<string>('all');
@@ -150,7 +152,7 @@ export function UsersTable({ users, companies, telephelyek, onEdit, onDelete }: 
     const isActive = sortField === field;
     return (
       <TableHead 
-        className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+        className="cursor-pointer select-none hover:bg-muted/50 transition-colors font-semibold"
         onClick={() => handleSort(field)}
       >
         <div className="flex items-center gap-1">
@@ -162,6 +164,18 @@ export function UsersTable({ users, companies, telephelyek, onEdit, onDelete }: 
       </TableHead>
     );
   };
+
+  const headers = (
+    <>
+      <SortableHeader field="company_name">Cég</SortableHeader>
+      <SortableHeader field="telephely_name">Telephely</SortableHeader>
+      <SortableHeader field="full_name">Név</SortableHeader>
+      <SortableHeader field="email">Email</SortableHeader>
+      <SortableHeader field="role">Szerep</SortableHeader>
+      <SortableHeader field="subscription_status">Státusz</SortableHeader>
+      <TableHead className="text-right font-semibold">Műveletek</TableHead>
+    </>
+  );
 
   return (
     <div className="space-y-4">
@@ -242,72 +256,51 @@ export function UsersTable({ users, companies, telephelyek, onEdit, onDelete }: 
       </div>
 
       {/* Table */}
-      <div className="rounded-md border panel-float-in">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <SortableHeader field="company_name">Cég</SortableHeader>
-              <SortableHeader field="telephely_name">Telephely</SortableHeader>
-              <SortableHeader field="full_name">Név</SortableHeader>
-              <SortableHeader field="email">Email</SortableHeader>
-              <SortableHeader field="role">Szerep</SortableHeader>
-              <SortableHeader field="subscription_status">Státusz</SortableHeader>
-              <TableHead className="text-right">Műveletek</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAndSortedUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Nincs találat
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredAndSortedUsers.map((userData, index) => (
-                <TableRow 
-                  key={userData.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 20}ms` }}
+      <AnimatedTable
+        loading={loading}
+        headers={headers}
+        isEmpty={filteredAndSortedUsers.length === 0}
+        emptyMessage="Nincs találat"
+        emptyIcon={<Users className="h-12 w-12" />}
+      >
+        {filteredAndSortedUsers.map((userData, index) => (
+          <AnimatedTableRow key={userData.id} index={index}>
+            <TableCell>{userData.company_name || '-'}</TableCell>
+            <TableCell>{userData.telephely_name || '-'}</TableCell>
+            <TableCell className="font-medium">{userData.full_name || '-'}</TableCell>
+            <TableCell>{userData.email}</TableCell>
+            <TableCell>
+              <Badge variant={userData.role === 'admin' ? 'destructive' : userData.role === 'klinika_admin' ? 'default' : 'outline'}>
+                {userData.role === 'admin' ? 'Admin' : userData.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              <Badge variant={userData.subscription_status === 'active' ? 'default' : 'secondary'}>
+                {userData.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(userData)}
                 >
-                  <TableCell>{userData.company_name || '-'}</TableCell>
-                  <TableCell>{userData.telephely_name || '-'}</TableCell>
-                  <TableCell className="font-medium">{userData.full_name || '-'}</TableCell>
-                  <TableCell>{userData.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={userData.role === 'admin' ? 'destructive' : userData.role === 'klinika_admin' ? 'default' : 'outline'}>
-                      {userData.role === 'admin' ? 'Admin' : userData.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={userData.subscription_status === 'active' ? 'default' : 'secondary'}>
-                      {userData.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(userData)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onDelete(userData.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => onDelete(userData.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </AnimatedTableRow>
+        ))}
+      </AnimatedTable>
     </div>
   );
 }
