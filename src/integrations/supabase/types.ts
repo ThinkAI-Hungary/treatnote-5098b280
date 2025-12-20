@@ -646,6 +646,7 @@ export type Database = {
           subscription_plan: string | null
           subscription_start_date: string | null
           subscription_status: string
+          telephely: string | null
           telephely_id: string | null
           updated_at: string | null
           user_id: string
@@ -664,6 +665,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_start_date?: string | null
           subscription_status?: string
+          telephely?: string | null
           telephely_id?: string | null
           updated_at?: string | null
           user_id: string
@@ -682,6 +684,7 @@ export type Database = {
           subscription_plan?: string | null
           subscription_start_date?: string | null
           subscription_status?: string
+          telephely?: string | null
           telephely_id?: string | null
           updated_at?: string | null
           user_id?: string

@@ -652,7 +652,12 @@ export default function KlinikaAdmin() {
               </TabsContent>
 
               <TabsContent value="szabalyok" className="mt-0">
-                <SzabalyokTab companyId={companyId} telephelyId={telephelyId} />
+                <SzabalyokTab 
+                  companyId={companyId} 
+                  telephelyId={telephelyId} 
+                  companyName={companyName}
+                  telephelyName={telephelyName}
+                />
               </TabsContent>
             </div>
           </Tabs>

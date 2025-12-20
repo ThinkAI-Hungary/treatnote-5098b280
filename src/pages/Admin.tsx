@@ -75,6 +75,7 @@ export default function Admin() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState('');
   const [newUserFullName, setNewUserFullName] = useState('');
+  const [newUserTelephely, setNewUserTelephely] = useState('');
   const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'klinika_admin'>('user');
   const [creatingUser, setCreatingUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -208,7 +209,8 @@ export default function Admin() {
           email: finalEmail, 
           password: newUserPassword,
           fullName: newUserFullName,
-          role: newUserRole
+          role: newUserRole,
+          telephely: newUserTelephely
         },
       });
 
@@ -221,6 +223,7 @@ export default function Admin() {
       setNewUserPassword('');
       setNewUserConfirmPassword('');
       setNewUserFullName('');
+      setNewUserTelephely('');
       setNewUserRole('user');
       setCreateUserOpen(false);
       loadUsersWithRoles();
@@ -546,6 +549,14 @@ export default function Admin() {
                       )}
                     </div>
                     <div className="space-y-2">
+                      <Label>Telephely</Label>
+                      <Input
+                        placeholder="Telephely neve (pl. Budapest, Szeged)"
+                        value={newUserTelephely}
+                        onChange={(e) => setNewUserTelephely(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Szerepkör</Label>
                       <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'user' | 'admin' | 'klinika_admin')}>
                         <SelectTrigger>
@@ -566,6 +577,7 @@ export default function Admin() {
                       setNewUserPassword('');
                       setNewUserConfirmPassword('');
                       setNewUserFullName('');
+                      setNewUserTelephely('');
                       setNewUserRole('user');
                     }}>
                       Mégse
