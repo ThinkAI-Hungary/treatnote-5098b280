@@ -114,7 +114,8 @@ export default function Admin() {
       .channel('admin-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadUsersWithRoles())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, () => loadUsersWithRoles())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'telephely' }, () => loadAllData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, () => loadUsersWithRoles())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'telephely' }, () => loadUsersWithRoles())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folder_structure' }, () => loadFolders())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folder_access' }, () => loadAllUserFolderAccess())
       .subscribe();
