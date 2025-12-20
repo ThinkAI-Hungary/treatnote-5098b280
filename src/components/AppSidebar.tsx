@@ -125,22 +125,10 @@ function StaticMenuItem({
   );
 }
 
-// Placeholder menu item for layout stability
-function PlaceholderMenuItem({ collapsed }: { collapsed: boolean }) {
-  return (
-    <SidebarMenuItem className="invisible h-8">
-      <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
-        <div className="h-4 w-4 shrink-0" />
-        {!collapsed && <span>Placeholder</span>}
-      </div>
-    </SidebarMenuItem>
-  );
-}
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
-  const { isAdmin, isKlinikaAdmin, loading: rolesLoading } = useCachedRoles();
+  const { isAdmin, isKlinikaAdmin } = useCachedRoles();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
@@ -157,10 +145,6 @@ export function AppSidebar() {
     if (isKlinikaAdmin) return 'Klinika Admin';
     return 'Felhasználó';
   };
-
-  // Calculate whether to show admin sections - use placeholders while loading to prevent layout shift
-  const showAdminSection = rolesLoading || isAdmin;
-  const showKlinikaSection = rolesLoading || isKlinikaAdmin || isAdmin;
 
   return (
     <Sidebar collapsible="icon" className="z-30">
@@ -212,37 +196,29 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Admin - Stable layout with placeholder or real content */}
-        {showAdminSection && (
+        {/* Admin - Only shown if user is admin */}
+        {isAdmin && (
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Admin</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {rolesLoading ? (
-                  <PlaceholderMenuItem collapsed={collapsed} />
-                ) : isAdmin ? (
-                  adminMenuItems.map((item) => (
-                    <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
-                  ))
-                ) : null}
+                {adminMenuItems.map((item) => (
+                  <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Klinika - Stable layout with placeholder or real content */}
-        {showKlinikaSection && (
+        {/* Klinika - Only shown if user is klinika admin or admin */}
+        {(isKlinikaAdmin || isAdmin) && (
           <SidebarGroup>
             {!collapsed && <SidebarGroupLabel>Klinika</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {rolesLoading ? (
-                  <PlaceholderMenuItem collapsed={collapsed} />
-                ) : (isKlinikaAdmin || isAdmin) ? (
-                  klinikaMenuItems.map((item) => (
-                    <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
-                  ))
-                ) : null}
+                {klinikaMenuItems.map((item) => (
+                  <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
