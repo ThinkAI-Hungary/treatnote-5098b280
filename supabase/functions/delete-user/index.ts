@@ -83,7 +83,37 @@ serve(async (req) => {
     const targetRole = roleData?.role || 'unknown';
     console.log(`Target user ${userId} has role: ${targetRole}`);
 
-    // Delete from auth.users (cascades to profiles and user_roles)
+    // Delete related data first (no cascade from auth.users)
+    console.log(`Deleting related data for user ${userId}...`);
+    
+    // Delete from folder_access
+    const { error: folderAccessError } = await supabaseAdmin
+      .from('folder_access')
+      .delete()
+      .eq('user_id', userId);
+    if (folderAccessError) {
+      console.error('Error deleting folder_access:', folderAccessError);
+    }
+
+    // Delete from user_roles
+    const { error: rolesDeleteError } = await supabaseAdmin
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+    if (rolesDeleteError) {
+      console.error('Error deleting user_roles:', rolesDeleteError);
+    }
+
+    // Delete from profiles
+    const { error: profileDeleteError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('user_id', userId);
+    if (profileDeleteError) {
+      console.error('Error deleting profile:', profileDeleteError);
+    }
+
+    // Delete from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
@@ -94,7 +124,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`User ${userId} (role: ${targetRole}) deleted from auth.users`);
+    console.log(`User ${userId} (role: ${targetRole}) fully deleted from all tables`);
     return new Response(
       JSON.stringify({ success: true, message: 'User deleted successfully' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
