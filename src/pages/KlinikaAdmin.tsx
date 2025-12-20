@@ -145,22 +145,30 @@ export default function KlinikaAdmin() {
         },
       });
       
+      // Check for error in the response
+      let errorMessage: string | null = null;
+      
       if (error) {
-        // Try to extract error message from context body
-        let message = error.message;
+        errorMessage = error.message;
+        // Try to parse error from context body
         const body = (error as any)?.context?.body;
         if (typeof body === 'string') {
           try {
             const parsed = JSON.parse(body);
-            if (parsed?.error) message = parsed.error;
+            if (parsed?.error) errorMessage = parsed.error;
           } catch {}
         }
-        toast.error(message || 'Hiba a felhasználó létrehozásakor');
-        return;
+      } else if (data?.error) {
+        errorMessage = data.error;
       }
       
-      if (data?.error) {
-        toast.error(data.error);
+      if (errorMessage) {
+        // Check for duplicate email error
+        if (errorMessage.toLowerCase().includes('already') && errorMessage.toLowerCase().includes('registered')) {
+          toast.error('Ez az email cím vagy felhasználónév már regisztrálva van');
+        } else {
+          toast.error(errorMessage);
+        }
         return;
       }
       

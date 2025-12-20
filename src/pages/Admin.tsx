@@ -223,8 +223,31 @@ export default function Admin() {
         telephely: newUserTelephely
       });
 
+      // Check for error in the response
+      let errorMessage: string | null = null;
+      
       if (error) {
-        throw new Error(error.message);
+        errorMessage = error.message;
+        // Try to parse error from context body
+        const body = (error as any)?.context?.body;
+        if (typeof body === 'string') {
+          try {
+            const parsed = JSON.parse(body);
+            if (parsed?.error) errorMessage = parsed.error;
+          } catch {}
+        }
+      } else if ((data as any)?.error) {
+        errorMessage = (data as any).error;
+      }
+      
+      if (errorMessage) {
+        // Check for duplicate email error
+        if (errorMessage.toLowerCase().includes('already') && errorMessage.toLowerCase().includes('registered')) {
+          toast.error('Ez az email cím vagy felhasználónév már regisztrálva van');
+        } else {
+          toast.error(errorMessage);
+        }
+        return;
       }
 
       toast.success('Felhasználó sikeresen létrehozva');
@@ -238,7 +261,12 @@ export default function Admin() {
       loadUsersWithRoles();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error(error.message || 'Hiba a felhasználó létrehozásakor');
+      const message = error?.message || '';
+      if (message.toLowerCase().includes('already') && message.toLowerCase().includes('registered')) {
+        toast.error('Ez az email cím vagy felhasználónév már regisztrálva van');
+      } else {
+        toast.error(message || 'Hiba a felhasználó létrehozásakor');
+      }
     } finally {
       setCreatingUser(false);
     }
