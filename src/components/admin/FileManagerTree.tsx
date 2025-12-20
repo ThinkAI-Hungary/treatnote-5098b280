@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from 'react';
-import { ChevronRight, ChevronDown, Folder, File, Trash2, Download, Building2, Stethoscope } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, File, Trash2, Download, Building2, Stethoscope, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +37,10 @@ interface FileManagerTreeProps {
 
 // Determine which icon to use based on folder depth and name
 function getFolderIcon(depth: number, nodeName: string) {
+  // Szabalyok folders always get an alert/exclamation icon
+  if (nodeName === 'Szabalyok') {
+    return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+  }
   // Top level (Molaire, TreatNote) - tooth icon
   if (depth === 0) {
     return <ToothFolderIcon className="h-4 w-4 text-primary" />;

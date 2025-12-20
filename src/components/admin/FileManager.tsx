@@ -286,17 +286,20 @@ export function FileManager() {
               if (matchingProfile) {
                 // Delete user completely using the delete-user edge function
                 try {
-                  const { error: deleteError } = await supabase.functions.invoke('delete-user', {
-                    body: { userId: matchingProfile.user_id }
+                  const { error: deleteError } = await invokeWithRetry('delete-user', {
+                    userId: matchingProfile.user_id
                   });
                   
                   if (deleteError) {
                     console.error('Error deleting user from auth:', deleteError);
+                    toast.error('Hiba a felhasználó törlésekor');
                   } else {
                     console.log(`Deleted user "${matchingProfile.full_name}" from database`);
+                    toast.success(`Felhasználó "${matchingProfile.full_name}" törölve az adatbázisból`);
                   }
                 } catch (deleteErr) {
                   console.error('Error invoking delete-user function:', deleteErr);
+                  toast.error('Hiba a felhasználó törlésekor');
                 }
               }
             }
