@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
-import { X, Check, User, Building2, MapPin, Phone } from 'lucide-react';
+import { X, Check, User, Building2, MapPin, Phone, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 
@@ -39,9 +39,10 @@ interface ProfileData {
 }
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
   const [unlinking, setUnlinking] = useState(false);
@@ -55,9 +56,24 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    loadProfile();
-    loadFlexiAuth();
-  }, [user]);
+    const loadAllData = async () => {
+      if (!user) {
+        setInitialLoading(false);
+        return;
+      }
+      
+      setInitialLoading(true);
+      try {
+        await Promise.all([loadProfile(), loadFlexiAuth()]);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      loadAllData();
+    }
+  }, [user, authLoading]);
 
   // Auto-open Flexi dialog if URL param is present
   useEffect(() => {
@@ -174,8 +190,17 @@ const Profile = () => {
     setLoading(false);
   };
 
+  // Show loading spinner until all data is loaded
+  if (authLoading || initialLoading) {
+    return (
+      <div className="max-w-2xl mx-auto flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
+    <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
         <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
