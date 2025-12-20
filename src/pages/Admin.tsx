@@ -463,8 +463,8 @@ export default function Admin() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="animate-fade-in-down">
+      <div className="space-y-6 opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]">
+        <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           <p className="text-muted-foreground mt-1">Rendszer adminisztráció</p>
         </div>

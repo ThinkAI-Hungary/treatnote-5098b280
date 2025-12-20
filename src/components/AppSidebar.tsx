@@ -62,7 +62,6 @@ const secondaryNavItems = [
 
 const userNavItems = [
   { title: 'Profil', url: '/profile', icon: User },
-  { title: 'Beállítások', url: '/settings', icon: Settings },
 ];
 
 // Menu item component with smooth hover effect
