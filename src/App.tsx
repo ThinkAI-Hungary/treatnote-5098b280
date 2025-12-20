@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import KlinikaAdmin from "./pages/KlinikaAdmin";
+import AcceptInvitation from "./pages/AcceptInvitation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
               {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/accept-invitation" element={<AcceptInvitation />} />
               
               {/* Authenticated routes - Layout wrapper stays mounted */}
               <Route element={<AuthenticatedRoutes />}>

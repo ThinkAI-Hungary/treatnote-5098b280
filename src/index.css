@@ -701,3 +701,54 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   backdrop-filter: blur(8px);
   background: hsl(var(--card) / 0.9);
 }
+
+/* Sidebar menu icon animations */
+@keyframes iconLevitate {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.sidebar-icon-hover {
+  transition: transform 0.3s ease-out;
+}
+
+.sidebar-icon-hover:hover {
+  transform: scale(1.5) rotate(-30deg);
+}
+
+.sidebar-icon-active {
+  animation: iconLevitate 2s ease-in-out infinite;
+}
+
+/* Sidebar menu item with gradient hover */
+.sidebar-menu-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-menu-gradient::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  background: linear-gradient(
+    to top,
+    hsl(300 60% 55% / 0.2) 0%,
+    hsl(270 70% 55% / 0.12) 50%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.sidebar-menu-gradient:hover::before {
+  opacity: 1;
+}

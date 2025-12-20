@@ -112,10 +112,10 @@ function StaticMenuItem({
       <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url}
-          className="flex items-center gap-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="flex items-center gap-2 rounded-md sidebar-menu-gradient hover:text-sidebar-accent-foreground"
           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
         >
-          <item.icon className="h-4 w-4 shrink-0" />
+          <item.icon className="h-4 w-4 shrink-0 sidebar-icon-hover" />
           {!collapsed && <span>{item.title}</span>}
         </NavLink>
       </SidebarMenuButton>
