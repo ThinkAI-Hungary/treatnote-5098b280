@@ -209,42 +209,35 @@ export default function KlinikaAdmin() {
 
   // Single loading gate - loader stays until ALL data is ready
   if (isLoading) {
-    return (
-      <Layout>
-        <PageLoader />
-      </Layout>
-    );
+    return <PageLoader />;
   }
 
   // Access denied view
   if (!isKlinikaAdmin && !isAdmin) {
     return (
-      <Layout>
-        <div className="relative min-h-[60vh] animate-fade-in">
-          <StarField />
-          <AnimatedCard className="relative z-10 max-w-md mx-auto mt-20">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="relative mb-6">
-                <Shield className="h-16 w-16 text-destructive/70" />
-                <div className="absolute inset-0 animate-pulse-glow rounded-full" />
-              </div>
-              <h3 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Hozzáférés megtagadva
-              </h3>
-              <p className="text-muted-foreground text-center max-w-sm mt-2">
-                Ez az oldal csak Klinika Adminok számára érhető el.
-              </p>
-            </CardContent>
-          </AnimatedCard>
-        </div>
-      </Layout>
+      <div className="relative min-h-[60vh] animate-fade-in">
+        <StarField />
+        <AnimatedCard className="relative z-10 max-w-md mx-auto mt-20">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="relative mb-6">
+              <Shield className="h-16 w-16 text-destructive/70" />
+              <div className="absolute inset-0 animate-pulse-glow rounded-full" />
+            </div>
+            <h3 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Hozzáférés megtagadva
+            </h3>
+            <p className="text-muted-foreground text-center max-w-sm mt-2">
+              Ez az oldal csak Klinika Adminok számára érhető el.
+            </p>
+          </CardContent>
+        </AnimatedCard>
+      </div>
     );
   }
 
   // Main content - cinematic reveal with staggered animation
   return (
-    <Layout>
-      <div className="relative min-h-screen">
+    <div className="relative min-h-screen">
         {/* Background layer - fades in first */}
         <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
           <StarField />
@@ -665,6 +658,5 @@ export default function KlinikaAdmin() {
           </Tabs>
         </div>
       </div>
-    </Layout>
   );
 }
