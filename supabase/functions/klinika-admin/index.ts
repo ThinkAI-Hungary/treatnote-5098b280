@@ -656,12 +656,22 @@ serve(async (req) => {
             full_name: fullName || email.split("@")[0],
             company_id: companyId,
             telephely_id: telephelyId,
+            company_name: companyName,
           }, {
             onConflict: 'user_id',
           });
 
         if (profileError) {
           console.error("Error creating/updating profile:", profileError);
+          // Return error so UI knows profile creation failed
+          return new Response(JSON.stringify({ 
+            success: true, 
+            warning: "User created but profile assignment failed",
+            user: { id: newUser.user.id, email: newUser.user.email }
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
         // Delete any existing roles and create user role
