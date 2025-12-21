@@ -116,6 +116,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -133,6 +134,24 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
   *:focus-visible {
     @apply outline-none ring-0 ring-offset-0;
+  }
+
+  /* Remove white flash on buttons and interactive elements */
+  button,
+  [role="button"],
+  a,
+  input,
+  textarea,
+  select,
+  [tabindex] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  button:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
   }
 
   /* Galaxy themed scrollbars */
