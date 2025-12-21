@@ -27,6 +27,34 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForStorageObject(params: {
+  bucket: string;
+  path: string;
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<boolean> {
+  const { bucket, path, timeoutMs = 12_000, intervalMs = 600 } = params;
+
+  const lastSlash = path.lastIndexOf('/');
+  const folder = lastSlash >= 0 ? path.slice(0, lastSlash) : '';
+  const name = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const { data, error } = await supabase.storage.from(bucket).list(folder, {
+      limit: 100,
+      search: name,
+    });
+
+    if (!error && data?.some((o) => o.name === name)) return true;
+    await sleep(intervalMs);
+  }
+
+  return false;
+}
+
 type WebhookStatus = 'idle' | 'feldolgozas_alatt' | 'feldolgozva' | 'hiba';
 
 interface UploadedPdf {
@@ -125,14 +153,20 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     return () => ro.disconnect();
   }, [previewDialogOpen]);
 
+  type WebhookResult = {
+    status: WebhookStatus;
+    code?: string;
+    message?: string;
+  };
+
   // Send webhook via edge function and update status
   const sendWebhook = async (
-    pdfId: string, 
-    fileName: string, 
+    pdfId: string,
+    fileName: string,
     fogalom: string | null,
     storagePath: string,
     epochMillis: number
-  ): Promise<WebhookStatus> => {
+  ): Promise<WebhookResult> => {
     try {
       // Update status to "feldolgozas_alatt"
       await supabase
@@ -160,28 +194,48 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         throw new Error(error.message || 'Edge function error');
       }
 
-      // Check response from edge function
-      const newStatus: WebhookStatus = data?.ok ? 'feldolgozva' : 'hiba';
-      
+      const status: WebhookStatus = data?.ok ? 'feldolgozva' : 'hiba';
+      const code = (data?.code as string | undefined) ?? undefined;
+      const message = (data?.message as string | undefined) ?? undefined;
+
       if (!data?.ok) {
-        console.error('Webhook failed:', data?.message || 'Unknown error');
+        console.error('Webhook failed:', message || 'Unknown error');
       }
 
       // Update status in database
       await supabase
         .from('feltoltott_pdf')
-        .update({ webhook_status: newStatus })
+        .update({ webhook_status: status })
         .eq('id', pdfId);
 
-      return newStatus;
+      return { status, code, message };
     } catch (err) {
+      const rawMessage = err instanceof Error ? err.message : String(err);
+
+      // supabase-js invoke errors often look like:
+      // "Edge function returned 502: Error, {\"ok\":false,...}"
+      let code: string | undefined;
+      let message: string | undefined;
+      const jsonMatch = rawMessage.match(/\{[\s\S]*\}$/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]) as { code?: unknown; message?: unknown };
+          if (typeof parsed.code === 'string') code = parsed.code;
+          if (typeof parsed.message === 'string') message = parsed.message;
+        } catch {
+          // ignore
+        }
+      }
+
       console.error('Webhook error:', err);
+
       // Update status to "hiba"
       await supabase
         .from('feltoltott_pdf')
         .update({ webhook_status: 'hiba' })
         .eq('id', pdfId);
-      return 'hiba';
+
+      return { status: 'hiba', code, message: message || rawMessage };
     }
   };
 
@@ -194,12 +248,16 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       const filename = pathParts[pathParts.length - 1];
       const epochMatch = filename.match(/^(\d+)_/);
       const epochMillis = epochMatch ? parseInt(epochMatch[1], 10) : Date.now();
-      
-      const newStatus = await sendWebhook(file.id, file.file_name, file.fogalom, file.file_path, epochMillis);
-      if (newStatus === 'feldolgozva') {
+
+      const result = await sendWebhook(file.id, file.file_name, file.fogalom, file.file_path, epochMillis);
+      if (result.status === 'feldolgozva') {
         toast.success('Webhook sikeresen elküldve');
       } else {
-        toast.error('Webhook küldése sikertelen');
+        toast.error(
+          result.code === 'N8N_WEBHOOK_NOT_REGISTERED'
+            ? 'Az n8n webhook nincs aktiválva (Test URL). Nyomd meg az „Execute workflow”-t, vagy használd a Production URL-t.'
+            : result.message || 'Webhook küldése sikertelen'
+        );
       }
       loadFiles();
     } finally {
@@ -240,7 +298,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setUploadDialogOpen(false);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Nincs bejelentkezett felhasználó');
 
       // Create folder structure using the normalizer
@@ -260,6 +320,13 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         .upload(filePath, pendingFile);
 
       if (uploadError) throw uploadError;
+
+      // Wait until the object is visible in Storage before continuing (avoid race conditions)
+      toast.info('Feltöltés kész, ellenőrzöm a tárhelyen…');
+      const isPresent = await waitForStorageObject({ bucket: 'client-files', path: filePath });
+      if (!isPresent) {
+        throw new Error('A feltöltött fájl még nem elérhető a tárhelyen. Próbáld újra pár másodperc múlva.');
+      }
 
       // Save to database with display name, reference (fogalom), and other metadata
       const { data: insertedData, error: dbError } = await supabase
@@ -283,7 +350,21 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       // Send webhook after successful upload
       if (insertedData) {
-        await sendWebhook(insertedData.id, `${finalFileName}.pdf`, uploadReference.trim() || null, filePath, timestamp);
+        const result = await sendWebhook(
+          insertedData.id,
+          `${finalFileName}.pdf`,
+          uploadReference.trim() || null,
+          filePath,
+          timestamp
+        );
+
+        if (result.status !== 'feldolgozva') {
+          toast.error(
+            result.code === 'N8N_WEBHOOK_NOT_REGISTERED'
+              ? 'Az n8n webhook nincs aktiválva (Test URL). Nyomd meg az „Execute workflow”-t, vagy használd a Production URL-t.'
+              : result.message || 'A webhook feldolgozás sikertelen'
+          );
+        }
       }
 
       loadFiles();
@@ -353,9 +434,17 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         const filename = pathParts[pathParts.length - 1];
         const epochMatch = filename.match(/^(\d+)_/);
         const epochMillis = epochMatch ? parseInt(epochMatch[1], 10) : Date.now();
-        
-        await sendWebhook(editingFile.id, editingFile.file_name, newFogalom, editingFile.file_path, epochMillis);
-        toast.info('A PDF újrafeldolgozása elindult');
+
+        const result = await sendWebhook(editingFile.id, editingFile.file_name, newFogalom, editingFile.file_path, epochMillis);
+        if (result.status === 'feldolgozva') {
+          toast.info('A PDF újrafeldolgozása elindult');
+        } else {
+          toast.error(
+            result.code === 'N8N_WEBHOOK_NOT_REGISTERED'
+              ? 'Az n8n webhook nincs aktiválva (Test URL). Nyomd meg az „Execute workflow”-t, vagy használd a Production URL-t.'
+              : result.message || 'Újrafeldolgozás indítása sikertelen'
+          );
+        }
       }
       
       setEditDialogOpen(false);
