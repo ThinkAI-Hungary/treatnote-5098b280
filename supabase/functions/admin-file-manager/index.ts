@@ -8,11 +8,22 @@ const corsHeaders = {
 
 const BUCKET_NAME = "client-files";
 
-// Sanitize path - Supabase Storage supports UTF-8 (including Hungarian characters and spaces)
-// We only remove characters that are truly unsafe for paths
+// Hungarian character normalization map
+const HUNGARIAN_MAP: Record<string, string> = {
+  'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ö': 'o', 'ő': 'o',
+  'ú': 'u', 'ü': 'u', 'ű': 'u',
+  'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ö': 'O', 'Ő': 'O',
+  'Ú': 'U', 'Ü': 'U', 'Ű': 'U',
+};
+
+// Normalize Hungarian characters to ASCII equivalents
+function normalizeHungarian(str: string): string {
+  return str.split('').map(char => HUNGARIAN_MAP[char] || char).join('');
+}
+
+// Sanitize path - normalize Hungarian characters and keep spaces
 function sanitizePath(path: string): string {
-  // Keep Hungarian characters, keep spaces, only remove path-unsafe characters
-  return path
+  return normalizeHungarian(path)
     .replace(/[\\:*?"<>|]/g, '') // Remove path-unsafe characters (but keep /)
     .replace(/\s+/g, ' ') // Collapse multiple spaces
     .split('/')
