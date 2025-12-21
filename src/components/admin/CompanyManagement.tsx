@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { sanitizePathName } from '@/lib/hungarianNormalizer';
 
 interface Company {
   id: string;
@@ -78,11 +77,13 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
 
     setSavingCompany(true);
     
+    const companyName = newCompanyName.trim();
+    
     const { data: newCompany, error } = await supabase
       .from('companies')
       .insert({
-        name: newCompanyName.trim(),
-        slug: generateSlug(newCompanyName),
+        name: companyName,
+        slug: generateSlug(companyName),
       })
       .select()
       .single();
@@ -90,22 +91,29 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
     if (error) {
       console.error('Error creating company:', error);
       toast.error('Hiba a cég létrehozásakor');
-    } else {
-      try {
-        const sanitizedCompanyName = sanitizePathName(newCompanyName.trim());
-        const folderPath = `TreatNote/Companies/${sanitizedCompanyName}`;
-        await supabase.functions.invoke('admin-file-manager', {
-          body: { operation: 'create-folder', path: folderPath }
-        });
-      } catch (folderError) {
-        console.error('Error creating company folder:', folderError);
-      }
-
-      toast.success('Cég sikeresen létrehozva');
-      setNewCompanyName('');
-      setAddCompanyOpen(false);
-      onDataChange();
+      setSavingCompany(false);
+      return;
     }
+    
+    // Create the folder in storage - use the exact company name (Hungarian chars + spaces supported)
+    const folderPath = `TreatNote/Companies/${companyName}`;
+    console.log('Creating company folder:', folderPath);
+    
+    const { data: folderData, error: folderError } = await supabase.functions.invoke('admin-file-manager', {
+      body: { operation: 'create-folder', path: folderPath }
+    });
+    
+    if (folderError) {
+      console.error('Error creating company folder:', folderError);
+      toast.error('Figyelem: A cég létrejött, de a mappa létrehozása sikertelen');
+    } else {
+      console.log('Folder created successfully:', folderData);
+    }
+
+    toast.success('Cég sikeresen létrehozva');
+    setNewCompanyName('');
+    setAddCompanyOpen(false);
+    onDataChange();
     setSavingCompany(false);
   };
 
@@ -142,13 +150,13 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting company:', error);
       toast.error('Hiba a cég törlésekor');
     } else {
-      try {
-        const sanitizedCompanyName = sanitizePathName(companyName);
-        const folderPath = `TreatNote/Companies/${sanitizedCompanyName}`;
-        await supabase.functions.invoke('admin-file-manager', {
-          body: { operation: 'delete-folder', path: folderPath }
-        });
-      } catch (folderError) {
+      // Use raw company name - Hungarian chars + spaces are supported
+      const folderPath = `TreatNote/Companies/${companyName}`;
+      const { error: folderError } = await supabase.functions.invoke('admin-file-manager', {
+        body: { operation: 'delete-folder', path: folderPath }
+      });
+      
+      if (folderError) {
         console.error('Error deleting company folder:', folderError);
       }
 
@@ -169,12 +177,13 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
     }
 
     const company = companies.find(c => c.id === selectedCompanyId);
+    const telephelyName = newTelephelyName.trim();
     
     setSavingTelephely(true);
     const { data: newTelephely, error } = await supabase
       .from('telephely')
       .insert({
-        name: newTelephelyName.trim(),
+        name: telephelyName,
         company_id: selectedCompanyId,
       })
       .select()
@@ -183,26 +192,32 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
     if (error) {
       console.error('Error creating telephely:', error);
       toast.error('Hiba a telephely létrehozásakor');
-    } else {
-      if (company) {
-        try {
-          const sanitizedCompanyName = sanitizePathName(company.name);
-          const sanitizedTelephelyName = sanitizePathName(newTelephelyName.trim());
-          const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
-          await supabase.functions.invoke('admin-file-manager', {
-            body: { operation: 'create-folder', path: folderPath }
-          });
-        } catch (folderError) {
-          console.error('Error creating telephely folder:', folderError);
-        }
-      }
-
-      toast.success('Telephely sikeresen létrehozva');
-      setNewTelephelyName('');
-      setAddTelephelyOpen(false);
-      setSelectedCompanyId(null);
-      onDataChange();
+      setSavingTelephely(false);
+      return;
     }
+    
+    // Create the folder in storage - use exact names (Hungarian chars + spaces supported)
+    if (company) {
+      const folderPath = `TreatNote/Companies/${company.name}/${telephelyName}`;
+      console.log('Creating telephely folder:', folderPath);
+      
+      const { data: folderData, error: folderError } = await supabase.functions.invoke('admin-file-manager', {
+        body: { operation: 'create-folder', path: folderPath }
+      });
+      
+      if (folderError) {
+        console.error('Error creating telephely folder:', folderError);
+        toast.error('Figyelem: A telephely létrejött, de a mappa létrehozása sikertelen');
+      } else {
+        console.log('Telephely folder created successfully:', folderData);
+      }
+    }
+
+    toast.success('Telephely sikeresen létrehozva');
+    setNewTelephelyName('');
+    setAddTelephelyOpen(false);
+    setSelectedCompanyId(null);
+    onDataChange();
     setSavingTelephely(false);
   };
 
@@ -218,15 +233,14 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting telephely:', error);
       toast.error('Hiba a telephely törlésekor');
     } else {
+      // Use raw names - Hungarian chars + spaces are supported
       if (company) {
-        try {
-          const sanitizedCompanyName = sanitizePathName(company.name);
-          const sanitizedTelephelyName = sanitizePathName(telephelyName);
-          const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
-          await supabase.functions.invoke('admin-file-manager', {
-            body: { operation: 'delete-folder', path: folderPath }
-          });
-        } catch (folderError) {
+        const folderPath = `TreatNote/Companies/${company.name}/${telephelyName}`;
+        const { error: folderError } = await supabase.functions.invoke('admin-file-manager', {
+          body: { operation: 'delete-folder', path: folderPath }
+        });
+        
+        if (folderError) {
           console.error('Error deleting telephely folder:', folderError);
         }
       }
