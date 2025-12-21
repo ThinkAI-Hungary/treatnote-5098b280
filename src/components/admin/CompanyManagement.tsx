@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { sanitizePathName } from '@/lib/hungarianNormalizer';
 
 interface Company {
   id: string;
@@ -95,9 +96,10 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       return;
     }
     
-    // Create the folder in storage - use the exact company name (Hungarian chars + spaces supported)
-    const folderPath = `TreatNote/Companies/${companyName}`;
-    console.log('Creating company folder:', folderPath);
+    // Create the folder in storage - normalize Hungarian chars, keep spaces
+    const sanitizedName = sanitizePathName(companyName);
+    const folderPath = `TreatNote/Companies/${sanitizedName}`;
+    console.log('Creating company folder:', folderPath, '(original:', companyName, ')');
     
     const { data: folderData, error: folderError } = await supabase.functions.invoke('admin-file-manager', {
       body: { operation: 'create-folder', path: folderPath }
@@ -150,8 +152,9 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting company:', error);
       toast.error('Hiba a cég törlésekor');
     } else {
-      // Use raw company name - Hungarian chars + spaces are supported
-      const folderPath = `TreatNote/Companies/${companyName}`;
+      // Normalize Hungarian chars for folder path, keep spaces
+      const sanitizedName = sanitizePathName(companyName);
+      const folderPath = `TreatNote/Companies/${sanitizedName}`;
       const { error: folderError } = await supabase.functions.invoke('admin-file-manager', {
         body: { operation: 'delete-folder', path: folderPath }
       });
@@ -196,9 +199,11 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       return;
     }
     
-    // Create the folder in storage - use exact names (Hungarian chars + spaces supported)
+    // Create the folder in storage - normalize Hungarian chars, keep spaces
     if (company) {
-      const folderPath = `TreatNote/Companies/${company.name}/${telephelyName}`;
+      const sanitizedCompanyName = sanitizePathName(company.name);
+      const sanitizedTelephelyName = sanitizePathName(telephelyName);
+      const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
       console.log('Creating telephely folder:', folderPath);
       
       const { data: folderData, error: folderError } = await supabase.functions.invoke('admin-file-manager', {
@@ -233,9 +238,11 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
       console.error('Error deleting telephely:', error);
       toast.error('Hiba a telephely törlésekor');
     } else {
-      // Use raw names - Hungarian chars + spaces are supported
+      // Normalize Hungarian chars for folder path, keep spaces
       if (company) {
-        const folderPath = `TreatNote/Companies/${company.name}/${telephelyName}`;
+        const sanitizedCompanyName = sanitizePathName(company.name);
+        const sanitizedTelephelyName = sanitizePathName(telephelyName);
+        const folderPath = `TreatNote/Companies/${sanitizedCompanyName}/${sanitizedTelephelyName}`;
         const { error: folderError } = await supabase.functions.invoke('admin-file-manager', {
           body: { operation: 'delete-folder', path: folderPath }
         });

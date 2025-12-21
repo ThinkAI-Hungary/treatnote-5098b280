@@ -1,52 +1,10 @@
 /**
  * Path Sanitizer for Supabase Storage
  * 
- * Supabase Storage supports UTF-8 characters including Hungarian letters and spaces.
- * We only need to remove characters that are truly unsafe for paths/URLs.
+ * Normalizes Hungarian characters to ASCII equivalents and keeps spaces.
+ * This ensures compatibility with Supabase Storage which may have issues with accented characters.
  */
 
-/**
- * Sanitizes a name for use in Supabase Storage paths.
- * - Keeps Hungarian characters (á, é, ő, ű, etc.)
- * - Keeps spaces as-is
- * - Removes only characters that are unsafe for paths (/, \, :, *, ?, ", <, >, |)
- * - Trims leading/trailing whitespace
- * - Collapses multiple spaces into one
- */
-export function sanitizePathName(name: string): string {
-  return name
-    .trim()
-    .replace(/[\/\\:*?"<>|]/g, '') // Remove path-unsafe characters
-    .replace(/\s+/g, ' '); // Collapse multiple spaces to single space
-}
-
-/**
- * Sanitizes a name for use in file paths or database storage.
- * Same as sanitizePathName - keeps Hungarian characters and spaces.
- */
-export function sanitizeNameForStorage(name: string): string {
-  return sanitizePathName(name);
-}
-
-/**
- * Sanitizes a filename specifically for file uploads.
- * Preserves the file extension properly.
- */
-export function sanitizeFileName(fileName: string): string {
-  const lastDotIndex = fileName.lastIndexOf('.');
-  
-  if (lastDotIndex === -1) {
-    // No extension
-    return sanitizePathName(fileName);
-  }
-  
-  const name = fileName.substring(0, lastDotIndex);
-  const extension = fileName.substring(lastDotIndex + 1).toLowerCase();
-  
-  return `${sanitizePathName(name)}.${extension}`;
-}
-
-// Legacy exports for backward compatibility
 const HUNGARIAN_MAP: Record<string, string> = {
   // Lowercase
   'á': 'a',
@@ -71,18 +29,60 @@ const HUNGARIAN_MAP: Record<string, string> = {
 };
 
 /**
- * @deprecated Use sanitizePathName instead - Hungarian characters are now preserved
- */
-export function normalizeHungarianChar(char: string): string {
-  return HUNGARIAN_MAP[char] || char;
-}
-
-/**
- * @deprecated Use sanitizePathName instead - Hungarian characters are now preserved
+ * Normalizes Hungarian characters to their ASCII equivalents.
+ * E.g., "Morfi szép nagy cége" -> "Morfi szep nagy cege"
  */
 export function normalizeHungarianString(str: string): string {
   return str
     .split('')
     .map(char => HUNGARIAN_MAP[char] || char)
     .join('');
+}
+
+/**
+ * Sanitizes a name for use in Supabase Storage paths.
+ * - Converts Hungarian characters to ASCII (á → a, é → e, etc.)
+ * - Keeps spaces as-is
+ * - Removes only characters that are unsafe for paths (/, \, :, *, ?, ", <, >, |)
+ * - Trims leading/trailing whitespace
+ * - Collapses multiple spaces into one
+ */
+export function sanitizePathName(name: string): string {
+  return normalizeHungarianString(name)
+    .trim()
+    .replace(/[\/\\:*?"<>|]/g, '') // Remove path-unsafe characters
+    .replace(/\s+/g, ' '); // Collapse multiple spaces to single space
+}
+
+/**
+ * Sanitizes a name for use in file paths or database storage.
+ * Same as sanitizePathName - normalizes Hungarian characters and keeps spaces.
+ */
+export function sanitizeNameForStorage(name: string): string {
+  return sanitizePathName(name);
+}
+
+/**
+ * Sanitizes a filename specifically for file uploads.
+ * Preserves the file extension properly.
+ */
+export function sanitizeFileName(fileName: string): string {
+  const lastDotIndex = fileName.lastIndexOf('.');
+  
+  if (lastDotIndex === -1) {
+    // No extension
+    return sanitizePathName(fileName);
+  }
+  
+  const name = fileName.substring(0, lastDotIndex);
+  const extension = fileName.substring(lastDotIndex + 1).toLowerCase();
+  
+  return `${sanitizePathName(name)}.${extension}`;
+}
+
+/**
+ * @deprecated Use normalizeHungarianString instead
+ */
+export function normalizeHungarianChar(char: string): string {
+  return HUNGARIAN_MAP[char] || char;
 }
