@@ -154,55 +154,23 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     transition: transform 0.1s ease;
   }
 
-  /* Galaxy themed scrollbars */
+  /* Hide scrollbars (scroll still works) */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 0px;
+    height: 0px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(260 40% 12%);
-    border-radius: 3px;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      hsl(300 70% 55%) 0%,
-      hsl(270 70% 55%) 50%,
-      hsl(195 85% 55%) 100%
-    );
-    border-radius: 3px;
-    transition: background 0.3s ease;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      hsl(300 70% 65%) 0%,
-      hsl(270 70% 65%) 50%,
-      hsl(195 85% 65%) 100%
-    );
-  }
-
-  /* Light mode scrollbar */
-  :root:not(.dark) ::-webkit-scrollbar-track {
-    background: hsl(260 20% 92%);
-  }
-
-  :root:not(.dark) ::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      hsl(300 60% 60%) 0%,
-      hsl(270 60% 55%) 50%,
-      hsl(195 80% 55%) 100%
-    );
+    background: transparent;
   }
 
   /* Firefox scrollbar */
   * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(270 70% 55%) hsl(260 40% 12%);
+    scrollbar-width: none;
   }
 }
 
@@ -982,38 +950,36 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   position: relative;
 }
 
-/* Dialog neon border animation - all sides */
+/* Dialog neon border animation - clean border (no clipping/offset) */
 .dialog-neon-border {
   position: relative;
+  isolation: isolate;
 }
 
 .dialog-neon-border::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: calc(var(--radius) + 2px);
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 2px;
   background: linear-gradient(
     90deg,
-    hsl(300 70% 60%) 0%,
-    hsl(195 85% 55%) 25%,
-    hsl(270 70% 55%) 50%,
-    hsl(195 85% 55%) 75%,
-    hsl(300 70% 60%) 100%
+    hsl(var(--nebula-pink)) 0%,
+    hsl(var(--sparkle-blue)) 25%,
+    hsl(var(--galaxy-purple)) 50%,
+    hsl(var(--sparkle-blue)) 75%,
+    hsl(var(--nebula-pink)) 100%
   );
   background-size: 300% 100%;
   animation: dialogNeonFlow 6s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
   pointer-events: none;
-  z-index: -1;
-  opacity: 0.8;
-}
-
-.dialog-neon-border::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius);
-  background: hsl(var(--card));
-  z-index: -1;
+  opacity: 0.85;
+  z-index: 1;
 }
 
 @keyframes dialogNeonFlow {
