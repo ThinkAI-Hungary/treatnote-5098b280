@@ -49,7 +49,7 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-lg p-1",
+      "min-w-[8rem] overflow-hidden rounded-lg p-1",
       "bg-popover/95 backdrop-blur-md text-popover-foreground",
       "border border-border/50 shadow-lg shadow-primary/5",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -59,6 +59,7 @@ const DropdownMenuSubContent = React.forwardRef<
       "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       className,
     )}
+    style={{ zIndex: 9999 }}
     {...props}
   />
 ));
@@ -73,7 +74,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg p-1",
+        "min-w-[8rem] overflow-hidden rounded-lg p-1",
         "bg-popover backdrop-blur-md text-popover-foreground",
         "border border-border/50 shadow-xl shadow-primary/10",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -83,6 +84,7 @@ const DropdownMenuContent = React.forwardRef<
         "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className,
       )}
+      style={{ zIndex: 9999 }}
       {...props}
     />
   </DropdownMenuPrimitive.Portal>
