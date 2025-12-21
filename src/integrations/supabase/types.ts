@@ -328,6 +328,7 @@ export type Database = {
           id: string
           telephely_id: string | null
           uploaded_by: string
+          webhook_status: string
         }
         Insert: {
           company_id?: string | null
@@ -339,6 +340,7 @@ export type Database = {
           id?: string
           telephely_id?: string | null
           uploaded_by: string
+          webhook_status?: string
         }
         Update: {
           company_id?: string | null
@@ -350,6 +352,7 @@ export type Database = {
           id?: string
           telephely_id?: string | null
           uploaded_by?: string
+          webhook_status?: string
         }
         Relationships: [
           {
