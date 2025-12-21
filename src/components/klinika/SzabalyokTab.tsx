@@ -8,7 +8,8 @@ import { TableCell, TableHead } from '@/components/ui/table';
 import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileUp, Trash2, Loader2, FileText, AlertCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { FileUp, Trash2, Loader2, FileText, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -431,10 +432,22 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reference">Hogyan szeretnének rá hivatkozni?</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="reference">Hogyan szeretnének rá hivatkozni?</Label>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[300px] text-sm">
+                      Az ide beírt szó fogja aktiválni a PDF-ből kiolvasott fogalmat. Pl: Feltöltésre kerül egy "Foghúzás és implantálás ideiglenessel.pdf", ellenben a megszokott rendelői "nyelvjárás"-ban ez máshogy van használva, akkor a lenti dobozba beírt fogalom fogja ezt jelenteni.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Textarea
                 id="reference"
-                placeholder="Leírás, megjegyzés (opcionális)"
+                placeholder="Ezzel a kimondott fogalommal lehet majd aktiválni a szabályt"
                 value={uploadReference}
                 onChange={(e) => setUploadReference(e.target.value)}
                 className="border-primary/20 focus:border-primary/40 min-h-[100px]"
@@ -445,7 +458,10 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
             <Button variant="outline" onClick={handleUploadCancel}>
               Mégse
             </Button>
-            <GalaxyButton onClick={handleUploadConfirm} disabled={!uploadFileName.trim()}>
+            <GalaxyButton 
+              onClick={handleUploadConfirm} 
+              disabled={!uploadFileName.trim() || !uploadReference.trim()}
+            >
               Feltöltés
             </GalaxyButton>
           </DialogFooter>

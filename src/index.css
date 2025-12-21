@@ -962,3 +962,43 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 .dropdown-neon-snake {
   position: relative;
 }
+
+/* Dialog neon border animation */
+.dialog-neon-border {
+  position: relative;
+}
+
+.dialog-neon-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 2px;
+  background: conic-gradient(
+    from 270deg at 50% 0%,
+    transparent 0deg,
+    hsl(300 70% 60%) 60deg,
+    hsl(270 70% 55%) 120deg,
+    hsl(195 85% 55%) 180deg,
+    hsl(270 70% 55%) 240deg,
+    hsl(300 70% 60%) 300deg,
+    transparent 360deg
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: dialogSnakeRotate 4s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes dialogSnakeRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
