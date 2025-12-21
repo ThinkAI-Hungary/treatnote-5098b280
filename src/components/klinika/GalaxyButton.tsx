@@ -2,13 +2,10 @@ import * as React from 'react';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export interface GalaxyButtonProps extends ButtonProps {
-  /** Visual style. Defaults to "default". */
-  variant?: ButtonProps['variant'];
-}
+export interface GalaxyButtonProps extends ButtonProps {}
 
 export const GalaxyButton = React.forwardRef<HTMLButtonElement, GalaxyButtonProps>(
-  ({ className, variant = 'default', ...props }, ref) => {
+  ({ className, variant = 'default', children, ...props }, ref) => {
     return (
       <Button
         ref={ref}
@@ -22,7 +19,9 @@ export const GalaxyButton = React.forwardRef<HTMLButtonElement, GalaxyButtonProp
         )}
         variant={variant}
         {...props}
-      />
+      >
+        {children}
+      </Button>
     );
   },
 );
