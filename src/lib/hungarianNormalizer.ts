@@ -1,13 +1,52 @@
 /**
- * Hungarian Character Normalizer
+ * Path Sanitizer for Supabase Storage
  * 
- * Normalizes Hungarian diacritical characters to ASCII equivalents.
- * Follows three rules:
- * 1. Strip Acute Accents (´): á→a, é→e, í→i, ó→o, ú→u
- * 2. Strip Umlauts (¨): ö→o, ü→u
- * 3. Strip Double Acutes (˝): ő→o, ű→u
+ * Supabase Storage supports UTF-8 characters including Hungarian letters and spaces.
+ * We only need to remove characters that are truly unsafe for paths/URLs.
  */
 
+/**
+ * Sanitizes a name for use in Supabase Storage paths.
+ * - Keeps Hungarian characters (á, é, ő, ű, etc.)
+ * - Keeps spaces as-is
+ * - Removes only characters that are unsafe for paths (/, \, :, *, ?, ", <, >, |)
+ * - Trims leading/trailing whitespace
+ * - Collapses multiple spaces into one
+ */
+export function sanitizePathName(name: string): string {
+  return name
+    .trim()
+    .replace(/[\/\\:*?"<>|]/g, '') // Remove path-unsafe characters
+    .replace(/\s+/g, ' '); // Collapse multiple spaces to single space
+}
+
+/**
+ * Sanitizes a name for use in file paths or database storage.
+ * Same as sanitizePathName - keeps Hungarian characters and spaces.
+ */
+export function sanitizeNameForStorage(name: string): string {
+  return sanitizePathName(name);
+}
+
+/**
+ * Sanitizes a filename specifically for file uploads.
+ * Preserves the file extension properly.
+ */
+export function sanitizeFileName(fileName: string): string {
+  const lastDotIndex = fileName.lastIndexOf('.');
+  
+  if (lastDotIndex === -1) {
+    // No extension
+    return sanitizePathName(fileName);
+  }
+  
+  const name = fileName.substring(0, lastDotIndex);
+  const extension = fileName.substring(lastDotIndex + 1).toLowerCase();
+  
+  return `${sanitizePathName(name)}.${extension}`;
+}
+
+// Legacy exports for backward compatibility
 const HUNGARIAN_MAP: Record<string, string> = {
   // Lowercase
   'á': 'a',
@@ -32,65 +71,18 @@ const HUNGARIAN_MAP: Record<string, string> = {
 };
 
 /**
- * Normalizes a single character using the Hungarian mapping
+ * @deprecated Use sanitizePathName instead - Hungarian characters are now preserved
  */
 export function normalizeHungarianChar(char: string): string {
   return HUNGARIAN_MAP[char] || char;
 }
 
 /**
- * Normalizes a string by replacing Hungarian diacritical characters with ASCII equivalents
+ * @deprecated Use sanitizePathName instead - Hungarian characters are now preserved
  */
 export function normalizeHungarianString(str: string): string {
   return str
     .split('')
     .map(char => HUNGARIAN_MAP[char] || char)
     .join('');
-}
-
-/**
- * Sanitizes a name for use in file paths or database storage.
- * - Normalizes Hungarian characters
- * - Removes any remaining diacritics via NFD normalization
- * - Keeps only alphanumeric, spaces, hyphens, underscores, and dots
- * - Replaces spaces with underscores
- */
-export function sanitizeNameForStorage(name: string): string {
-  return normalizeHungarianString(name)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove any remaining diacritics
-    .replace(/[^a-zA-Z0-9\s\-_.]/g, '') // Keep alphanumeric, spaces, hyphens, underscores, dots
-    .trim()
-    .replace(/\s+/g, '_'); // Replace spaces with underscores
-}
-
-/**
- * Sanitizes a filename specifically for file uploads.
- * Similar to sanitizeNameForStorage but preserves the file extension properly.
- */
-export function sanitizeFileName(fileName: string): string {
-  const lastDotIndex = fileName.lastIndexOf('.');
-  
-  if (lastDotIndex === -1) {
-    // No extension
-    return sanitizeNameForStorage(fileName);
-  }
-  
-  const name = fileName.substring(0, lastDotIndex);
-  const extension = fileName.substring(lastDotIndex + 1).toLowerCase();
-  
-  return `${sanitizeNameForStorage(name)}.${extension}`;
-}
-
-/**
- * Sanitizes a folder/company/telephely name for path usage.
- * Uses hyphens instead of underscores for cleaner paths.
- */
-export function sanitizePathName(name: string): string {
-  return normalizeHungarianString(name)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9\s\-_]/g, '')
-    .replace(/\s+/g, '-')
-    .trim();
 }

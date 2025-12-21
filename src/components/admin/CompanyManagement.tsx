@@ -62,7 +62,12 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
   };
 
   const generateSlug = (name: string) => {
-    return sanitizePathName(name).toLowerCase().replace(/_/g, '-');
+    // Slug for database: lowercase, spaces to hyphens, no special chars
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[\/\\:*?"<>|]/g, '')
+      .replace(/\s+/g, '-');
   };
 
   const handleAddCompany = async () => {
