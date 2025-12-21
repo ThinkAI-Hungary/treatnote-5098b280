@@ -1,37 +1,29 @@
-import { Button } from '@/components/ui/button';
+import * as React from 'react';
+import { Button, type ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ReactNode } from 'react';
 
-interface GalaxyButtonProps {
-  children: ReactNode;
-  className?: string;
-  variant?: 'default' | 'outline' | 'ghost' | 'destructive';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-  disabled?: boolean;
-  onClick?: () => void;
-  [key: string]: any;
+export interface GalaxyButtonProps extends ButtonProps {
+  /** Visual style. Defaults to "default". */
+  variant?: ButtonProps['variant'];
 }
 
-export function GalaxyButton({ 
-  children, 
-  className, 
-  variant = 'default',
-  ...props 
-}: GalaxyButtonProps) {
-  return (
-    <Button
-      className={cn(
-        "relative overflow-hidden transition-all duration-300",
-        variant === 'default' && [
-          "bg-gradient-to-r from-primary to-accent text-primary-foreground",
-          "hover:shadow-lg hover:shadow-primary/25"
-        ],
-        className
-      )}
-      variant={variant}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-}
+export const GalaxyButton = React.forwardRef<HTMLButtonElement, GalaxyButtonProps>(
+  ({ className, variant = 'default', ...props }, ref) => {
+    return (
+      <Button
+        ref={ref}
+        className={cn(
+          'relative overflow-hidden transition-all duration-300',
+          variant === 'default' && [
+            'bg-gradient-to-r from-primary to-accent text-primary-foreground',
+            'hover:shadow-lg hover:shadow-primary/25',
+          ],
+          className,
+        )}
+        variant={variant}
+        {...props}
+      />
+    );
+  },
+);
+GalaxyButton.displayName = 'GalaxyButton';
