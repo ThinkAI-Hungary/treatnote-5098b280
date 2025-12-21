@@ -9,7 +9,7 @@ import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileUp, Trash2, Loader2, FileText, AlertCircle, Info, Pencil } from 'lucide-react';
+import { FileUp, Trash2, Loader2, FileText, AlertCircle, Info, Pencil, RefreshCw, Clock, CheckCircle2, XCircle, Hourglass } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -17,6 +17,9 @@ import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { sanitizeNameForStorage, sanitizeFileName } from '@/lib/hungarianNormalizer';
 import { GalaxyButton } from './GalaxyButton';
+import { Badge } from '@/components/ui/badge';
+
+type WebhookStatus = 'idle' | 'feldolgozas_alatt' | 'feldolgozva' | 'hiba';
 
 interface UploadedPdf {
   id: string;
@@ -25,7 +28,10 @@ interface UploadedPdf {
   file_size: number | null;
   created_at: string;
   fogalom: string | null;
+  webhook_status: WebhookStatus;
 }
+
+const WEBHOOK_URL = 'https://n8n.thinkaimedical.hu/webhook-test/66d16a2b-d73a-4b6d-8f28-811078c09c91';
 
 interface SzabalyokTabProps {
   companyId: string | null;
@@ -56,6 +62,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [editingFile, setEditingFile] = useState<UploadedPdf | null>(null);
   const [editFogalom, setEditFogalom] = useState('');
   const [saving, setSaving] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -70,7 +77,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setFiles(data || []);
+      setFiles((data as UploadedPdf[]) || []);
     } catch (err: any) {
       console.error('Error loading files:', err);
       toast.error('Hiba a fájlok betöltésekor');
@@ -82,6 +89,80 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
+
+  // Send webhook and update status
+  const sendWebhook = async (pdfId: string, fileName: string, fogalom: string | null): Promise<WebhookStatus> => {
+    try {
+      // Update status to "feldolgozas_alatt"
+      await supabase
+        .from('feltoltott_pdf')
+        .update({ webhook_status: 'feldolgozas_alatt' })
+        .eq('id', pdfId);
+
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdf_id: pdfId,
+          file_name: fileName,
+          fogalom: fogalom,
+          company_id: companyId,
+          company_name: companyName,
+          telephely_id: telephelyId,
+          telephely_name: telephelyName,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      
+      // Check response for status
+      let newStatus: WebhookStatus = 'feldolgozva';
+      if (result.status === 'error' || result.error) {
+        newStatus = 'hiba';
+      } else if (result.status === 'feldolgozva' || response.ok) {
+        newStatus = 'feldolgozva';
+      }
+
+      // Update status in database
+      await supabase
+        .from('feltoltott_pdf')
+        .update({ webhook_status: newStatus })
+        .eq('id', pdfId);
+
+      return newStatus;
+    } catch (err) {
+      console.error('Webhook error:', err);
+      // Update status to "hiba"
+      await supabase
+        .from('feltoltott_pdf')
+        .update({ webhook_status: 'hiba' })
+        .eq('id', pdfId);
+      return 'hiba';
+    }
+  };
+
+  // Retry webhook for failed/idle uploads
+  const handleRetryWebhook = async (file: UploadedPdf) => {
+    setRetryingId(file.id);
+    try {
+      const newStatus = await sendWebhook(file.id, file.file_name, file.fogalom);
+      if (newStatus === 'feldolgozva') {
+        toast.success('Webhook sikeresen elküldve');
+      } else {
+        toast.error('Webhook küldése sikertelen');
+      }
+      loadFiles();
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   const handleFilePrepare = (file: File) => {
     if (!companyId || !telephelyId) {
@@ -138,7 +219,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       if (uploadError) throw uploadError;
 
       // Save to database with display name, reference (fogalom), and other metadata
-      const { error: dbError } = await supabase
+      const { data: insertedData, error: dbError } = await supabase
         .from('feltoltott_pdf')
         .insert({
           file_name: `${finalFileName}.pdf`,
@@ -148,11 +229,20 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           telephely_id: telephelyId,
           uploaded_by: user.id,
           fogalom: uploadReference.trim() || null,
-        });
+          webhook_status: 'idle',
+        })
+        .select()
+        .single();
 
       if (dbError) throw dbError;
 
       toast.success('Fájl sikeresen feltöltve');
+
+      // Send webhook after successful upload
+      if (insertedData) {
+        await sendWebhook(insertedData.id, `${finalFileName}.pdf`, uploadReference.trim() || null);
+      }
+
       loadFiles();
     } catch (err: any) {
       console.error('Error uploading file:', err);
@@ -415,6 +505,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                 <TableHead className="font-semibold">Fogalom</TableHead>
                 <TableHead className="font-semibold">Méret</TableHead>
                 <TableHead className="font-semibold">Feltöltve</TableHead>
+                <TableHead className="font-semibold">Státusz</TableHead>
                 <TableHead className="text-right font-semibold">Műveletek</TableHead>
               </>
             }
@@ -435,7 +526,57 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                 <TableCell className="text-muted-foreground">
                   {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
                 </TableCell>
+                <TableCell>
+                  {file.webhook_status === 'feldolgozva' && (
+                    <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Feldolgozva
+                    </Badge>
+                  )}
+                  {file.webhook_status === 'feldolgozas_alatt' && (
+                    <Badge variant="default" className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                      <Hourglass className="h-3 w-3 mr-1 animate-pulse" />
+                      Feldolgozás alatt
+                    </Badge>
+                  )}
+                  {file.webhook_status === 'hiba' && (
+                    <Badge variant="destructive" className="bg-destructive/20 text-destructive border-destructive/30">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Hiba
+                    </Badge>
+                  )}
+                  {file.webhook_status === 'idle' && (
+                    <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-muted">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Idle
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right flex items-center justify-end gap-1">
+                  {(file.webhook_status === 'hiba' || file.webhook_status === 'idle') && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => handleRetryWebhook(file)}
+                            disabled={retryingId === file.id}
+                          >
+                            {retryingId === file.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Webhook újraküldése</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
