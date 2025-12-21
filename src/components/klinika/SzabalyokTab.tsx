@@ -9,7 +9,7 @@ import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileUp, Trash2, Loader2, FileText, AlertCircle, Info } from 'lucide-react';
+import { FileUp, Trash2, Loader2, FileText, AlertCircle, Info, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -24,7 +24,7 @@ interface UploadedPdf {
   file_path: string;
   file_size: number | null;
   created_at: string;
-  reference_note?: string | null;
+  fogalom: string | null;
 }
 
 interface SzabalyokTabProps {
@@ -50,6 +50,12 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadFileName, setUploadFileName] = useState('');
   const [uploadReference, setUploadReference] = useState('');
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingFile, setEditingFile] = useState<UploadedPdf | null>(null);
+  const [editFogalom, setEditFogalom] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -131,7 +137,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       if (uploadError) throw uploadError;
 
-      // Save to database with display name and reference
+      // Save to database with display name, reference (fogalom), and other metadata
       const { error: dbError } = await supabase
         .from('feltoltott_pdf')
         .insert({
@@ -141,6 +147,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           company_id: companyId,
           telephely_id: telephelyId,
           uploaded_by: user.id,
+          fogalom: uploadReference.trim() || null,
         });
 
       if (dbError) throw dbError;
@@ -163,6 +170,43 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setPendingFile(null);
     setUploadFileName('');
     setUploadReference('');
+  };
+
+  const openEditDialog = (file: UploadedPdf) => {
+    setEditingFile(file);
+    setEditFogalom(file.fogalom || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false);
+    setEditingFile(null);
+    setEditFogalom('');
+  };
+
+  const handleEditSave = async () => {
+    if (!editingFile) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('feltoltott_pdf')
+        .update({ fogalom: editFogalom.trim() || null })
+        .eq('id', editingFile.id);
+
+      if (error) throw error;
+
+      toast.success('Fogalom sikeresen mentve');
+      setEditDialogOpen(false);
+      setEditingFile(null);
+      setEditFogalom('');
+      loadFiles();
+    } catch (err: any) {
+      console.error('Error updating fogalom:', err);
+      toast.error('Hiba a fogalom mentésekor');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDeleteConfirm = (id: string, filePath: string, event: MouseEvent) => {
@@ -368,6 +412,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
             headers={
               <>
                 <TableHead className="font-semibold">Fájlnév</TableHead>
+                <TableHead className="font-semibold">Fogalom</TableHead>
                 <TableHead className="font-semibold">Méret</TableHead>
                 <TableHead className="font-semibold">Feltöltve</TableHead>
                 <TableHead className="text-right font-semibold">Műveletek</TableHead>
@@ -383,11 +428,22 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                   <FileText className="h-4 w-4 text-primary/60" />
                   {file.file_name}
                 </TableCell>
+                <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                  {file.fogalom || <span className="italic text-muted-foreground/50">—</span>}
+                </TableCell>
                 <TableCell>{formatFileSize(file.file_size)}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => openEditDialog(file)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -482,6 +538,54 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         onConfirm={handleDelete}
         anchorPosition={deleteAnchorPosition}
       />
+
+      {/* Edit Fogalom Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Fogalom szerkesztése
+            </DialogTitle>
+            <DialogDescription>
+              Módosítsa a hivatkozási szöveget: <span className="font-medium text-foreground">{editingFile?.file_name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="edit-fogalom">Hogyan szeretnének rá hivatkozni?</Label>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[300px] text-sm">
+                      Az ide beírt szó fogja aktiválni a PDF-ből kiolvasott fogalmat. Pl: Feltöltésre kerül egy "Foghúzás és implantálás ideiglenessel.pdf", ellenben a megszokott rendelői "nyelvjárás"-ban ez máshogy van használva, akkor a lenti dobozba beírt fogalom fogja ezt jelenteni.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Textarea
+                id="edit-fogalom"
+                placeholder="Ezzel a kimondott fogalommal lehet majd aktiválni a szabályt"
+                value={editFogalom}
+                onChange={(e) => setEditFogalom(e.target.value)}
+                className="border-primary/20 focus:border-primary/40 min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleEditCancel} disabled={saving}>
+              Mégse
+            </Button>
+            <GalaxyButton onClick={handleEditSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Mentés
+            </GalaxyButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
