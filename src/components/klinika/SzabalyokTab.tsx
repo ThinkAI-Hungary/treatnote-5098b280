@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, MouseEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, MouseEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,14 @@ import { cn } from '@/lib/utils';
 import { sanitizeNameForStorage, sanitizeFileName } from '@/lib/hungarianNormalizer';
 import { GalaxyButton } from './GalaxyButton';
 import { Badge } from '@/components/ui/badge';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 type WebhookStatus = 'idle' | 'feldolgozas_alatt' | 'feldolgozva' | 'hiba';
 
@@ -68,7 +76,11 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadedPdf | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pageWidth, setPageWidth] = useState(900);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -95,6 +107,22 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
+
+  useEffect(() => {
+    if (!previewDialogOpen) return;
+    const el = previewContainerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const width = Math.max(320, Math.min(980, el.clientWidth - 32));
+      setPageWidth(width);
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [previewDialogOpen]);
 
   // Send webhook and update status
   const sendWebhook = async (pdfId: string, fileName: string, fogalom: string | null): Promise<WebhookStatus> => {
@@ -399,8 +427,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setPreviewFile(file);
     setPreviewDialogOpen(true);
     setPreviewLoading(true);
-    
-    // Revoke previous blob URL if exists
+    setNumPages(0);
+    setPreviewBlob(null);
+
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -412,8 +441,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         .download(file.file_path);
 
       if (error) throw error;
-      
-      // Create blob URL (same-origin, bypasses iframe restrictions)
+
+      setPreviewBlob(data);
+
       const blobUrl = URL.createObjectURL(data);
       setPreviewUrl(blobUrl);
     } catch (err) {
@@ -425,13 +455,14 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   };
 
   const closePdfPreview = () => {
-    // Clean up blob URL to prevent memory leak
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewDialogOpen(false);
     setPreviewFile(null);
     setPreviewUrl(null);
+    setPreviewBlob(null);
+    setNumPages(0);
   };
 
   return (
@@ -792,30 +823,55 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
               </DialogDescription>
             )}
           </DialogHeader>
-          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-primary/20 bg-muted/30">
+          <div
+            ref={previewContainerRef}
+            className="flex-1 min-h-0 rounded-lg overflow-hidden border border-primary/20 bg-muted/30"
+          >
             {previewLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : previewUrl ? (
-              <object
-                data={previewUrl}
-                type="application/pdf"
-                className="w-full h-full"
-                aria-label={previewFile?.file_name}
-              >
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 p-8">
-                  <FileText className="h-12 w-12" />
-                  <span className="text-center">A böngésző nem tudja megjeleníteni a PDF-et.</span>
-                  <a 
-                    href={previewUrl} 
-                    download={previewFile?.file_name}
-                    className="text-primary hover:underline"
-                  >
-                    Kattintson ide a letöltéshez
-                  </a>
-                </div>
-              </object>
+            ) : previewBlob ? (
+              <div className="h-full overflow-auto p-4">
+                <Document
+                  file={previewBlob}
+                  onLoadSuccess={({ numPages: nextNumPages }) => setNumPages(nextNumPages)}
+                  loading={
+                    <div className="flex items-center justify-center py-10">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  }
+                  error={
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                      <AlertCircle className="h-8 w-8" />
+                      <span>Nem sikerült betölteni a PDF-et</span>
+                    </div>
+                  }
+                >
+                  {Array.from(new Array(numPages || 0), (_, i) => (
+                    <div key={`page_${i + 1}`} className="mb-6 flex justify-center">
+                      <Page
+                        pageNumber={i + 1}
+                        width={pageWidth}
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                      />
+                    </div>
+                  ))}
+                </Document>
+
+                {previewUrl && (
+                  <div className="flex justify-center pb-2">
+                    <a
+                      href={previewUrl}
+                      download={previewFile?.file_name}
+                      className="text-primary hover:underline"
+                    >
+                      Letöltés
+                    </a>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
                 <AlertCircle className="h-8 w-8" />
