@@ -359,13 +359,14 @@ export default function KlinikaAdmin() {
                   <h2 className="text-xl font-semibold">
                     Szervezeti tagok
                   </h2>
-                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                    <DialogTrigger asChild>
-                      <GalaxyButton>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Új felhasználó
-                      </GalaxyButton>
-                    </DialogTrigger>
+                  {companyId && telephelyId ? (
+                    <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                      <DialogTrigger asChild>
+                        <GalaxyButton>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Új felhasználó
+                        </GalaxyButton>
+                      </DialogTrigger>
                     <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -458,6 +459,11 @@ export default function KlinikaAdmin() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  ) : (
+                    <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+                      Cég és telephely hozzárendelése szükséges a felhasználó létrehozáshoz
+                    </div>
+                  )}
                 </div>
 
                 {users.length === 0 ? (
