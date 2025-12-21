@@ -741,12 +741,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 /* Sidebar menu icon animations */
-@keyframes iconLevitate {
+@keyframes iconFloat {
   0%, 100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 }
 
@@ -756,11 +756,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 /* Icon rotates when hovering over the entire menu item (parent) */
 .sidebar-menu-gradient:hover .sidebar-icon-hover {
-  transform: scale(1.5) rotate(-30deg);
+  transform: scale(1.5) rotate(-20deg);
 }
 
-.sidebar-icon-active {
-  animation: iconLevitate 2s ease-in-out infinite;
+/* Slow floating animation for active/selected menu icons */
+.sidebar-menu-gradient.active .sidebar-icon-hover {
+  animation: iconFloat 5s ease-in-out infinite;
 }
 
 /* Sidebar menu item with gradient hover - neon pink fading to top completely */
