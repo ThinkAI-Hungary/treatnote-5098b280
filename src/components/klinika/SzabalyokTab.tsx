@@ -399,17 +399,25 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setPreviewFile(file);
     setPreviewDialogOpen(true);
     setPreviewLoading(true);
-    setPreviewUrl(null);
+    
+    // Revoke previous blob URL if exists
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
 
     try {
       const { data, error } = await supabase.storage
         .from('client-files')
-        .createSignedUrl(file.file_path, 3600); // 1 hour expiry
+        .download(file.file_path);
 
       if (error) throw error;
-      setPreviewUrl(data.signedUrl);
+      
+      // Create blob URL (same-origin, bypasses iframe restrictions)
+      const blobUrl = URL.createObjectURL(data);
+      setPreviewUrl(blobUrl);
     } catch (err) {
-      console.error('Error getting PDF URL:', err);
+      console.error('Error getting PDF:', err);
       toast.error('Hiba a PDF betöltésekor');
     } finally {
       setPreviewLoading(false);
@@ -417,6 +425,10 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   };
 
   const closePdfPreview = () => {
+    // Clean up blob URL to prevent memory leak
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewDialogOpen(false);
     setPreviewFile(null);
     setPreviewUrl(null);
@@ -786,11 +798,24 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : previewUrl ? (
-              <iframe
-                src={previewUrl}
+              <object
+                data={previewUrl}
+                type="application/pdf"
                 className="w-full h-full"
-                title={previewFile?.file_name}
-              />
+                aria-label={previewFile?.file_name}
+              >
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4 p-8">
+                  <FileText className="h-12 w-12" />
+                  <span className="text-center">A böngésző nem tudja megjeleníteni a PDF-et.</span>
+                  <a 
+                    href={previewUrl} 
+                    download={previewFile?.file_name}
+                    className="text-primary hover:underline"
+                  >
+                    Kattintson ide a letöltéshez
+                  </a>
+                </div>
+              </object>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
                 <AlertCircle className="h-8 w-8" />
