@@ -963,42 +963,61 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   position: relative;
 }
 
-/* Dialog neon border animation */
+/* Dialog neon border animation - sides only */
 .dialog-neon-border {
   position: relative;
 }
 
-.dialog-neon-border::before {
+.dialog-neon-border::before,
+.dialog-neon-border::after {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: var(--radius);
-  padding: 2px;
-  background: conic-gradient(
-    from 270deg at 50% 0%,
-    transparent 0deg,
-    hsl(300 70% 60%) 60deg,
-    hsl(270 70% 55%) 120deg,
-    hsl(195 85% 55%) 180deg,
-    hsl(270 70% 55%) 240deg,
-    hsl(300 70% 60%) 300deg,
-    transparent 360deg
+  top: 10%;
+  bottom: 10%;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(300 70% 60%) 20%,
+    hsl(195 85% 55%) 50%,
+    hsl(300 70% 60%) 80%,
+    transparent 100%
   );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: dialogSnakeRotate 4s linear infinite;
+  background-size: 100% 200%;
+  animation: dialogSideGlow 2s ease-in-out infinite;
   pointer-events: none;
-  z-index: 0;
+  z-index: 10;
+  border-radius: 2px;
+  box-shadow: 0 0 10px hsl(270 70% 55% / 0.5), 0 0 20px hsl(195 85% 55% / 0.3);
 }
 
-@keyframes dialogSnakeRotate {
-  0% {
-    transform: rotate(0deg);
+.dialog-neon-border::before {
+  left: -1px;
+}
+
+.dialog-neon-border::after {
+  right: -1px;
+  animation-delay: -1s;
+}
+
+@keyframes dialogSideGlow {
+  0%, 100% {
+    background-position: 0% 0%;
+    opacity: 0.7;
   }
-  100% {
-    transform: rotate(360deg);
+  50% {
+    background-position: 0% 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
