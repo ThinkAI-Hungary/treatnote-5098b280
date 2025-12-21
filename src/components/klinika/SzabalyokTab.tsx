@@ -39,7 +39,7 @@ interface UploadedPdf {
   webhook_status: WebhookStatus;
 }
 
-const WEBHOOK_URL = 'https://n8n.thinkaimedical.hu/webhook-test/66d16a2b-d73a-4b6d-8f28-811078c09c91';
+// Webhook is now handled by the szabalyok-webhook edge function
 
 interface SzabalyokTabProps {
   companyId: string | null;
@@ -125,8 +125,14 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     return () => ro.disconnect();
   }, [previewDialogOpen]);
 
-  // Send webhook and update status
-  const sendWebhook = async (pdfId: string, fileName: string, fogalom: string | null): Promise<WebhookStatus> => {
+  // Send webhook via edge function and update status
+  const sendWebhook = async (
+    pdfId: string, 
+    fileName: string, 
+    fogalom: string | null,
+    storagePath: string,
+    epochMillis: number
+  ): Promise<WebhookStatus> => {
     try {
       // Update status to "feldolgozas_alatt"
       await supabase
@@ -134,12 +140,9 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
         .update({ webhook_status: 'feldolgozas_alatt' })
         .eq('id', pdfId);
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('szabalyok-webhook', {
+        body: {
           pdf_id: pdfId,
           file_name: fileName,
           fogalom: fogalom,
@@ -147,22 +150,21 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           company_name: companyName,
           telephely_id: telephelyId,
           telephely_name: telephelyName,
-          timestamp: new Date().toISOString(),
-        }),
+          epoch_millis: epochMillis,
+          storage_path: storagePath,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Edge function error');
       }
 
-      const result = await response.json().catch(() => ({}));
+      // Check response from edge function
+      const newStatus: WebhookStatus = data?.ok ? 'feldolgozva' : 'hiba';
       
-      // Check response for status
-      let newStatus: WebhookStatus = 'feldolgozva';
-      if (result.status === 'error' || result.error) {
-        newStatus = 'hiba';
-      } else if (result.status === 'feldolgozva' || response.ok) {
-        newStatus = 'feldolgozva';
+      if (!data?.ok) {
+        console.error('Webhook failed:', data?.message || 'Unknown error');
       }
 
       // Update status in database
@@ -187,7 +189,13 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const handleRetryWebhook = async (file: UploadedPdf) => {
     setRetryingId(file.id);
     try {
-      const newStatus = await sendWebhook(file.id, file.file_name, file.fogalom);
+      // Extract epoch_millis from file_path (format: .../epoch_filename.pdf)
+      const pathParts = file.file_path.split('/');
+      const filename = pathParts[pathParts.length - 1];
+      const epochMatch = filename.match(/^(\d+)_/);
+      const epochMillis = epochMatch ? parseInt(epochMatch[1], 10) : Date.now();
+      
+      const newStatus = await sendWebhook(file.id, file.file_name, file.fogalom, file.file_path, epochMillis);
       if (newStatus === 'feldolgozva') {
         toast.success('Webhook sikeresen elküldve');
       } else {
@@ -275,7 +283,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
 
       // Send webhook after successful upload
       if (insertedData) {
-        await sendWebhook(insertedData.id, `${finalFileName}.pdf`, uploadReference.trim() || null);
+        await sendWebhook(insertedData.id, `${finalFileName}.pdf`, uploadReference.trim() || null, filePath, timestamp);
       }
 
       loadFiles();
@@ -340,7 +348,13 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       
       // If reprocessing is needed, trigger webhook
       if (reprocess) {
-        await sendWebhook(editingFile.id, editingFile.file_name, newFogalom);
+        // Extract epoch_millis from file_path
+        const pathParts = editingFile.file_path.split('/');
+        const filename = pathParts[pathParts.length - 1];
+        const epochMatch = filename.match(/^(\d+)_/);
+        const epochMillis = epochMatch ? parseInt(epochMatch[1], 10) : Date.now();
+        
+        await sendWebhook(editingFile.id, editingFile.file_name, newFogalom, editingFile.file_path, epochMillis);
         toast.info('A PDF újrafeldolgozása elindult');
       }
       
