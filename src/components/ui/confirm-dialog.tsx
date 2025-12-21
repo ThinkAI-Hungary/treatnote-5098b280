@@ -66,10 +66,15 @@ export function ConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent 
         ref={contentRef}
-        className="border border-primary/20 bg-card/98 backdrop-blur-xl overflow-hidden max-w-[320px] p-4"
+        className={`border border-primary/20 bg-card backdrop-blur-xl overflow-hidden max-w-[320px] p-4 ${
+          anchorPosition ? 'inset-auto' : ''
+        }`}
         style={anchorPosition ? { 
           position: 'fixed',
-          ...position,
+          top: position.top,
+          left: position.left,
+          margin: 0,
+          transform: 'none',
         } : undefined}
       >
         {/* Subtle glow background */}

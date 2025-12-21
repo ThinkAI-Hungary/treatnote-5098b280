@@ -1001,7 +1001,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     hsl(300 70% 60%) 100%
   );
   background-size: 300% 100%;
-  animation: dialogNeonFlow 3s linear infinite;
+  animation: dialogNeonFlow 6s linear infinite;
   pointer-events: none;
   z-index: -1;
   opacity: 0.8;
