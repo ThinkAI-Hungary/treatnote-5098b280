@@ -36,7 +36,7 @@ export function ConfirmDialog({
   anchorPosition,
 }: ConfirmDialogProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top?: string; left?: string; transform?: string }>({});
+  const [position, setPosition] = useState<{ top?: string; left?: string }>({});
 
   useEffect(() => {
     if (open && anchorPosition && contentRef.current) {
@@ -48,14 +48,13 @@ export function ConfirmDialog({
 
       let left = Math.min(x, viewportWidth - dialogWidth - 20);
       let top = Math.min(y, viewportHeight - dialogHeight - 20);
-      
+
       left = Math.max(20, left);
       top = Math.max(20, top);
 
       setPosition({
         top: `${top}px`,
         left: `${left}px`,
-        transform: 'none',
       });
     } else {
       setPosition({});
@@ -74,7 +73,6 @@ export function ConfirmDialog({
           top: position.top,
           left: position.left,
           margin: 0,
-          transform: 'none',
         } : undefined}
       >
         {/* Subtle glow background */}
