@@ -12,26 +12,26 @@ const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 // SVG Border Animation Component
-function SnakeBorder({ 
-  isOpen, 
-  width, 
+function SnakeBorder({
+  isOpen,
+  width,
   height,
   uniqueId,
-}: { 
-  isOpen: boolean; 
-  width: number; 
+}: {
+  isOpen: boolean;
+  width: number;
   height: number;
   uniqueId: string;
 }) {
   const controls = useAnimation();
-  const borderRadius = 8;
+  const borderRadius = 10;
   const strokeWidth = 2;
-  const padding = strokeWidth;
-  const prevIsOpenRef = React.useRef(isOpen);
-  
+  // Keep the glow safely inside the element so it won't get clipped in dialogs/popovers.
+  const inset = 3;
+  const prevIsOpenRef = React.useRef(false);
+
   React.useEffect(() => {
     const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isOpen;
 
     if (isOpen && !wasOpen) {
       // Opening: animate pathLength from 0 to 1
@@ -44,7 +44,7 @@ function SnakeBorder({
         },
       });
     } else if (!isOpen && wasOpen) {
-      // Closing: reverse animation - pathLength from 1 to 0 with same duration
+      // Closing: reverse animation
       controls.start({
         pathLength: 0,
         opacity: [1, 1, 0],
@@ -54,22 +54,23 @@ function SnakeBorder({
         },
       });
     }
+
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, controls]);
 
-  if (width === 0 || height === 0) return null;
+  if (width === 0 || height === 0 || width <= inset * 2 || height <= inset * 2) return null;
 
-  const svgWidth = width + padding * 2;
-  const svgHeight = height + padding * 2;
+  const svgWidth = width;
+  const svgHeight = height;
 
   // Create a path that starts from top center and goes clockwise
   const createRoundedRectPath = () => {
-    const x = padding;
-    const y = padding;
-    const w = width;
-    const h = height;
-    const r = borderRadius;
-    
-    // Start from top center, go right (clockwise)
+    const x = inset;
+    const y = inset;
+    const w = width - inset * 2;
+    const h = height - inset * 2;
+    const r = Math.min(borderRadius, w / 2, h / 2);
+
     return `
       M ${x + w / 2} ${y}
       L ${x + w - r} ${y}
@@ -94,12 +95,8 @@ function SnakeBorder({
       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="absolute pointer-events-none"
-      style={{ 
-        top: -padding, 
-        left: -padding,
-        overflow: 'visible',
-      }}
+      className="absolute pointer-events-none inset-0"
+      style={{ overflow: 'visible' }}
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -183,14 +180,16 @@ const SelectTrigger = React.forwardRef<
   React.useEffect(() => {
     const updateDimensions = () => {
       if (triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setDimensions({ width: rect.width, height: rect.height });
+        // Use layout sizes (not getBoundingClientRect) so dialog scale animations don't shrink the border.
+        const width = triggerRef.current.offsetWidth;
+        const height = triggerRef.current.offsetHeight;
+        setDimensions({ width, height });
       }
     };
 
     // Initial measurement after a short delay to ensure layout is stable
     const timeout = setTimeout(updateDimensions, 10);
-    
+
     const observer = new ResizeObserver(updateDimensions);
     if (triggerRef.current) {
       observer.observe(triggerRef.current);
@@ -293,11 +292,14 @@ const SelectContentInner = React.forwardRef<
   React.useEffect(() => {
     const updateDimensions = () => {
       if (contentRef.current) {
-        const rect = contentRef.current.getBoundingClientRect();
+        // Use layout sizes so parent scale animations don't make the border too small.
+        const width = contentRef.current.offsetWidth;
+        const height = contentRef.current.offsetHeight;
+
         // Only update if dimensions actually changed to avoid infinite loops
-        setDimensions(prev => {
-          if (prev.width !== rect.width || prev.height !== rect.height) {
-            return { width: rect.width, height: rect.height };
+        setDimensions((prev) => {
+          if (prev.width !== width || prev.height !== height) {
+            return { width, height };
           }
           return prev;
         });
