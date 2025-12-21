@@ -324,6 +324,7 @@ export type Database = {
           file_name: string
           file_path: string
           file_size: number | null
+          fogalom: string | null
           id: string
           telephely_id: string | null
           uploaded_by: string
@@ -334,6 +335,7 @@ export type Database = {
           file_name: string
           file_path: string
           file_size?: number | null
+          fogalom?: string | null
           id?: string
           telephely_id?: string | null
           uploaded_by: string
@@ -344,6 +346,7 @@ export type Database = {
           file_name?: string
           file_path?: string
           file_size?: number | null
+          fogalom?: string | null
           id?: string
           telephely_id?: string | null
           uploaded_by?: string
