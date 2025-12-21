@@ -70,6 +70,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [editingFile, setEditingFile] = useState<UploadedPdf | null>(null);
   const [editFogalom, setEditFogalom] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reprocessWarningOpen, setReprocessWarningOpen] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   
   // PDF Preview dialog state
@@ -308,19 +309,41 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setEditFogalom('');
   };
 
-  const handleEditSave = async () => {
+  const handleEditSaveClick = () => {
+    if (!editingFile) return;
+    
+    // If the file is already processed and fogalom changed, show warning
+    const fogalomChanged = (editFogalom.trim() || null) !== (editingFile.fogalom || null);
+    if (editingFile.webhook_status === 'feldolgozva' && fogalomChanged) {
+      setReprocessWarningOpen(true);
+    } else {
+      handleEditSave(false);
+    }
+  };
+
+  const handleEditSave = async (reprocess: boolean) => {
     if (!editingFile) return;
     
     setSaving(true);
+    setReprocessWarningOpen(false);
+    
     try {
+      const newFogalom = editFogalom.trim() || null;
       const { error } = await supabase
         .from('feltoltott_pdf')
-        .update({ fogalom: editFogalom.trim() || null })
+        .update({ fogalom: newFogalom })
         .eq('id', editingFile.id);
 
       if (error) throw error;
 
       toast.success('Fogalom sikeresen mentve');
+      
+      // If reprocessing is needed, trigger webhook
+      if (reprocess) {
+        await sendWebhook(editingFile.id, editingFile.file_name, newFogalom);
+        toast.info('A PDF újrafeldolgozása elindult');
+      }
+      
       setEditDialogOpen(false);
       setEditingFile(null);
       setEditFogalom('');
@@ -717,7 +740,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help hover:text-primary transition-colors" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[300px] text-sm">
+                    <TooltipContent side="bottom" sideOffset={8} collisionPadding={16} className="max-w-[300px] text-sm z-[100]">
                       Az ide beírt szó fogja aktiválni a PDF-ből kiolvasott fogalmat. Pl: Feltöltésre kerül egy "Foghúzás és implantálás ideiglenessel.pdf", ellenben a megszokott rendelői "nyelvjárás"-ban ez máshogy van használva, akkor a lenti dobozba beírt fogalom fogja ezt jelenteni.
                     </TooltipContent>
                   </Tooltip>
@@ -782,7 +805,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help hover:text-primary transition-colors" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[300px] text-sm">
+                    <TooltipContent side="bottom" sideOffset={8} collisionPadding={16} className="max-w-[300px] text-sm z-[100]">
                       Az ide beírt szó fogja aktiválni a PDF-ből kiolvasott fogalmat. Pl: Feltöltésre kerül egy "Foghúzás és implantálás ideiglenessel.pdf", ellenben a megszokott rendelői "nyelvjárás"-ban ez máshogy van használva, akkor a lenti dobozba beírt fogalom fogja ezt jelenteni.
                     </TooltipContent>
                   </Tooltip>
@@ -801,9 +824,38 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
             <Button variant="outline" onClick={handleEditCancel} disabled={saving}>
               Mégse
             </Button>
-            <GalaxyButton onClick={handleEditSave} disabled={saving}>
+            <GalaxyButton onClick={handleEditSaveClick} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Mentés
+            </GalaxyButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Re-process Warning Dialog */}
+      <Dialog open={reprocessWarningOpen} onOpenChange={setReprocessWarningOpen}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-500">
+              <AlertCircle className="h-5 w-5" />
+              Újrafeldolgozás szükséges
+            </DialogTitle>
+            <DialogDescription>
+              Ez a PDF már fel lett dolgozva. Ha módosítja a fogalmat, a dokumentumot újra kell feldolgozni.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Biztosan menti a módosítást és elindítja az újrafeldolgozást?
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setReprocessWarningOpen(false)} disabled={saving}>
+              Mégse
+            </Button>
+            <GalaxyButton onClick={() => handleEditSave(true)} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Mentés és újrafeldolgozás
             </GalaxyButton>
           </DialogFooter>
         </DialogContent>
