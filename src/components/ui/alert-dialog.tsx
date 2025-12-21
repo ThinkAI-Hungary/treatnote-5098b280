@@ -34,10 +34,13 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border-0 bg-card p-6 shadow-2xl sm:rounded-lg overflow-visible dialog-neon-border",
+        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg gap-4 border-0 bg-card p-6 shadow-2xl sm:rounded-lg overflow-visible dialog-neon-border",
         className,
       )}
-      style={{ animation: 'dialogFadeIn 0.3s ease-out' }}
+      style={{ 
+        transform: 'translate(-50%, -50%)',
+        animation: 'dialogFadeIn 0.3s ease-out forwards'
+      }}
       {...props}
     />
   </AlertDialogPortal>

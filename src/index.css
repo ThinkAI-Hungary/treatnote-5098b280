@@ -982,58 +982,53 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   position: relative;
 }
 
-/* Dialog neon border animation - sides only */
+/* Dialog neon border animation - all sides */
 .dialog-neon-border {
   position: relative;
 }
 
-.dialog-neon-border::before,
+.dialog-neon-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius) + 2px);
+  background: linear-gradient(
+    90deg,
+    hsl(300 70% 60%) 0%,
+    hsl(195 85% 55%) 25%,
+    hsl(270 70% 55%) 50%,
+    hsl(195 85% 55%) 75%,
+    hsl(300 70% 60%) 100%
+  );
+  background-size: 300% 100%;
+  animation: dialogNeonFlow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.8;
+}
+
 .dialog-neon-border::after {
   content: '';
   position: absolute;
-  top: 10%;
-  bottom: 10%;
-  width: 2px;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    hsl(300 70% 60%) 20%,
-    hsl(195 85% 55%) 50%,
-    hsl(300 70% 60%) 80%,
-    transparent 100%
-  );
-  background-size: 100% 200%;
-  animation: dialogSideGlow 2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 10;
-  border-radius: 2px;
-  box-shadow: 0 0 10px hsl(270 70% 55% / 0.5), 0 0 20px hsl(195 85% 55% / 0.3);
+  inset: 0;
+  border-radius: var(--radius);
+  background: hsl(var(--card));
+  z-index: -1;
 }
 
-.dialog-neon-border::before {
-  left: -1px;
-}
-
-.dialog-neon-border::after {
-  right: -1px;
-  animation-delay: -1s;
-}
-
-@keyframes dialogSideGlow {
-  0%, 100% {
-    background-position: 0% 0%;
-    opacity: 0.7;
+@keyframes dialogNeonFlow {
+  0% {
+    background-position: 0% 50%;
   }
-  50% {
-    background-position: 0% 100%;
-    opacity: 1;
+  100% {
+    background-position: 300% 50%;
   }
 }
 
 @keyframes dialogFadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.95);
+    transform: translate(-50%, -48%) scale(0.96);
   }
   to {
     opacity: 1;
