@@ -63,6 +63,12 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [editFogalom, setEditFogalom] = useState('');
   const [saving, setSaving] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  
+  // PDF Preview dialog state
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState<UploadedPdf | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -389,6 +395,33 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const openPdfPreview = async (file: UploadedPdf) => {
+    setPreviewFile(file);
+    setPreviewDialogOpen(true);
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('client-files')
+        .createSignedUrl(file.file_path, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      setPreviewUrl(data.signedUrl);
+    } catch (err) {
+      console.error('Error getting PDF URL:', err);
+      toast.error('Hiba a PDF betöltésekor');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const closePdfPreview = () => {
+    setPreviewDialogOpen(false);
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Upload Area */}
@@ -515,9 +548,14 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           >
             {files.map((file, index) => (
               <AnimatedTableRow key={file.id} index={index}>
-                <TableCell className="font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary/60" />
-                  {file.file_name}
+                <TableCell className="font-medium">
+                  <button
+                    onClick={() => openPdfPreview(file)}
+                    className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer text-left"
+                  >
+                    <FileText className="h-4 w-4 text-primary/60 shrink-0" />
+                    <span className="hover:underline">{file.file_name}</span>
+                  </button>
                 </TableCell>
                 <TableCell className="text-muted-foreground max-w-[200px] truncate">
                   {file.fogalom || <span className="italic text-muted-foreground/50">—</span>}
@@ -725,6 +763,41 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
               Mentés
             </GalaxyButton>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={previewDialogOpen} onOpenChange={(open) => !open && closePdfPreview()}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              {previewFile?.file_name}
+            </DialogTitle>
+            {previewFile?.fogalom && (
+              <DialogDescription>
+                Fogalom: {previewFile.fogalom}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-primary/20 bg-muted/30">
+            {previewLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : previewUrl ? (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full"
+                title={previewFile?.file_name}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+                <AlertCircle className="h-8 w-8" />
+                <span>Nem sikerült betölteni a PDF-et</span>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
