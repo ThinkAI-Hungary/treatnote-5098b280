@@ -232,6 +232,24 @@ serve(async (req) => {
         const responseText = await response.text();
         console.log(`Response status: ${response.status}, body: ${responseText}`);
 
+        // n8n Test Webhook URLs return this when the workflow isn't in "listening" mode.
+        // Retrying won't help; return a clear, actionable error.
+        if (response.status === 404 && responseText.includes('not registered')) {
+          console.error('n8n webhook not registered/active:', responseText);
+          const errorResponse: ErrorResponse = {
+            ok: false,
+            status: 'error',
+            code: 'N8N_WEBHOOK_NOT_REGISTERED',
+            message:
+              'n8n webhook is not registered/active. If you are using the Test URL, click “Execute workflow” in n8n or switch to the Production URL.',
+            event_id: eventId,
+          };
+          return new Response(JSON.stringify(errorResponse), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
         if (response.ok) {
           // Parse response to check for errors in body
           let responseData: Record<string, unknown> = {};
