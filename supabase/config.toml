@@ -51,3 +51,5 @@ verify_jwt = false
 
 [functions.invitation-handler]
 verify_jwt = false
+
+[functions.szabalyok-webhook]
