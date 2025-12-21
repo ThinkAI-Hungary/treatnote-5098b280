@@ -275,6 +275,7 @@ const SelectContentInner = React.forwardRef<
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
   const contentRef = React.useRef<HTMLDivElement>(null);
   const uniqueId = React.useId();
+  const rafRef = React.useRef<number | null>(null);
 
   // Combine refs
   const combinedRef = React.useCallback(
@@ -293,20 +294,41 @@ const SelectContentInner = React.forwardRef<
     const updateDimensions = () => {
       if (contentRef.current) {
         const rect = contentRef.current.getBoundingClientRect();
-        setDimensions({ width: rect.width, height: rect.height });
+        // Only update if dimensions actually changed to avoid infinite loops
+        setDimensions(prev => {
+          if (prev.width !== rect.width || prev.height !== rect.height) {
+            return { width: rect.width, height: rect.height };
+          }
+          return prev;
+        });
       }
     };
 
-    // Measure after content renders
-    const timeout = setTimeout(updateDimensions, 50);
-    
-    const observer = new ResizeObserver(updateDimensions);
+    // Use multiple measurement attempts to catch layout changes
+    const measureMultiple = () => {
+      updateDimensions();
+      // Measure again after a short delay to catch any layout shifts
+      rafRef.current = requestAnimationFrame(() => {
+        updateDimensions();
+        // One more measurement after animation settles
+        setTimeout(updateDimensions, 100);
+      });
+    };
+
+    measureMultiple();
+
+    const observer = new ResizeObserver(() => {
+      // Debounce resize observer updates
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updateDimensions);
+    });
+
     if (contentRef.current) {
       observer.observe(contentRef.current);
     }
 
     return () => {
-      clearTimeout(timeout);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       observer.disconnect();
     };
   }, []);
