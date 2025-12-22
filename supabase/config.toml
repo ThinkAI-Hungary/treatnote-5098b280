@@ -53,3 +53,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.szabalyok-webhook]
+
+[functions.extraction-callback]
+verify_jwt = false

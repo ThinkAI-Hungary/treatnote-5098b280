@@ -321,6 +321,7 @@ export type Database = {
         Row: {
           company_id: string | null
           created_at: string
+          file_hash_sha256: string | null
           file_name: string
           file_path: string
           file_size: number | null
@@ -333,6 +334,7 @@ export type Database = {
         Insert: {
           company_id?: string | null
           created_at?: string
+          file_hash_sha256?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
@@ -345,6 +347,7 @@ export type Database = {
         Update: {
           company_id?: string | null
           created_at?: string
+          file_hash_sha256?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
@@ -639,6 +642,56 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_extractions: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          error_message: string | null
+          event_id: string
+          finished_at: string | null
+          id: string
+          items_count: number | null
+          raw_json: Json | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          error_message?: string | null
+          event_id: string
+          finished_at?: string | null
+          id?: string
+          items_count?: number | null
+          raw_json?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          error_message?: string | null
+          event_id?: string
+          finished_at?: string | null
+          id?: string
+          items_count?: number | null
+          raw_json?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_extractions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "feltoltott_pdf"
             referencedColumns: ["id"]
           },
         ]
