@@ -113,6 +113,23 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   const [pageWidth, setPageWidth] = useState(900);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Extraction details dialog state
+  interface ExtractionItem {
+    qty: number;
+    unit: string;
+    name: string;
+  }
+  interface ExtractionVisit {
+    visit_no: number;
+    duration_days?: number;
+    healing_time_months?: number;
+    items: ExtractionItem[];
+  }
+  const [extractionDialogOpen, setExtractionDialogOpen] = useState(false);
+  const [extractionVisits, setExtractionVisits] = useState<ExtractionVisit[]>([]);
+  const [extractionLoading, setExtractionLoading] = useState(false);
+  const [extractionFogalom, setExtractionFogalom] = useState<string | null>(null);
+
   const loadFiles = useCallback(async () => {
     if (!companyId || !telephelyId) return;
     
@@ -468,6 +485,40 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
     setDeleteConfirmOpen(true);
   };
 
+  // Open extraction details dialog for processed PDFs
+  const openExtractionDetails = async (file: UploadedPdf) => {
+    if (file.webhook_status !== 'feldolgozva') return;
+    
+    setExtractionFogalom(file.fogalom);
+    setExtractionLoading(true);
+    setExtractionDialogOpen(true);
+    setExtractionVisits([]);
+
+    try {
+      const { data, error } = await supabase
+        .from('pdf_extractions')
+        .select('raw_json')
+        .eq('document_id', file.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.raw_json) {
+        // Navigate to parsed.visits in the raw_json structure
+        const rawJson = data.raw_json as any;
+        const visits = rawJson?.[0]?.parsed?.visits || rawJson?.parsed?.visits || [];
+        setExtractionVisits(visits);
+      }
+    } catch (err) {
+      console.error('Error loading extraction details:', err);
+      toast.error('Hiba az extrakció betöltésekor');
+    } finally {
+      setExtractionLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!pendingDelete) return;
     
@@ -729,8 +780,20 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                     <span className="hover:underline">{file.file_name}</span>
                   </button>
                 </TableCell>
-                <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                  {file.fogalom || <span className="italic text-muted-foreground/50">—</span>}
+                <TableCell className="max-w-[200px]">
+                  {file.webhook_status === 'feldolgozva' && file.fogalom ? (
+                    <button
+                      onClick={() => openExtractionDetails(file)}
+                      className="text-muted-foreground hover:text-primary hover:underline transition-colors cursor-pointer text-left truncate block w-full"
+                      title="Kattints a részletek megtekintéséhez"
+                    >
+                      {file.fogalom}
+                    </button>
+                  ) : (
+                    <span className={cn("truncate block", file.fogalom ? "text-muted-foreground" : "italic text-muted-foreground/50")}>
+                      {file.fogalom || "—"}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>{formatFileSize(file.file_size)}</TableCell>
                 <TableCell className="text-muted-foreground">
@@ -1037,6 +1100,70 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Extraction Details Dialog */}
+      <Dialog open={extractionDialogOpen} onOpenChange={setExtractionDialogOpen}>
+        <DialogContent className="border-primary/20 bg-card/95 backdrop-blur-xl max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              Feldolgozott adatok
+            </DialogTitle>
+            {extractionFogalom && (
+              <DialogDescription>
+                Fogalom: {extractionFogalom}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-auto">
+            {extractionLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : extractionVisits.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                <AlertCircle className="h-8 w-8" />
+                <span>Nincs elérhető adat</span>
+              </div>
+            ) : (
+              <div className="space-y-6 py-4">
+                {extractionVisits.map((visit) => (
+                  <div key={visit.visit_no} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-semibold">
+                        {visit.visit_no}. Vizit
+                      </Badge>
+                      {visit.healing_time_months !== undefined && visit.healing_time_months > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          (gyógyulási idő: {visit.healing_time_months} hónap)
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1 pl-4 border-l-2 border-primary/20">
+                      {visit.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-baseline gap-2 text-sm py-1.5 hover:bg-muted/30 rounded px-2 -ml-2 transition-colors"
+                        >
+                          <span className="font-medium text-primary min-w-[3rem] text-right">
+                            {item.qty} {item.unit}
+                          </span>
+                          <span className="text-foreground">{item.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExtractionDialogOpen(false)}>
+              Bezárás
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
