@@ -312,13 +312,10 @@ export function FileManager() {
       // If deleting a file from a Szabalyok folder, ensure the folder persists
       if (!isFolder && path.includes('/Szabalyok/')) {
         const folderPath = path.substring(0, path.lastIndexOf('/'));
-        const placeholderPath = `${folderPath}/.folder_placeholder`;
-        
+        // Use create-folder operation instead of upload for placeholder
         await invokeWithRetry('admin-file-manager', { 
-          operation: 'upload', 
-          path: placeholderPath,
-          content: btoa(''),
-          upsert: true
+          operation: 'create-folder', 
+          path: folderPath
         });
       }
       
