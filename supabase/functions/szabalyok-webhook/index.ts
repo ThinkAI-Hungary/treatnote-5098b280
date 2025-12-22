@@ -61,6 +61,7 @@ interface WebhookPayloadV1_1 {
   timestamp: string;
   epoch_millis: number;
   storage_path: string;
+  uploaded_by: string | null;
   checksum_sha256?: string;
 }
 
@@ -123,6 +124,7 @@ serve(async (req) => {
       epoch_millis,
       storage_path,
       checksum_sha256,
+      uploaded_by,
     } = body;
 
     // Validate required fields
@@ -195,6 +197,7 @@ serve(async (req) => {
       timestamp: new Date().toISOString(),
       epoch_millis,
       storage_path,
+      uploaded_by: uploaded_by || null,
     };
 
     // Add optional checksum
