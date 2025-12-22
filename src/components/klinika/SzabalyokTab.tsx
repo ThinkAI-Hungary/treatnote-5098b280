@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, MouseEvent } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +78,7 @@ interface SzabalyokTabProps {
 }
 
 export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyName }: SzabalyokTabProps) {
+  const { user } = useAuth();
   const [files, setFiles] = useState<UploadedPdf[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -186,6 +188,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
           telephely_name: telephelyName,
           epoch_millis: epochMillis,
           storage_path: storagePath,
+          uploaded_by: user?.id || null,
         },
       });
 
