@@ -446,24 +446,37 @@ serve(async (req) => {
 });
 
 // Helper: Recursively list all files under a path
+// NOTE: Do NOT use trailing slash - Supabase list() returns empty with trailing slash
 async function listRecursive(
   supabase: any, 
   basePath: string,
   results: Array<{ path: string; name: string; size?: number }> = []
 ): Promise<Array<{ path: string; name: string; size?: number }>> {
-  const normalizedPath = basePath.endsWith("/") ? basePath : `${basePath}/`;
+  // Use the path as-is without trailing slash (same as buildTree)
+  const listPath = basePath || "";
+  
+  console.log(`listRecursive: Listing path "${listPath}"`);
   
   const { data: items, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .list(normalizedPath, { limit: 1000 });
+    .list(listPath, { limit: 1000 });
 
-  if (error || !items) {
-    console.error(`Error listing ${normalizedPath}:`, error);
+  if (error) {
+    console.error(`listRecursive: Error listing "${listPath}":`, error);
+    return results;
+  }
+  
+  if (!items || items.length === 0) {
+    console.log(`listRecursive: No items found at "${listPath}"`);
     return results;
   }
 
+  console.log(`listRecursive: Found ${items.length} items at "${listPath}"`);
+
   for (const item of items) {
-    const itemPath = `${normalizedPath}${item.name}`;
+    if (item.name === ".folder_placeholder") continue;
+    
+    const itemPath = basePath ? `${basePath}/${item.name}` : item.name;
     
     if (item.id === null) {
       // It's a folder, recurse

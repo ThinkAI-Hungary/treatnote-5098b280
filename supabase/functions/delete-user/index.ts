@@ -101,12 +101,13 @@ serve(async (req) => {
 
         if (companyResult.data?.name && telephelyResult.data?.name) {
           // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+          // KEEP SPACES (don't convert to underscores) - must match admin-file-manager sanitization
           const charMap: Record<string, string> = {
             'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
             'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
             'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
           };
-          const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+          const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, ' ').trim();
 
           // Get user's auth email for folder name
           const { data: { users: authUsersList } } = await supabaseAdmin.auth.admin.listUsers();
