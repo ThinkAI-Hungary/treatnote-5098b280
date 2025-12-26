@@ -334,20 +334,33 @@ serve(async (req) => {
 
         console.log(`Deleting folder: ${path}`);
 
-        // First, list all files recursively
-        const allFiles = await listRecursive(supabaseAdmin, path);
+        // First, list all files recursively (including .folder_placeholder files)
+        const allFiles: Array<{ path: string; name: string; size?: number }> = [];
+        await listRecursiveIncludingPlaceholders(supabaseAdmin, path, allFiles);
         
         if (allFiles.length === 0) {
+          // Even if no files, check if there are any direct items (empty virtual folders)
+          // Create and then delete a placeholder to "touch" the folder
+          const placeholderPath = `${path}/.folder_placeholder`;
+          await supabaseAdmin.storage
+            .from(BUCKET_NAME)
+            .upload(placeholderPath, new Blob(['']), { upsert: true });
+          await supabaseAdmin.storage
+            .from(BUCKET_NAME)
+            .remove([placeholderPath]);
+          
           result = {
             success: true,
-            message: `Folder empty or not found: ${path}`,
+            message: `Folder cleaned up: ${path}`,
             deleted: 0
           };
           break;
         }
 
-        // Delete all files
+        // Delete all files (including placeholders)
         const filePaths = allFiles.map(f => f.path);
+        console.log(`Deleting ${filePaths.length} files:`, filePaths);
+        
         const { error: deleteError } = await supabaseAdmin.storage
           .from(BUCKET_NAME)
           .remove(filePaths);
@@ -492,6 +505,39 @@ async function listRecursive(
   }
 
   return results;
+}
+
+// Helper: Recursively list all files including .folder_placeholder files (for deletion)
+async function listRecursiveIncludingPlaceholders(
+  supabase: any, 
+  basePath: string,
+  results: Array<{ path: string; name: string; size?: number }>
+): Promise<void> {
+  const listPath = basePath || "";
+  
+  const { data: items, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(listPath, { limit: 1000 });
+
+  if (error || !items || items.length === 0) {
+    return;
+  }
+
+  for (const item of items) {
+    const itemPath = basePath ? `${basePath}/${item.name}` : item.name;
+    
+    if (item.id === null) {
+      // It's a folder, recurse
+      await listRecursiveIncludingPlaceholders(supabase, itemPath, results);
+    } else {
+      // It's a file (including .folder_placeholder)
+      results.push({
+        path: itemPath,
+        name: item.name,
+        size: item.metadata?.size
+      });
+    }
+  }
 }
 
 // Helper: Build a tree structure - returns array of children for given path
