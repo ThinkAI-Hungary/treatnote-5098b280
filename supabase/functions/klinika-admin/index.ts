@@ -701,20 +701,20 @@ serve(async (req) => {
             .single();
 
           if (telephelyData && companyName) {
-            // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+            // Sanitize path by converting Hungarian/special characters to ASCII equivalents and keeping spaces
             const charMap: Record<string, string> = {
               'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
               'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
               'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
             };
-            const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+            const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, ' ').trim();
             
             const sanitizedCompany = sanitize(companyName);
             const sanitizedTelephely = sanitize(telephelyData.name);
             const userName = fullName || email.split("@")[0];
             const sanitizedUser = sanitize(userName);
             
-            const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
+            const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Users/${sanitizedUser}`;
             
             // Create folder by uploading a placeholder file
             const { error: storageError } = await supabaseAdmin.storage
@@ -811,20 +811,20 @@ serve(async (req) => {
             ]);
 
             if (companyResult.data?.name && telephelyResult.data?.name) {
-              // Sanitize path by converting Hungarian/special characters to ASCII equivalents
+              // Sanitize path by converting Hungarian/special characters to ASCII equivalents and keeping spaces
               const charMap: Record<string, string> = {
                 'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
                 'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
                 'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
               };
-              const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, '_');
+              const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, ' ').trim();
 
               const userName = targetProfile.full_name || email.split('@')[0];
               const sanitizedCompany = sanitize(companyResult.data.name);
               const sanitizedTelephely = sanitize(telephelyResult.data.name);
               const sanitizedUser = sanitize(userName);
               
-              const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
+              const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Users/${sanitizedUser}`;
               
               console.log(`Deleting user folder: ${folderPath}`);
               
