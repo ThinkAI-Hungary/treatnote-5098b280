@@ -97,6 +97,39 @@ serve(async (req) => {
       }
     }
 
+    // Fetch all processed szabályok for this company/telephely
+    let szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}> = [];
+
+    if (companyId && telephelyId) {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const { data: szabalyok, error: szabalyokError } = await supabaseAdmin
+        .from('feltoltott_pdf')
+        .select(`
+          id,
+          file_name,
+          fogalom,
+          pdf_extractions (
+            raw_json,
+            status
+          )
+        `)
+        .eq('company_id', companyId)
+        .eq('telephely_id', telephelyId)
+        .eq('webhook_status', 'feldolgozva');
+
+      if (szabalyokError) {
+        console.error("Error fetching szabályok:", szabalyokError);
+      } else if (szabalyok) {
+        szabalyokData = szabalyok.map((pdf: any) => ({
+          fogalom: pdf.fogalom,
+          file_name: pdf.file_name,
+          raw_json: pdf.pdf_extractions?.[0]?.raw_json || null
+        }));
+        console.log(`Found ${szabalyokData.length} szabályok for company/telephely`);
+      }
+    }
+
     // Use provided filename or fall back to audio.name
     const finalFilename = filename || audio.name;
     console.log(`Processing voice recording - Mode: ${mode}, Timestamp: ${timestamp}, Filename: ${finalFilename}, User: ${userId}, Company: ${companyId}, Telephely: ${telephelyId}, FlexiUser: ${flexiUsername}`);
@@ -136,8 +169,9 @@ serve(async (req) => {
       webhookFormData.append("telephely_id", telephelyId || "");
       webhookFormData.append("flexi_username", flexiUsername);
       webhookFormData.append("flexi_pw", decryptedFlexiPw);
+      webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
 
-      console.log(`Sending audio to webhook: ${url}`);
+      console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok`);
       
       const response = await fetch(url, {
         method: "POST",
