@@ -192,17 +192,22 @@ export function FileManager() {
     setDeleteConfirmOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (options?: { forceDelete?: boolean }) => {
     if (!pendingDelete) return;
     
     const { path, isFolder } = pendingDelete;
+    const forceDelete = options?.forceDelete || false;
     setDeleteConfirmOpen(false);
     setPendingDelete(null);
     setDeleteAnchorPosition(null);
 
     try {
       const operation = isFolder ? 'delete-folder' : 'delete';
-      const { error } = await invokeWithRetry('admin-file-manager', { operation, path });
+      const { error } = await invokeWithRetry('admin-file-manager', { 
+        operation, 
+        path,
+        forceDelete 
+      });
 
       if (error) throw error;
 
@@ -551,6 +556,7 @@ export function FileManager() {
         }
         onConfirm={confirmDelete}
         anchorPosition={deleteAnchorPosition}
+        showForceDelete={pendingDelete?.isFolder}
       />
     </div>
   );

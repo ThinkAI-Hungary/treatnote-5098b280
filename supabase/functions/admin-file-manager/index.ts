@@ -85,7 +85,7 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { operation, path: rawPath, content, newPath: rawNewPath, recursive } = body;
+    const { operation, path: rawPath, content, newPath: rawNewPath, recursive, forceDelete } = body;
     
     // Sanitize paths to handle Hungarian special characters
     const path = rawPath ? sanitizePath(rawPath) : rawPath;
@@ -332,27 +332,33 @@ serve(async (req) => {
           );
         }
 
-        console.log(`Deleting folder: ${path}`);
+        console.log(`Deleting folder: ${path}, forceDelete: ${forceDelete}`);
 
         // First, list all files recursively (including .folder_placeholder files)
         const allFiles: Array<{ path: string; name: string; size?: number }> = [];
         await listRecursiveIncludingPlaceholders(supabaseAdmin, path, allFiles);
         
         if (allFiles.length === 0) {
-          // Even if no files, check if there are any direct items (empty virtual folders)
-          // Create and then delete a placeholder to "touch" the folder
-          const placeholderPath = `${path}/.folder_placeholder`;
-          await supabaseAdmin.storage
-            .from(BUCKET_NAME)
-            .upload(placeholderPath, new Blob(['']), { upsert: true });
-          await supabaseAdmin.storage
-            .from(BUCKET_NAME)
-            .remove([placeholderPath]);
+          if (forceDelete) {
+            // Force delete: recursively find and clean up all virtual subfolders
+            console.log(`Force delete enabled - cleaning up virtual folders under: ${path}`);
+            await forceCleanupVirtualFolders(supabaseAdmin, path);
+          } else {
+            // Standard behavior: create and delete a placeholder
+            const placeholderPath = `${path}/.folder_placeholder`;
+            await supabaseAdmin.storage
+              .from(BUCKET_NAME)
+              .upload(placeholderPath, new Blob(['']), { upsert: true });
+            await supabaseAdmin.storage
+              .from(BUCKET_NAME)
+              .remove([placeholderPath]);
+          }
           
           result = {
             success: true,
             message: `Folder cleaned up: ${path}`,
-            deleted: 0
+            deleted: 0,
+            forceDelete
           };
           break;
         }
@@ -538,6 +544,45 @@ async function listRecursiveIncludingPlaceholders(
       });
     }
   }
+}
+
+// Helper: Force cleanup virtual folders by creating/removing placeholders recursively
+async function forceCleanupVirtualFolders(supabase: any, basePath: string): Promise<void> {
+  const { data: items } = await supabase.storage
+    .from(BUCKET_NAME)
+    .list(basePath, { limit: 1000 });
+
+  if (!items || items.length === 0) {
+    // This is an empty virtual folder - create and remove a placeholder
+    const placeholderPath = `${basePath}/.folder_placeholder`;
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(placeholderPath, new Blob(['']), { upsert: true });
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([placeholderPath]);
+    console.log(`Cleaned up virtual folder: ${basePath}`);
+    return;
+  }
+
+  // Process subfolders
+  for (const item of items) {
+    if (item.id === null) {
+      // It's a folder, recurse
+      const subPath = `${basePath}/${item.name}`;
+      await forceCleanupVirtualFolders(supabase, subPath);
+    }
+  }
+
+  // After cleaning subfolders, create and remove placeholder for this folder too
+  const placeholderPath = `${basePath}/.folder_placeholder`;
+  await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(placeholderPath, new Blob(['']), { upsert: true });
+  await supabase.storage
+    .from(BUCKET_NAME)
+    .remove([placeholderPath]);
+  console.log(`Cleaned up folder: ${basePath}`);
 }
 
 // Helper: Build a tree structure - returns array of children for given path

@@ -9,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Trash2, AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
@@ -18,10 +20,12 @@ interface ConfirmDialogProps {
   description?: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => void;
+  onConfirm: (options?: { forceDelete?: boolean }) => void;
   variant?: 'danger' | 'warning';
   /** Position the dialog near the trigger element */
   anchorPosition?: { x: number; y: number } | null;
+  /** Show force delete checkbox (for folder deletion) */
+  showForceDelete?: boolean;
 }
 
 export function ConfirmDialog({
@@ -34,9 +38,18 @@ export function ConfirmDialog({
   onConfirm,
   variant = 'danger',
   anchorPosition,
+  showForceDelete = false,
 }: ConfirmDialogProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top?: string; left?: string }>({});
+  const [forceDelete, setForceDelete] = useState(false);
+
+  // Reset force delete when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setForceDelete(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open && anchorPosition && contentRef.current) {
@@ -44,7 +57,7 @@ export function ConfirmDialog({
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       const dialogWidth = 320;
-      const dialogHeight = 180;
+      const dialogHeight = showForceDelete ? 220 : 180;
 
       let left = Math.min(x, viewportWidth - dialogWidth - 20);
       let top = Math.min(y, viewportHeight - dialogHeight - 20);
@@ -59,7 +72,11 @@ export function ConfirmDialog({
     } else {
       setPosition({});
     }
-  }, [open, anchorPosition]);
+  }, [open, anchorPosition, showForceDelete]);
+
+  const handleConfirm = () => {
+    onConfirm({ forceDelete });
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -113,6 +130,22 @@ export function ConfirmDialog({
             </div>
           </div>
         </AlertDialogHeader>
+
+        {showForceDelete && (
+          <div className="relative z-10 mt-3 flex items-center space-x-2">
+            <Checkbox 
+              id="force-delete" 
+              checked={forceDelete} 
+              onCheckedChange={(checked) => setForceDelete(checked === true)}
+            />
+            <Label 
+              htmlFor="force-delete" 
+              className="text-sm text-muted-foreground cursor-pointer"
+            >
+              Kényszerített törlés (üres mappákhoz)
+            </Label>
+          </div>
+        )}
         
         <AlertDialogFooter className="relative z-10 mt-4 gap-2">
           <AlertDialogCancel 
@@ -121,7 +154,7 @@ export function ConfirmDialog({
             {cancelText}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={handleConfirm}
             className="flex-1 h-8 text-sm border-0 text-white transition-colors"
             style={{
               background: variant === 'danger'
