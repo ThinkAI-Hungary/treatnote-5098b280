@@ -438,12 +438,28 @@ serve(async (req) => {
         break;
       }
 
+      case "normalize-companies-tree": {
+        // Normalize all folder names under TreatNote/Companies to canonical format
+        // Converts underscores to spaces and normalizes Hungarian characters
+        const basePath = path || "TreatNote/Companies";
+        console.log(`Normalizing folder structure under: ${basePath}`);
+        
+        const report = await normalizeCompaniesTree(supabaseAdmin, basePath);
+        
+        result = {
+          success: true,
+          message: `Normalization complete`,
+          ...report
+        };
+        break;
+      }
+
       default:
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: `Unknown operation: ${operation}`,
-            supported: ["list", "list-recursive", "create-folder", "upload", "download", "delete", "delete-folder", "move", "get-tree"]
+            supported: ["list", "list-recursive", "create-folder", "upload", "download", "delete", "delete-folder", "move", "get-tree", "normalize-companies-tree"]
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -636,4 +652,105 @@ async function buildTree(supabase: any, basePath: string): Promise<any[]> {
   }
 
   return children;
+}
+
+// Helper: Normalize path segment - convert underscores to spaces and normalize Hungarian chars
+function normalizePathSegment(segment: string): string {
+  // First convert underscores to spaces
+  let normalized = segment.replace(/_/g, ' ');
+  // Then normalize Hungarian characters
+  normalized = normalizeHungarian(normalized);
+  // Collapse multiple spaces and trim
+  return normalized.replace(/\s+/g, ' ').trim();
+}
+
+// Helper: Normalize entire path
+function normalizeFullPath(filePath: string): string {
+  return filePath.split('/').map(normalizePathSegment).join('/');
+}
+
+// Helper: Normalize folder structure under TreatNote/Companies
+async function normalizeCompaniesTree(
+  supabase: any, 
+  basePath: string
+): Promise<{
+  moved: number;
+  skipped: number;
+  errors: string[];
+  conflicts: string[];
+  movedFiles: Array<{ from: string; to: string }>;
+}> {
+  const report = {
+    moved: 0,
+    skipped: 0,
+    errors: [] as string[],
+    conflicts: [] as string[],
+    movedFiles: [] as Array<{ from: string; to: string }>
+  };
+
+  // Get all files recursively
+  const allFiles: Array<{ path: string; name: string; size?: number }> = [];
+  await listRecursive(supabase, basePath, allFiles);
+  
+  console.log(`Found ${allFiles.length} files to check for normalization`);
+  
+  // Also include placeholder files for folder structure
+  const allFilesWithPlaceholders: Array<{ path: string; name: string; size?: number }> = [];
+  await listRecursiveIncludingPlaceholders(supabase, basePath, allFilesWithPlaceholders);
+  
+  // Process each file
+  for (const file of allFilesWithPlaceholders) {
+    const canonicalPath = normalizeFullPath(file.path);
+    
+    if (file.path === canonicalPath) {
+      // Already canonical
+      report.skipped++;
+      continue;
+    }
+    
+    console.log(`Need to move: "${file.path}" -> "${canonicalPath}"`);
+    
+    // Check if target already exists
+    const { data: existingFile } = await supabase.storage
+      .from(BUCKET_NAME)
+      .download(canonicalPath);
+    
+    if (existingFile) {
+      // Conflict - target already exists
+      report.conflicts.push(`${file.path} -> ${canonicalPath} (target exists)`);
+      report.skipped++;
+      continue;
+    }
+    
+    // Ensure parent folder exists by creating placeholder
+    const parentPath = canonicalPath.substring(0, canonicalPath.lastIndexOf('/'));
+    if (parentPath) {
+      const placeholderPath = `${parentPath}/.folder_placeholder`;
+      await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(placeholderPath, new Blob(['']), { upsert: true });
+    }
+    
+    // Move the file
+    const { error: moveError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .move(file.path, canonicalPath);
+    
+    if (moveError) {
+      report.errors.push(`Failed to move ${file.path}: ${moveError.message}`);
+      continue;
+    }
+    
+    report.moved++;
+    report.movedFiles.push({ from: file.path, to: canonicalPath });
+    console.log(`Moved: ${file.path} -> ${canonicalPath}`);
+  }
+  
+  // Clean up empty virtual folders from old locations
+  console.log(`Cleaning up empty folders...`);
+  await forceCleanupVirtualFolders(supabase, basePath);
+  
+  console.log(`Normalization complete: ${report.moved} moved, ${report.skipped} skipped, ${report.errors.length} errors, ${report.conflicts.length} conflicts`);
+  
+  return report;
 }

@@ -11,7 +11,8 @@ import {
   FolderPlus, 
   RefreshCw, 
   ChevronRight,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -50,6 +51,10 @@ export function FileManager() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadFileName, setUploadFileName] = useState('');
   const [uploadReference, setUploadReference] = useState('');
+  
+  // Normalize dialog state
+  const [showNormalizeDialog, setShowNormalizeDialog] = useState(false);
+  const [normalizing, setNormalizing] = useState(false);
 
   const fetchTree = async () => {
     setLoading(true);
@@ -180,6 +185,48 @@ export function FileManager() {
     setPendingFile(null);
     setUploadFileName('');
     setUploadReference('');
+  };
+
+  const handleNormalize = async () => {
+    setNormalizing(true);
+    setShowNormalizeDialog(false);
+    
+    try {
+      const { data, error } = await invokeWithRetry<{
+        moved: number;
+        skipped: number;
+        errors: string[];
+        conflicts: string[];
+        movedFiles: Array<{ from: string; to: string }>;
+      }>('admin-file-manager', {
+        operation: 'normalize-companies-tree',
+        path: 'TreatNote/Companies'
+      });
+
+      if (error) throw error;
+      
+      if (data?.moved === 0 && data?.conflicts?.length === 0) {
+        toast.success('A mappastruktúra már rendben van');
+      } else {
+        const message = `Normalizálás kész: ${data?.moved || 0} fájl áthelyezve`;
+        if (data?.conflicts && data.conflicts.length > 0) {
+          toast.warning(`${message}, ${data.conflicts.length} ütközés`);
+        } else {
+          toast.success(message);
+        }
+      }
+      
+      if (data?.errors && data.errors.length > 0) {
+        console.error('Normalization errors:', data.errors);
+      }
+      
+      await fetchTree();
+    } catch (error: any) {
+      console.error('Error normalizing:', error);
+      toast.error('Hiba a normalizálás során');
+    } finally {
+      setNormalizing(false);
+    }
   };
 
   const handleDelete = (path: string, isFolder: boolean, event?: MouseEvent) => {
@@ -385,6 +432,20 @@ export function FileManager() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowNormalizeDialog(true)}
+            disabled={normalizing}
+            className="border-amber-500/30 hover:border-amber-500/60 text-amber-600 dark:text-amber-400"
+          >
+            {normalizing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Mappastruktúra rendezése
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowNewFolderDialog(true)}
             className="border-primary/20 hover:border-primary/40"
           >
@@ -558,6 +619,43 @@ export function FileManager() {
         anchorPosition={deleteAnchorPosition}
         showForceDelete={pendingDelete?.isFolder}
       />
+
+      {/* Normalize confirmation dialog */}
+      <Dialog open={showNormalizeDialog} onOpenChange={setShowNormalizeDialog}>
+        <DialogContent className="border-amber-500/20 bg-card/95 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Mappastruktúra rendezése
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-2">
+              <p>
+                Ez a művelet áthelyezi a fájlokat a megfelelő kanonikus mappákba:
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1 ml-2">
+                <li>Az aláhúzásokat (_) szóközökre cseréli</li>
+                <li>Normalizálja a magyar ékezetes karaktereket</li>
+                <li>Összevonja a duplikált mappákat</li>
+              </ul>
+              <p className="text-amber-600 dark:text-amber-400 font-medium mt-3">
+                ⚠️ Figyelem: Ha ütközés van (célmappa már létezik), azok a fájlok kihagyásra kerülnek.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNormalizeDialog(false)}>
+              Mégse
+            </Button>
+            <Button 
+              onClick={handleNormalize}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Rendezés indítása
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
