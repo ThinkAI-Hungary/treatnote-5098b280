@@ -648,7 +648,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
   return (
     <div className="space-y-6">
       {/* Upload Area */}
-      <Card className="border-primary/20 bg-card/80 backdrop-blur-sm">
+      <Card data-tour="szabalyok-upload" className="border-primary/20 bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileUp className="h-5 w-5 text-primary" />
@@ -742,7 +742,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
       </Card>
 
       {/* Files Table */}
-      <Card className="border-primary/20 bg-card/80 backdrop-blur-sm">
+      <Card data-tour="szabalyok-table" className="border-primary/20 bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -799,7 +799,7 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                 <TableCell className="text-muted-foreground">
                   {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
                 </TableCell>
-                <TableCell>
+                <TableCell data-tour="szabalyok-status">
                   {file.webhook_status === 'feldolgozva' && (
                     <Badge variant="default" className="bg-green-500/20 text-green-400 border-green-500/30">
                       <CheckCircle2 className="h-3 w-3 mr-1" />

@@ -10,6 +10,7 @@ export interface TourStep {
   title: string;
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
+  switchToTab?: string; // Optional: switch to this tab before showing step
 }
 
 interface OnboardingTourProps {
@@ -17,6 +18,7 @@ interface OnboardingTourProps {
   isOpen: boolean;
   onComplete: () => void;
   onSkip: () => void;
+  onStepChange?: (step: TourStep, stepIndex: number) => void; // Callback for step changes
 }
 
 interface TargetRect {
@@ -26,7 +28,7 @@ interface TargetRect {
   height: number;
 }
 
-export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: OnboardingTourProps) {
+export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
@@ -125,6 +127,13 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
       window.removeEventListener('scroll', calculatePosition, true);
     };
   }, [calculatePosition]);
+
+  useEffect(() => {
+    // Notify parent of step change (for tab switching etc.)
+    if (isOpen && steps[currentStep] && onStepChange) {
+      onStepChange(steps[currentStep], currentStep);
+    }
+  }, [currentStep, isOpen, steps, onStepChange]);
 
   useEffect(() => {
     // Recalculate after a small delay to allow DOM updates

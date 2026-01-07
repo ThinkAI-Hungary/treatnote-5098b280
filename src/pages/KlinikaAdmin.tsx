@@ -51,8 +51,12 @@ export default function KlinikaAdmin() {
     refreshInvitations,
   } = useKlinikaData();
 
+  // Controlled tab state for tour navigation
+  const [activeTab, setActiveTab] = useState('users');
+
   // Onboarding tour for new klinika_admins
   const tourSteps: TourStep[] = useMemo(() => [
+    // === TAGOK SECTION ===
     {
       target: '[data-tour="header"]',
       title: 'Üdvözöljük a Klinika Admin felületen!',
@@ -77,17 +81,25 @@ export default function KlinikaAdmin() {
       content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket. A nem admin felhasználókat törölheti is.',
       position: 'top',
     },
+    // === SZABÁLYOK SECTION - these steps will trigger tab switch ===
     {
-      target: '[data-tour="szabalyok-tab"]',
-      title: 'Szabályok kezelése',
-      content: 'A Szabályok fülön PDF formátumú kezelési szabályokat tölthet fel, amelyeket a rendszer feldolgoz és a hangfelvételeknél felhasznál.',
+      target: '[data-tour="szabalyok-upload"]',
+      title: 'PDF feltöltés',
+      content: 'Itt tölthet fel kezelési szabályzatokat PDF formátumban. A rendszer automatikusan feldolgozza és kategorizálja a dokumentumokat.',
       position: 'bottom',
+      switchToTab: 'szabalyok', // Custom property to trigger tab switch
     },
     {
-      target: '[data-tour="help-button"]',
-      title: 'Útmutató újraindítása',
-      content: 'Ha bármikor szeretné újra megnézni ezt az útmutatót, kattintson erre a gombra. Jó munkát!',
-      position: 'bottom',
+      target: '[data-tour="szabalyok-table"]',
+      title: 'Feltöltött szabályzatok',
+      content: 'A feltöltött PDF-ek listája itt jelenik meg. Láthatja a feldolgozási státuszt, szerkesztheti a fogalmat, vagy megtekintheti a dokumentumot.',
+      position: 'top',
+    },
+    {
+      target: '[data-tour="szabalyok-status"]',
+      title: 'Feldolgozási státusz',
+      content: 'A státusz oszlop mutatja, hogy a PDF feldolgozása folyamatban van, sikeres volt, vagy hiba történt. Hiba esetén újra próbálkozhat.',
+      position: 'left',
     },
   ], []);
 
@@ -391,8 +403,8 @@ export default function KlinikaAdmin() {
           </div>
 
 
-          {/* Tabs with min-height to prevent layout jumps */}
-          <Tabs defaultValue="users" className="space-y-6">
+          {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
               <TabsTrigger 
                 value="users" 
@@ -620,6 +632,12 @@ export default function KlinikaAdmin() {
           isOpen={showTour}
           onComplete={completeTour}
           onSkip={skipTour}
+          onStepChange={(step) => {
+            // Switch to the appropriate tab when a step requires it
+            if (step.switchToTab) {
+              setActiveTab(step.switchToTab);
+            }
+          }}
         />
       </div>
   );
