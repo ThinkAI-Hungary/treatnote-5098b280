@@ -759,7 +759,6 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
               <>
                 <TableHead className="font-semibold">Fájlnév</TableHead>
                 <TableHead className="font-semibold">Fogalom</TableHead>
-                <TableHead className="font-semibold">Méret</TableHead>
                 <TableHead className="font-semibold">Feltöltve</TableHead>
                 <TableHead className="font-semibold">Státusz</TableHead>
                 <TableHead className="text-right font-semibold">Műveletek</TableHead>
@@ -795,7 +794,6 @@ export function SzabalyokTab({ companyId, telephelyId, companyName, telephelyNam
                     </span>
                   )}
                 </TableCell>
-                <TableCell>{formatFileSize(file.file_size)}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {format(new Date(file.created_at), 'yyyy. MMM d. HH:mm', { locale: hu })}
                 </TableCell>
