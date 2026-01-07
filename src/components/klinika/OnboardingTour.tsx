@@ -62,7 +62,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
     const rect = element.getBoundingClientRect();
     const spotlightPadding = 16; // Padding around the spotlight (enough to not clip text)
-    
+
     // Store target rect for spotlight (with padding)
     const highlightRect = {
       top: rect.top - spotlightPadding,
@@ -72,12 +72,18 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
       bottom: rect.bottom + spotlightPadding,
       right: rect.right + spotlightPadding,
     };
-    
+
+    // Clamp spotlight to viewport so it never renders outside the screen (prevents top clipping)
+    const clampedTop = Math.max(8, highlightRect.top);
+    const clampedLeft = Math.max(8, highlightRect.left);
+    const clampedRight = Math.min(window.innerWidth - 8, highlightRect.right);
+    const clampedBottom = Math.min(window.innerHeight - 8, highlightRect.bottom);
+
     setTargetRect({
-      top: highlightRect.top,
-      left: highlightRect.left,
-      width: highlightRect.width,
-      height: highlightRect.height,
+      top: clampedTop,
+      left: clampedLeft,
+      width: Math.max(0, clampedRight - clampedLeft),
+      height: Math.max(0, clampedBottom - clampedTop),
     });
 
     const tooltipWidth = tooltipSize.width;
