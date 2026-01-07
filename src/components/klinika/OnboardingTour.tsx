@@ -79,11 +79,11 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
     const tooltipWidth = 350;
     const tooltipHeight = 200;
-    const gap = 16; // Gap between highlight border and tooltip
+    const gap = 20; // Gap between highlight border and tooltip
 
     let top = 0;
     let left = 0;
-    let arrow: 'top' | 'bottom' | 'left' | 'right' = step.position || 'bottom';
+    let arrow: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
 
     // Calculate available space from the HIGHLIGHT rect (not original element)
     const spaceAbove = highlightRect.top;
@@ -95,48 +95,88 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     const minSpaceVertical = tooltipHeight + gap;
     const minSpaceHorizontal = tooltipWidth + gap;
 
-    // Determine best position - use highlight rect boundaries
-    if (step.position === 'top' || (!step.position && spaceAbove >= minSpaceVertical)) {
-      // Position above the highlight
+    // Determine position priority based on step.position preference, but fallback if no space
+    const canFitAbove = spaceAbove >= minSpaceVertical;
+    const canFitBelow = spaceBelow >= minSpaceVertical;
+    const canFitLeft = spaceLeft >= minSpaceHorizontal;
+    const canFitRight = spaceRight >= minSpaceHorizontal;
+
+    // Build priority list based on preference
+    type Position = 'top' | 'bottom' | 'left' | 'right';
+    const preferredPosition = step.position || 'bottom';
+    const positionPriority: Position[] = [preferredPosition];
+    
+    // Add fallback positions
+    if (preferredPosition !== 'bottom') positionPriority.push('bottom');
+    if (preferredPosition !== 'top') positionPriority.push('top');
+    if (preferredPosition !== 'right') positionPriority.push('right');
+    if (preferredPosition !== 'left') positionPriority.push('left');
+
+    // Find first position that fits
+    let chosenPosition: Position | null = null;
+    for (const pos of positionPriority) {
+      if (pos === 'top' && canFitAbove) { chosenPosition = 'top'; break; }
+      if (pos === 'bottom' && canFitBelow) { chosenPosition = 'bottom'; break; }
+      if (pos === 'left' && canFitLeft) { chosenPosition = 'left'; break; }
+      if (pos === 'right' && canFitRight) { chosenPosition = 'right'; break; }
+    }
+
+    // Apply position
+    if (chosenPosition === 'top') {
       top = highlightRect.top - tooltipHeight - gap;
       left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
       arrow = 'bottom';
-    } else if (step.position === 'bottom' || (!step.position && spaceBelow >= minSpaceVertical)) {
-      // Position below the highlight
+    } else if (chosenPosition === 'bottom') {
       top = highlightRect.bottom + gap;
       left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
       arrow = 'top';
-    } else if (step.position === 'left' || (!step.position && spaceLeft >= minSpaceHorizontal)) {
-      // Position left of highlight
+    } else if (chosenPosition === 'left') {
       top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
       left = highlightRect.left - tooltipWidth - gap;
       arrow = 'right';
-    } else if (spaceRight >= minSpaceHorizontal) {
-      // Position right of highlight
+    } else if (chosenPosition === 'right') {
       top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
       left = highlightRect.right + gap;
       arrow = 'left';
     } else {
-      // Fallback: position at top of viewport, centered
-      top = 20;
+      // No position fits - place at top-center of viewport, outside highlight
+      top = 16;
       left = window.innerWidth / 2 - tooltipWidth / 2;
-      arrow = 'bottom';
+      arrow = 'top';
+      // If highlight is at top of screen, try to go below it
+      if (highlightRect.top < tooltipHeight + gap + 32) {
+        top = highlightRect.bottom + gap;
+      }
     }
 
-    // Clamp to viewport bounds, but ensure no overlap with highlight
+    // Horizontal clamp - keep within viewport
     left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
     
-    // For vertical clamping, ensure we don't clip into the highlight
-    if (arrow === 'bottom') {
-      // Tooltip is above highlight - don't let it go below the highlight top
-      top = Math.max(16, Math.min(top, highlightRect.top - tooltipHeight - gap));
-    } else if (arrow === 'top') {
-      // Tooltip is below highlight - don't let it go above the highlight bottom
-      top = Math.max(highlightRect.bottom + gap, Math.min(top, window.innerHeight - tooltipHeight - 16));
-    } else {
-      // Left/right positioning - clamp vertically within viewport
-      top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
+    // Vertical clamp with overlap prevention
+    const tooltipBottom = top + tooltipHeight;
+    const tooltipRight = left + tooltipWidth;
+    
+    // Check for overlap and adjust
+    const overlapsVertically = !(tooltipBottom < highlightRect.top || top > highlightRect.bottom);
+    const overlapsHorizontally = !(tooltipRight < highlightRect.left || left > highlightRect.right);
+    
+    if (overlapsVertically && overlapsHorizontally) {
+      // There's overlap - force repositioning
+      if (arrow === 'bottom' || arrow === 'top') {
+        // For vertical arrows, adjust the top position
+        if (spaceAbove > spaceBelow) {
+          top = Math.min(highlightRect.top - tooltipHeight - gap, window.innerHeight - tooltipHeight - 16);
+          top = Math.max(16, top);
+          arrow = 'bottom';
+        } else {
+          top = Math.max(highlightRect.bottom + gap, 16);
+          arrow = 'top';
+        }
+      }
     }
+    
+    // Final viewport clamp
+    top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
 
     setTooltipPosition({ top, left });
     setArrowPosition(arrow);
