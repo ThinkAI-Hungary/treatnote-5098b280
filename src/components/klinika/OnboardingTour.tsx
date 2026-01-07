@@ -12,6 +12,7 @@ export interface TourStep {
   position?: 'top' | 'bottom' | 'left' | 'right';
   switchToTab?: string; // Optional: switch to this tab before showing step (legacy)
   requiredTab?: string; // Which tab this step belongs to (used for both forward and backward navigation)
+  spotlightYOffset?: number; // Optional vertical offset for spotlight (positive = move up)
 }
 
 interface OnboardingTourProps {
@@ -85,8 +86,8 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     };
 
     // Clamp spotlight to viewport so it never renders outside the screen (prevents top clipping)
-    // Small upward nudge so the glow doesn't visually clip at the very top.
-    const spotlightYOffset = 10;
+    // Use per-step Y offset if provided (e.g., for Profile page inputs near top edge)
+    const spotlightYOffset = step.spotlightYOffset ?? 0;
     const clampedTop = Math.max(24, highlightRect.top - spotlightYOffset);
     const clampedLeft = Math.max(24, highlightRect.left);
     const clampedRight = Math.min(window.innerWidth - 24, highlightRect.right);
