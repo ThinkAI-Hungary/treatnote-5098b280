@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw
 } from 'lucide-react';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
@@ -112,14 +112,14 @@ export default function KlinikaAdmin() {
         { ...tagokSteps[0], switchToTab: 'users' }, // Switch to users tab for tagok steps
         ...tagokSteps.slice(1),
       ];
-    } else {
-      // On Tagok tab (default): show tagok first, then switch to szabályok
-      return [
-        ...tagokSteps,
-        { ...szabalyokSteps[0], switchToTab: 'szabalyok' }, // Switch to szabályok tab
-        ...szabalyokSteps.slice(1),
-      ];
     }
+
+    // On Tagok tab (default): show tagok first, then switch to szabályok
+    return [
+      ...tagokSteps,
+      { ...szabalyokSteps[0], switchToTab: 'szabalyok' }, // Switch to szabályok tab
+      ...szabalyokSteps.slice(1),
+    ];
   }, [activeTab, tagokSteps, szabalyokSteps]);
 
   const {
@@ -134,6 +134,26 @@ export default function KlinikaAdmin() {
     autoShowForNewUsers: true,
     newUserDays: 7,
   });
+
+  // Freeze the tour steps at the moment the tour opens to avoid “glitchy” reordering
+  const [tourStepsSnapshot, setTourStepsSnapshot] = useState<TourStep[] | null>(null);
+
+  useEffect(() => {
+    if (showTour) {
+      // Capture steps only once per open
+      setTourStepsSnapshot((prev) => prev ?? tourSteps);
+    } else {
+      // Clear snapshot when closing
+      setTourStepsSnapshot(null);
+    }
+  }, [showTour, tourSteps]);
+
+  const effectiveTourSteps = showTour ? (tourStepsSnapshot ?? tourSteps) : tourSteps;
+
+  const handleStartTour = useCallback(() => {
+    setTourStepsSnapshot(tourSteps);
+    startTour();
+  }, [startTour, tourSteps]);
 
   // Email invitation state
   const [inviteEmail, setInviteEmail] = useState('');
@@ -643,11 +663,11 @@ export default function KlinikaAdmin() {
         </div>
 
         {/* Tour help button - fixed position at bottom right */}
-        {!showTour && <TourHelpButton onClick={startTour} />}
+        {!showTour && <TourHelpButton onClick={handleStartTour} />}
 
         {/* Onboarding Tour */}
         <OnboardingTour
-          steps={tourSteps}
+          steps={effectiveTourSteps}
           isOpen={showTour}
           onComplete={completeTour}
           onSkip={skipTour}
