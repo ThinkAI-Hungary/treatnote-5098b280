@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw, Pencil
 } from 'lucide-react';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -183,6 +183,12 @@ export default function KlinikaAdmin() {
   // Cancelling invitation state
   const [cancellingInvitationId, setCancellingInvitationId] = useState<string | null>(null);
 
+  // Edit user name state
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string | null } | null>(null);
+  const [editUserFullName, setEditUserFullName] = useState('');
+  const [updatingUser, setUpdatingUser] = useState(false);
+
   const handleSendEmailInvitation = useCallback(async () => {
     if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
       toast.error('Kérjük adjon meg egy érvényes email címet');
@@ -245,9 +251,11 @@ export default function KlinikaAdmin() {
       return;
     }
 
+    // Auto-complete email domain using company slug
+    const sanitizedCompanyName = companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local';
     const finalEmail = newUserEmail.includes('@') 
       ? newUserEmail 
-      : `${newUserEmail}@localuser.com`;
+      : `${newUserEmail}@${sanitizedCompanyName}.com`;
 
     setCreatingUser(true);
     try {
@@ -374,6 +382,42 @@ export default function KlinikaAdmin() {
       toast.error(error.message || 'Hiba a felhasználó törlésekor');
     }
   }, [refreshUsers, refreshInvitations]);
+
+  const openEditUser = useCallback((user: { id: string; email: string; full_name: string | null }) => {
+    setEditingUser(user);
+    setEditUserFullName(user.full_name || '');
+    setEditUserOpen(true);
+  }, []);
+
+  const handleUpdateUser = useCallback(async () => {
+    if (!editingUser) return;
+
+    setUpdatingUser(true);
+    try {
+      const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
+        operation: 'update-user',
+        userId: editingUser.id,
+        fullName: editUserFullName.trim(),
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success('Felhasználó neve sikeresen frissítve');
+      setEditUserOpen(false);
+      setEditingUser(null);
+      setEditUserFullName('');
+      refreshUsers();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast.error(error.message || 'Hiba a felhasználó frissítésekor');
+    } finally {
+      setUpdatingUser(false);
+    }
+  }, [editingUser, editUserFullName, refreshUsers]);
 
   const openInviteDialog = useCallback(() => {
     setInviteDialogOpen(true);
@@ -505,7 +549,7 @@ export default function KlinikaAdmin() {
                             className="border-primary/20 focus:border-primary/40"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Ha nem tartalmaz @ jelet, automatikusan @localuser.com végződést kap
+                            Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
                           </p>
                         </div>
                         <div className="space-y-2">
@@ -637,14 +681,24 @@ export default function KlinikaAdmin() {
                               </TableCell>
                               <TableCell className="text-right">
                                 {user.role !== 'klinika_admin' && user.role !== 'admin' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleDeleteUser(user.id, user.email)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => openEditUser({ id: user.id, email: user.email, full_name: user.full_name })}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => handleDeleteUser(user.id, user.email)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -685,6 +739,52 @@ export default function KlinikaAdmin() {
             }
           }}
         />
+
+        {/* Edit User Dialog */}
+        <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+          <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-primary" />
+                Felhasználó szerkesztése
+              </DialogTitle>
+              <DialogDescription>
+                {editingUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Teljes név</Label>
+                <Input
+                  placeholder="Teljes név"
+                  value={editUserFullName}
+                  onChange={(e) => setEditUserFullName(e.target.value)}
+                  className="border-primary/20 focus:border-primary/40"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setEditUserOpen(false);
+                  setEditingUser(null);
+                  setEditUserFullName('');
+                }}
+                className="border-primary/20 hover:bg-primary/10"
+              >
+                Mégse
+              </Button>
+              <GalaxyButton 
+                onClick={handleUpdateUser} 
+                disabled={updatingUser}
+              >
+                {updatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Mentés
+              </GalaxyButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
   );
 }

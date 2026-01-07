@@ -758,6 +758,60 @@ serve(async (req) => {
         });
       }
 
+      case "update-user": {
+        const { userId, fullName } = params;
+
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Don't allow updating yourself via this operation
+        if (userId === caller.id) {
+          return new Response(JSON.stringify({ error: "Cannot update yourself via this operation" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify the user is in the same organization
+        const { data: targetProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("company_id, telephely_id")
+          .eq("user_id", userId)
+          .single();
+
+        if (!isAdmin && (!targetProfile || targetProfile.company_id !== companyId || targetProfile.telephely_id !== telephelyId)) {
+          return new Response(JSON.stringify({ error: "You can only update users within your organization" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update the user's profile
+        const { error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ full_name: fullName || null })
+          .eq("user_id", userId);
+
+        if (updateError) {
+          console.error("Error updating user:", updateError);
+          return new Response(JSON.stringify({ error: "Failed to update user" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        console.log(`User ${userId} updated by klinika_admin ${caller.id}`);
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "delete-user-completely": {
         const { email } = params;
         
