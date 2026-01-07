@@ -54,9 +54,8 @@ export default function KlinikaAdmin() {
   // Controlled tab state for tour navigation
   const [activeTab, setActiveTab] = useState('users');
 
-  // Onboarding tour for new klinika_admins
-  const tourSteps: TourStep[] = useMemo(() => [
-    // === TAGOK SECTION ===
+  // Define steps for each section
+  const tagokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="header"]',
       title: 'Üdvözöljük a Klinika Admin felületen!',
@@ -79,21 +78,22 @@ export default function KlinikaAdmin() {
       target: '[data-tour="users-table"]',
       title: 'Tagok listája',
       content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket. A nem admin felhasználókat törölheti is.',
-      position: 'top',
+      position: 'bottom',
     },
-    // === SZABÁLYOK SECTION - these steps will trigger tab switch ===
+  ], []);
+
+  const szabalyokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="szabalyok-upload"]',
       title: 'PDF feltöltés',
       content: 'Itt tölthet fel kezelési szabályzatokat PDF formátumban. A rendszer automatikusan feldolgozza és kategorizálja a dokumentumokat.',
       position: 'bottom',
-      switchToTab: 'szabalyok', // Custom property to trigger tab switch
     },
     {
       target: '[data-tour="szabalyok-table"]',
       title: 'Feltöltött szabályzatok',
       content: 'A feltöltött PDF-ek listája itt jelenik meg. Láthatja a feldolgozási státuszt, szerkesztheti a fogalmat, vagy megtekintheti a dokumentumot.',
-      position: 'top',
+      position: 'bottom',
     },
     {
       target: '[data-tour="szabalyok-status"]',
@@ -102,6 +102,25 @@ export default function KlinikaAdmin() {
       position: 'left',
     },
   ], []);
+
+  // Build tour steps based on current tab - start with current tab first
+  const tourSteps: TourStep[] = useMemo(() => {
+    if (activeTab === 'szabalyok') {
+      // On Szabályok tab: show szabályok first, then switch to tagok
+      return [
+        ...szabalyokSteps,
+        { ...tagokSteps[0], switchToTab: 'users' }, // Switch to users tab for tagok steps
+        ...tagokSteps.slice(1),
+      ];
+    } else {
+      // On Tagok tab (default): show tagok first, then switch to szabályok
+      return [
+        ...tagokSteps,
+        { ...szabalyokSteps[0], switchToTab: 'szabalyok' }, // Switch to szabályok tab
+        ...szabalyokSteps.slice(1),
+      ];
+    }
+  }, [activeTab, tagokSteps, szabalyokSteps]);
 
   const {
     showTour,
