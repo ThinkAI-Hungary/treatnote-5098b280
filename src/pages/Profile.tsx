@@ -32,25 +32,28 @@ const profileTourSteps: TourStep[] = [
     title: 'Teljes név',
     content: 'Adja meg a teljes nevét. Ez a név fog megjelenni a rendszerben és a dokumentumokban.',
     position: 'bottom',
-    spotlightYOffset: 10, // Nudge spotlight up to avoid clipping at top edge
+    spotlightYOffset: 10,
   },
   {
     target: '#company',
     title: 'Cég neve',
     content: 'A cég hozzárendelést egy admin vagy klinika admin végezheti el. Ez határozza meg, mely adatokhoz fér hozzá.',
     position: 'bottom',
+    spotlightYOffset: 10,
   },
   {
     target: '#telephely',
     title: 'Telephely',
     content: 'A telephely meghatározza, melyik helyszínhez tartozik. Ezt szintén az admin állítja be.',
     position: 'bottom',
+    spotlightYOffset: 10,
   },
   {
     target: '#phone',
     title: 'Telefonszám',
     content: 'Adja meg telefonszámát, hogy kollégái elérhessék Önt szükség esetén.',
     position: 'bottom',
+    spotlightYOffset: 10,
   },
   {
     target: '[data-tour="flexi-card"]',
