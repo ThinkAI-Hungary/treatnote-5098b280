@@ -158,8 +158,10 @@ export default function Dashboard() {
             Itt láthatja a napi összefoglalót és a legfontosabb információkat.
           </p>
         </div>
-        <TourHelpButton onClick={startTour} />
       </div>
+
+      {/* Tour help button - fixed position */}
+      {!showTour && <TourHelpButton onClick={startTour} />}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (

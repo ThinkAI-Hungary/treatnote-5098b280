@@ -248,13 +248,15 @@ const Profile = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div>
         <div>
           <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
           <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
         </div>
-        <TourHelpButton onClick={startTour} />
       </div>
+
+      {/* Tour help button - fixed position */}
+      {!showTour && <TourHelpButton onClick={startTour} />}
 
       <Card>
         <CardHeader>

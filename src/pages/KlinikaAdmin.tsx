@@ -387,11 +387,11 @@ export default function KlinikaAdmin() {
                   </p>
                 </div>
               </div>
-              <div data-tour="help-button">
-                <TourHelpButton onClick={startTour} />
-              </div>
             </div>
           </div>
+
+          {/* Tour help button - fixed position */}
+          {!showTour && <TourHelpButton onClick={startTour} />}
 
           {/* Tabs with min-height to prevent layout jumps */}
           <Tabs defaultValue="users" className="space-y-6">
