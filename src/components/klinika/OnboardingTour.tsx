@@ -58,64 +58,85 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     }
 
     const rect = element.getBoundingClientRect();
-    const padding = 8;
+    const spotlightPadding = 12; // Padding around the spotlight
     
-    // Store target rect for spotlight
+    // Store target rect for spotlight (with padding)
+    const highlightRect = {
+      top: rect.top - spotlightPadding,
+      left: rect.left - spotlightPadding,
+      width: rect.width + spotlightPadding * 2,
+      height: rect.height + spotlightPadding * 2,
+      bottom: rect.bottom + spotlightPadding,
+      right: rect.right + spotlightPadding,
+    };
+    
     setTargetRect({
-      top: rect.top - padding,
-      left: rect.left - padding,
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
+      top: highlightRect.top,
+      left: highlightRect.left,
+      width: highlightRect.width,
+      height: highlightRect.height,
     });
 
     const tooltipWidth = 350;
     const tooltipHeight = 200;
-    const gap = 24; // Increased gap to prevent overlap
+    const gap = 16; // Gap between highlight border and tooltip
 
     let top = 0;
     let left = 0;
     let arrow: 'top' | 'bottom' | 'left' | 'right' = step.position || 'bottom';
 
-    // Calculate best position based on available space
-    const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceLeft = rect.left;
-    const spaceRight = window.innerWidth - rect.right;
+    // Calculate available space from the HIGHLIGHT rect (not original element)
+    const spaceAbove = highlightRect.top;
+    const spaceBelow = window.innerHeight - highlightRect.bottom;
+    const spaceLeft = highlightRect.left;
+    const spaceRight = window.innerWidth - highlightRect.right;
 
-    // Minimum space required (tooltip + gap + extra padding)
-    const minSpaceVertical = tooltipHeight + gap + 20;
-    const minSpaceHorizontal = tooltipWidth + gap + 20;
+    // Minimum space required
+    const minSpaceVertical = tooltipHeight + gap;
+    const minSpaceHorizontal = tooltipWidth + gap;
 
-    if (step.position === 'top' || (!step.position && spaceAbove > minSpaceVertical)) {
-      // Position above
-      top = rect.top - tooltipHeight - gap;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    // Determine best position - use highlight rect boundaries
+    if (step.position === 'top' || (!step.position && spaceAbove >= minSpaceVertical)) {
+      // Position above the highlight
+      top = highlightRect.top - tooltipHeight - gap;
+      left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
       arrow = 'bottom';
-    } else if (step.position === 'bottom' || (!step.position && spaceBelow > minSpaceVertical)) {
-      // Position below
-      top = rect.bottom + gap;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    } else if (step.position === 'bottom' || (!step.position && spaceBelow >= minSpaceVertical)) {
+      // Position below the highlight
+      top = highlightRect.bottom + gap;
+      left = highlightRect.left + highlightRect.width / 2 - tooltipWidth / 2;
       arrow = 'top';
-    } else if (step.position === 'left' || (!step.position && spaceLeft > minSpaceHorizontal)) {
-      // Position left
-      top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      left = rect.left - tooltipWidth - gap;
+    } else if (step.position === 'left' || (!step.position && spaceLeft >= minSpaceHorizontal)) {
+      // Position left of highlight
+      top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
+      left = highlightRect.left - tooltipWidth - gap;
       arrow = 'right';
-    } else if (spaceRight > minSpaceHorizontal) {
-      // Position right
-      top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      left = rect.right + gap;
+    } else if (spaceRight >= minSpaceHorizontal) {
+      // Position right of highlight
+      top = highlightRect.top + highlightRect.height / 2 - tooltipHeight / 2;
+      left = highlightRect.right + gap;
       arrow = 'left';
     } else {
-      // Fallback: position below with adjusted gap, ensuring no overlap
-      top = rect.bottom + gap;
-      left = rect.left + rect.width / 2 - tooltipWidth / 2;
-      arrow = 'top';
+      // Fallback: position at top of viewport, centered
+      top = 20;
+      left = window.innerWidth / 2 - tooltipWidth / 2;
+      arrow = 'bottom';
     }
 
-    // Keep within viewport bounds with extra padding
-    left = Math.max(20, Math.min(left, window.innerWidth - tooltipWidth - 20));
-    top = Math.max(20, Math.min(top, window.innerHeight - tooltipHeight - 20));
+    // Clamp to viewport bounds, but ensure no overlap with highlight
+    left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
+    
+    // For vertical clamping, ensure we don't clip into the highlight
+    if (arrow === 'bottom') {
+      // Tooltip is above highlight - don't let it go below the highlight top
+      top = Math.max(16, Math.min(top, highlightRect.top - tooltipHeight - gap));
+    } else if (arrow === 'top') {
+      // Tooltip is below highlight - don't let it go above the highlight bottom
+      top = Math.max(highlightRect.bottom + gap, Math.min(top, window.innerHeight - tooltipHeight - 16));
+    } else {
+      // Left/right positioning - clamp vertically within viewport
+      top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
+    }
 
     setTooltipPosition({ top, left });
     setArrowPosition(arrow);
