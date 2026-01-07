@@ -32,6 +32,7 @@ const profileTourSteps: TourStep[] = [
     title: 'Teljes név',
     content: 'Adja meg a teljes nevét. Ez a név fog megjelenni a rendszerben és a dokumentumokban.',
     position: 'bottom',
+    spotlightYOffset: 10, // Nudge spotlight up to avoid clipping at top edge
   },
   {
     target: '#company',
