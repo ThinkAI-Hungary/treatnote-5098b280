@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FloatingInput } from '@/components/ui/floating-input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -267,60 +267,75 @@ const Profile = () => {
           <CardDescription>Profil adatok módosítása</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <FloatingInput
-              id="full_name"
-              type="text"
-              label="Teljes név"
-              value={profile.full_name}
-              onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-            />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={user?.email || ''} disabled className="bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Teljes név</Label>
+              <Input
+                id="full_name"
+                type="text"
+                value={profile.full_name}
+                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+              />
+            </div>
             
             {/* Company - Read Only */}
-            <div className="space-y-1">
-              <FloatingInput
+            <div className="space-y-2">
+              <Label htmlFor="company" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                Cég neve
+              </Label>
+              <Input
                 id="company"
                 type="text"
-                label="Cég neve"
-                icon={<Building2 className="h-4 w-4" />}
                 value={profile.company_name || 'Nincs hozzárendelve'}
                 disabled
                 className="bg-muted"
               />
               {!profile.company_id && (
-                <p className="text-xs text-muted-foreground pl-2">
+                <p className="text-xs text-muted-foreground">
                   A cég hozzárendelést egy admin vagy klinika admin végezheti el.
                 </p>
               )}
             </div>
 
             {/* Telephely - Read Only */}
-            <div className="space-y-1">
-              <FloatingInput
+            <div className="space-y-2">
+              <Label htmlFor="telephely" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Telephely
+              </Label>
+              <Input
                 id="telephely"
                 type="text"
-                label="Telephely"
-                icon={<MapPin className="h-4 w-4" />}
                 value={profile.telephely_name || 'Nincs hozzárendelve'}
                 disabled
                 className="bg-muted"
               />
               {!profile.telephely_id && (
-                <p className="text-xs text-muted-foreground pl-2">
+                <p className="text-xs text-muted-foreground">
                   A telephely hozzárendelést egy admin vagy klinika admin végezheti el.
                 </p>
               )}
             </div>
 
             {/* Phone - Editable */}
-            <FloatingInput
-              id="phone"
-              type="tel"
-              label="Telefonszám"
-              icon={<Phone className="h-4 w-4" />}
-              value={profile.phone}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                Telefonszám
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+36 XX XXX XXXX"
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              />
+            </div>
 
             <Button type="submit" disabled={loading}>
               {loading ? 'Mentés...' : 'Változtatások mentése'}
