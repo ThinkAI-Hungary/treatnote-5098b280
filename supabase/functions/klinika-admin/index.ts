@@ -206,11 +206,14 @@ serve(async (req) => {
     const hasCompanyAndTelephely = callerProfile?.company_id && callerProfile?.telephely_id;
     
     if (!isAdmin && !hasCompanyAndTelephely) {
+      console.log(`User ${caller.id} is klinika_admin but has no company/telephely assigned`);
       return new Response(JSON.stringify({ error: "Klinika Admin must have company and telephely assigned" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    console.log(`User ${caller.id} accessing klinika-admin: isAdmin=${isAdmin}, isKlinikaAdmin=${isKlinikaAdmin}, hasCompanyAndTelephely=${hasCompanyAndTelephely}`);
 
     // If admin without company/telephely, return empty data for certain operations
     if (!hasCompanyAndTelephely) {
