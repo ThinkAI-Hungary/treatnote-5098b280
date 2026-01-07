@@ -60,7 +60,18 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
       return;
     }
 
-    const rect = element.getBoundingClientRect();
+    // Ensure the target is fully on-screen BEFORE measuring spotlight.
+    // Otherwise the glow/outline can get clipped by the viewport edge.
+    const preRect = element.getBoundingClientRect();
+    const edgeBuffer = 40;
+    const isNearTop = preRect.top < edgeBuffer;
+    const isNearBottom = preRect.bottom > window.innerHeight - edgeBuffer;
+    if (isNearTop || isNearBottom) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const rect = preRect;
     const spotlightPadding = 16; // Padding around the spotlight (enough to not clip text)
 
     // Store target rect for spotlight (with padding)
@@ -74,10 +85,10 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     };
 
     // Clamp spotlight to viewport so it never renders outside the screen (prevents top clipping)
-    const clampedTop = Math.max(8, highlightRect.top);
-    const clampedLeft = Math.max(8, highlightRect.left);
-    const clampedRight = Math.min(window.innerWidth - 8, highlightRect.right);
-    const clampedBottom = Math.min(window.innerHeight - 8, highlightRect.bottom);
+    const clampedTop = Math.max(24, highlightRect.top);
+    const clampedLeft = Math.max(24, highlightRect.left);
+    const clampedRight = Math.min(window.innerWidth - 24, highlightRect.right);
+    const clampedBottom = Math.min(window.innerHeight - 24, highlightRect.bottom);
 
     setTargetRect({
       top: clampedTop,
@@ -190,8 +201,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     setTooltipPosition({ top, left });
     setArrowPosition(arrow);
 
-    // Scroll element into view if needed
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Scroll is handled near the start of this function to avoid viewport-edge clipping.
   }, [currentStep, isOpen, steps, tooltipSize.width, tooltipSize.height]);
 
   useEffect(() => {
