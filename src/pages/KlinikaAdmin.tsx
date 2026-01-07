@@ -54,8 +54,8 @@ export default function KlinikaAdmin() {
   // Controlled tab state for tour navigation
   const [activeTab, setActiveTab] = useState('users');
 
-  // Define steps for each section
-  const tagokSteps: TourStep[] = useMemo(() => [
+  // Base steps: always start with Welcome + Navigation
+  const baseSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="header"]',
       title: 'Üdvözöljük a Klinika Admin felületen!',
@@ -68,6 +68,10 @@ export default function KlinikaAdmin() {
       content: 'Két fő terület van: a "Tagok" fül a felhasználók kezelésére, és a "Szabályok" fül a kezelési szabályok feltöltésére.',
       position: 'bottom',
     },
+  ], []);
+
+  // Tagok-only steps (exclude header + tabs)
+  const tagokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="new-user-button"]',
       title: 'Új felhasználó létrehozása',
@@ -82,6 +86,7 @@ export default function KlinikaAdmin() {
     },
   ], []);
 
+  // Szabályok-only steps
   const szabalyokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="szabalyok-upload"]',
@@ -103,24 +108,26 @@ export default function KlinikaAdmin() {
     },
   ], []);
 
-  // Build tour steps based on current tab - start with current tab first
+  // Build tour steps based on current tab - but ALWAYS start with base steps
   const tourSteps: TourStep[] = useMemo(() => {
     if (activeTab === 'szabalyok') {
-      // On Szabályok tab: show szabályok first, then switch to tagok
+      // On Szabályok tab: base -> szabályok -> switch to tagok -> tagok
       return [
+        ...baseSteps,
         ...szabalyokSteps,
-        { ...tagokSteps[0], switchToTab: 'users' }, // Switch to users tab for tagok steps
+        { ...tagokSteps[0], switchToTab: 'users' },
         ...tagokSteps.slice(1),
       ];
     }
 
-    // On Tagok tab (default): show tagok first, then switch to szabályok
+    // On Tagok tab (default): base -> tagok -> switch to szabályok -> szabályok
     return [
+      ...baseSteps,
       ...tagokSteps,
-      { ...szabalyokSteps[0], switchToTab: 'szabalyok' }, // Switch to szabályok tab
+      { ...szabalyokSteps[0], switchToTab: 'szabalyok' },
       ...szabalyokSteps.slice(1),
     ];
-  }, [activeTab, tagokSteps, szabalyokSteps]);
+  }, [activeTab, baseSteps, tagokSteps, szabalyokSteps]);
 
   const {
     showTour,

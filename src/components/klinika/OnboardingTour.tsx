@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [tooltipSize, setTooltipSize] = useState({ width: 350, height: 200 });
 
   // Reset to first step when tour opens
   useEffect(() => {
@@ -77,8 +79,8 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
       height: highlightRect.height,
     });
 
-    const tooltipWidth = 350;
-    const tooltipHeight = 200;
+    const tooltipWidth = tooltipSize.width;
+    const tooltipHeight = tooltipSize.height;
     const gap = 20; // Gap between highlight border and tooltip
 
     let top = 0;
@@ -183,7 +185,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
     // Scroll element into view if needed
     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [currentStep, isOpen, steps]);
+  }, [currentStep, isOpen, steps, tooltipSize.width, tooltipSize.height]);
 
   useEffect(() => {
     calculatePosition();
@@ -202,6 +204,23 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
       onStepChange(steps[currentStep], currentStep);
     }
   }, [currentStep, isOpen, steps, onStepChange]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    // Measure tooltip height/width (content-dependent) to avoid clipping into the highlighted element
+    const raf = requestAnimationFrame(() => {
+      const el = tooltipRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      // Avoid pointless rerenders
+      setTooltipSize((prev) =>
+        prev.width === r.width && prev.height === r.height
+          ? prev
+          : { width: r.width, height: r.height }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen, currentStep, steps.length]);
 
   useEffect(() => {
     // Recalculate after a small delay to allow DOM updates
@@ -322,6 +341,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
           {/* Tooltip */}
           <motion.div
+            ref={tooltipRef}
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
