@@ -194,7 +194,7 @@ export function AppSidebar() {
 
       <SidebarContent className="animate-fade-in">
         {/* Főmenü - Always rendered */}
-        <SidebarGroup>
+        <SidebarGroup data-tour="sidebar-main">
           {!collapsed && <SidebarGroupLabel>Főmenü</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
@@ -240,7 +240,7 @@ export function AppSidebar() {
 
         {/* Klinika - Only shown if user is klinika admin or admin */}
         {(isKlinikaAdmin || isAdmin) && (
-          <SidebarGroup>
+          <SidebarGroup data-tour="sidebar-klinika">
             {!collapsed && <SidebarGroupLabel>Klinika</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
@@ -253,7 +253,7 @@ export function AppSidebar() {
         )}
 
         {/* Fiók - Always rendered */}
-        <SidebarGroup>
+        <SidebarGroup data-tour="sidebar-profile">
           {!collapsed && <SidebarGroupLabel>Fiók</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, Calendar, Stethoscope, TrendingUp } from 'lucide-react';
 import { PageLoader } from '@/components/PageLoader';
-
+import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 interface DashboardStats {
   totalPatients: number;
   todayAppointments: number;
@@ -17,6 +19,7 @@ interface DashboardStats {
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   const [stats, setStats] = useState<DashboardStats>({
     totalPatients: 0,
     todayAppointments: 0,
@@ -24,6 +27,37 @@ export default function Dashboard() {
     recentExaminations: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
+
+  // Build tour steps dynamically based on user role
+  const dashboardTourSteps = useMemo<TourStep[]>(() => {
+    const steps: TourStep[] = [
+      {
+        target: '[data-tour="sidebar-main"]',
+        title: 'Főmenü',
+        content: 'Itt találja a fő funkciókat: a Főoldalt (jelenlegi nézet) és a Hangfelvétel készítését vizsgálati jegyzőkönyvekhez.',
+        position: 'right',
+      },
+    ];
+
+    // Add Klinika Admin step only for klinika_admin or admin users
+    if (isKlinikaAdmin || isAdmin) {
+      steps.push({
+        target: '[data-tour="sidebar-klinika"]',
+        title: 'Klinika Admin',
+        content: 'A Klinika Admin oldalon kezelheti a klinika beállításait, felhasználóit, és megtekintheti a szabályokat.',
+        position: 'right',
+      });
+    }
+
+    steps.push({
+      target: '[data-tour="sidebar-profile"]',
+      title: 'Profil',
+      content: 'A Profil oldalon módosíthatja személyes adatait és csatlakoztathatja Flexi-Dent fiókját.',
+      position: 'right',
+    });
+
+    return steps;
+  }, [isKlinikaAdmin, isAdmin]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -60,7 +94,19 @@ export default function Dashboard() {
   }, [user]);
 
   // Show loading spinner until all data is loaded
-  const isLoading = authLoading || profileLoading || statsLoading;
+  const isLoading = authLoading || profileLoading || statsLoading || !rolesInitialized;
+
+  const {
+    showTour,
+    startTour,
+    completeTour,
+    skipTour,
+  } = useOnboardingTour({
+    tourKey: 'dashboard-sidebar-tour',
+    isEligible: !isLoading && !!user,
+    autoShowForNewUsers: true,
+    newUserDays: 7,
+  });
 
   if (isLoading) {
     return <PageLoader />;
@@ -103,13 +149,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Itt láthatja a napi összefoglalót és a legfontosabb információkat.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Itt láthatja a napi összefoglalót és a legfontosabb információkat.
+          </p>
+        </div>
+        <TourHelpButton onClick={startTour} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -216,6 +265,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <OnboardingTour
+        steps={dashboardTourSteps}
+        isOpen={showTour}
+        onComplete={completeTour}
+        onSkip={skipTour}
+      />
     </div>
   );
 }
