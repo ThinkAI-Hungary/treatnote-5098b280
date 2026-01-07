@@ -31,16 +31,24 @@ const profileTourSteps: TourStep[] = [
     target: '#full_name',
     title: 'Teljes név',
     content: 'Adja meg a teljes nevét. Ez a név fog megjelenni a rendszerben és a dokumentumokban.',
+    position: 'bottom',
+  },
+  {
+    target: '#company',
+    title: 'Cég neve',
+    content: 'A cég hozzárendelést egy admin vagy klinika admin végezheti el. Ez határozza meg, mely adatokhoz fér hozzá.',
+    position: 'bottom',
+  },
+  {
+    target: '#telephely',
+    title: 'Telephely',
+    content: 'A telephely meghatározza, melyik helyszínhez tartozik. Ezt szintén az admin állítja be.',
+    position: 'bottom',
   },
   {
     target: '#phone',
     title: 'Telefonszám',
     content: 'Adja meg telefonszámát, hogy kollégái elérhessék Önt szükség esetén.',
-  },
-  {
-    target: '#company',
-    title: 'Cég információ',
-    content: 'A cég és telephely hozzárendelést egy admin vagy klinika admin végezheti el. Ez határozza meg, mely adatokhoz fér hozzá.',
     position: 'bottom',
   },
   {
