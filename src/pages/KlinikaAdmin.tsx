@@ -734,10 +734,20 @@ export default function KlinikaAdmin() {
           isOpen={showTour}
           onComplete={completeTour}
           onSkip={skipTour}
-          onStepChange={(step) => {
+          onStepChange={(step, stepIndex) => {
             // Switch to the appropriate tab when a step requires it
             if (step.switchToTab) {
               setActiveTab(step.switchToTab);
+            } else {
+              // Determine which tab this step belongs to based on the step targets
+              const isTagokStep = step.target.includes('new-user') || step.target.includes('users-table');
+              const isSzabalyokStep = step.target.includes('szabalyok');
+              
+              if (isTagokStep) {
+                setActiveTab('users');
+              } else if (isSzabalyokStep) {
+                setActiveTab('szabalyok');
+              }
             }
           }}
         />
