@@ -23,6 +23,33 @@ import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { X, Check, User, Building2, MapPin, Phone, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
+import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+
+const profileTourSteps: TourStep[] = [
+  {
+    target: '#full_name',
+    title: 'Teljes név',
+    content: 'Adja meg a teljes nevét. Ez a név fog megjelenni a rendszerben és a dokumentumokban.',
+  },
+  {
+    target: '#phone',
+    title: 'Telefonszám',
+    content: 'Adja meg telefonszámát, hogy kollégái elérhessék Önt szükség esetén.',
+  },
+  {
+    target: '#company',
+    title: 'Cég információ',
+    content: 'A cég és telephely hozzárendelést egy admin vagy klinika admin végezheti el. Ez határozza meg, mely adatokhoz fér hozzá.',
+    position: 'bottom',
+  },
+  {
+    target: '[data-tour="flexi-card"]',
+    title: 'Flexi-Dent Integráció',
+    content: 'Csatlakoztassa Flexi-Dent fiókját az adatok szinkronizálásához. Ez lehetővé teszi a páciensadatok és kezelések automatikus átvitelét.',
+    position: 'top',
+  },
+];
 
 interface FlexiAuth {
   flexi_username: string | null;
@@ -190,6 +217,18 @@ const Profile = () => {
     setLoading(false);
   };
 
+  const {
+    showTour,
+    startTour,
+    completeTour,
+    skipTour,
+  } = useOnboardingTour({
+    tourKey: 'profile-tour',
+    isEligible: dataReady && !!user,
+    autoShowForNewUsers: true,
+    newUserDays: 7,
+  });
+
   // Show loading spinner until all data is loaded
   if (authLoading || !dataReady) {
     return (
@@ -201,9 +240,12 @@ const Profile = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
-        <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Profil beállítások</h1>
+          <p className="text-muted-foreground mt-2">Fiók adatok kezelése</p>
+        </div>
+        <TourHelpButton onClick={startTour} />
       </div>
 
       <Card>
@@ -292,7 +334,7 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="flexi-card">
         <CardHeader>
           <CardTitle>Flexi-Dent Integráció</CardTitle>
           <CardDescription>Csatlakoztassa Flexi-Dent fiókját</CardDescription>
@@ -350,6 +392,13 @@ const Profile = () => {
       <FlexiConnectDialog 
         open={flexiDialogOpen} 
         onOpenChange={handleFlexiDialogClose} 
+      />
+
+      <OnboardingTour
+        steps={profileTourSteps}
+        isOpen={showTour}
+        onComplete={completeTour}
+        onSkip={skipTour}
       />
     </div>
   );
