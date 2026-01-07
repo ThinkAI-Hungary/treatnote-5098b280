@@ -12,10 +12,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw
 } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
@@ -48,6 +50,59 @@ export default function KlinikaAdmin() {
     refreshUsers,
     refreshInvitations,
   } = useKlinikaData();
+
+  // Onboarding tour for new klinika_admins
+  const tourSteps: TourStep[] = useMemo(() => [
+    {
+      target: '[data-tour="header"]',
+      title: 'Üdvözöljük a Klinika Admin felületen!',
+      content: 'Itt kezelheti a szervezetét, a tagokat és a szabályokat. Ez az útmutató bemutatja a főbb funkciókat.',
+      position: 'bottom',
+    },
+    {
+      target: '[data-tour="tabs"]',
+      title: 'Navigációs fülek',
+      content: 'Két fő terület van: a "Tagok" fül a felhasználók kezelésére, és a "Szabályok" fül a kezelési szabályok feltöltésére.',
+      position: 'bottom',
+    },
+    {
+      target: '[data-tour="new-user-button"]',
+      title: 'Új felhasználó létrehozása',
+      content: 'Ezen a gombon keresztül hozhat létre új felhasználókat, akik automatikusan az Ön szervezetéhez kerülnek. Megadhat email címet vagy egyszerű felhasználónevet.',
+      position: 'bottom',
+    },
+    {
+      target: '[data-tour="users-table"]',
+      title: 'Tagok listája',
+      content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket. A nem admin felhasználókat törölheti is.',
+      position: 'top',
+    },
+    {
+      target: '[data-tour="szabalyok-tab"]',
+      title: 'Szabályok kezelése',
+      content: 'A Szabályok fülön PDF formátumú kezelési szabályokat tölthet fel, amelyeket a rendszer feldolgoz és a hangfelvételeknél felhasznál.',
+      position: 'bottom',
+    },
+    {
+      target: '[data-tour="help-button"]',
+      title: 'Útmutató újraindítása',
+      content: 'Ha bármikor szeretné újra megnézni ezt az útmutatót, kattintson erre a gombra. Jó munkát!',
+      position: 'bottom',
+    },
+  ], []);
+
+  const {
+    showTour,
+    startTour,
+    completeTour,
+    skipTour,
+    isNewUser,
+  } = useOnboardingTour({
+    tourKey: 'klinika-admin',
+    isEligible: isKlinikaAdmin || isAdmin,
+    autoShowForNewUsers: true,
+    newUserDays: 7,
+  });
 
   // Email invitation state
   const [inviteEmail, setInviteEmail] = useState('');
@@ -311,31 +366,36 @@ export default function KlinikaAdmin() {
           style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
         >
           {/* Header section */}
-          <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
+          <div data-tour="header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
             <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
             <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
             
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
-                  <Building2 className="h-7 w-7 text-primary-foreground" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+                    <Building2 className="h-7 w-7 text-primary-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                    {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
+                  </h1>
+                  <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Organizáció kezelése
+                  </p>
                 </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                  {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
-                </h1>
-                <p className="text-muted-foreground mt-1 flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Organizáció kezelése
-                </p>
+              <div data-tour="help-button">
+                <TourHelpButton onClick={startTour} />
               </div>
             </div>
           </div>
 
           {/* Tabs with min-height to prevent layout jumps */}
           <Tabs defaultValue="users" className="space-y-6">
-            <TabsList className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
+            <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
               <TabsTrigger 
                 value="users" 
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
@@ -344,7 +404,8 @@ export default function KlinikaAdmin() {
                 Tagok
               </TabsTrigger>
               <TabsTrigger 
-                value="szabalyok" 
+                value="szabalyok"
+                data-tour="szabalyok-tab"
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
               >
                 <FileText className="h-4 w-4" />
@@ -362,7 +423,7 @@ export default function KlinikaAdmin() {
                   {companyId && telephelyId ? (
                     <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
                       <DialogTrigger asChild>
-                        <GalaxyButton>
+                        <GalaxyButton data-tour="new-user-button">
                           <Plus className="mr-2 h-4 w-4" />
                           Új felhasználó
                         </GalaxyButton>
@@ -467,7 +528,7 @@ export default function KlinikaAdmin() {
                 </div>
 
                 {users.length === 0 ? (
-                  <AnimatedCard>
+                  <AnimatedCard data-tour="users-table">
                     <CardContent className="flex flex-col items-center justify-center py-16">
                       <div className="relative mb-4">
                         <Users className="h-16 w-16 text-muted-foreground/30" />
@@ -477,7 +538,7 @@ export default function KlinikaAdmin() {
                     </CardContent>
                   </AnimatedCard>
                 ) : (
-                  <AnimatedCard className="overflow-hidden">
+                  <AnimatedCard data-tour="users-table" className="overflow-hidden">
                     <div className="rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-card">
@@ -551,6 +612,14 @@ export default function KlinikaAdmin() {
             </div>
           </Tabs>
         </div>
+
+        {/* Onboarding Tour */}
+        <OnboardingTour
+          steps={tourSteps}
+          isOpen={showTour}
+          onComplete={completeTour}
+          onSkip={skipTour}
+        />
       </div>
   );
 }
