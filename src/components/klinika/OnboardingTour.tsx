@@ -34,6 +34,13 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
 
+  // Reset to first step when tour opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0);
+    }
+  }, [isOpen]);
+
   const calculatePosition = useCallback(() => {
     if (!isOpen || steps.length === 0) return;
 
