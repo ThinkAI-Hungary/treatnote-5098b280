@@ -390,8 +390,6 @@ export default function KlinikaAdmin() {
             </div>
           </div>
 
-          {/* Tour help button - fixed position */}
-          {!showTour && <TourHelpButton onClick={startTour} />}
 
           {/* Tabs with min-height to prevent layout jumps */}
           <Tabs defaultValue="users" className="space-y-6">
@@ -612,6 +610,9 @@ export default function KlinikaAdmin() {
             </div>
           </Tabs>
         </div>
+
+        {/* Tour help button - fixed position at bottom right */}
+        {!showTour && <TourHelpButton onClick={startTour} />}
 
         {/* Onboarding Tour */}
         <OnboardingTour
