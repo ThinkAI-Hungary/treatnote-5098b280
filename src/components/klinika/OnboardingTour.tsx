@@ -10,7 +10,8 @@ export interface TourStep {
   title: string;
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
-  switchToTab?: string; // Optional: switch to this tab before showing step
+  switchToTab?: string; // Optional: switch to this tab before showing step (legacy)
+  requiredTab?: string; // Which tab this step belongs to (used for both forward and backward navigation)
 }
 
 interface OnboardingTourProps {
@@ -60,7 +61,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     }
 
     const rect = element.getBoundingClientRect();
-    const spotlightPadding = 12; // Padding around the spotlight
+    const spotlightPadding = 16; // Padding around the spotlight (enough to not clip text)
     
     // Store target rect for spotlight (with padding)
     const highlightRect = {

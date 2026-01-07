@@ -55,80 +55,58 @@ export default function KlinikaAdmin() {
   // Controlled tab state for tour navigation
   const [activeTab, setActiveTab] = useState('users');
 
-  // Base steps: always start with Welcome + Navigation
-  const baseSteps: TourStep[] = useMemo(() => [
+  // Build tour steps with requiredTab to know which tab each step belongs to
+  const tourSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="header"]',
       title: 'Üdvözöljük a Klinika Admin felületen!',
       content: 'Itt kezelheti a szervezetét, a tagokat és a szabályokat. Ez az útmutató bemutatja a főbb funkciókat.',
       position: 'bottom',
+      requiredTab: 'users', // Start on users tab
     },
     {
       target: '[data-tour="tabs"]',
       title: 'Navigációs fülek',
       content: 'Két fő terület van: a "Tagok" fül a felhasználók kezelésére, és a "Szabályok" fül a kezelési szabályok feltöltésére.',
       position: 'bottom',
+      requiredTab: 'users',
     },
-  ], []);
-
-  // Tagok-only steps (exclude header + tabs)
-  const tagokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="new-user-button"]',
       title: 'Új felhasználó létrehozása',
       content: 'Ezen a gombon keresztül hozhat létre új felhasználókat, akik automatikusan az Ön szervezetéhez kerülnek. Megadhat email címet vagy egyszerű felhasználónevet.',
       position: 'bottom',
+      requiredTab: 'users',
     },
     {
       target: '[data-tour="users-table"]',
       title: 'Tagok listája',
       content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket.',
       position: 'bottom',
+      requiredTab: 'users',
     },
-  ], []);
-
-  // Szabályok-only steps
-  const szabalyokSteps: TourStep[] = useMemo(() => [
     {
       target: '[data-tour="szabalyok-upload"]',
       title: 'PDF feltöltés',
       content: 'Itt tölthet fel kezelési szabályzatokat PDF formátumban. A rendszer automatikusan feldolgozza és kategorizálja a dokumentumokat.',
       position: 'bottom',
+      requiredTab: 'szabalyok',
     },
     {
       target: '[data-tour="szabalyok-table"]',
       title: 'Feltöltött szabályzatok',
       content: 'A feltöltött PDF-ek listája itt jelenik meg. Láthatja a feldolgozási státuszt, szerkesztheti a fogalmat, vagy megtekintheti a dokumentumot.',
       position: 'bottom',
+      requiredTab: 'szabalyok',
     },
     {
       target: '[data-tour="szabalyok-status"]',
       title: 'Feldolgozási státusz',
       content: 'A státusz oszlop mutatja, hogy a PDF feldolgozása folyamatban van, sikeres volt, vagy hiba történt. Hiba esetén újra próbálkozhat.',
       position: 'left',
+      requiredTab: 'szabalyok',
     },
   ], []);
-
-  // Build tour steps based on current tab - but ALWAYS start with base steps
-  const tourSteps: TourStep[] = useMemo(() => {
-    if (activeTab === 'szabalyok') {
-      // On Szabályok tab: base -> szabályok -> switch to tagok -> tagok
-      return [
-        ...baseSteps,
-        ...szabalyokSteps,
-        { ...tagokSteps[0], switchToTab: 'users' },
-        ...tagokSteps.slice(1),
-      ];
-    }
-
-    // On Tagok tab (default): base -> tagok -> switch to szabályok -> szabályok
-    return [
-      ...baseSteps,
-      ...tagokSteps,
-      { ...szabalyokSteps[0], switchToTab: 'szabalyok' },
-      ...szabalyokSteps.slice(1),
-    ];
-  }, [activeTab, baseSteps, tagokSteps, szabalyokSteps]);
 
   const {
     showTour,
@@ -735,9 +713,9 @@ export default function KlinikaAdmin() {
           onComplete={completeTour}
           onSkip={skipTour}
           onStepChange={(step) => {
-            // Switch to the appropriate tab when a step requires it
-            if (step.switchToTab) {
-              setActiveTab(step.switchToTab);
+            // Switch to the appropriate tab when a step requires it (works for both Next and Previous)
+            if (step.requiredTab) {
+              setActiveTab(step.requiredTab);
             }
           }}
         />
