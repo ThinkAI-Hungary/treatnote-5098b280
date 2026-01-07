@@ -61,7 +61,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
 
     const tooltipWidth = 350;
     const tooltipHeight = 200;
-    const gap = 20;
+    const gap = 24; // Increased gap to prevent overlap
 
     let top = 0;
     let left = 0;
@@ -73,31 +73,40 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
     const spaceLeft = rect.left;
     const spaceRight = window.innerWidth - rect.right;
 
-    if (step.position === 'top' || (!step.position && spaceAbove > tooltipHeight + gap)) {
+    // Minimum space required (tooltip + gap + extra padding)
+    const minSpaceVertical = tooltipHeight + gap + 20;
+    const minSpaceHorizontal = tooltipWidth + gap + 20;
+
+    if (step.position === 'top' || (!step.position && spaceAbove > minSpaceVertical)) {
       // Position above
       top = rect.top - tooltipHeight - gap;
       left = rect.left + rect.width / 2 - tooltipWidth / 2;
       arrow = 'bottom';
-    } else if (step.position === 'bottom' || (!step.position && spaceBelow > tooltipHeight + gap)) {
+    } else if (step.position === 'bottom' || (!step.position && spaceBelow > minSpaceVertical)) {
       // Position below
       top = rect.bottom + gap;
       left = rect.left + rect.width / 2 - tooltipWidth / 2;
       arrow = 'top';
-    } else if (step.position === 'left' || (!step.position && spaceLeft > tooltipWidth + gap)) {
+    } else if (step.position === 'left' || (!step.position && spaceLeft > minSpaceHorizontal)) {
       // Position left
       top = rect.top + rect.height / 2 - tooltipHeight / 2;
       left = rect.left - tooltipWidth - gap;
       arrow = 'right';
-    } else {
+    } else if (spaceRight > minSpaceHorizontal) {
       // Position right
       top = rect.top + rect.height / 2 - tooltipHeight / 2;
       left = rect.right + gap;
       arrow = 'left';
+    } else {
+      // Fallback: position below with adjusted gap, ensuring no overlap
+      top = rect.bottom + gap;
+      left = rect.left + rect.width / 2 - tooltipWidth / 2;
+      arrow = 'top';
     }
 
-    // Keep within viewport bounds
-    left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
-    top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
+    // Keep within viewport bounds with extra padding
+    left = Math.max(20, Math.min(left, window.innerWidth - tooltipWidth - 20));
+    top = Math.max(20, Math.min(top, window.innerHeight - tooltipHeight - 20));
 
     setTooltipPosition({ top, left });
     setArrowPosition(arrow);
@@ -209,18 +218,18 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
             />
           )}
 
-          {/* Animated pulse ring */}
+          {/* Animated pulse ring - outward only, then fade */}
           {targetRect && (
             <motion.div
-              initial={{ opacity: 0.8, scale: 1 }}
+              initial={{ opacity: 0.6, scale: 1 }}
               animate={{ 
-                opacity: [0.8, 0, 0.8], 
-                scale: [1, 1.15, 1] 
+                opacity: 0, 
+                scale: 1.2
               }}
               transition={{
-                duration: 2,
+                duration: 1.5,
                 repeat: Infinity,
-                ease: 'easeInOut',
+                ease: 'easeOut',
               }}
               className="fixed z-[9998] pointer-events-none rounded-xl border-2 border-primary"
               style={{
@@ -322,21 +331,27 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
   );
 }
 
-// Help button to restart the tour
+// Help button to restart the tour - styled like ThemeToggle, positioned bottom right
 interface TourHelpButtonProps {
   onClick: () => void;
 }
 
 export function TourHelpButton({ onClick }: TourHelpButtonProps) {
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
       onClick={onClick}
-      className="border-primary/20 hover:bg-primary/10 gap-2"
+      className={cn(
+        "fixed bottom-6 right-20 z-50",
+        "h-12 w-12 rounded-full",
+        "flex items-center justify-center",
+        "bg-gradient-to-br from-primary to-accent",
+        "shadow-lg transition-all duration-500 ease-out",
+        "hover:scale-110 hover:shadow-xl",
+        "shadow-[0_0_20px_hsl(var(--primary)/0.4),0_0_40px_hsl(var(--accent)/0.2)]"
+      )}
+      aria-label="Útmutató megnyitása"
     >
-      <HelpCircle className="h-4 w-4" />
-      Útmutató
-    </Button>
+      <HelpCircle className="h-5 w-5 text-primary-foreground" />
+    </button>
   );
 }
