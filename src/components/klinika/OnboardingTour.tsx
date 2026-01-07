@@ -221,14 +221,16 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
           {/* Animated pulse ring - outward only, then fade */}
           {targetRect && (
             <motion.div
-              initial={{ opacity: 0.6, scale: 1 }}
+              key={currentStep} // Reset animation on step change
+              initial={{ opacity: 0.5, scale: 1 }}
               animate={{ 
-                opacity: 0, 
-                scale: 1.2
+                opacity: [0.5, 0], 
+                scale: [1, 1.15]
               }}
               transition={{
-                duration: 1.5,
+                duration: 1.2,
                 repeat: Infinity,
+                repeatDelay: 0.3, // Small delay before next pulse
                 ease: 'easeOut',
               }}
               className="fixed z-[9998] pointer-events-none rounded-xl border-2 border-primary"
