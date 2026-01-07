@@ -212,10 +212,16 @@ serve(async (req) => {
       });
     }
 
-    // If admin without company/telephely, return empty data for get-users
+    // If admin without company/telephely, return empty data for certain operations
     if (!hasCompanyAndTelephely) {
       if (operation === 'get-users') {
         return new Response(JSON.stringify({ users: [], companyName: null, telephelyName: null, message: "No company/telephely assigned" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (operation === 'get-sent-invitations') {
+        return new Response(JSON.stringify({ invitations: [], message: "No company/telephely assigned" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
