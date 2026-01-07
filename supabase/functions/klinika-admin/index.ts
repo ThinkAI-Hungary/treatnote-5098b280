@@ -822,9 +822,33 @@ serve(async (req) => {
           });
         }
 
-        // Find the user by email
-        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-        const targetUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        // Find the user by email - use pagination to find all users
+        let targetUser = null;
+        let page = 1;
+        const perPage = 1000;
+        
+        while (!targetUser) {
+          const { data: { users: authUsers }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+            page,
+            perPage,
+          });
+          
+          if (listError) {
+            console.error("Error listing users:", listError);
+            return new Response(JSON.stringify({ error: "Failed to search for user" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
+          targetUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+          
+          if (!authUsers || authUsers.length < perPage) {
+            // No more pages
+            break;
+          }
+          page++;
+        }
         
         if (!targetUser) {
           return new Response(JSON.stringify({ error: "User not found with this email" }), {
