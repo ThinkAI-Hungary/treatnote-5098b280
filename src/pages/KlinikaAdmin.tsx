@@ -15,6 +15,7 @@ import {
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
+import { normalizeHungarianString } from '@/lib/hungarianNormalizer';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
@@ -251,11 +252,12 @@ export default function KlinikaAdmin() {
       return;
     }
 
-    // Auto-complete email domain using company slug
-    const sanitizedCompanyName = companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local';
+    // Auto-complete email domain using company slug (normalize Hungarian chars, remove spaces, lowercase)
+    const sanitizedCompanyName = normalizeHungarianString(companyName || 'local').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const sanitizedUsername = normalizeHungarianString(newUserEmail).toLowerCase().replace(/[^a-z0-9]/g, '');
     const finalEmail = newUserEmail.includes('@') 
       ? newUserEmail 
-      : `${newUserEmail}@${sanitizedCompanyName}.com`;
+      : `${sanitizedUsername}@${sanitizedCompanyName}.com`;
 
     setCreatingUser(true);
     try {
