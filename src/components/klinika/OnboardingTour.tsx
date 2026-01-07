@@ -85,10 +85,12 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     };
 
     // Clamp spotlight to viewport so it never renders outside the screen (prevents top clipping)
-    const clampedTop = Math.max(24, highlightRect.top);
+    // Small upward nudge so the glow doesn't visually clip at the very top.
+    const spotlightYOffset = 10;
+    const clampedTop = Math.max(24, highlightRect.top - spotlightYOffset);
     const clampedLeft = Math.max(24, highlightRect.left);
     const clampedRight = Math.min(window.innerWidth - 24, highlightRect.right);
-    const clampedBottom = Math.min(window.innerHeight - 24, highlightRect.bottom);
+    const clampedBottom = Math.min(window.innerHeight - 24, highlightRect.bottom - spotlightYOffset);
 
     setTargetRect({
       top: clampedTop,
