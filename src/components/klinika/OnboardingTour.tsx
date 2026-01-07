@@ -19,10 +19,18 @@ interface OnboardingTourProps {
   onSkip: () => void;
 }
 
+interface TargetRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
 export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
+  const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
 
   const calculatePosition = useCallback(() => {
     if (!isOpen || steps.length === 0) return;
@@ -36,13 +44,24 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
         top: window.innerHeight / 2 - 100,
         left: window.innerWidth / 2 - 175,
       });
+      setTargetRect(null);
       return;
     }
 
     const rect = element.getBoundingClientRect();
+    const padding = 8;
+    
+    // Store target rect for spotlight
+    setTargetRect({
+      top: rect.top - padding,
+      left: rect.left - padding,
+      width: rect.width + padding * 2,
+      height: rect.height + padding * 2,
+    });
+
     const tooltipWidth = 350;
-    const tooltipHeight = 180;
-    const padding = 16;
+    const tooltipHeight = 200;
+    const gap = 20;
 
     let top = 0;
     let left = 0;
@@ -54,31 +73,31 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
     const spaceLeft = rect.left;
     const spaceRight = window.innerWidth - rect.right;
 
-    if (step.position === 'top' || (!step.position && spaceAbove > tooltipHeight + padding)) {
+    if (step.position === 'top' || (!step.position && spaceAbove > tooltipHeight + gap)) {
       // Position above
-      top = rect.top - tooltipHeight - padding;
+      top = rect.top - tooltipHeight - gap;
       left = rect.left + rect.width / 2 - tooltipWidth / 2;
       arrow = 'bottom';
-    } else if (step.position === 'bottom' || (!step.position && spaceBelow > tooltipHeight + padding)) {
+    } else if (step.position === 'bottom' || (!step.position && spaceBelow > tooltipHeight + gap)) {
       // Position below
-      top = rect.bottom + padding;
+      top = rect.bottom + gap;
       left = rect.left + rect.width / 2 - tooltipWidth / 2;
       arrow = 'top';
-    } else if (step.position === 'left' || (!step.position && spaceLeft > tooltipWidth + padding)) {
+    } else if (step.position === 'left' || (!step.position && spaceLeft > tooltipWidth + gap)) {
       // Position left
       top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      left = rect.left - tooltipWidth - padding;
+      left = rect.left - tooltipWidth - gap;
       arrow = 'right';
     } else {
       // Position right
       top = rect.top + rect.height / 2 - tooltipHeight / 2;
-      left = rect.right + padding;
+      left = rect.right + gap;
       arrow = 'left';
     }
 
     // Keep within viewport bounds
-    left = Math.max(padding, Math.min(left, window.innerWidth - tooltipWidth - padding));
-    top = Math.max(padding, Math.min(top, window.innerHeight - tooltipHeight - padding));
+    left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
+    top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
 
     setTooltipPosition({ top, left });
     setArrowPosition(arrow);
@@ -127,35 +146,88 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip }: Onboarding
 
   const step = steps[currentStep];
 
-  // Highlight the target element
-  const targetElement = document.querySelector(step.target);
-
   return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay */}
+          {/* SVG Overlay with cutout for spotlight */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
-            onClick={handleSkip}
-          />
+            className="fixed inset-0 z-[9998]"
+          >
+            <svg className="w-full h-full">
+              <defs>
+                <mask id="spotlight-mask">
+                  {/* White = visible, Black = hidden */}
+                  <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                  {targetRect && (
+                    <rect
+                      x={targetRect.left}
+                      y={targetRect.top}
+                      width={targetRect.width}
+                      height={targetRect.height}
+                      rx="12"
+                      fill="black"
+                    />
+                  )}
+                </mask>
+              </defs>
+              {/* Dark overlay with cutout */}
+              <rect
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                fill="rgba(0, 0, 0, 0.85)"
+                mask="url(#spotlight-mask)"
+              />
+            </svg>
+          </motion.div>
 
-          {/* Highlight spotlight */}
-          {targetElement && (
+          {/* Glowing border around target */}
+          {targetRect && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed z-[9999] pointer-events-none rounded-lg ring-4 ring-primary ring-offset-4 ring-offset-background"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed z-[9999] pointer-events-none rounded-xl"
               style={{
-                top: targetElement.getBoundingClientRect().top - 4,
-                left: targetElement.getBoundingClientRect().left - 4,
-                width: targetElement.getBoundingClientRect().width + 8,
-                height: targetElement.getBoundingClientRect().height + 8,
-                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6)',
+                top: targetRect.top,
+                left: targetRect.left,
+                width: targetRect.width,
+                height: targetRect.height,
+                boxShadow: `
+                  0 0 0 3px hsl(var(--primary)),
+                  0 0 20px 4px hsl(var(--primary) / 0.5),
+                  0 0 40px 8px hsl(var(--accent) / 0.3),
+                  inset 0 0 20px 4px hsl(var(--primary) / 0.1)
+                `,
+                background: 'transparent',
+              }}
+            />
+          )}
+
+          {/* Animated pulse ring */}
+          {targetRect && (
+            <motion.div
+              initial={{ opacity: 0.8, scale: 1 }}
+              animate={{ 
+                opacity: [0.8, 0, 0.8], 
+                scale: [1, 1.15, 1] 
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="fixed z-[9998] pointer-events-none rounded-xl border-2 border-primary"
+              style={{
+                top: targetRect.top,
+                left: targetRect.left,
+                width: targetRect.width,
+                height: targetRect.height,
               }}
             />
           )}
