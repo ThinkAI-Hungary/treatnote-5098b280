@@ -81,7 +81,7 @@ export default function KlinikaAdmin() {
     {
       target: '[data-tour="users-table"]',
       title: 'Tagok listája',
-      content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket. A nem admin felhasználókat törölheti is.',
+      content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket.',
       position: 'bottom',
     },
   ], []);
