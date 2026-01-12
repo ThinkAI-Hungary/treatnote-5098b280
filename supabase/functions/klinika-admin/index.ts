@@ -723,7 +723,7 @@ serve(async (req) => {
             const userName = fullName || email.split("@")[0];
             const sanitizedUser = sanitize(userName);
             
-            const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Users/${sanitizedUser}`;
+            const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
             
             // Create folder by uploading a placeholder file
             const { error: storageError } = await supabaseAdmin.storage
