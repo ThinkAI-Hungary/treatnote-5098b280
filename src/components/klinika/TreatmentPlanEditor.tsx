@@ -26,6 +26,7 @@ interface TreatmentItem {
   name: string;
   qty: number;
   unit: string;
+  target_tooth_type?: string;
 }
 
 interface Visit {
@@ -154,7 +155,7 @@ export function TreatmentPlanEditor({
   const addItem = (visitIndex: number) => {
     setVisits(prev => prev.map((visit, vi) => {
       if (vi !== visitIndex) return visit;
-      return { ...visit, items: [...visit.items, { name: '', qty: 1, unit: 'db' }] };
+      return { ...visit, items: [...visit.items, { name: '', qty: 1, unit: 'db', target_tooth_type: '' }] };
     }));
   };
 
@@ -343,6 +344,14 @@ export function TreatmentPlanEditor({
                           onChange={(e) => updateItem(visitIndex, itemIndex, 'unit', e.target.value)}
                           placeholder="egység"
                           className="w-20 h-8"
+                        />
+                        
+                        <Input
+                          value={item.target_tooth_type ?? ''}
+                          onChange={(e) => updateItem(visitIndex, itemIndex, 'target_tooth_type', e.target.value)}
+                          placeholder="Fog típus"
+                          className="w-24 h-8"
+                          title="Target tooth type"
                         />
                         
                         <div className="flex items-center gap-1">
