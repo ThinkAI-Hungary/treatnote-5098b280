@@ -7,7 +7,7 @@ import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileUp, Trash2, Loader2, FileText, Info, Eye, RefreshCw } from 'lucide-react';
+import { FileUp, Trash2, Loader2, FileText, Info, Eye, RefreshCw, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TreatmentPlanEditor } from './TreatmentPlanEditor';
 
 interface ExtractionRecord {
   id: string;
@@ -61,6 +62,10 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
   // Details dialog state
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ExtractionRecord | null>(null);
+  
+  // Editor dialog state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ExtractionRecord | null>(null);
 
   const loadRecords = useCallback(async () => {
     if (!companyId || !telephelyId) return;
@@ -210,6 +215,11 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
     setDetailsDialogOpen(true);
   };
 
+  const openEditor = (record: ExtractionRecord) => {
+    setEditingRecord(record);
+    setEditorOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Upload area */}
@@ -351,6 +361,14 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => openEditor(record)}
+                    title="Szerkesztés"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => openDeleteConfirm(record.id, e)}
                     disabled={deletingId === record.id}
                     title="Törlés"
@@ -439,6 +457,19 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Treatment Plan Editor */}
+      {editingRecord && (
+        <TreatmentPlanEditor
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          recordId={editingRecord.id}
+          fogalom={editingRecord.fogalom}
+          sourceFileName={editingRecord.source_file_name}
+          initialData={editingRecord.parsed_json}
+          onSave={loadRecords}
+        />
+      )}
     </div>
   );
 }
