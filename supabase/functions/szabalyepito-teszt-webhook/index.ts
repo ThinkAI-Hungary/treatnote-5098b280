@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,8 +64,18 @@ interface WebhookPayload {
 
 interface SuccessResponse {
   ok: true;
-  status: 'sent';
+  status: 'sent' | 'processed';
   event_id: string;
+  inserted?: number;
+  duplicates?: number;
+}
+
+interface ExtractionItem {
+  fogalom: string;
+  kategoria?: string;
+  trigger_words?: string[];
+  file_name?: string;
+  parsed?: Record<string, unknown>;
 }
 
 interface ErrorResponse {
@@ -220,13 +231,91 @@ serve(async (req) => {
               continue;
             }
           } else {
-            // Success!
+            // Check if n8n returned extractions synchronously
+            if (responseData.extractions && Array.isArray(responseData.extractions)) {
+              console.log(`n8n returned ${responseData.extractions.length} extractions synchronously, processing...`);
+              
+              // Initialize Supabase client with service role
+              const supabaseUrl = Deno.env.get('SUPABASE_URL');
+              const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+              
+              if (!supabaseUrl || !supabaseServiceKey) {
+                console.error('Missing Supabase credentials for DB insert');
+                const errorResponse: ErrorResponse = {
+                  ok: false,
+                  status: 'error',
+                  code: 'CONFIG_ERROR',
+                  message: 'Supabase configuration missing',
+                  event_id: eventId,
+                };
+                return new Response(JSON.stringify(errorResponse), {
+                  status: 500,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
+
+              const supabase = createClient(supabaseUrl, supabaseServiceKey);
+              const extractions = responseData.extractions as ExtractionItem[];
+              let insertedCount = 0;
+              let duplicateCount = 0;
+
+              for (const extraction of extractions) {
+                if (!extraction.fogalom) {
+                  console.log('Skipping extraction without fogalom');
+                  continue;
+                }
+
+                const record = {
+                  event_id: eventId,
+                  source_file_name: file_name,
+                  fogalom: extraction.fogalom,
+                  kategoria: extraction.kategoria || null,
+                  trigger_words: extraction.trigger_words || null,
+                  parsed_file_name: extraction.file_name || null,
+                  parsed_json: extraction.parsed || {},
+                  company_id,
+                  telephely_id,
+                  uploaded_by: uploaded_by || null,
+                };
+
+                console.log(`Inserting extraction: ${extraction.fogalom}`);
+                const { error: insertError } = await supabase
+                  .from('szabalyepito_teszt_extractions')
+                  .insert(record);
+
+                if (insertError) {
+                  if (insertError.code === '23505') {
+                    console.log(`Duplicate detected for fogalom: ${extraction.fogalom}`);
+                    duplicateCount++;
+                  } else {
+                    console.error('Insert error:', insertError);
+                  }
+                } else {
+                  insertedCount++;
+                }
+              }
+
+              console.log(`Processing complete: ${insertedCount} inserted, ${duplicateCount} duplicates`);
+              const successResponse: SuccessResponse = {
+                ok: true,
+                status: 'processed',
+                event_id: eventId,
+                inserted: insertedCount,
+                duplicates: duplicateCount,
+              };
+              return new Response(JSON.stringify(successResponse), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+
+            // No extractions in response, just acknowledge sent
             const successResponse: SuccessResponse = {
               ok: true,
               status: 'sent',
               event_id: eventId,
             };
-            console.log('Webhook successful:', JSON.stringify(successResponse));
+            console.log('Webhook successful (no extractions):', JSON.stringify(successResponse));
             return new Response(JSON.stringify(successResponse), {
               status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
