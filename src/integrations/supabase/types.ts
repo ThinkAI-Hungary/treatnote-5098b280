@@ -771,6 +771,66 @@ export type Database = {
           },
         ]
       }
+      szabalyepito_teszt_extractions: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          event_id: string
+          fogalom: string
+          id: string
+          kategoria: string | null
+          parsed_file_name: string | null
+          parsed_json: Json
+          source_file_name: string
+          telephely_id: string | null
+          trigger_words: Json | null
+          uploaded_by: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          event_id: string
+          fogalom: string
+          id?: string
+          kategoria?: string | null
+          parsed_file_name?: string | null
+          parsed_json: Json
+          source_file_name: string
+          telephely_id?: string | null
+          trigger_words?: Json | null
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          event_id?: string
+          fogalom?: string
+          id?: string
+          kategoria?: string | null
+          parsed_file_name?: string | null
+          parsed_json?: Json
+          source_file_name?: string
+          telephely_id?: string | null
+          trigger_words?: Json | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szabalyepito_teszt_extractions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "szabalyepito_teszt_extractions_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teeth: {
         Row: {
           bridge: string

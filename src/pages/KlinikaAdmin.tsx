@@ -24,6 +24,7 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { SzabalyokTab } from '@/components/klinika/SzabalyokTab';
+import { SzabalyepitoTesztTab } from '@/components/klinika/SzabalyepitoTesztTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -491,6 +492,13 @@ export default function KlinikaAdmin() {
                 <FileText className="h-4 w-4" />
                 Szabályok
               </TabsTrigger>
+              <TabsTrigger 
+                value="szabalyepito-teszt"
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+              >
+                <FileText className="h-4 w-4" />
+                Szabályrendszerépítő Teszt
+              </TabsTrigger>
             </TabsList>
 
             {/* Tab content with min-height to prevent layout jumps */}
@@ -693,6 +701,15 @@ export default function KlinikaAdmin() {
 
               <TabsContent value="szabalyok" className="mt-0">
                 <SzabalyokTab 
+                  companyId={companyId} 
+                  telephelyId={telephelyId} 
+                  companyName={companyName}
+                  telephelyName={telephelyName}
+                />
+              </TabsContent>
+
+              <TabsContent value="szabalyepito-teszt" className="mt-0">
+                <SzabalyepitoTesztTab 
                   companyId={companyId} 
                   telephelyId={telephelyId} 
                   companyName={companyName}
