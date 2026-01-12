@@ -218,15 +218,15 @@ export function TreatmentPlanEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Kezelési terv szerkesztése</DialogTitle>
           <DialogDescription>
             {fogalom} • Forrás: {sourceFileName}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4 max-h-[60vh]">
+        <ScrollArea className="flex-1 min-h-0 pr-4">
           <div className="space-y-4">
             {visits.map((visit, visitIndex) => (
               <Card 
