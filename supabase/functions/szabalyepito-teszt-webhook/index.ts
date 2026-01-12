@@ -231,9 +231,12 @@ serve(async (req) => {
               continue;
             }
           } else {
-            // Check if n8n returned extractions synchronously
-            if (responseData.extractions && Array.isArray(responseData.extractions)) {
-              console.log(`n8n returned ${responseData.extractions.length} extractions synchronously, processing...`);
+            // Check if n8n returned extractions synchronously (handle both direct and nested in body)
+            const extractionsData = responseData.extractions 
+              || (responseData.body as Record<string, unknown>)?.extractions;
+            
+            if (extractionsData && Array.isArray(extractionsData)) {
+              console.log(`n8n returned ${extractionsData.length} extractions synchronously, processing...`);
               
               // Initialize Supabase client with service role
               const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -255,7 +258,7 @@ serve(async (req) => {
               }
 
               const supabase = createClient(supabaseUrl, supabaseServiceKey);
-              const extractions = responseData.extractions as ExtractionItem[];
+              const extractions = extractionsData as ExtractionItem[];
               let insertedCount = 0;
               let duplicateCount = 0;
 
