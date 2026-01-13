@@ -29,6 +29,26 @@ serve(async (req) => {
       throw new Error("Missing required fields: telephely_id, company_id, user_id");
     }
 
+    // Check if szotar already exists
+    const { data: existingSzotar } = await supabase
+      .from('szotar')
+      .select('id')
+      .eq('telephely_id', telephely_id)
+      .maybeSingle();
+    
+    const szotar_exists = !!existingSzotar;
+
+    // Fetch flexi credentials for the user
+    const { data: flexiAuth, error: flexiError } = await supabase
+      .from('flexi_auth')
+      .select('flexi_username, flexi_pw')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (flexiError) {
+      console.error('Error fetching flexi auth:', flexiError);
+    }
+
     // Fetch treatment_rules and related data for this telephely
     const { data: rules, error: rulesError } = await supabase
       .from('treatment_rules')
@@ -76,6 +96,11 @@ serve(async (req) => {
       company_id,
       user_id,
       regenerate,
+      szotar_exists,
+      flexi_credentials: flexiAuth ? {
+        username: flexiAuth.flexi_username,
+        password: flexiAuth.flexi_pw,
+      } : null,
       treatment_rules: rules || [],
       szabalyok_pdf: pdfData || [],
       callback_url: `${supabaseUrl}/functions/v1/szotar-callback`,
