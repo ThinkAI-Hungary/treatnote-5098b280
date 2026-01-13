@@ -215,33 +215,33 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Próba user button */}
-              <Button
-                variant="outline"
-                onClick={() => setProbaPaciensDialogOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <User className="h-4 w-4" />
-                Próba user
-                {hasProbaPaciens && (
-                  <Badge variant="secondary" className="ml-1 bg-emerald-500/10 text-emerald-600">
-                    <CheckCircle className="h-3 w-3" />
-                  </Badge>
-                )}
-              </Button>
-
               {/* Szótár készítése button */}
               {buttonState.showFlexiWarning ? (
                 <div className="flex flex-col items-end gap-2">
-                  <Button
-                    disabled
-                    variant="outline"
-                    className="opacity-50 cursor-not-allowed"
-                  >
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                  </Button>
-                  <p className="text-xs text-muted-foreground max-w-[200px] text-right">
+                  <div className="flex items-center gap-0">
+                    <Button
+                      disabled
+                      variant="outline"
+                      className="opacity-50 cursor-not-allowed rounded-r-none border-r-0"
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setProbaPaciensDialogOpen(true)}
+                      className="rounded-l-none"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Próba user
+                      {hasProbaPaciens && (
+                        <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
+                          <CheckCircle className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground max-w-[300px] text-right">
                     Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
                     <Link 
                       to="/profile?openFlexi=true" 
@@ -252,51 +252,71 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                   </p>
                 </div>
               ) : buttonState.tooltip ? (
-                <div className="flex flex-col items-end gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>
-                          <Button
-                            disabled
-                            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 opacity-50 cursor-not-allowed"
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-xs">
-                        <p>{buttonState.tooltip}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <p className="text-xs text-muted-foreground max-w-[250px] text-right">
-                    <Link 
-                      to="/klinika-admin?tab=szotar&openProba=true" 
-                      className="underline text-primary hover:text-primary/80"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setProbaPaciensDialogOpen(true);
-                      }}
-                    >
-                      Kérem adjon meg egy próba páciens nevet!
-                    </Link>
-                  </p>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-0">
+                        <Button
+                          disabled
+                          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 opacity-50 cursor-not-allowed rounded-r-none"
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+                        </Button>
+                        <Button
+                          onClick={() => setProbaPaciensDialogOpen(true)}
+                          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Próba user
+                          {hasProbaPaciens && (
+                            <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
+                              <CheckCircle className="h-3 w-3" />
+                            </Badge>
+                          )}
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p>
+                        <button
+                          onClick={() => setProbaPaciensDialogOpen(true)}
+                          className="underline text-primary hover:text-primary/80 cursor-pointer"
+                        >
+                          Kérem adjon meg egy próba páciens nevet
+                        </button>
+                        {' '}az elengedhetetlen tesztek futtatásához.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               ) : (
-                <Button
-                  onClick={handleGenerateSzotar}
-                  disabled={buttonState.disabled}
-                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                >
-                  {generating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                </Button>
+                <div className="flex items-center gap-0">
+                  <Button
+                    onClick={handleGenerateSzotar}
+                    disabled={buttonState.disabled}
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-r-none"
+                  >
+                    {generating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+                  </Button>
+                  <Button
+                    onClick={() => setProbaPaciensDialogOpen(true)}
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Próba user
+                    {hasProbaPaciens && (
+                      <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
+                        <CheckCircle className="h-3 w-3" />
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
           </div>
