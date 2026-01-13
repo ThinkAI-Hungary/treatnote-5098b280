@@ -50,40 +50,47 @@ serve(async (req) => {
       console.error('Error fetching flexi auth:', flexiError);
     }
 
-    // Decrypt password if encrypted
+    // Decrypt password using AES-GCM (same as encryption in flexi-connect)
     let decryptedPassword: string | null = null;
     if (flexiAuth?.flexi_pw && encryptionKey) {
       try {
-        const [ivHex, encryptedHex] = flexiAuth.flexi_pw.split(':');
-        if (ivHex && encryptedHex) {
-          const iv = new Uint8Array(ivHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
-          const encryptedData = new Uint8Array(encryptedHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
-          
-          const keyData = new TextEncoder().encode(encryptionKey.padEnd(32, '0').slice(0, 32));
-          const cryptoKey = await crypto.subtle.importKey(
-            'raw',
-            keyData,
-            { name: 'AES-CBC' },
-            false,
-            ['decrypt']
-          );
-          
-          const decrypted = await crypto.subtle.decrypt(
-            { name: 'AES-CBC', iv },
-            cryptoKey,
-            encryptedData
-          );
-          
-          decryptedPassword = new TextDecoder().decode(decrypted);
-        }
+        // Decode the base64 encrypted data (IV + ciphertext + auth tag)
+        const combined = Uint8Array.from(atob(flexiAuth.flexi_pw), c => c.charCodeAt(0));
+        
+        // First 12 bytes are IV (as used in AES-GCM encryption)
+        const iv = combined.slice(0, 12);
+        const encryptedData = combined.slice(12);
+        
+        // Decode the base64 key
+        const keyData = Uint8Array.from(atob(encryptionKey), c => c.charCodeAt(0));
+        
+        // Import the key for AES-GCM decryption
+        const cryptoKey = await crypto.subtle.importKey(
+          'raw',
+          keyData,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['decrypt']
+        );
+        
+        // Decrypt
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          cryptoKey,
+          encryptedData
+        );
+        
+        decryptedPassword = new TextDecoder().decode(decrypted);
+        console.log('Password decrypted successfully');
       } catch (decryptError) {
         console.error('Error decrypting password:', decryptError);
-        // If decryption fails, password might be stored in plain text
-        decryptedPassword = flexiAuth.flexi_pw;
+        // Don't fall back to plain text - encryption is required
+        decryptedPassword = null;
       }
     } else if (flexiAuth?.flexi_pw) {
-      // No encryption key, assume plain text
-      decryptedPassword = flexiAuth.flexi_pw;
+      // No encryption key configured
+      console.error('FLEXI_ENCRYPTION_KEY not configured');
+      decryptedPassword = null;
     }
 
     // Fetch treatment_rules and related data for this telephely
