@@ -13,6 +13,7 @@ import {
   Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw, Pencil
 } from 'lucide-react';
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { normalizeHungarianString } from '@/lib/hungarianNormalizer';
@@ -56,9 +57,30 @@ export default function KlinikaAdmin() {
     refreshInvitations,
   } = useKlinikaData();
 
+  // URL search params for tab navigation
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // Controlled tab state for tour navigation
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabParam = searchParams.get('tab');
+    return tabParam && ['users', 'szabalyok', 'szabalyepito-teszt', 'kezelesi-szabalyok', 'szotar'].includes(tabParam) 
+      ? tabParam 
+      : 'users';
+  });
 
+  // Sync tab from URL param on mount and when URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['users', 'szabalyok', 'szabalyepito-teszt', 'kezelesi-szabalyok', 'szotar'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  }, [setSearchParams]);
   // Build tour steps with requiredTab to know which tab each step belongs to
   const tourSteps: TourStep[] = useMemo(() => [
     {
@@ -478,7 +500,7 @@ export default function KlinikaAdmin() {
 
 
           {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
               <TabsTrigger 
                 value="users" 

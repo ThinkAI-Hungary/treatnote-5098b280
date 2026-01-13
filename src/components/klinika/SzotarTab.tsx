@@ -3,11 +3,13 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from '@/component
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, LinkIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { toast } from 'sonner';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
+import { Link } from 'react-router-dom';
 
 interface SzotarTabProps {
   companyId: string | null;
@@ -26,6 +28,7 @@ interface SzotarData {
 
 export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }: SzotarTabProps) {
   const { user } = useAuth();
+  const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -146,18 +149,40 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 </CardDescription>
               </div>
             </div>
-            <Button
-              onClick={handleGenerateSzotar}
-              disabled={generating}
-              className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
-            >
-              {generating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-            </Button>
+            {!isFlexiConnected && !flexiLoading ? (
+              <div className="flex flex-col items-end gap-2">
+                <Button
+                  disabled
+                  variant="outline"
+                  className="opacity-50 cursor-not-allowed"
+                >
+                  <LinkIcon className="mr-2 h-4 w-4" />
+                  {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+                </Button>
+                <p className="text-xs text-muted-foreground max-w-[200px] text-right">
+                  Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+                  <Link 
+                    to="/profile?openFlexi=true" 
+                    className="underline text-primary hover:text-primary/80"
+                  >
+                    kérem csatolja hozzá fiókját itt!
+                  </Link>
+                </p>
+              </div>
+            ) : (
+              <Button
+                onClick={handleGenerateSzotar}
+                disabled={generating || flexiLoading}
+                className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              >
+                {generating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+              </Button>
+            )}
           </div>
         </CardHeader>
       </AnimatedCard>

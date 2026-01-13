@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import {
   User,
   Mic,
@@ -6,6 +7,7 @@ import {
   Shield,
   Building2,
   Home,
+  Loader2,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +15,10 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
+import { useProfile } from '@/hooks/useProfile';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Sidebar,
   SidebarContent,
@@ -140,8 +145,10 @@ export function AppSidebar() {
   const { isConnected: isFlexiConnected } = useFlexiConnection();
   const { hasSzotar, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
+  const { profile } = useProfile();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
+  const [generatingSzotar, setGeneratingSzotar] = useState(false);
 
   // Don't render content until roles are fully loaded to prevent menu jumping
   if (!isInitialized) {
@@ -177,19 +184,72 @@ export function AppSidebar() {
     navigate('/profile?openFlexi=true');
   };
 
+  // Handle clicking szotar creation link for klinika admins
+  const handleSzotarCreationClick = useCallback(async () => {
+    if (!profile?.telephely_id || !profile?.company_id || !user) {
+      navigate('/klinika-admin?tab=szotar');
+      return;
+    }
+
+    setGeneratingSzotar(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('szotar-webhook', {
+        body: {
+          telephely_id: profile.telephely_id,
+          company_id: profile.company_id,
+          user_id: user.id,
+          regenerate: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Szótár készítése elindítva!');
+      } else {
+        throw new Error(data?.error || 'Ismeretlen hiba');
+      }
+    } catch (err: any) {
+      console.error('Error generating szotar:', err);
+      toast.error('Hiba a szótár generálásakor: ' + (err.message || 'Ismeretlen hiba'));
+    } finally {
+      setGeneratingSzotar(false);
+      navigate('/klinika-admin?tab=szotar');
+    }
+  }, [profile, user, navigate]);
+
   // Build disabled content for szotar missing
   const buildSzotarDisabledContent = () => {
     if (isKlinikaAdmin || isAdmin) {
+      // Check if flexi is connected - if not, show different message
+      if (!isFlexiConnected) {
+        return (
+          <p className="text-sm">
+            Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+            <button
+              onClick={handleFlexiLinkClick}
+              className="underline text-primary hover:text-primary/80 font-medium"
+            >
+              kérem csatolja hozzá fiókját itt!
+            </button>
+          </p>
+        );
+      }
+      
       return (
-        <p className="text-sm">
-          Nem található szótár a telephelynél -{' '}
-          <Link
-            to="/klinika-admin?tab=szotar"
-            className="underline text-primary hover:text-primary/80 font-medium"
-          >
-            kattintson ide a létrehozáshoz
-          </Link>
-        </p>
+        <div className="text-sm">
+          <p>
+            Nem található szótár a telephelynél -{' '}
+            <button
+              onClick={handleSzotarCreationClick}
+              disabled={generatingSzotar}
+              className="underline text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1"
+            >
+              {generatingSzotar && <Loader2 className="h-3 w-3 animate-spin" />}
+              kattintson ide a létrehozáshoz
+            </button>
+          </p>
+        </div>
       );
     }
     
