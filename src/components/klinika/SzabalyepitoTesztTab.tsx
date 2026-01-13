@@ -151,13 +151,33 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
     }
   };
 
+  const handleMultipleFiles = async (fileList: FileList) => {
+    const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
+    
+    if (pdfFiles.length === 0) {
+      toast.error('Csak PDF fájlok tölthetők fel!');
+      return;
+    }
+    
+    if (pdfFiles.length < fileList.length) {
+      toast.warning(`${fileList.length - pdfFiles.length} fájl kihagyva (nem PDF)`);
+    }
+    
+    // Process all PDFs in parallel
+    const uploadPromises = pdfFiles.map(file => handleFilePrepare(file));
+    await Promise.all(uploadPromises);
+    
+    // Reload records after all uploads complete
+    setTimeout(() => loadRecords(), 2000);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleFilePrepare(files[0]);
+      handleMultipleFiles(files);
     }
   };
 
@@ -174,7 +194,7 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleFilePrepare(files[0]);
+      handleMultipleFiles(files);
     }
     e.target.value = '';
   };
@@ -242,10 +262,10 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
             </div>
             <div className="text-center">
               <p className="text-lg font-medium">
-                {uploading ? 'Feldolgozás folyamatban...' : 'Húzza ide a PDF fájlt'}
+                {uploading ? 'Feldolgozás folyamatban...' : 'Húzza ide a PDF fájlokat'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                vagy kattintson a feltöltéshez
+                vagy kattintson a feltöltéshez (több fájl is kiválasztható)
               </p>
             </div>
             <div className="flex gap-2">
@@ -253,6 +273,7 @@ export function SzabalyepitoTesztTab({ companyId, telephelyId, companyName, tele
                 <input
                   type="file"
                   accept=".pdf"
+                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                   disabled={uploading}
