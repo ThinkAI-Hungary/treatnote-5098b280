@@ -2,12 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
+import { useSzotar } from '@/hooks/useSzotar';
+import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,6 +22,9 @@ export default function VoiceRecording() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
+  const { hasSzotar, isLoading: szotarLoading } = useSzotar();
+  const { admins: klinikaAdmins } = useKlinikaAdmins();
+  const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>('treatnote');
   const [isUploading, setIsUploading] = useState(false);
@@ -160,6 +166,57 @@ export default function VoiceRecording() {
               itt
             </button>
             !
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show message if Szotar is not available
+  if (!szotarLoading && !hasSzotar) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Hangfelvétel</h1>
+          <p className="text-muted-foreground mt-1">
+            Vizsgálati jegyzőkönyv diktálása
+          </p>
+        </div>
+
+        <Alert variant="destructive">
+          <Book className="h-4 w-4" />
+          <AlertTitle>Szótár szükséges</AlertTitle>
+          <AlertDescription>
+            {isKlinikaAdmin || isAdmin ? (
+              <>
+                Nem található szótár a telephelynél -{' '}
+                <button
+                  onClick={() => navigate('/klinika-admin?tab=szotar')}
+                  className="underline font-medium hover:text-destructive-foreground/80"
+                >
+                  kattintson ide a létrehozáshoz
+                </button>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <p>Nem található szótár a telephelynél, kérem keresse fel klinika adminját!</p>
+                {klinikaAdmins.length > 0 && (
+                  <div>
+                    <p className="font-medium">
+                      {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {klinikaAdmins.map((admin) => (
+                        <li key={admin.id}>
+                          {admin.full_name || 'Névtelen'}
+                          {admin.phone && <span className="ml-2">({admin.phone})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       </div>
