@@ -30,6 +30,19 @@ serve(async (req) => {
       throw new Error("Missing required fields: telephely_id, company_id, user_id");
     }
 
+    // Fetch telephely data including probapaciens_neve
+    const { data: telephelyData, error: telephelyError } = await supabase
+      .from('telephely')
+      .select('probapaciens_neve')
+      .eq('id', telephely_id)
+      .maybeSingle();
+    
+    if (telephelyError) {
+      console.error('Error fetching telephely:', telephelyError);
+    }
+
+    const probapaciens_neve = telephelyData?.probapaciens_neve || null;
+
     // Check if szotar already exists
     const { data: existingSzotar } = await supabase
       .from('szotar')
@@ -141,6 +154,7 @@ serve(async (req) => {
       user_id,
       regenerate,
       szotar_exists,
+      probapaciens_neve,
       flexi_email: flexiAuth?.flexi_username || null,
       flexi_password: decryptedPassword,
       treatment_rules: rules || [],
