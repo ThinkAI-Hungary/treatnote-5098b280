@@ -150,41 +150,11 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const [generatingSzotar, setGeneratingSzotar] = useState(false);
 
-  // Don't render content until roles are fully loaded to prevent menu jumping
-  if (!isInitialized) {
-    return (
-      <Sidebar collapsible="icon" className="z-30">
-        <SidebarHeader className="border-b border-sidebar-border">
-          <div className={cn(
-            "flex items-center gap-2 py-3",
-            collapsed ? "px-2 justify-center" : "px-2"
-          )}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shrink-0">
-              T
-            </div>
-            {!collapsed && (
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                TreatNote
-              </span>
-            )}
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <div className="flex items-center justify-center h-full opacity-50">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    );
-  }
-
-  const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';
-
-  const handleFlexiLinkClick = () => {
+  const handleFlexiLinkClick = useCallback(() => {
     navigate('/profile?openFlexi=true');
-  };
+  }, [navigate]);
 
-  // Handle clicking szotar creation link for klinika admins
+  // Handle clicking szotar creation link for klinika admins - must be before early return
   const handleSzotarCreationClick = useCallback(async () => {
     if (!profile?.telephely_id || !profile?.company_id || !user) {
       navigate('/klinika-admin?tab=szotar');
@@ -218,6 +188,35 @@ export function AppSidebar() {
     }
   }, [profile, user, navigate]);
 
+  // Don't render content until roles are fully loaded to prevent menu jumping
+  if (!isInitialized) {
+    return (
+      <Sidebar collapsible="icon" className="z-30">
+        <SidebarHeader className="border-b border-sidebar-border">
+          <div className={cn(
+            "flex items-center gap-2 py-3",
+            collapsed ? "px-2 justify-center" : "px-2"
+          )}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shrink-0">
+              T
+            </div>
+            {!collapsed && (
+              <span className="text-lg font-semibold text-sidebar-foreground">
+                TreatNote
+              </span>
+            )}
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <div className="flex items-center justify-center h-full opacity-50">
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
+
+  const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';
   // Build disabled content for szotar missing
   const buildSzotarDisabledContent = () => {
     if (isKlinikaAdmin || isAdmin) {
