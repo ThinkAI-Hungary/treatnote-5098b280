@@ -3,7 +3,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from '@/component
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, LinkIcon, User } from 'lucide-react';
+import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
+import { DomainDialog } from '@/components/klinika/DomainDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +41,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
+  const [flexiDomain, setFlexiDomain] = useState<string | null>(null);
   const [probaPaciensDialogOpen, setProbaPaciensDialogOpen] = useState(false);
+  const [domainDialogOpen, setDomainDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Check if we should open the dialog from URL params
@@ -51,9 +54,15 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       searchParams.delete('openProba');
       setSearchParams(searchParams, { replace: true });
     }
+    if (searchParams.get('openDomain') === 'true') {
+      setDomainDialogOpen(true);
+      searchParams.delete('openDomain');
+      setSearchParams(searchParams, { replace: true });
+    }
   }, [searchParams, setSearchParams]);
 
   const hasProbaPaciens = !!probaPaciensNeve;
+  const hasFlexiDomain = !!flexiDomain;
 
   const loadSzotar = useCallback(async () => {
     if (!telephelyId) {
@@ -86,10 +95,10 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         setSzotar(null);
       }
 
-      // Fetch probapaciens_neve from telephely
+      // Fetch telephely data including domain
       const { data: telephelyData, error: telephelyError } = await supabase
         .from('telephely')
-        .select('probapaciens_neve')
+        .select('probapaciens_neve, flexi_domain')
         .eq('id', telephelyId)
         .maybeSingle();
 
@@ -97,6 +106,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         console.error('Error loading telephely:', telephelyError);
       } else {
         setProbaPaciensNeve(telephelyData?.probapaciens_neve || null);
+        setFlexiDomain(telephelyData?.flexi_domain || null);
       }
     } catch (err) {
       console.error('Error loading szotar:', err);
@@ -149,30 +159,51 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     setProbaPaciensNeve(name);
   };
 
-  // Determine button state and tooltip
+  const handleDomainSaved = (domain: string) => {
+    setFlexiDomain(domain);
+  };
+
+  // Determine button state and tooltip - check in order: Domain → Flexi → ProbaPaciens
   const getButtonState = () => {
+    // 1. Check Domain first
+    if (!hasFlexiDomain) {
+      return {
+        disabled: true,
+        tooltip: 'Kérem állítsa be a klinika FlexiDent domain-jét a folytatáshoz.',
+        showDomainWarning: true,
+        showFlexiWarning: false,
+      };
+    }
+    // 2. Check Flexi second
     if (!isFlexiConnected && !flexiLoading) {
       return {
         disabled: true,
         tooltip: null,
+        showDomainWarning: false,
         showFlexiWarning: true,
       };
     }
+    // 3. Check ProbaPaciens third
     if (!hasProbaPaciens) {
       return {
         disabled: true,
         tooltip: 'Kérem adjon meg egy próba páciens nevet az elengedhetetlen tesztek futtatásához.',
+        showDomainWarning: false,
         showFlexiWarning: false,
       };
     }
     return {
       disabled: generating || flexiLoading,
       tooltip: null,
+      showDomainWarning: false,
       showFlexiWarning: false,
     };
   };
 
   const buttonState = getButtonState();
+
+  // Determine if we're in a disabled/warning state for uniform styling
+  const isInWarningState = buttonState.showDomainWarning || buttonState.showFlexiWarning || buttonState.tooltip;
 
   if (loading) {
     return (
@@ -183,6 +214,143 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       </AnimatedCard>
     );
   }
+
+  // Render buttons with uniform styling based on warning state
+  const renderActionButtons = () => {
+    const buttonBaseClass = isInWarningState
+      ? "opacity-50 cursor-not-allowed"
+      : "";
+    
+    const szotarButtonContent = (
+      <>
+        {generating ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="mr-2 h-4 w-4" />
+        )}
+        {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+      </>
+    );
+
+    const probaButtonContent = (
+      <>
+        <User className="mr-2 h-4 w-4" />
+        Próba user
+        {hasProbaPaciens && (
+          <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
+            <CheckCircle className="h-3 w-3" />
+          </Badge>
+        )}
+      </>
+    );
+
+    const domainButtonContent = (
+      <>
+        <Globe className="mr-2 h-4 w-4" />
+        Domain
+        {hasFlexiDomain && (
+          <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
+            <CheckCircle className="h-3 w-3" />
+          </Badge>
+        )}
+      </>
+    );
+
+    // If in warning state, show with tooltip
+    if (isInWarningState) {
+      const tooltipContent = buttonState.showDomainWarning ? (
+        <p>
+          <button
+            onClick={() => setDomainDialogOpen(true)}
+            className="underline text-primary hover:text-primary/80 cursor-pointer"
+          >
+            Kérem állítsa be a klinika FlexiDent domain-jét
+          </button>
+          {' '}a folytatáshoz.
+        </p>
+      ) : buttonState.showFlexiWarning ? (
+        <p className="text-sm">
+          Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+          <Link 
+            to="/profile?openFlexi=true" 
+            className="underline text-primary hover:text-primary/80"
+          >
+            kérem csatolja hozzá fiókját itt!
+          </Link>
+        </p>
+      ) : buttonState.tooltip ? (
+        <p>
+          <button
+            onClick={() => setProbaPaciensDialogOpen(true)}
+            className="underline text-primary hover:text-primary/80 cursor-pointer"
+          >
+            Kérem adjon meg egy próba páciens nevet
+          </button>
+          {' '}az elengedhetetlen tesztek futtatásához.
+        </p>
+      ) : null;
+
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-0">
+                <Button
+                  disabled
+                  variant="outline"
+                  className={`${buttonBaseClass} rounded-r-none border-r-0`}
+                >
+                  {szotarButtonContent}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setProbaPaciensDialogOpen(true)}
+                  className="rounded-none border-r-0"
+                >
+                  {probaButtonContent}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setDomainDialogOpen(true)}
+                  className="rounded-l-none"
+                >
+                  {domainButtonContent}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              {tooltipContent}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    // Not in warning state - full functionality
+    return (
+      <div className="flex items-center gap-0">
+        <Button
+          onClick={handleGenerateSzotar}
+          disabled={buttonState.disabled}
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-r-none"
+        >
+          {szotarButtonContent}
+        </Button>
+        <Button
+          onClick={() => setProbaPaciensDialogOpen(true)}
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-none border-l border-primary-foreground/20"
+        >
+          {probaButtonContent}
+        </Button>
+        <Button
+          onClick={() => setDomainDialogOpen(true)}
+          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
+        >
+          {domainButtonContent}
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -214,114 +382,59 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 </CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {/* Szótár készítése button */}
-              {buttonState.showFlexiWarning ? (
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-0">
-                    <Button
-                      disabled
-                      variant="outline"
-                      className="opacity-50 cursor-not-allowed rounded-r-none border-r-0"
-                    >
-                      <LinkIcon className="mr-2 h-4 w-4" />
-                      {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setProbaPaciensDialogOpen(true)}
-                      className="rounded-l-none"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      Próba user
-                      {hasProbaPaciens && (
-                        <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
-                          <CheckCircle className="h-3 w-3" />
-                        </Badge>
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground max-w-[300px] text-right">
-                    Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
-                    <Link 
-                      to="/profile?openFlexi=true" 
-                      className="underline text-primary hover:text-primary/80"
-                    >
-                      kérem csatolja hozzá fiókját itt!
-                    </Link>
-                  </p>
-                </div>
-              ) : buttonState.tooltip ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-0">
-                        <Button
-                          disabled
-                          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 opacity-50 cursor-not-allowed rounded-r-none"
-                        >
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                        </Button>
-                        <Button
-                          onClick={() => setProbaPaciensDialogOpen(true)}
-                          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
-                        >
-                          <User className="mr-2 h-4 w-4" />
-                          Próba user
-                          {hasProbaPaciens && (
-                            <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
-                              <CheckCircle className="h-3 w-3" />
-                            </Badge>
-                          )}
-                        </Button>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <p>
-                        <button
-                          onClick={() => setProbaPaciensDialogOpen(true)}
-                          className="underline text-primary hover:text-primary/80 cursor-pointer"
-                        >
-                          Kérem adjon meg egy próba páciens nevet
-                        </button>
-                        {' '}az elengedhetetlen tesztek futtatásához.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <div className="flex items-center gap-0">
-                  <Button
-                    onClick={handleGenerateSzotar}
-                    disabled={buttonState.disabled}
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-r-none"
-                  >
-                    {generating ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                    )}
-                    {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
-                  </Button>
-                  <Button
-                    onClick={() => setProbaPaciensDialogOpen(true)}
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    Próba user
-                    {hasProbaPaciens && (
-                      <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
-                        <CheckCircle className="h-3 w-3" />
-                      </Badge>
-                    )}
-                  </Button>
-                </div>
+            <div className="flex flex-col items-end gap-2">
+              {renderActionButtons()}
+              {isInWarningState && (
+                <p className="text-xs text-muted-foreground max-w-[400px] text-right">
+                  {buttonState.showDomainWarning ? (
+                    <>
+                      Nincs beállítva FlexiDent domain -{' '}
+                      <button
+                        onClick={() => setDomainDialogOpen(true)}
+                        className="underline text-primary hover:text-primary/80"
+                      >
+                        kérem állítsa be itt!
+                      </button>
+                    </>
+                  ) : buttonState.showFlexiWarning ? (
+                    <>
+                      Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+                      <Link 
+                        to="/profile?openFlexi=true" 
+                        className="underline text-primary hover:text-primary/80"
+                      >
+                        kérem csatolja hozzá fiókját itt!
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
               )}
             </div>
           </div>
         </CardHeader>
       </AnimatedCard>
+
+      {/* Domain info card */}
+      {hasFlexiDomain && (
+        <AnimatedCard>
+          <CardHeader className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">FlexiDent domain:</span>
+                <span className="font-medium">{flexiDomain}.flexi-dent.hu</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setDomainDialogOpen(true)}
+              >
+                Szerkesztés
+              </Button>
+            </div>
+          </CardHeader>
+        </AnimatedCard>
+      )}
 
       {/* Próba páciens info card */}
       {hasProbaPaciens && (
@@ -389,6 +502,15 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         telephelyId={telephelyId}
         currentName={probaPaciensNeve}
         onSaved={handleProbaPaciensSaved}
+      />
+
+      {/* Domain dialog */}
+      <DomainDialog
+        open={domainDialogOpen}
+        onOpenChange={setDomainDialogOpen}
+        telephelyId={telephelyId}
+        currentDomain={flexiDomain}
+        onSaved={handleDomainSaved}
       />
     </div>
   );

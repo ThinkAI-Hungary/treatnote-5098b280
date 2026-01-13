@@ -16,6 +16,8 @@ interface UseSzotarReturn {
   hasSzotar: boolean;
   hasProbaPaciens: boolean;
   probaPaciensNeve: string | null;
+  hasFlexiDomain: boolean;
+  flexiDomain: string | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -24,12 +26,14 @@ export function useSzotar(): UseSzotarReturn {
   const { profile, loading: profileLoading } = useProfile();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
+  const [flexiDomain, setFlexiDomain] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
       setSzotar(null);
       setProbaPaciensNeve(null);
+      setFlexiDomain(null);
       setIsLoading(false);
       return;
     }
@@ -44,7 +48,7 @@ export function useSzotar(): UseSzotarReturn {
           .maybeSingle(),
         supabase
           .from('telephely')
-          .select('probapaciens_neve')
+          .select('probapaciens_neve, flexi_domain')
           .eq('id', profile.telephely_id)
           .maybeSingle(),
       ]);
@@ -70,13 +74,16 @@ export function useSzotar(): UseSzotarReturn {
       if (telephelyResult.error) {
         console.error('Error fetching telephely:', telephelyResult.error);
         setProbaPaciensNeve(null);
+        setFlexiDomain(null);
       } else {
         setProbaPaciensNeve(telephelyResult.data?.probapaciens_neve || null);
+        setFlexiDomain(telephelyResult.data?.flexi_domain || null);
       }
     } catch (err) {
       console.error('Error fetching szotar:', err);
       setSzotar(null);
       setProbaPaciensNeve(null);
+      setFlexiDomain(null);
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +100,8 @@ export function useSzotar(): UseSzotarReturn {
     hasSzotar: szotar !== null,
     hasProbaPaciens: !!probaPaciensNeve,
     probaPaciensNeve,
+    hasFlexiDomain: !!flexiDomain,
+    flexiDomain,
     isLoading: isLoading || profileLoading,
     refresh: fetchSzotar,
   };

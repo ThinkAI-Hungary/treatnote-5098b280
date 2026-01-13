@@ -30,10 +30,10 @@ serve(async (req) => {
       throw new Error("Missing required fields: telephely_id, company_id, user_id");
     }
 
-    // Fetch telephely data including probapaciens_neve
+    // Fetch telephely data including probapaciens_neve and flexi_domain
     const { data: telephelyData, error: telephelyError } = await supabase
       .from('telephely')
-      .select('probapaciens_neve')
+      .select('probapaciens_neve, flexi_domain')
       .eq('id', telephely_id)
       .maybeSingle();
     
@@ -42,6 +42,7 @@ serve(async (req) => {
     }
 
     const probapaciens_neve = telephelyData?.probapaciens_neve || null;
+    const flexi_domain = telephelyData?.flexi_domain || null;
 
     // Check if szotar already exists
     const { data: existingSzotar } = await supabase
@@ -155,6 +156,7 @@ serve(async (req) => {
       regenerate,
       szotar_exists,
       probapaciens_neve,
+      flexi_domain,
       flexi_email: flexiAuth?.flexi_username || null,
       flexi_password: decryptedPassword,
       treatment_rules: rules || [],

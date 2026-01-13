@@ -99,9 +99,23 @@ serve(async (req) => {
 
     // Fetch all processed szabályok for this company/telephely
     let szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}> = [];
+    let flexiDomain = "";
 
     if (companyId && telephelyId) {
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Fetch telephely to get flexi_domain
+      const { data: telephelyData, error: telephelyError } = await supabaseAdmin
+        .from('telephely')
+        .select('flexi_domain')
+        .eq('id', telephelyId)
+        .maybeSingle();
+      
+      if (telephelyError) {
+        console.error("Error fetching telephely:", telephelyError);
+      } else if (telephelyData) {
+        flexiDomain = telephelyData.flexi_domain || "";
+      }
       
       const { data: szabalyok, error: szabalyokError } = await supabaseAdmin
         .from('feltoltott_pdf')
@@ -167,6 +181,7 @@ serve(async (req) => {
       webhookFormData.append("user_id", userId || "");
       webhookFormData.append("company_id", companyId || "");
       webhookFormData.append("telephely_id", telephelyId || "");
+      webhookFormData.append("flexi_domain", flexiDomain);
       webhookFormData.append("flexi_username", flexiUsername);
       webhookFormData.append("flexi_pw", decryptedFlexiPw);
       webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
