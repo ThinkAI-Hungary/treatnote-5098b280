@@ -143,7 +143,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isAdmin, isKlinikaAdmin, isInitialized } = useCachedRoles();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
-  const { hasSzotar, isLoading: szotarLoading } = useSzotar();
+  const { hasSzotar, hasProbaPaciens, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const { profile } = useProfile();
   const navigate = useNavigate();
@@ -217,24 +217,68 @@ export function AppSidebar() {
   }
 
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';
-  // Build disabled content for szotar missing
-  const buildSzotarDisabledContent = () => {
-    if (isKlinikaAdmin || isAdmin) {
-      // Check if flexi is connected - if not, show different message
-      if (!isFlexiConnected) {
+  
+  // Handle click for próba páciens link
+  const handleProbaPaciensClick = useCallback(() => {
+    navigate('/klinika-admin?tab=szotar&openProba=true');
+  }, [navigate]);
+
+  // Build disabled content based on what's missing (in priority order)
+  const buildHangfelvételDisabledContent = (reason: 'flexi' | 'proba' | 'szotar') => {
+    if (reason === 'flexi') {
+      return (
+        <p className="text-sm">
+          Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
+          <button
+            onClick={handleFlexiLinkClick}
+            className="underline text-primary hover:text-primary/80 font-medium"
+          >
+            kérem csatolja hozzá fiókját itt!
+          </button>
+        </p>
+      );
+    }
+    
+    if (reason === 'proba') {
+      if (isKlinikaAdmin || isAdmin) {
         return (
           <p className="text-sm">
-            Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
             <button
-              onClick={handleFlexiLinkClick}
+              onClick={handleProbaPaciensClick}
               className="underline text-primary hover:text-primary/80 font-medium"
             >
-              kérem csatolja hozzá fiókját itt!
+              Kérem adjon meg egy próba páciens nevet
             </button>
+            {' '}az elengedhetetlen tesztek futtatásához.
           </p>
         );
       }
-      
+      return (
+        <div className="text-sm space-y-2">
+          <p>Kérem adjon meg egy próba páciens nevet az elengedhetetlen tesztek futtatásához. Keresse fel klinika adminját!</p>
+          <div>
+            <p className="font-medium">
+              {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
+            </p>
+            {klinikaAdmins.length > 0 ? (
+              <ul className="mt-1 space-y-1">
+                {klinikaAdmins.map((admin) => (
+                  <li key={admin.id} className="text-muted-foreground">
+                    {admin.full_name || 'Névtelen'}
+                    {admin.phone ? ` - ${admin.phone}` : ''}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-muted-foreground">Nincs klinika admin a telephelyen</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // reason === 'szotar'
+    if (isKlinikaAdmin || isAdmin) {
       return (
         <div className="text-sm">
           <p>
@@ -276,26 +320,33 @@ export function AppSidebar() {
     );
   };
 
-  // Determine if Hangfelvétel should be disabled and why
+  // Determine if Hangfelvétel should be disabled and why (check in order: Flexi → Próba → Szótár)
   const getHangfelvételDisabledState = (item: typeof mainMenuItems[0]) => {
     if (!item.requiresFlexi && !item.requiresSzotar) {
       return { isDisabled: false };
     }
     
-    // Check Flexi first
+    // 1. Check Flexi first
     if (item.requiresFlexi && !isFlexiConnected) {
       return {
         isDisabled: true,
-        disabledMessage: "Jelenleg nincs hozzácsatolva FlexiDent fiók -",
-        onDisabledClick: handleFlexiLinkClick,
+        disabledContent: buildHangfelvételDisabledContent('flexi'),
       };
     }
     
-    // Check Szotar - wait for both szotar and admins to load
+    // 2. Check Próba páciens second
+    if (item.requiresSzotar && !szotarLoading && !adminsLoading && !hasProbaPaciens) {
+      return {
+        isDisabled: true,
+        disabledContent: buildHangfelvételDisabledContent('proba'),
+      };
+    }
+    
+    // 3. Check Szotar third
     if (item.requiresSzotar && !szotarLoading && !adminsLoading && !hasSzotar) {
       return {
         isDisabled: true,
-        disabledContent: buildSzotarDisabledContent(),
+        disabledContent: buildHangfelvételDisabledContent('szotar'),
       };
     }
     
@@ -341,9 +392,7 @@ export function AppSidebar() {
                     item={item} 
                     collapsed={collapsed}
                     isDisabled={disabledState.isDisabled}
-                    disabledMessage={disabledState.disabledMessage}
                     disabledContent={disabledState.disabledContent}
-                    onDisabledClick={disabledState.onDisabledClick}
                   />
                 );
               })}
