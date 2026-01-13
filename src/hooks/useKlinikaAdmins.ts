@@ -72,6 +72,7 @@ export function useKlinikaAdmins(): UseKlinikaAdminsReturn {
           phone: p.phone,
         }));
 
+        console.log('Fetched klinika admins:', adminList);
         setAdmins(adminList);
       } catch (err) {
         console.error('Error fetching klinika admins:', err);

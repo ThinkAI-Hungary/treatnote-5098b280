@@ -139,7 +139,7 @@ export function AppSidebar() {
   const { isAdmin, isKlinikaAdmin, isInitialized } = useCachedRoles();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
   const { hasSzotar, isLoading: szotarLoading } = useSzotar();
-  const { admins: klinikaAdmins } = useKlinikaAdmins();
+  const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
 
@@ -200,21 +200,23 @@ export function AppSidebar() {
     return (
       <div className="text-sm space-y-2">
         <p>Nem található szótár a telephelynél, kérem keresse fel klinika adminját!</p>
-        {klinikaAdmins.length > 0 && (
-          <div>
-            <p className="font-medium">
-              {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
-            </p>
+        <div>
+          <p className="font-medium">
+            {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
+          </p>
+          {klinikaAdmins.length > 0 ? (
             <ul className="mt-1 space-y-1">
               {klinikaAdmins.map((admin) => (
                 <li key={admin.id} className="text-muted-foreground">
                   {admin.full_name || 'Névtelen'}
-                  {admin.phone && <span className="ml-2">({admin.phone})</span>}
+                  {admin.phone ? ` - ${admin.phone}` : ''}
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+          ) : (
+            <p className="mt-1 text-muted-foreground">Nincs klinika admin a telephelyen</p>
+          )}
+        </div>
       </div>
     );
   };
@@ -234,8 +236,8 @@ export function AppSidebar() {
       };
     }
     
-    // Check Szotar
-    if (item.requiresSzotar && !szotarLoading && !hasSzotar) {
+    // Check Szotar - wait for both szotar and admins to load
+    if (item.requiresSzotar && !szotarLoading && !adminsLoading && !hasSzotar) {
       return {
         isDisabled: true,
         disabledContent: buildSzotarDisabledContent(),
