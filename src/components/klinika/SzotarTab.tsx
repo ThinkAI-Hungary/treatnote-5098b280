@@ -297,22 +297,19 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
               <div className="flex items-center gap-0">
                 <Button
                   disabled
-                  variant="outline"
-                  className={`${buttonBaseClass} rounded-r-none border-r-0`}
+                  className={`${buttonBaseClass} rounded-r-none border-r-0 bg-gradient-to-r from-primary to-accent text-primary-foreground`}
                 >
                   {szotarButtonContent}
                 </Button>
                 <Button
-                  variant="outline"
                   onClick={() => setProbaPaciensDialogOpen(true)}
-                  className="rounded-none border-r-0"
+                  className="rounded-none border-r-0 border-l border-primary-foreground/20 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
                 >
                   {probaButtonContent}
                 </Button>
                 <Button
-                  variant="outline"
                   onClick={() => setDomainDialogOpen(true)}
-                  className="rounded-l-none"
+                  className="rounded-l-none border-l border-primary-foreground/20 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
                 >
                   {domainButtonContent}
                 </Button>
