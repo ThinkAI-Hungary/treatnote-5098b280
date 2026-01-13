@@ -70,12 +70,29 @@ interface SuccessResponse {
   duplicates?: number;
 }
 
+interface VisitItem {
+  name: string;
+  qty: number;
+  unit: string;
+  target_tooth_type?: string;
+  scaling?: string;
+}
+
+interface ParsedVisit {
+  visit_no: number;
+  duration_days?: number;
+  healing_time_months?: number;
+  items: VisitItem[];
+}
+
 interface ExtractionItem {
   fogalom: string;
   kategoria?: string;
   trigger_words?: string[];
   file_name?: string;
-  parsed?: Record<string, unknown>;
+  parsed?: {
+    visits?: ParsedVisit[];
+  };
 }
 
 interface ErrorResponse {
@@ -84,6 +101,22 @@ interface ErrorResponse {
   code: string;
   message: string;
   event_id: string;
+}
+
+// Helper: Map target_tooth_type to valid enum value
+function mapTargetToothType(value?: string): 'all' | 'pillar_only' | 'pontic_only' {
+  if (value === 'pillar_only' || value === 'pontic_only') {
+    return value;
+  }
+  return 'all';
+}
+
+// Helper: Map scaling to valid enum value
+function mapScaling(value?: string): 'per_tooth' | 'per_case' | 'fix' {
+  if (value === 'per_case' || value === 'fix') {
+    return value;
+  }
+  return 'per_tooth';
 }
 
 serve(async (req) => {
@@ -268,34 +301,85 @@ serve(async (req) => {
                   continue;
                 }
 
-                const record = {
-                  event_id: eventId,
-                  source_file_name: file_name,
-                  fogalom: extraction.fogalom,
-                  kategoria: extraction.kategoria || null,
-                  trigger_words: extraction.trigger_words || null,
-                  parsed_file_name: extraction.file_name || null,
-                  parsed_json: extraction.parsed || {},
-                  company_id,
-                  telephely_id,
-                  uploaded_by: uploaded_by || null,
-                };
+                // Parse trigger words - handle various formats
+                let triggerWords: string[] = [];
+                if (extraction.trigger_words) {
+                  if (Array.isArray(extraction.trigger_words)) {
+                    triggerWords = extraction.trigger_words;
+                  } else if (typeof extraction.trigger_words === 'object') {
+                    triggerWords = Object.values(extraction.trigger_words).filter(v => typeof v === 'string') as string[];
+                  }
+                }
 
-                console.log(`Inserting extraction: ${extraction.fogalom}`);
-                const { error: insertError } = await supabase
-                  .from('szabalyepito_teszt_extractions')
-                  .insert(record);
+                // Insert directly into treatment_rules (normalized structure)
+                console.log(`Inserting treatment rule: ${extraction.fogalom}`);
+                
+                const { data: ruleData, error: ruleError } = await supabase
+                  .from('treatment_rules')
+                  .insert({
+                    clinic_id: telephely_id,
+                    name: extraction.fogalom,
+                    category: extraction.kategoria || null,
+                    trigger_words: triggerWords,
+                  })
+                  .select('id')
+                  .single();
 
-                if (insertError) {
-                  if (insertError.code === '23505') {
+                if (ruleError) {
+                  if (ruleError.code === '23505') {
                     console.log(`Duplicate detected for fogalom: ${extraction.fogalom}`);
                     duplicateCount++;
+                    continue;
                   } else {
-                    console.error('Insert error:', insertError);
+                    console.error('Rule insert error:', ruleError);
+                    continue;
                   }
-                } else {
-                  insertedCount++;
                 }
+
+                // Insert visits and items
+                const visits = extraction.parsed?.visits || [];
+                for (let vi = 0; vi < visits.length; vi++) {
+                  const visit = visits[vi];
+                  
+                  const { data: visitData, error: visitError } = await supabase
+                    .from('rule_visits')
+                    .insert({
+                      rule_id: ruleData.id,
+                      visit_number: visit.visit_no || vi + 1,
+                      duration_days: visit.duration_days || 0,
+                      healing_months: visit.healing_time_months || 0,
+                      display_order: vi,
+                    })
+                    .select('id')
+                    .single();
+
+                  if (visitError) {
+                    console.error('Visit insert error:', visitError);
+                    continue;
+                  }
+
+                  if (visit.items && visit.items.length > 0) {
+                    const itemsToInsert = visit.items.map((item, ii) => ({
+                      visit_id: visitData.id,
+                      name: item.name || '',
+                      quantity: item.qty || 1,
+                      unit: item.unit || 'db',
+                      scaling: mapScaling(item.scaling),
+                      target_tooth_type: mapTargetToothType(item.target_tooth_type),
+                      display_order: ii,
+                    }));
+
+                    const { error: itemsError } = await supabase
+                      .from('rule_items')
+                      .insert(itemsToInsert);
+
+                    if (itemsError) {
+                      console.error('Items insert error:', itemsError);
+                    }
+                  }
+                }
+
+                insertedCount++;
               }
 
               console.log(`Processing complete: ${insertedCount} inserted, ${duplicateCount} duplicates`);
