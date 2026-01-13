@@ -18,8 +18,7 @@ import {
   Clock,
   Filter,
   FileUp,
-  Download,
-  ArrowRight
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -27,33 +26,10 @@ import { AnimatedCard } from './AnimatedCard';
 import { TreatmentRuleEditor } from './TreatmentRuleEditor';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { TreatmentRule, RuleVisit, RuleItem, CATEGORY_OPTIONS, DEFAULT_RULE_ITEM } from '@/types/treatmentRules';
+import { TreatmentRule, RuleVisit, RuleItem, CATEGORY_OPTIONS } from '@/types/treatmentRules';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface ExtractionRecord {
-  id: string;
-  event_id: string;
-  source_file_name: string;
-  fogalom: string;
-  kategoria: string | null;
-  trigger_words: any | null;
-  parsed_json: {
-    visits?: Array<{
-      visit_no: number;
-      duration_days?: number;
-      healing_time_months?: number;
-      items: Array<{
-        name: string;
-        qty: number;
-        unit: string;
-        target_tooth_type?: string;
-      }>;
-    }>;
-  };
-  created_at: string;
-}
 
 interface KezelesiSzabalyokTabProps {
   companyId: string;
@@ -73,7 +49,7 @@ export function KezelesiSzabalyokTab({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload' | 'import'>('list');
+  const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload'>('list');
   
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -83,16 +59,10 @@ export function KezelesiSzabalyokTab({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-
-  // Import state
-  const [extractions, setExtractions] = useState<ExtractionRecord[]>([]);
-  const [loadingExtractions, setLoadingExtractions] = useState(false);
-  const [importingId, setImportingId] = useState<string | null>(null);
 
   // Load rules with visits and items
   const loadRules = useCallback(async () => {
@@ -151,38 +121,9 @@ export function KezelesiSzabalyokTab({
     }
   }, [telephelyId]);
 
-  // Load extractions for import
-  const loadExtractions = useCallback(async () => {
-    if (!companyId || !telephelyId) return;
-    
-    setLoadingExtractions(true);
-    try {
-      const { data, error } = await supabase
-        .from('szabalyepito_teszt_extractions')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('telephely_id', telephelyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setExtractions((data as ExtractionRecord[]) || []);
-    } catch (err: any) {
-      console.error('Error loading extractions:', err);
-      toast.error('Hiba az extrakciók betöltésekor');
-    } finally {
-      setLoadingExtractions(false);
-    }
-  }, [companyId, telephelyId]);
-
   useEffect(() => {
     loadRules();
   }, [loadRules]);
-
-  useEffect(() => {
-    if (activeSubTab === 'import') {
-      loadExtractions();
-    }
-  }, [activeSubTab, loadExtractions]);
 
   // Filter rules
   const filteredRules = rules.filter(rule => {
@@ -218,7 +159,6 @@ export function KezelesiSzabalyokTab({
   const handleDelete = async () => {
     if (!pendingDeleteId) return;
     
-    setDeleting(true);
     try {
       const { error } = await supabase
         .from('treatment_rules')
@@ -233,7 +173,6 @@ export function KezelesiSzabalyokTab({
       console.error('Error deleting rule:', err);
       toast.error('Hiba a törléskor');
     } finally {
-      setDeleting(false);
       setDeleteConfirmOpen(false);
       setPendingDeleteId(null);
     }
@@ -280,13 +219,20 @@ export function KezelesiSzabalyokTab({
       }
 
       if (data?.ok) {
-        toast.success('PDF elküldve feldolgozásra');
-        toast.info('A feldolgozás folyamatban van, az eredmények hamarosan megjelennek az Import tab-on...');
-        // Switch to import tab to see results
-        setTimeout(() => {
-          setActiveSubTab('import');
-          loadExtractions();
-        }, 3000);
+        if (data.status === 'processed') {
+          toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
+          if (data.duplicates > 0) {
+            toast.info(`${data.duplicates} duplikált szabály kihagyva`);
+          }
+          // Reload rules to show new data
+          loadRules();
+          setActiveSubTab('list');
+        } else {
+          toast.success('PDF elküldve feldolgozásra');
+          toast.info('Az eredmények hamarosan megjelennek...');
+          // Poll for results
+          setTimeout(() => loadRules(), 5000);
+        }
       } else {
         const errorMessage = data?.message || 'Webhook küldése sikertelen';
         if (data?.code === 'N8N_WEBHOOK_NOT_REGISTERED') {
@@ -315,8 +261,9 @@ export function KezelesiSzabalyokTab({
       toast.warning(`${fileList.length - pdfFiles.length} fájl kihagyva (nem PDF)`);
     }
     
-    const uploadPromises = pdfFiles.map(file => handleFilePrepare(file));
-    await Promise.all(uploadPromises);
+    for (const file of pdfFiles) {
+      await handleFilePrepare(file);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -347,103 +294,6 @@ export function KezelesiSzabalyokTab({
     e.target.value = '';
   };
 
-  // Import extraction to treatment_rules
-  const handleImportExtraction = async (extraction: ExtractionRecord) => {
-    if (!telephelyId) return;
-
-    setImportingId(extraction.id);
-    try {
-      // Parse trigger words
-      let triggerWords: string[] = [];
-      if (extraction.trigger_words) {
-        if (Array.isArray(extraction.trigger_words)) {
-          triggerWords = extraction.trigger_words;
-        } else if (typeof extraction.trigger_words === 'object') {
-          triggerWords = Object.values(extraction.trigger_words).filter(v => typeof v === 'string') as string[];
-        }
-      }
-
-      // Create the treatment rule
-      const { data: ruleData, error: ruleError } = await supabase
-        .from('treatment_rules')
-        .insert({
-          clinic_id: telephelyId,
-          name: extraction.fogalom,
-          category: extraction.kategoria || null,
-          trigger_words: triggerWords,
-        })
-        .select('id')
-        .single();
-
-      if (ruleError) throw ruleError;
-
-      // Create visits and items
-      const visits = extraction.parsed_json?.visits || [];
-      for (let vi = 0; vi < visits.length; vi++) {
-        const visit = visits[vi];
-        
-        const { data: visitData, error: visitError } = await supabase
-          .from('rule_visits')
-          .insert({
-            rule_id: ruleData.id,
-            visit_number: visit.visit_no || vi + 1,
-            duration_days: visit.duration_days || 0,
-            healing_months: visit.healing_time_months || 0,
-            display_order: vi,
-          })
-          .select('id')
-          .single();
-
-        if (visitError) throw visitError;
-
-        if (visit.items && visit.items.length > 0) {
-          const itemsToInsert = visit.items.map((item, ii) => ({
-            visit_id: visitData.id,
-            name: item.name || '',
-            quantity: item.qty || 1,
-            unit: item.unit || 'db',
-            scaling: 'per_tooth' as const,
-            target_tooth_type: (item.target_tooth_type === 'pillar_only' || item.target_tooth_type === 'pontic_only') 
-              ? item.target_tooth_type 
-              : 'all' as const,
-            display_order: ii,
-          }));
-
-          const { error: itemsError } = await supabase
-            .from('rule_items')
-            .insert(itemsToInsert);
-
-          if (itemsError) throw itemsError;
-        }
-      }
-
-      // Optionally delete the extraction record after import
-      await supabase
-        .from('szabalyepito_teszt_extractions')
-        .delete()
-        .eq('id', extraction.id);
-
-      toast.success(`"${extraction.fogalom}" sikeresen importálva!`);
-      loadRules();
-      loadExtractions();
-      setActiveSubTab('list');
-    } catch (err: any) {
-      console.error('Error importing extraction:', err);
-      toast.error('Hiba az importáláskor: ' + (err.message || 'Ismeretlen hiba'));
-    } finally {
-      setImportingId(null);
-    }
-  };
-
-  // Import all extractions
-  const handleImportAll = async () => {
-    if (extractions.length === 0) return;
-    
-    for (const extraction of extractions) {
-      await handleImportExtraction(extraction);
-    }
-  };
-
   return (
     <AnimatedCard data-tour="kezelesi-szabalyok">
       <CardHeader className="pb-4">
@@ -460,28 +310,35 @@ export function KezelesiSzabalyokTab({
             </div>
           </div>
           
-          <GalaxyButton onClick={handleNewRule}>
-            <Plus className="h-4 w-4 mr-2" />
-            Új szabály
-          </GalaxyButton>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={loadRules}
+              disabled={loading}
+              title="Frissítés"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </Button>
+            <GalaxyButton onClick={handleNewRule}>
+              <Plus className="h-4 w-4 mr-2" />
+              Új szabály
+            </GalaxyButton>
+          </div>
         </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Sub-tabs for List / Upload / Import */}
+        {/* Sub-tabs for List / Upload */}
         <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as any)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="list" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Szabályok
+              Szabályok ({rules.length})
             </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <FileUp className="h-4 w-4" />
               PDF Feltöltés
-            </TabsTrigger>
-            <TabsTrigger value="import" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Import ({extractions.length})
             </TabsTrigger>
           </TabsList>
 
@@ -543,13 +400,21 @@ export function KezelesiSzabalyokTab({
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
                           {!searchTerm && categoryFilter === 'all' && (
-                            <Button 
-                              variant="link" 
-                              onClick={handleNewRule}
-                              className="mt-2"
-                            >
-                              Hozza létre az elsőt
-                            </Button>
+                            <div className="flex gap-2 mt-2">
+                              <Button 
+                                variant="link" 
+                                onClick={handleNewRule}
+                              >
+                                Hozza létre kézzel
+                              </Button>
+                              <span className="text-muted-foreground">vagy</span>
+                              <Button 
+                                variant="link" 
+                                onClick={() => setActiveSubTab('upload')}
+                              >
+                                Töltsön fel PDF-et
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </TableCell>
@@ -700,111 +565,12 @@ export function KezelesiSzabalyokTab({
                     </GalaxyButton>
                   </label>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  A feltöltött PDF-eket az n8n feldolgozza, majd az Import tab-on importálhatja a szabályokat.
+                <p className="text-xs text-muted-foreground mt-2 text-center max-w-md">
+                  A feltöltött PDF-eket az n8n automatikusan feldolgozza és a kinyert szabályok 
+                  közvetlenül megjelennek a Szabályok listában. A kategória és trigger szavak is automatikusan kerülnek hozzáadásra.
                 </p>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Import Tab */}
-          <TabsContent value="import" className="mt-4 space-y-4">
-            {loadingExtractions ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : extractions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Download className="h-8 w-8 mb-2 opacity-50" />
-                <p>Nincs importálható rekord</p>
-                <Button 
-                  variant="link" 
-                  onClick={() => setActiveSubTab('upload')}
-                  className="mt-2"
-                >
-                  Töltsön fel PDF-et
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {extractions.length} feldolgozott PDF importálható
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleImportAll}
-                    disabled={importingId !== null}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Összes importálása
-                  </Button>
-                </div>
-                
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Fogalom</TableHead>
-                        <TableHead>Kategória</TableHead>
-                        <TableHead>Forrás fájl</TableHead>
-                        <TableHead className="text-center">Vizitek</TableHead>
-                        <TableHead>Feltöltve</TableHead>
-                        <TableHead className="text-right">Művelet</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {extractions.map((extraction, index) => (
-                        <TableRow 
-                          key={extraction.id}
-                          className="animate-fade-in hover:bg-muted/30"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                          <TableCell className="font-medium">{extraction.fogalom}</TableCell>
-                          <TableCell>
-                            {extraction.kategoria ? (
-                              <Badge variant="secondary" className="bg-primary/10 text-primary">
-                                {extraction.kategoria}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {extraction.source_file_name}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">
-                              {extraction.parsed_json?.visits?.length || 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(extraction.created_at), 'yyyy.MM.dd HH:mm', { locale: hu })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              onClick={() => handleImportExtraction(extraction)}
-                              disabled={importingId === extraction.id}
-                              className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                            >
-                              {importingId === extraction.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <ArrowRight className="h-4 w-4 mr-1" />
-                                  Import
-                                </>
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </>
-            )}
           </TabsContent>
         </Tabs>
       </CardContent>
