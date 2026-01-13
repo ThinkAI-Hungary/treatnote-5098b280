@@ -14,6 +14,8 @@ interface SzotarData {
 interface UseSzotarReturn {
   szotar: SzotarData | null;
   hasSzotar: boolean;
+  hasProbaPaciens: boolean;
+  probaPaciensNeve: string | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -21,42 +23,60 @@ interface UseSzotarReturn {
 export function useSzotar(): UseSzotarReturn {
   const { profile, loading: profileLoading } = useProfile();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
+  const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
       setSzotar(null);
+      setProbaPaciensNeve(null);
       setIsLoading(false);
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('szotar')
-        .select('*')
-        .eq('telephely_id', profile.telephely_id)
-        .maybeSingle();
+      // Fetch both szotar and telephely data in parallel
+      const [szotarResult, telephelyResult] = await Promise.all([
+        supabase
+          .from('szotar')
+          .select('*')
+          .eq('telephely_id', profile.telephely_id)
+          .maybeSingle(),
+        supabase
+          .from('telephely')
+          .select('probapaciens_neve')
+          .eq('id', profile.telephely_id)
+          .maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error('Error fetching szotar:', error);
+      if (szotarResult.error) {
+        console.error('Error fetching szotar:', szotarResult.error);
         setSzotar(null);
-      } else if (data) {
+      } else if (szotarResult.data) {
         // Parse content as array
-        const content = Array.isArray(data.content) 
-          ? data.content 
-          : typeof data.content === 'string' 
-            ? [data.content]
+        const content = Array.isArray(szotarResult.data.content) 
+          ? szotarResult.data.content 
+          : typeof szotarResult.data.content === 'string' 
+            ? [szotarResult.data.content]
             : [];
         setSzotar({
-          ...data,
+          ...szotarResult.data,
           content: content as string[],
         });
       } else {
         setSzotar(null);
       }
+
+      if (telephelyResult.error) {
+        console.error('Error fetching telephely:', telephelyResult.error);
+        setProbaPaciensNeve(null);
+      } else {
+        setProbaPaciensNeve(telephelyResult.data?.probapaciens_neve || null);
+      }
     } catch (err) {
       console.error('Error fetching szotar:', err);
       setSzotar(null);
+      setProbaPaciensNeve(null);
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +91,8 @@ export function useSzotar(): UseSzotarReturn {
   return {
     szotar,
     hasSzotar: szotar !== null,
+    hasProbaPaciens: !!probaPaciensNeve,
+    probaPaciensNeve,
     isLoading: isLoading || profileLoading,
     refresh: fetchSzotar,
   };
