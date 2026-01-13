@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { notifyTelephelyDataChanged } from '@/lib/telephelyEvents';
 
 interface DomainDialogProps {
   open: boolean;
@@ -66,6 +67,7 @@ export function DomainDialog({
 
       toast.success('Domain sikeresen mentve');
       onSaved(domain.trim());
+      notifyTelephelyDataChanged();
       onOpenChange(false);
     } catch (err: any) {
       console.error('Error saving domain:', err);

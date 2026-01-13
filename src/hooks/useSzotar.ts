@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
 
 interface SzotarData {
   id: string;
@@ -94,6 +95,14 @@ export function useSzotar(): UseSzotarReturn {
       fetchSzotar();
     }
   }, [profileLoading, fetchSzotar]);
+
+  // Listen for telephely data changes
+  useEffect(() => {
+    const unsubscribe = subscribeToTelephelyChanges(() => {
+      fetchSzotar();
+    });
+    return unsubscribe;
+  }, [fetchSzotar]);
 
   return {
     szotar,

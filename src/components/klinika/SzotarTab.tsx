@@ -12,6 +12,7 @@ import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
+import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
 import {
   Tooltip,
   TooltipContent,
@@ -117,6 +118,14 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
 
   useEffect(() => {
     loadSzotar();
+  }, [loadSzotar]);
+
+  // Listen for telephely data changes from other components
+  useEffect(() => {
+    const unsubscribe = subscribeToTelephelyChanges(() => {
+      loadSzotar();
+    });
+    return unsubscribe;
   }, [loadSzotar]);
 
   const handleGenerateSzotar = async () => {
