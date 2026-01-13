@@ -104,6 +104,25 @@ serve(async (req) => {
       );
     }
 
+    // Get user's profile to find telephely and flexi_domain
+    const { data: profileData } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, telephely_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let flexiDomain: string | null = null;
+    
+    if (profileData?.telephely_id) {
+      const { data: telephelyData } = await supabaseAdmin
+        .from('telephely')
+        .select('flexi_domain')
+        .eq('id', profileData.telephely_id)
+        .maybeSingle();
+      
+      flexiDomain = telephelyData?.flexi_domain || null;
+    }
+
     console.log('Sending Flexi credentials to n8n webhook...');
 
     // Send to n8n and wait for response
@@ -113,6 +132,7 @@ serve(async (req) => {
       body: JSON.stringify({
         flexiEmail,
         flexiPassword,
+        flexi_domain: flexiDomain,
         timestamp: new Date().toISOString(),
       }),
     });
@@ -145,13 +165,7 @@ serve(async (req) => {
       );
     }
 
-    // Login successful - get user's profile name
-    const { data: profileData } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
+    // Login successful - use the already fetched profile name
     const userName = profileData?.full_name || user.email || '';
 
     // Encrypt the password before storing

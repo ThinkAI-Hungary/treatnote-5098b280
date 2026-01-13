@@ -92,7 +92,7 @@ export function DomainDialog({
                     bejelentkezik a Flexi-Dent fiókjába. Az URL kinézete:{' '}
                     <span className="inline-block">
                       "https://
-                      <span className="animate-pulse text-primary font-medium">AZ ÖN DOMAINJE</span>
+                      <span className="text-primary font-medium animate-[pulse_10s_ease-in-out_infinite]">AZ ÖN DOMAINJE</span>
                       .flexi-dent.hu/"
                     </span>
                   </p>
