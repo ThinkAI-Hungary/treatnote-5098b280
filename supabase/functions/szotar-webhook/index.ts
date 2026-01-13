@@ -16,6 +16,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const webhookUrl = Deno.env.get("N8N_SZOTAR_VALIDATOR_WEBHOOK_URL");
+    const encryptionKey = Deno.env.get("FLEXI_ENCRYPTION_KEY");
 
     if (!webhookUrl) {
       throw new Error("Webhook URL not configured");
@@ -47,6 +48,42 @@ serve(async (req) => {
 
     if (flexiError) {
       console.error('Error fetching flexi auth:', flexiError);
+    }
+
+    // Decrypt password if encrypted
+    let decryptedPassword: string | null = null;
+    if (flexiAuth?.flexi_pw && encryptionKey) {
+      try {
+        const [ivHex, encryptedHex] = flexiAuth.flexi_pw.split(':');
+        if (ivHex && encryptedHex) {
+          const iv = new Uint8Array(ivHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
+          const encryptedData = new Uint8Array(encryptedHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
+          
+          const keyData = new TextEncoder().encode(encryptionKey.padEnd(32, '0').slice(0, 32));
+          const cryptoKey = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'AES-CBC' },
+            false,
+            ['decrypt']
+          );
+          
+          const decrypted = await crypto.subtle.decrypt(
+            { name: 'AES-CBC', iv },
+            cryptoKey,
+            encryptedData
+          );
+          
+          decryptedPassword = new TextDecoder().decode(decrypted);
+        }
+      } catch (decryptError) {
+        console.error('Error decrypting password:', decryptError);
+        // If decryption fails, password might be stored in plain text
+        decryptedPassword = flexiAuth.flexi_pw;
+      }
+    } else if (flexiAuth?.flexi_pw) {
+      // No encryption key, assume plain text
+      decryptedPassword = flexiAuth.flexi_pw;
     }
 
     // Fetch treatment_rules and related data for this telephely
@@ -97,10 +134,8 @@ serve(async (req) => {
       user_id,
       regenerate,
       szotar_exists,
-      flexi_credentials: flexiAuth ? {
-        username: flexiAuth.flexi_username,
-        password: flexiAuth.flexi_pw,
-      } : null,
+      flexi_email: flexiAuth?.flexi_username || null,
+      flexi_password: decryptedPassword,
       treatment_rules: rules || [],
       szabalyok_pdf: pdfData || [],
       callback_url: `${supabaseUrl}/functions/v1/szotar-callback`,
