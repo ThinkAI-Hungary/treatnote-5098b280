@@ -771,6 +771,88 @@ export type Database = {
           },
         ]
       }
+      rule_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          name: string
+          quantity: number
+          scaling: string
+          target_tooth_type: string
+          unit: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          name: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          name?: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_items_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rule_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_visits: {
+        Row: {
+          created_at: string
+          display_order: number
+          duration_days: number | null
+          healing_months: number | null
+          id: string
+          rule_id: string
+          visit_number: number
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id: string
+          visit_number?: number
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id?: string
+          visit_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_visits_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       szabalyepito_teszt_extractions: {
         Row: {
           company_id: string | null
@@ -986,6 +1068,44 @@ export type Database = {
             columns: ["examination_id"]
             isOneToOne: false
             referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_rules: {
+        Row: {
+          category: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          name: string
+          trigger_words: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          name: string
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
             referencedColumns: ["id"]
           },
         ]
