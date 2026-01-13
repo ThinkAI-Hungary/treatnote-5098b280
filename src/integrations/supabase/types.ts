@@ -913,6 +913,41 @@ export type Database = {
           },
         ]
       }
+      szotar: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string
+          id: string
+          telephely_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          telephely_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          telephely_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: true
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teeth: {
         Row: {
           bridge: string

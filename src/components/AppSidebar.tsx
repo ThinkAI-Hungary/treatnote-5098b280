@@ -11,6 +11,8 @@ import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
+import { useSzotar } from '@/hooks/useSzotar';
+import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -42,7 +44,7 @@ import { cn } from '@/lib/utils';
 // All menu items defined statically - no conditional rendering
 const mainMenuItems = [
   { title: 'Főoldal', url: '/dashboard', icon: Home },
-  { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true },
+  { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true },
 ];
 
 const secondaryMenuItems = [
@@ -67,15 +69,17 @@ function StaticMenuItem({
   collapsed,
   isDisabled = false,
   disabledMessage,
+  disabledContent,
   onDisabledClick,
 }: { 
   item: { title: string; url: string; icon: typeof User }; 
   collapsed: boolean;
   isDisabled?: boolean;
   disabledMessage?: string;
+  disabledContent?: React.ReactNode;
   onDisabledClick?: () => void;
 }) {
-  if (isDisabled && disabledMessage) {
+  if (isDisabled && (disabledMessage || disabledContent)) {
     return (
       <SidebarMenuItem>
         <HoverCard openDelay={0} closeDelay={200}>
@@ -92,17 +96,21 @@ function StaticMenuItem({
             alignOffset={-40}
             className="w-72 p-4 z-[100] bg-popover border border-border shadow-lg"
           >
-            <p className="text-sm">
-              {disabledMessage}{' '}
-              {onDisabledClick && (
-                <button
-                  onClick={onDisabledClick}
-                  className="underline text-primary hover:text-primary/80 font-medium"
-                >
-                  kérem csatolja hozzá fiókját itt!
-                </button>
-              )}
-            </p>
+            {disabledContent ? (
+              disabledContent
+            ) : (
+              <p className="text-sm">
+                {disabledMessage}{' '}
+                {onDisabledClick && (
+                  <button
+                    onClick={onDisabledClick}
+                    className="underline text-primary hover:text-primary/80 font-medium"
+                  >
+                    kérem csatolja hozzá fiókját itt!
+                  </button>
+                )}
+              </p>
+            )}
           </HoverCardContent>
         </HoverCard>
       </SidebarMenuItem>
@@ -130,6 +138,8 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isAdmin, isKlinikaAdmin, isInitialized } = useCachedRoles();
   const { isConnected: isFlexiConnected } = useFlexiConnection();
+  const { hasSzotar, isLoading: szotarLoading } = useSzotar();
+  const { admins: klinikaAdmins } = useKlinikaAdmins();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
 
@@ -167,6 +177,74 @@ export function AppSidebar() {
     navigate('/profile?openFlexi=true');
   };
 
+  const handleSzotarLinkClick = () => {
+    navigate('/klinika-admin?tab=szotar');
+  };
+
+  // Build disabled content for szotar missing
+  const buildSzotarDisabledContent = () => {
+    if (isKlinikaAdmin || isAdmin) {
+      return (
+        <p className="text-sm">
+          Nem található szótár a telephelynél -{' '}
+          <button
+            onClick={handleSzotarLinkClick}
+            className="underline text-primary hover:text-primary/80 font-medium"
+          >
+            kattintson ide a létrehozáshoz
+          </button>
+        </p>
+      );
+    }
+    
+    return (
+      <div className="text-sm space-y-2">
+        <p>Nem található szótár a telephelynél, kérem keresse fel klinika adminját!</p>
+        {klinikaAdmins.length > 0 && (
+          <div>
+            <p className="font-medium">
+              {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {klinikaAdmins.map((admin) => (
+                <li key={admin.id} className="text-muted-foreground">
+                  {admin.full_name || 'Névtelen'}
+                  {admin.phone && <span className="ml-2">({admin.phone})</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Determine if Hangfelvétel should be disabled and why
+  const getHangfelvételDisabledState = (item: typeof mainMenuItems[0]) => {
+    if (!item.requiresFlexi && !item.requiresSzotar) {
+      return { isDisabled: false };
+    }
+    
+    // Check Flexi first
+    if (item.requiresFlexi && !isFlexiConnected) {
+      return {
+        isDisabled: true,
+        disabledMessage: "Jelenleg nincs hozzácsatolva FlexiDent fiók -",
+        onDisabledClick: handleFlexiLinkClick,
+      };
+    }
+    
+    // Check Szotar
+    if (item.requiresSzotar && !szotarLoading && !hasSzotar) {
+      return {
+        isDisabled: true,
+        disabledContent: buildSzotarDisabledContent(),
+      };
+    }
+    
+    return { isDisabled: false };
+  };
+
   // Determine user role text
   const getRoleText = () => {
     if (isAdmin) return 'Admin';
@@ -198,16 +276,20 @@ export function AppSidebar() {
           {!collapsed && <SidebarGroupLabel>Főmenü</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainMenuItems.map((item) => (
-                <StaticMenuItem 
-                  key={item.title} 
-                  item={item} 
-                  collapsed={collapsed}
-                  isDisabled={item.requiresFlexi && !isFlexiConnected}
-                  disabledMessage={item.requiresFlexi ? "Jelenleg nincs hozzácsatolva FlexiDent fiók -" : undefined}
-                  onDisabledClick={item.requiresFlexi ? handleFlexiLinkClick : undefined}
-                />
-              ))}
+              {mainMenuItems.map((item) => {
+                const disabledState = getHangfelvételDisabledState(item);
+                return (
+                  <StaticMenuItem 
+                    key={item.title} 
+                    item={item} 
+                    collapsed={collapsed}
+                    isDisabled={disabledState.isDisabled}
+                    disabledMessage={disabledState.disabledMessage}
+                    disabledContent={disabledState.disabledContent}
+                    onDisabledClick={disabledState.onDisabledClick}
+                  />
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
