@@ -28,6 +28,7 @@ import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
+import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
 import { X, Check, User, Building2, MapPin, Phone, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
@@ -126,6 +127,14 @@ const Profile = () => {
       loadAllData();
     }
   }, [user, authLoading]);
+
+  // Listen for telephely data changes (domain updates, etc.)
+  useEffect(() => {
+    const unsubscribe = subscribeToTelephelyChanges(() => {
+      loadProfile();
+    });
+    return unsubscribe;
+  }, [user]);
 
   // Auto-open Flexi dialog if URL param is present
   useEffect(() => {
