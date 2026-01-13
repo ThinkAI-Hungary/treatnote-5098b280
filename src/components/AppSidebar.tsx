@@ -13,7 +13,7 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -177,22 +177,18 @@ export function AppSidebar() {
     navigate('/profile?openFlexi=true');
   };
 
-  const handleSzotarLinkClick = () => {
-    navigate('/klinika-admin?tab=szotar');
-  };
-
   // Build disabled content for szotar missing
   const buildSzotarDisabledContent = () => {
     if (isKlinikaAdmin || isAdmin) {
       return (
         <p className="text-sm">
           Nem található szótár a telephelynél -{' '}
-          <button
-            onClick={handleSzotarLinkClick}
+          <Link
+            to="/klinika-admin?tab=szotar"
             className="underline text-primary hover:text-primary/80 font-medium"
           >
             kattintson ide a létrehozáshoz
-          </button>
+          </Link>
         </p>
       );
     }
