@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,11 +16,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
-import { X, Check, User, Building2, MapPin, Phone, Loader2 } from 'lucide-react';
+import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
+import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
+import { X, Check, User, Building2, MapPin, Phone, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
@@ -75,16 +83,20 @@ interface ProfileData {
   company_name: string | null;
   telephely_id: string | null;
   telephely_name: string | null;
+  flexi_domain: string | null;
 }
 
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
   const [unlinking, setUnlinking] = useState(false);
+  const { isKlinikaAdmin, loading: klinikaAdminLoading } = useKlinikaAdminRole();
+  const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     phone: '',
@@ -92,6 +104,7 @@ const Profile = () => {
     company_name: null,
     telephely_id: null,
     telephely_name: null,
+    flexi_domain: null,
   });
 
   useEffect(() => {
@@ -134,6 +147,7 @@ const Profile = () => {
     if (data) {
       let companyName: string | null = null;
       let telephelyName: string | null = null;
+      let flexiDomain: string | null = null;
 
       // Fetch company name if company_id exists
       if (data.company_id) {
@@ -145,14 +159,15 @@ const Profile = () => {
         companyName = companyData?.name || null;
       }
 
-      // Fetch telephely name if telephely_id exists
+      // Fetch telephely name and flexi_domain if telephely_id exists
       if (data.telephely_id) {
         const { data: telephelyData } = await supabase
           .from('telephely')
-          .select('name')
+          .select('name, flexi_domain')
           .eq('id', data.telephely_id)
           .single();
         telephelyName = telephelyData?.name || null;
+        flexiDomain = telephelyData?.flexi_domain || null;
       }
 
       setProfile({
@@ -162,6 +177,7 @@ const Profile = () => {
         company_name: companyName,
         telephely_id: data.telephely_id,
         telephely_name: telephelyName,
+        flexi_domain: flexiDomain,
       });
     }
   };
@@ -395,6 +411,54 @@ const Profile = () => {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+          ) : !profile.flexi_domain ? (
+            // No domain set - show disabled button with appropriate message
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    {isKlinikaAdmin ? (
+                      <Button 
+                        variant="outline" 
+                        className="opacity-50 cursor-pointer"
+                        onClick={() => navigate('/klinika-admin?tab=szotar&openDomain=true')}
+                      >
+                        <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
+                        Flexi hozzácsatolás
+                      </Button>
+                    ) : (
+                      <Button variant="outline" disabled className="opacity-50">
+                        <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
+                        Flexi hozzácsatolás
+                      </Button>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  {isKlinikaAdmin ? (
+                    <p>Kérem állítsa be a klinika domainjét</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="font-medium">Kérjük, lépjen kapcsolatba a klinika adminisztrátorával a domain beállításához:</p>
+                      {adminsLoading ? (
+                        <p className="text-sm text-muted-foreground">Betöltés...</p>
+                      ) : klinikaAdmins.length > 0 ? (
+                        <ul className="text-sm space-y-1">
+                          {klinikaAdmins.map((admin) => (
+                            <li key={admin.id}>
+                              <span className="font-medium">{admin.full_name || 'Névtelen'}</span>
+                              {admin.phone && <span className="ml-2 text-muted-foreground">({admin.phone})</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nincs elérhető adminisztrátor</p>
+                      )}
+                    </div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : (
             <Button onClick={() => setFlexiDialogOpen(true)}>
               Flexi hozzácsatolás
