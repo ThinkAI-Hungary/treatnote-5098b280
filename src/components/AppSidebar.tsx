@@ -154,6 +154,10 @@ export function AppSidebar() {
     navigate('/profile?openFlexi=true');
   }, [navigate]);
 
+  const handleProbaPaciensClick = useCallback(() => {
+    navigate('/klinika-admin?tab=szotar&openProba=true');
+  }, [navigate]);
+
   // Handle clicking szotar creation link for klinika admins - must be before early return
   const handleSzotarCreationClick = useCallback(async () => {
     if (!profile?.telephely_id || !profile?.company_id || !user) {
@@ -217,11 +221,6 @@ export function AppSidebar() {
   }
 
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';
-  
-  // Handle click for próba páciens link
-  const handleProbaPaciensClick = useCallback(() => {
-    navigate('/klinika-admin?tab=szotar&openProba=true');
-  }, [navigate]);
 
   // Build disabled content based on what's missing (in priority order)
   const buildHangfelvételDisabledContent = (reason: 'flexi' | 'proba' | 'szotar') => {
