@@ -58,6 +58,7 @@ interface WebhookPayload {
   telephely_id: string;
   telephely_name: string;
   telephely_slug: string;
+  flexi_domain: string | null;
   uploaded_by: string | null;
   timestamp: string;
 }
@@ -182,6 +183,26 @@ serve(async (req) => {
     const telephelySlug = sanitizeSlug(telephely_name);
     const fileSlug = sanitizeSlug(file_name.replace(/\.pdf$/i, ''));
 
+    // Fetch telephely to get flexi_domain
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    let flexiDomain: string | null = null;
+    
+    if (supabaseUrl && supabaseServiceKey && telephely_id) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: telephelyData, error: telephelyError } = await supabase
+        .from('telephely')
+        .select('flexi_domain')
+        .eq('id', telephely_id)
+        .maybeSingle();
+      
+      if (telephelyError) {
+        console.error('Error fetching telephely:', telephelyError);
+      } else if (telephelyData) {
+        flexiDomain = telephelyData.flexi_domain || null;
+      }
+    }
+
     // Build payload
     const payload: WebhookPayload = {
       version: '1.0',
@@ -195,6 +216,7 @@ serve(async (req) => {
       telephely_id,
       telephely_name,
       telephely_slug: telephelySlug,
+      flexi_domain: flexiDomain,
       uploaded_by: uploaded_by || null,
       timestamp: new Date().toISOString(),
     };
