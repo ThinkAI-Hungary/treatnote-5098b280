@@ -19,6 +19,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface SzotarTabProps {
   companyId: string | null;
@@ -35,10 +43,20 @@ interface SzotarData {
   updated_at: string;
 }
 
+interface SzotarKezelesData {
+  id: string;
+  telephely_id: string;
+  name: string;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }: SzotarTabProps) {
   const { user } = useAuth();
   const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
+  const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
@@ -72,42 +90,54 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     }
 
     try {
-      // Fetch szotar data
-      const { data, error } = await supabase
-        .from('szotar')
-        .select('*')
-        .eq('telephely_id', telephelyId)
-        .maybeSingle();
+      // Fetch szotar data and szotar_kezelesek in parallel
+      const [szotarResult, kezelesekResult, telephelyResult] = await Promise.all([
+        supabase
+          .from('szotar')
+          .select('*')
+          .eq('telephely_id', telephelyId)
+          .maybeSingle(),
+        supabase
+          .from('szotar_kezelesek')
+          .select('*')
+          .eq('telephely_id', telephelyId)
+          .order('category', { ascending: true, nullsFirst: false })
+          .order('name', { ascending: true }),
+        supabase
+          .from('telephely')
+          .select('probapaciens_neve, flexi_domain')
+          .eq('id', telephelyId)
+          .maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error('Error loading szotar:', error);
+      if (szotarResult.error) {
+        console.error('Error loading szotar:', szotarResult.error);
         toast.error('Hiba a szótár betöltésekor');
-      } else if (data) {
-        const content = Array.isArray(data.content) 
-          ? data.content as string[]
-          : typeof data.content === 'string' 
-            ? [data.content]
+      } else if (szotarResult.data) {
+        const content = Array.isArray(szotarResult.data.content) 
+          ? szotarResult.data.content as string[]
+          : typeof szotarResult.data.content === 'string' 
+            ? [szotarResult.data.content]
             : [];
         setSzotar({
-          ...data,
+          ...szotarResult.data,
           content,
         });
       } else {
         setSzotar(null);
       }
 
-      // Fetch telephely data including domain
-      const { data: telephelyData, error: telephelyError } = await supabase
-        .from('telephely')
-        .select('probapaciens_neve, flexi_domain')
-        .eq('id', telephelyId)
-        .maybeSingle();
-
-      if (telephelyError) {
-        console.error('Error loading telephely:', telephelyError);
+      if (kezelesekResult.error) {
+        console.error('Error loading szotar_kezelesek:', kezelesekResult.error);
       } else {
-        setProbaPaciensNeve(telephelyData?.probapaciens_neve || null);
-        setFlexiDomain(telephelyData?.flexi_domain || null);
+        setSzotarKezelesek(kezelesekResult.data || []);
+      }
+
+      if (telephelyResult.error) {
+        console.error('Error loading telephely:', telephelyResult.error);
+      } else {
+        setProbaPaciensNeve(telephelyResult.data?.probapaciens_neve || null);
+        setFlexiDomain(telephelyResult.data?.flexi_domain || null);
       }
     } catch (err) {
       console.error('Error loading szotar:', err);
@@ -127,6 +157,32 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     });
     return unsubscribe;
   }, [loadSzotar]);
+
+  // Real-time subscription for szotar_kezelesek changes
+  useEffect(() => {
+    if (!telephelyId) return;
+
+    const channel = supabase
+      .channel(`szotar_kezelesek_${telephelyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'szotar_kezelesek',
+          filter: `telephely_id=eq.${telephelyId}`,
+        },
+        () => {
+          // Reload data when any change occurs
+          loadSzotar();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [telephelyId, loadSzotar]);
 
   const handleGenerateSzotar = async () => {
     if (!telephelyId || !companyId || !user) {
@@ -224,6 +280,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     );
   }
 
+  // Determine if szotar exists based on szotar_kezelesek having records
+  const hasSzotar = szotarKezelesek.length > 0;
+
   // Render buttons with uniform styling based on warning state
   const renderActionButtons = () => {
     const buttonBaseClass = isInWarningState
@@ -237,7 +296,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         ) : (
           <RefreshCw className="mr-2 h-4 w-4" />
         )}
-        {szotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+        {hasSzotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
       </>
     );
 
@@ -371,7 +430,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
               <div>
                 <CardTitle className="flex items-center gap-2">
                   Szótár
-                  {szotar ? (
+                  {hasSzotar ? (
                     <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Aktív
@@ -464,31 +523,45 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         </AnimatedCard>
       )}
 
-      {/* Content Card */}
-      {szotar && szotar.content.length > 0 ? (
+      {/* Content Card - Show szotar_kezelesek */}
+      {hasSzotar ? (
         <AnimatedCard>
           <CardHeader>
-            <CardTitle className="text-lg">Szótár tartalma</CardTitle>
+            <CardTitle className="text-lg">Szótár kezelések</CardTitle>
             <CardDescription>
-              Utoljára frissítve: {new Date(szotar.updated_at).toLocaleString('hu-HU')}
+              {szotarKezelesek.length} kezelés a szótárban
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[400px] rounded-lg border border-primary/10 bg-muted/30">
-              <div className="p-4 space-y-2">
-                {szotar.content.map((item, index) => (
-                  <div
-                    key={index}
-                    className="px-4 py-2 rounded-md bg-card border border-primary/10 text-sm hover:bg-accent/10 transition-colors"
-                  >
-                    {typeof item === 'string' ? item : JSON.stringify(item)}
-                  </div>
-                ))}
-              </div>
+            <ScrollArea className="h-[400px] rounded-lg border border-primary/10">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Kezelés neve</TableHead>
+                    <TableHead>Kategória</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {szotarKezelesek.map((kezeles) => (
+                    <TableRow key={kezeles.id}>
+                      <TableCell className="font-medium">{kezeles.name}</TableCell>
+                      <TableCell>
+                        {kezeles.category ? (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            {kezeles.category}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </ScrollArea>
           </CardContent>
         </AnimatedCard>
-      ) : !szotar ? (
+      ) : (
         <AnimatedCard>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Book className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -499,7 +572,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
             </p>
           </CardContent>
         </AnimatedCard>
-      ) : null}
+      )}
 
       {/* Próba páciens dialog */}
       <ProbaPaciensDialog
