@@ -12,8 +12,18 @@ interface SzotarData {
   created_by: string;
 }
 
+interface SzotarKezelesData {
+  id: string;
+  telephely_id: string;
+  name: string;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface UseSzotarReturn {
   szotar: SzotarData | null;
+  szotarKezelesek: SzotarKezelesData[];
   hasSzotar: boolean;
   hasProbaPaciens: boolean;
   probaPaciensNeve: string | null;
@@ -26,6 +36,7 @@ interface UseSzotarReturn {
 export function useSzotar(): UseSzotarReturn {
   const { profile, loading: profileLoading } = useProfile();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
+  const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
   const [flexiDomain, setFlexiDomain] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +44,7 @@ export function useSzotar(): UseSzotarReturn {
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
       setSzotar(null);
+      setSzotarKezelesek([]);
       setProbaPaciensNeve(null);
       setFlexiDomain(null);
       setIsLoading(false);
@@ -40,13 +52,19 @@ export function useSzotar(): UseSzotarReturn {
     }
 
     try {
-      // Fetch both szotar and telephely data in parallel
-      const [szotarResult, telephelyResult] = await Promise.all([
+      // Fetch szotar, szotar_kezelesek and telephely data in parallel
+      const [szotarResult, kezelesekResult, telephelyResult] = await Promise.all([
         supabase
           .from('szotar')
           .select('*')
           .eq('telephely_id', profile.telephely_id)
           .maybeSingle(),
+        supabase
+          .from('szotar_kezelesek')
+          .select('*')
+          .eq('telephely_id', profile.telephely_id)
+          .order('category', { ascending: true, nullsFirst: false })
+          .order('name', { ascending: true }),
         supabase
           .from('telephely')
           .select('probapaciens_neve, flexi_domain')
@@ -72,6 +90,13 @@ export function useSzotar(): UseSzotarReturn {
         setSzotar(null);
       }
 
+      if (kezelesekResult.error) {
+        console.error('Error fetching szotar_kezelesek:', kezelesekResult.error);
+        setSzotarKezelesek([]);
+      } else {
+        setSzotarKezelesek(kezelesekResult.data || []);
+      }
+
       if (telephelyResult.error) {
         console.error('Error fetching telephely:', telephelyResult.error);
         setProbaPaciensNeve(null);
@@ -83,6 +108,7 @@ export function useSzotar(): UseSzotarReturn {
     } catch (err) {
       console.error('Error fetching szotar:', err);
       setSzotar(null);
+      setSzotarKezelesek([]);
       setProbaPaciensNeve(null);
       setFlexiDomain(null);
     } finally {
@@ -104,9 +130,35 @@ export function useSzotar(): UseSzotarReturn {
     return unsubscribe;
   }, [fetchSzotar]);
 
+  // Real-time subscription for szotar_kezelesek changes
+  useEffect(() => {
+    if (!profile?.telephely_id) return;
+
+    const channel = supabase
+      .channel(`szotar_kezelesek_hook_${profile.telephely_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'szotar_kezelesek',
+          filter: `telephely_id=eq.${profile.telephely_id}`,
+        },
+        () => {
+          fetchSzotar();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.telephely_id, fetchSzotar]);
+
   return {
     szotar,
-    hasSzotar: szotar !== null,
+    szotarKezelesek,
+    hasSzotar: szotarKezelesek.length > 0,
     hasProbaPaciens: !!probaPaciensNeve,
     probaPaciensNeve,
     hasFlexiDomain: !!flexiDomain,
