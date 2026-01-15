@@ -273,20 +273,10 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   // Determine if we're in a disabled/warning state for uniform styling
   const isInWarningState = buttonState.showDomainWarning || buttonState.showFlexiWarning || buttonState.tooltip;
 
-  if (loading) {
-    return (
-      <AnimatedCard>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </AnimatedCard>
-    );
-  }
-
   // Determine if szotar exists based on szotar_kezelesek having records
   const hasSzotar = szotarKezelesek.length > 0;
 
-  // Get unique categories for filter
+  // Get unique categories for filter - MUST be before early return
   const uniqueCategories = useMemo(() => {
     const categories = szotarKezelesek
       .map(k => k.category)
@@ -294,7 +284,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     return [...new Set(categories)].sort();
   }, [szotarKezelesek]);
 
-  // Filter szotarKezelesek based on search query and selected categories
+  // Filter szotarKezelesek based on search query and selected categories - MUST be before early return
   const filteredKezelesek = useMemo(() => {
     return szotarKezelesek.filter(kezeles => {
       // Search filter - check name
@@ -323,6 +313,16 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     setSearchQuery('');
     setSelectedCategories([]);
   };
+
+  if (loading) {
+    return (
+      <AnimatedCard>
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </AnimatedCard>
+    );
+  }
 
   // Render buttons with uniform styling based on warning state
   const renderActionButtons = () => {
