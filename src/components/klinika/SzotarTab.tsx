@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe, Search, X } from 'lucide-react';
+import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe, Search, X, ChevronDown, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
@@ -28,6 +28,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SzotarTabProps {
   companyId: string | null;
@@ -595,34 +603,70 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 )}
               </div>
               
-              {/* Category Filter */}
+              {/* Category Filter Dropdown */}
               {uniqueCategories.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Kategória:</span>
-                  {uniqueCategories.map((category) => (
-                    <Badge
-                      key={category}
-                      variant={selectedCategories.includes(category) ? "default" : "outline"}
-                      className={`cursor-pointer transition-colors ${
-                        selectedCategories.includes(category)
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'hover:bg-primary/10 border-primary/20'
-                      }`}
-                      onClick={() => toggleCategory(category)}
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="border-primary/20 hover:bg-primary/10 bg-card"
+                      >
+                        Kategória
+                        {selectedCategories.length > 0 && (
+                          <Badge variant="secondary" className="ml-2 bg-primary/20 text-primary">
+                            {selectedCategories.length}
+                          </Badge>
+                        )}
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                      className="w-56 bg-popover border border-border shadow-lg z-50"
+                      align="start"
                     >
-                      {category}
-                    </Badge>
-                  ))}
-                  {(selectedCategories.length > 0 || searchQuery) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Szűrők törlése
-                    </Button>
+                      <DropdownMenuLabel>Kategória szűrő</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {uniqueCategories.map((category) => (
+                        <DropdownMenuCheckboxItem
+                          key={category}
+                          checked={selectedCategories.includes(category)}
+                          onCheckedChange={() => toggleCategory(category)}
+                        >
+                          {category}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {selectedCategories.length > 0 && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuCheckboxItem
+                            checked={false}
+                            onCheckedChange={clearFilters}
+                            className="text-muted-foreground"
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Szűrők törlése
+                          </DropdownMenuCheckboxItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {/* Show selected categories as badges */}
+                  {selectedCategories.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      {selectedCategories.map((category) => (
+                        <Badge
+                          key={category}
+                          variant="default"
+                          className="bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90"
+                          onClick={() => toggleCategory(category)}
+                        >
+                          {category}
+                          <X className="ml-1 h-3 w-3" />
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
