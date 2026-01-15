@@ -1,5 +1,5 @@
 // Hook for fetching and managing szotar and szotar_kezelesek data
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
@@ -41,6 +41,9 @@ export function useSzotar(): UseSzotarReturn {
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
   const [flexiDomain, setFlexiDomain] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Debounce ref to prevent multiple rapid fetches
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
@@ -95,6 +98,7 @@ export function useSzotar(): UseSzotarReturn {
         console.error('Error fetching szotar_kezelesek:', kezelesekResult.error);
         setSzotarKezelesek([]);
       } else {
+        console.log('useSzotar: Loaded', kezelesekResult.data?.length || 0, 'szotar_kezelesek');
         setSzotarKezelesek(kezelesekResult.data || []);
       }
 
@@ -117,6 +121,17 @@ export function useSzotar(): UseSzotarReturn {
     }
   }, [profile?.telephely_id]);
 
+  // Debounced fetch to handle multiple rapid realtime events
+  const debouncedFetch = useCallback(() => {
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    fetchTimeoutRef.current = setTimeout(() => {
+      console.log('useSzotar: Debounced fetch triggered');
+      fetchSzotar();
+    }, 500); // Wait 500ms after last event before fetching
+  }, [fetchSzotar]);
+
   useEffect(() => {
     if (!profileLoading) {
       fetchSzotar();
@@ -135,6 +150,8 @@ export function useSzotar(): UseSzotarReturn {
   useEffect(() => {
     if (!profile?.telephely_id) return;
 
+    console.log('useSzotar: Setting up realtime subscriptions for telephely:', profile.telephely_id);
+
     const szotarChannel = supabase
       .channel(`szotar_hook_${profile.telephely_id}`)
       .on(
@@ -145,12 +162,14 @@ export function useSzotar(): UseSzotarReturn {
           table: 'szotar',
           filter: `telephely_id=eq.${profile.telephely_id}`,
         },
-        () => {
-          console.log('Szotar realtime update detected');
-          fetchSzotar();
+        (payload) => {
+          console.log('useSzotar: Szotar realtime update detected', payload.eventType);
+          debouncedFetch();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('useSzotar: Szotar channel status:', status);
+      });
 
     const kezelesekChannel = supabase
       .channel(`szotar_kezelesek_hook_${profile.telephely_id}`)
@@ -162,18 +181,24 @@ export function useSzotar(): UseSzotarReturn {
           table: 'szotar_kezelesek',
           filter: `telephely_id=eq.${profile.telephely_id}`,
         },
-        () => {
-          console.log('Szotar kezelesek realtime update detected');
-          fetchSzotar();
+        (payload) => {
+          console.log('useSzotar: Szotar kezelesek realtime update detected', payload.eventType);
+          debouncedFetch();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('useSzotar: Szotar kezelesek channel status:', status);
+      });
 
     return () => {
+      console.log('useSzotar: Cleaning up realtime subscriptions');
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
       supabase.removeChannel(szotarChannel);
       supabase.removeChannel(kezelesekChannel);
     };
-  }, [profile?.telephely_id, fetchSzotar]);
+  }, [profile?.telephely_id, debouncedFetch]);
 
   return {
     szotar,
