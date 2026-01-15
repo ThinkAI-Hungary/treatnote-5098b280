@@ -45,6 +45,7 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
+import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 
 // All menu items defined statically - no conditional rendering
 const mainMenuItems = [
@@ -182,11 +183,13 @@ export function AppSidebar() {
 
       if (error) throw error;
 
-      if (data?.success) {
-        toast.success('Szótár készítése elindítva!');
-      } else {
-        throw new Error(data?.error || 'Ismeretlen hiba');
-      }
+       if (data?.success) {
+         toast.success('Szótár készítése elindítva!');
+         // Kick the sidebar's szótár polling/refresh (realtime can be flaky)
+         notifySzotarDataChanged();
+       } else {
+         throw new Error(data?.error || 'Ismeretlen hiba');
+       }
     } catch (err: any) {
       console.error('Error generating szotar:', err);
       toast.error('Hiba a szótár generálásakor: ' + (err.message || 'Ismeretlen hiba'));

@@ -46,6 +46,10 @@ export function useSzotar(): UseSzotarReturn {
   // Debounce ref to prevent multiple rapid fetches
   const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Polling fallback (when realtime doesn't fire) - short aggressive window
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
       setSzotar(null);
@@ -133,6 +137,33 @@ export function useSzotar(): UseSzotarReturn {
     }, 500); // Wait 500ms after last event before fetching
   }, [fetchSzotar]);
 
+  const stopAggressivePolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (pollStopTimeoutRef.current) {
+      clearTimeout(pollStopTimeoutRef.current);
+      pollStopTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startAggressivePolling = useCallback(() => {
+    // Restart the 2-minute aggressive polling window
+    stopAggressivePolling();
+
+    // Immediate fetch, then keep polling
+    fetchSzotar();
+
+    pollIntervalRef.current = setInterval(() => {
+      fetchSzotar();
+    }, 3000);
+
+    pollStopTimeoutRef.current = setTimeout(() => {
+      stopAggressivePolling();
+    }, 120000);
+  }, [fetchSzotar, stopAggressivePolling]);
+
   useEffect(() => {
     if (!profileLoading) {
       fetchSzotar();
@@ -150,10 +181,11 @@ export function useSzotar(): UseSzotarReturn {
   // Force-refresh consumers (e.g. sidebar) when other screens detect szótár changes
   useEffect(() => {
     const unsubscribe = subscribeToSzotarChanges(() => {
-      fetchSzotar();
+      // Do an aggressive poll window because Supabase Realtime can be flaky / disabled per-table
+      startAggressivePolling();
     });
     return unsubscribe;
-  }, [fetchSzotar]);
+  }, [startAggressivePolling]);
 
   // Real-time subscription for szotar and szotar_kezelesek changes
   useEffect(() => {
@@ -204,10 +236,17 @@ export function useSzotar(): UseSzotarReturn {
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
+      stopAggressivePolling();
       supabase.removeChannel(szotarChannel);
       supabase.removeChannel(kezelesekChannel);
     };
   }, [profile?.telephely_id, debouncedFetch]);
+
+  useEffect(() => {
+    if (szotarKezelesek.length > 0) {
+      stopAggressivePolling();
+    }
+  }, [szotarKezelesek.length, stopAggressivePolling]);
 
   return {
     szotar,
