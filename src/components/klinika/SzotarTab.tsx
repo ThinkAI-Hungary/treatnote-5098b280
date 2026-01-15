@@ -184,6 +184,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
           filter: `telephely_id=eq.${telephelyId}`,
         },
         () => {
+          console.log('SzotarTab: szotar_kezelesek realtime update detected');
+          // Re-enable the generate button when webhook result comes back
+          setGenerating(false);
           // Reload data when any change occurs
           loadSzotar();
         }
@@ -201,6 +204,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       return;
     }
 
+    // Prevent multiple clicks - generating stays true until webhook result comes back
+    if (generating) return;
+    
     setGenerating(true);
 
     try {
@@ -214,19 +220,30 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        setGenerating(false);
+        throw error;
+      }
 
       if (data?.success) {
         toast.success(szotar ? 'Szótár újragenerálása elindítva!' : 'Szótár készítése elindítva!');
-        // Reload after a delay to check for updates
-        setTimeout(() => loadSzotar(), 2000);
+        // Button stays disabled - will be re-enabled when realtime subscription detects szotar_kezelesek changes
+        // Set a timeout fallback to re-enable the button if no update is received within 2 minutes
+        setTimeout(() => {
+          setGenerating(prev => {
+            if (prev) {
+              toast.info('Szótár generálás várakozik... Kérem várjon vagy próbálja újra később.');
+            }
+            return false;
+          });
+        }, 120000); // 2 minutes timeout
       } else {
+        setGenerating(false);
         throw new Error(data?.error || 'Ismeretlen hiba');
       }
     } catch (err: any) {
       console.error('Error generating szotar:', err);
       toast.error('Hiba a szótár generálásakor: ' + (err.message || 'Ismeretlen hiba'));
-    } finally {
       setGenerating(false);
     }
   };
