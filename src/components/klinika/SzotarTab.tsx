@@ -14,6 +14,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
+import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import {
   Tooltip,
   TooltipContent,
