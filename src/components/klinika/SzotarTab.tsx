@@ -161,6 +161,11 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     loadSzotar();
   }, [loadSzotar]);
 
+  // Force-refresh sidebar (Hangfelvétel availability) when szótár kezelések arrive/refresh
+  useEffect(() => {
+    notifySzotarDataChanged();
+  }, [szotarKezelesek.length]);
+
   // Listen for telephely data changes from other components
   useEffect(() => {
     const unsubscribe = subscribeToTelephelyChanges(() => {

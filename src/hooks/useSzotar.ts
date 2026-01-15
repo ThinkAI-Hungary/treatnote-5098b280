@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
+import { subscribeToSzotarChanges } from '@/lib/szotarEvents';
 
 interface SzotarData {
   id: string;
@@ -141,6 +142,14 @@ export function useSzotar(): UseSzotarReturn {
   // Listen for telephely data changes
   useEffect(() => {
     const unsubscribe = subscribeToTelephelyChanges(() => {
+      fetchSzotar();
+    });
+    return unsubscribe;
+  }, [fetchSzotar]);
+
+  // Force-refresh consumers (e.g. sidebar) when other screens detect szótár changes
+  useEffect(() => {
+    const unsubscribe = subscribeToSzotarChanges(() => {
       fetchSzotar();
     });
     return unsubscribe;
