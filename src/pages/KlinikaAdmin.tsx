@@ -24,8 +24,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { SzabalyokTab } from '@/components/klinika/SzabalyokTab';
-import { SzabalyepitoTesztTab } from '@/components/klinika/SzabalyepitoTesztTab';
 import { KezelesiSzabalyokTab } from '@/components/klinika/KezelesiSzabalyokTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
 import { StarField } from '@/components/klinika/StarField';
@@ -63,7 +61,7 @@ export default function KlinikaAdmin() {
   // Controlled tab state for tour navigation
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
-    return tabParam && ['users', 'szabalyok', 'szabalyepito-teszt', 'kezelesi-szabalyok', 'szotar'].includes(tabParam) 
+    return tabParam && ['users', 'kezelesi-szabalyok', 'szotar'].includes(tabParam) 
       ? tabParam 
       : 'users';
   });
@@ -71,7 +69,7 @@ export default function KlinikaAdmin() {
   // Sync tab from URL param on mount and when URL changes
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['users', 'szabalyok', 'szabalyepito-teszt', 'kezelesi-szabalyok', 'szotar'].includes(tabParam)) {
+    if (tabParam && ['users', 'kezelesi-szabalyok', 'szotar'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -110,27 +108,6 @@ export default function KlinikaAdmin() {
       content: 'Itt láthatja a szervezet összes tagját, státuszukat és szerepkörüket.',
       position: 'bottom',
       requiredTab: 'users',
-    },
-    {
-      target: '[data-tour="szabalyok-upload"]',
-      title: 'PDF feltöltés',
-      content: 'Itt tölthet fel kezelési szabályzatokat PDF formátumban. A rendszer automatikusan feldolgozza és kategorizálja a dokumentumokat.',
-      position: 'bottom',
-      requiredTab: 'szabalyok',
-    },
-    {
-      target: '[data-tour="szabalyok-table"]',
-      title: 'Feltöltött szabályzatok',
-      content: 'A feltöltött PDF-ek listája itt jelenik meg. Láthatja a feldolgozási státuszt, szerkesztheti a fogalmat, vagy megtekintheti a dokumentumot.',
-      position: 'bottom',
-      requiredTab: 'szabalyok',
-    },
-    {
-      target: '[data-tour="szabalyok-status"]',
-      title: 'Feldolgozási státusz',
-      content: 'A státusz oszlop mutatja, hogy a PDF feldolgozása folyamatban van, sikeres volt, vagy hiba történt. Hiba esetén újra próbálkozhat.',
-      position: 'left',
-      requiredTab: 'szabalyok',
     },
   ], []);
 
@@ -510,21 +487,6 @@ export default function KlinikaAdmin() {
                 Tagok
               </TabsTrigger>
               <TabsTrigger 
-                value="szabalyok"
-                data-tour="szabalyok-tab"
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <FileText className="h-4 w-4" />
-                Szabályok
-              </TabsTrigger>
-              <TabsTrigger 
-                value="szabalyepito-teszt"
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <FileText className="h-4 w-4" />
-                Szabályrendszerépítő Teszt
-              </TabsTrigger>
-              <TabsTrigger 
                 value="kezelesi-szabalyok"
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
               >
@@ -738,23 +700,6 @@ export default function KlinikaAdmin() {
               </TabsContent>
 
 
-              <TabsContent value="szabalyok" className="mt-0">
-                <SzabalyokTab 
-                  companyId={companyId} 
-                  telephelyId={telephelyId} 
-                  companyName={companyName}
-                  telephelyName={telephelyName}
-                />
-              </TabsContent>
-
-              <TabsContent value="szabalyepito-teszt" className="mt-0">
-                <SzabalyepitoTesztTab 
-                  companyId={companyId} 
-                  telephelyId={telephelyId} 
-                  companyName={companyName}
-                  telephelyName={telephelyName}
-                />
-              </TabsContent>
 
               <TabsContent value="kezelesi-szabalyok" className="mt-0">
                 <KezelesiSzabalyokTab 
