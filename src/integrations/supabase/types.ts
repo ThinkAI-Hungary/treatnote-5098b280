@@ -948,6 +948,38 @@ export type Database = {
           },
         ]
       }
+      szotar_kezelesek: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          telephely_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          telephely_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          telephely_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_kezelesek_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teeth: {
         Row: {
           bridge: string
