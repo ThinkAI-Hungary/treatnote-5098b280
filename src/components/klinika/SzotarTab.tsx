@@ -610,28 +610,30 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="outline" 
-                        className="border-primary/20 hover:bg-primary/10 bg-card"
+                        size="sm"
+                        className="border-primary/20 hover:bg-primary/10 bg-card h-8"
                       >
                         Kategória
                         {selectedCategories.length > 0 && (
-                          <Badge variant="secondary" className="ml-2 bg-primary/20 text-primary">
+                          <Badge variant="secondary" className="ml-2 bg-primary/20 text-primary h-5 text-xs">
                             {selectedCategories.length}
                           </Badge>
                         )}
-                        <ChevronDown className="ml-2 h-4 w-4" />
+                        <ChevronDown className="ml-2 h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
-                      className="w-56 bg-popover border border-border shadow-lg z-50"
+                      className="w-48 bg-popover border border-border shadow-lg z-50 max-h-[280px] overflow-y-auto"
                       align="start"
                     >
-                      <DropdownMenuLabel>Kategória szűrő</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-xs">Kategória szűrő</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {uniqueCategories.map((category) => (
                         <DropdownMenuCheckboxItem
                           key={category}
                           checked={selectedCategories.includes(category)}
                           onCheckedChange={() => toggleCategory(category)}
+                          className="text-sm"
                         >
                           {category}
                         </DropdownMenuCheckboxItem>
@@ -642,9 +644,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                           <DropdownMenuCheckboxItem
                             checked={false}
                             onCheckedChange={clearFilters}
-                            className="text-muted-foreground"
+                            className="text-muted-foreground text-sm"
                           >
-                            <X className="mr-2 h-4 w-4" />
+                            <X className="mr-2 h-3 w-3" />
                             Szűrők törlése
                           </DropdownMenuCheckboxItem>
                         </>
@@ -659,7 +661,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                         <Badge
                           key={category}
                           variant="default"
-                          className="bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90"
+                          className="bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 h-6 text-xs"
                           onClick={() => toggleCategory(category)}
                         >
                           {category}
