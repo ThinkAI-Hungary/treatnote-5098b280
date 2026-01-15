@@ -1,3 +1,4 @@
+// Hook for fetching and managing szotar and szotar_kezelesek data
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
