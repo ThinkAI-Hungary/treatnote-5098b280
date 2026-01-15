@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe, Search, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
@@ -64,6 +65,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const [probaPaciensDialogOpen, setProbaPaciensDialogOpen] = useState(false);
   const [domainDialogOpen, setDomainDialogOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Check if we should open the dialog from URL params
   useEffect(() => {
@@ -282,6 +285,44 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
 
   // Determine if szotar exists based on szotar_kezelesek having records
   const hasSzotar = szotarKezelesek.length > 0;
+
+  // Get unique categories for filter
+  const uniqueCategories = useMemo(() => {
+    const categories = szotarKezelesek
+      .map(k => k.category)
+      .filter((c): c is string => !!c);
+    return [...new Set(categories)].sort();
+  }, [szotarKezelesek]);
+
+  // Filter szotarKezelesek based on search query and selected categories
+  const filteredKezelesek = useMemo(() => {
+    return szotarKezelesek.filter(kezeles => {
+      // Search filter - check name
+      const matchesSearch = searchQuery === '' || 
+        kezeles.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Category filter - if no categories selected, show all
+      const matchesCategory = selectedCategories.length === 0 || 
+        (kezeles.category && selectedCategories.includes(kezeles.category));
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [szotarKezelesek, searchQuery, selectedCategories]);
+
+  // Toggle category selection
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategories([]);
+  };
 
   // Render buttons with uniform styling based on warning state
   const renderActionButtons = () => {
@@ -529,10 +570,64 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
           <CardHeader>
             <CardTitle className="text-lg">Szótár kezelések</CardTitle>
             <CardDescription>
-              {szotarKezelesek.length} kezelés a szótárban
+              {filteredKezelesek.length} / {szotarKezelesek.length} kezelés megjelenítve
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Search and Filter Bar */}
+            <div className="space-y-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Keresés a kezelések között..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-9 border-primary/20 focus:border-primary/40"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Category Filter */}
+              {uniqueCategories.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Kategória:</span>
+                  {uniqueCategories.map((category) => (
+                    <Badge
+                      key={category}
+                      variant={selectedCategories.includes(category) ? "default" : "outline"}
+                      className={`cursor-pointer transition-colors ${
+                        selectedCategories.includes(category)
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'hover:bg-primary/10 border-primary/20'
+                      }`}
+                      onClick={() => toggleCategory(category)}
+                    >
+                      {category}
+                    </Badge>
+                  ))}
+                  {(selectedCategories.length > 0 || searchQuery) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Szűrők törlése
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <ScrollArea className="h-[400px] rounded-lg border border-primary/10">
               <Table>
                 <TableHeader>
@@ -542,20 +637,28 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {szotarKezelesek.map((kezeles) => (
-                    <TableRow key={kezeles.id}>
-                      <TableCell className="font-medium">{kezeles.name}</TableCell>
-                      <TableCell>
-                        {kezeles.category ? (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary">
-                            {kezeles.category}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                  {filteredKezelesek.length > 0 ? (
+                    filteredKezelesek.map((kezeles) => (
+                      <TableRow key={kezeles.id}>
+                        <TableCell className="font-medium">{kezeles.name}</TableCell>
+                        <TableCell>
+                          {kezeles.category ? (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary">
+                              {kezeles.category}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                        Nincs találat a keresési feltételeknek megfelelően
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </ScrollArea>
