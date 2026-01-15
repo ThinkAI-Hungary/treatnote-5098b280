@@ -950,6 +950,7 @@ export type Database = {
       }
       szotar_kezelesek: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           name: string
@@ -957,6 +958,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           name: string
@@ -964,6 +966,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           name?: string
