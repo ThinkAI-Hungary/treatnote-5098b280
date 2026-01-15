@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,12 @@ import {
   DEFAULT_RULE_VISIT,
 } from '@/types/treatmentRules';
 
+interface SzotarKezelesOption {
+  id: string;
+  name: string;
+  category: string | null;
+}
+
 interface TreatmentRuleEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,6 +66,28 @@ export function TreatmentRuleEditor({
   const [visits, setVisits] = useState<RuleVisit[]>([]);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
+  
+  // Szotar kezelesek for autocomplete
+  const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesOption[]>([]);
+  const [activeAutocomplete, setActiveAutocomplete] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
+
+  // Fetch szotar_kezelesek when dialog opens
+  useEffect(() => {
+    if (open && clinicId) {
+      const fetchSzotarKezelesek = async () => {
+        const { data, error } = await supabase
+          .from('szotar_kezelesek')
+          .select('id, name, category')
+          .eq('telephely_id', clinicId)
+          .order('name', { ascending: true });
+        
+        if (!error && data) {
+          setSzotarKezelesek(data);
+        }
+      };
+      fetchSzotarKezelesek();
+    }
+  }, [open, clinicId]);
 
   // Initialize form when rule changes
   useEffect(() => {
@@ -515,12 +543,54 @@ export function TreatmentRuleEditor({
                         >
                           <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
                           
-                          <Input
-                            value={item.name}
-                            onChange={(e) => updateItem(visitIndex, itemIndex, 'name', e.target.value)}
-                            placeholder="Tétel neve"
-                            className="flex-1 h-8"
-                          />
+                          {/* Tétel neve with autocomplete */}
+                          <div className="flex-1 relative">
+                            <Input
+                              value={item.name}
+                              onChange={(e) => {
+                                updateItem(visitIndex, itemIndex, 'name', e.target.value);
+                                setActiveAutocomplete({ visitIndex, itemIndex });
+                              }}
+                              onFocus={() => setActiveAutocomplete({ visitIndex, itemIndex })}
+                              onBlur={() => {
+                                // Delay to allow click on suggestion
+                                setTimeout(() => setActiveAutocomplete(null), 200);
+                              }}
+                              placeholder="Tétel neve"
+                              className="h-8"
+                            />
+                            {/* Autocomplete dropdown */}
+                            {activeAutocomplete?.visitIndex === visitIndex && 
+                             activeAutocomplete?.itemIndex === itemIndex && 
+                             item.name.length > 0 && (
+                              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                                {szotarKezelesek
+                                  .filter(k => k.name.toLowerCase().includes(item.name.toLowerCase()))
+                                  .slice(0, 10)
+                                  .map((kezeles) => (
+                                    <div
+                                      key={kezeles.id}
+                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        updateItem(visitIndex, itemIndex, 'name', kezeles.name);
+                                        setActiveAutocomplete(null);
+                                      }}
+                                    >
+                                      <span>{kezeles.name}</span>
+                                      {kezeles.category && (
+                                        <span className="text-xs text-muted-foreground ml-2">{kezeles.category}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                {szotarKezelesek.filter(k => k.name.toLowerCase().includes(item.name.toLowerCase())).length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                                    Nincs találat
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           
                           <Input
                             type="number"
