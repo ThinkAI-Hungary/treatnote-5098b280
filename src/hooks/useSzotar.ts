@@ -131,11 +131,28 @@ export function useSzotar(): UseSzotarReturn {
     return unsubscribe;
   }, [fetchSzotar]);
 
-  // Real-time subscription for szotar_kezelesek changes
+  // Real-time subscription for szotar and szotar_kezelesek changes
   useEffect(() => {
     if (!profile?.telephely_id) return;
 
-    const channel = supabase
+    const szotarChannel = supabase
+      .channel(`szotar_hook_${profile.telephely_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'szotar',
+          filter: `telephely_id=eq.${profile.telephely_id}`,
+        },
+        () => {
+          console.log('Szotar realtime update detected');
+          fetchSzotar();
+        }
+      )
+      .subscribe();
+
+    const kezelesekChannel = supabase
       .channel(`szotar_kezelesek_hook_${profile.telephely_id}`)
       .on(
         'postgres_changes',
@@ -146,13 +163,15 @@ export function useSzotar(): UseSzotarReturn {
           filter: `telephely_id=eq.${profile.telephely_id}`,
         },
         () => {
+          console.log('Szotar kezelesek realtime update detected');
           fetchSzotar();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(szotarChannel);
+      supabase.removeChannel(kezelesekChannel);
     };
   }, [profile?.telephely_id, fetchSzotar]);
 
