@@ -43,7 +43,7 @@ export function useSzotar(): UseSzotarReturn {
   const [isLoading, setIsLoading] = useState(true);
   
   // Debounce ref to prevent multiple rapid fetches
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSzotar = useCallback(async () => {
     if (!profile?.telephely_id) {
