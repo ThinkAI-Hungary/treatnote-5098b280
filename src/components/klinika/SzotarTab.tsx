@@ -623,24 +623,28 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent 
-                      className="w-48 bg-popover border border-border shadow-lg z-50 max-h-[280px] overflow-y-auto"
+                      className="w-48 bg-popover border border-border shadow-lg z-50 p-0"
                       align="start"
                     >
-                      <DropdownMenuLabel className="text-xs">Kategória szűrő</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {uniqueCategories.map((category) => (
-                        <DropdownMenuCheckboxItem
-                          key={category}
-                          checked={selectedCategories.includes(category)}
-                          onCheckedChange={() => toggleCategory(category)}
-                          className="text-sm"
-                        >
-                          {category}
-                        </DropdownMenuCheckboxItem>
-                      ))}
+                      <div className="p-2 border-b border-border">
+                        <span className="text-xs font-medium text-muted-foreground">Kategória szűrő</span>
+                      </div>
+                      <ScrollArea className="h-[250px]">
+                        <div className="p-1">
+                          {uniqueCategories.map((category) => (
+                            <DropdownMenuCheckboxItem
+                              key={category}
+                              checked={selectedCategories.includes(category)}
+                              onCheckedChange={() => toggleCategory(category)}
+                              className="text-sm"
+                            >
+                              {category}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                        </div>
+                      </ScrollArea>
                       {selectedCategories.length > 0 && (
-                        <>
-                          <DropdownMenuSeparator />
+                        <div className="border-t border-border p-1">
                           <DropdownMenuCheckboxItem
                             checked={false}
                             onCheckedChange={clearFilters}
@@ -649,7 +653,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                             <X className="mr-2 h-3 w-3" />
                             Szűrők törlése
                           </DropdownMenuCheckboxItem>
-                        </>
+                        </div>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
