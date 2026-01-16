@@ -100,6 +100,7 @@ serve(async (req) => {
     // Fetch all processed szabályok for this company/telephely
     let szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}> = [];
     let flexiDomain = "";
+    let treatmentRulesData: unknown[] = [];
 
     if (companyId && telephelyId) {
       const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -141,6 +142,42 @@ serve(async (req) => {
           raw_json: pdf.pdf_extractions?.[0]?.raw_json || null
         }));
         console.log(`Found ${szabalyokData.length} szabályok for company/telephely`);
+      }
+
+      // Fetch treatment_rules with nested rule_visits and rule_items for TreatNote mode
+      if (mode === "treatnote") {
+        const { data: rules, error: rulesError } = await supabaseAdmin
+          .from('treatment_rules')
+          .select(`
+            id,
+            name,
+            category,
+            trigger_words,
+            rule_visits (
+              id,
+              visit_number,
+              display_order,
+              duration_days,
+              healing_months,
+              rule_items (
+                id,
+                name,
+                quantity,
+                unit,
+                scaling,
+                target_tooth_type,
+                display_order
+              )
+            )
+          `)
+          .eq('clinic_id', telephelyId);
+
+        if (rulesError) {
+          console.error("Error fetching treatment_rules:", rulesError);
+        } else if (rules) {
+          treatmentRulesData = rules;
+          console.log(`Found ${rules.length} treatment_rules for telephely`);
+        }
       }
     }
 
@@ -185,8 +222,14 @@ serve(async (req) => {
       webhookFormData.append("flexi_username", flexiUsername);
       webhookFormData.append("flexi_pw", decryptedFlexiPw);
       webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
-
-      console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok`);
+      
+      // Include treatment_rules for TreatNote mode
+      if (mode === "treatnote" && treatmentRulesData.length > 0) {
+        webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));
+        console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok and ${treatmentRulesData.length} treatment_rules`);
+      } else {
+        console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok`);
+      }
       
       const response = await fetch(url, {
         method: "POST",
