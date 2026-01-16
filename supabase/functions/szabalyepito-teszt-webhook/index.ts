@@ -46,6 +46,17 @@ function sanitizeSlug(name: string): string {
     .replace(/_+/g, '_');
 }
 
+interface SzotarKezelesItem {
+  id: string;
+  name: string;
+  category: string;
+}
+
+interface SzotarData {
+  content: unknown | null;
+  kezelesek: SzotarKezelesItem[];
+}
+
 interface WebhookPayload {
   version: string;
   event_id: string;
@@ -60,6 +71,7 @@ interface WebhookPayload {
   telephely_slug: string;
   flexi_domain: string | null;
   uploaded_by: string | null;
+  szotar: SzotarData | null;
   timestamp: string;
 }
 
@@ -183,13 +195,16 @@ serve(async (req) => {
     const telephelySlug = sanitizeSlug(telephely_name);
     const fileSlug = sanitizeSlug(file_name.replace(/\.pdf$/i, ''));
 
-    // Fetch telephely to get flexi_domain
+    // Fetch telephely to get flexi_domain and szotar data
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     let flexiDomain: string | null = null;
+    let szotarData: SzotarData | null = null;
     
     if (supabaseUrl && supabaseServiceKey && telephely_id) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Fetch flexi_domain from telephely
       const { data: telephelyData, error: telephelyError } = await supabase
         .from('telephely')
         .select('flexi_domain')
@@ -201,6 +216,34 @@ serve(async (req) => {
       } else if (telephelyData) {
         flexiDomain = telephelyData.flexi_domain || null;
       }
+
+      // Fetch szotar content
+      const { data: szotarRecord, error: szotarError } = await supabase
+        .from('szotar')
+        .select('content')
+        .eq('telephely_id', telephely_id)
+        .maybeSingle();
+
+      if (szotarError) {
+        console.error('Error fetching szotar:', szotarError);
+      }
+
+      // Fetch szotar_kezelesek
+      const { data: kezelesekRecords, error: kezelesekError } = await supabase
+        .from('szotar_kezelesek')
+        .select('id, name, category')
+        .eq('telephely_id', telephely_id);
+
+      if (kezelesekError) {
+        console.error('Error fetching szotar_kezelesek:', kezelesekError);
+      }
+
+      // Combine into szotarData
+      szotarData = {
+        content: szotarRecord?.content || null,
+        kezelesek: (kezelesekRecords as SzotarKezelesItem[]) || [],
+      };
+      console.log(`Including szotar with ${szotarData.kezelesek.length} kezelések in payload`);
     }
 
     // Build payload
@@ -218,6 +261,7 @@ serve(async (req) => {
       telephely_slug: telephelySlug,
       flexi_domain: flexiDomain,
       uploaded_by: uploaded_by || null,
+      szotar: szotarData,
       timestamp: new Date().toISOString(),
     };
 
