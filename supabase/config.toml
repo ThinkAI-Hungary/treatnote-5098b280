@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.extraction-callback]
 verify_jwt = false
+
+[functions.szotar-rules-webhook]
+verify_jwt = false
