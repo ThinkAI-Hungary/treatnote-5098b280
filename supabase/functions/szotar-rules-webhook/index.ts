@@ -258,12 +258,19 @@ serve(async (req) => {
     }
 
     // Use the successful response (prefer primary)
-    const successfulResponse = primaryResult.success ? primaryResult.response : secondaryResult.response;
+    let successfulResponse = primaryResult.success ? primaryResult.response : secondaryResult.response;
     const usedWebhook = primaryResult.success ? 'PRIMARY' : 'SECONDARY';
 
     // Detailed logging of which response we're using
     console.log(`===== USING ${usedWebhook} WEBHOOK RESPONSE =====`);
     console.log(`Full successful response object: ${JSON.stringify(successfulResponse, null, 2)}`);
+
+    // Handle array-wrapped response from n8n
+    // n8n sometimes returns [{ extractions: [...] }] instead of { extractions: [...] }
+    if (Array.isArray(successfulResponse) && successfulResponse.length > 0) {
+      console.log('Response is array-wrapped, extracting first element');
+      successfulResponse = successfulResponse[0];
+    }
 
     // Check for extractions in response
     const extractionsData = successfulResponse?.extractions;
