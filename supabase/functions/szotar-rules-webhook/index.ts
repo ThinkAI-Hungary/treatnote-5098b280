@@ -197,7 +197,7 @@ async function callProtocolWebhook(
   protocolName: string
 ): Promise<WebhookResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout per protocol
+  const timeoutId = setTimeout(() => controller.abort(), 100000); // 100s timeout per protocol
   
   try {
     console.log(`[Protocol ${protocolId}] Calling webhook for: ${protocolName}`);
