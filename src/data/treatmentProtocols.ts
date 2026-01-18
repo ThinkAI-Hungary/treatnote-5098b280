@@ -88,5 +88,11 @@ export const TREATMENT_PROTOCOLS: TreatmentProtocol[] = [
     category: "Fogszabályozás",
     name: "Rögzített Fogszabályozó (Felhelyezés)",
     protocol: "Folyamat:\n1. Vizit:\n- Teleröntgen, fotók, lenyomat.\n2. Vizit:\n- Fogak polírozása.\n- Brekettek (tappancsok) felragasztása egyenként.\n- Drótív bekötése."
+  },
+  {
+    id: 14,
+    category: "Fogpótlás",
+    name: "Fogászati Híd (3 tagú - 1 hiány pótlása)",
+    protocol: "Kezelés 3 alkalommal:\n1. Vizit (Előkészítés):\n- Érzéstelenítés.\n- A hiányt határoló szomszédos fogak (pillérek) lecsiszolása.\n- Precíziós lenyomatvétel a csonkokról.\n- Ideiglenes híd készítése és felragasztása a védelem érdekében.\n2. Vizit (Vázpróba):\n- A híd vázának (fém vagy cirkon) ellenőrzése.\n3. Vizit (Átadás):\n- A kész, leplezett híd beragasztása végleges cementtel.\n- Harapás ellenőrzése."
   }
 ];
