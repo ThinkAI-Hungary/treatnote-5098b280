@@ -93,6 +93,24 @@ const TREATMENT_PROTOCOLS = [
   }
 ];
 
+// Process protocols in batches to avoid overwhelming n8n
+async function processBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  processor: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchNum = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(items.length / batchSize);
+    console.log(`Processing batch ${batchNum}/${totalBatches}: protocols ${i + 1}-${Math.min(i + batchSize, items.length)}`);
+    const batchResults = await Promise.all(batch.map(processor));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 // Helper functions
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -173,7 +191,7 @@ async function callProtocolWebhook(
   protocolName: string
 ): Promise<WebhookResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout per protocol
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout per protocol
   
   try {
     console.log(`[Protocol ${protocolId}] Calling webhook for: ${protocolName}`);
@@ -220,7 +238,7 @@ async function callProtocolWebhook(
   } catch (err) {
     clearTimeout(timeoutId);
     if (err instanceof Error && err.name === 'AbortError') {
-      console.error(`[Protocol ${protocolId}] Timeout after 30s`);
+      console.error(`[Protocol ${protocolId}] Timeout after 45s`);
       return { success: false, protocolId, protocolName, error: 'Timeout' };
     }
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -237,7 +255,7 @@ serve(async (req) => {
 
   const eventId = generateUUID();
   console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}`);
-  console.log(`[szotar-rules-webhook] Will send ${TREATMENT_PROTOCOLS.length} parallel webhook calls`);
+  console.log(`[szotar-rules-webhook] Will send ${TREATMENT_PROTOCOLS.length} webhook calls in batches of 4`);
 
   try {
     // Parse request body
@@ -297,10 +315,10 @@ serve(async (req) => {
     const kezelesek = kezelesekData || [];
     console.log(`Found ${kezelesek.length} kezelesek entries`);
 
-    // Create 13 parallel webhook calls - one for each protocol
-    console.log('Starting 13 parallel webhook calls...');
+    // Process protocols in batches of 4 to avoid overwhelming n8n
+    console.log('Starting batched webhook calls (4 protocols per batch)...');
     
-    const webhookPromises = TREATMENT_PROTOCOLS.map((protocol) => {
+    const results = await processBatches(TREATMENT_PROTOCOLS, 4, async (protocol) => {
       const payload: ProtocolPayload = {
         version: '2.0', // New version for parallel protocol architecture
         event_id: eventId,
@@ -317,18 +335,13 @@ serve(async (req) => {
       };
 
       // Try primary webhook first, fall back to secondary
-      return callProtocolWebhook(PRIMARY_WEBHOOK_URL, payload, protocol.id, protocol.name)
-        .then(result => {
-          if (!result.success) {
-            console.log(`[Protocol ${protocol.id}] Primary failed, trying secondary...`);
-            return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
-          }
-          return result;
-        });
+      const result = await callProtocolWebhook(PRIMARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
+      if (!result.success) {
+        console.log(`[Protocol ${protocol.id}] Primary failed, trying secondary...`);
+        return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
+      }
+      return result;
     });
-
-    // Wait for all webhooks to complete
-    const results = await Promise.all(webhookPromises);
 
     // Log summary
     const successCount = results.filter(r => r.success).length;
