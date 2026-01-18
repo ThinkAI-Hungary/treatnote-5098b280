@@ -15,13 +15,10 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const webhookUrl = Deno.env.get("N8N_SZOTAR_VALIDATOR_WEBHOOK_URL");
-    const secondaryWebhookUrl = "https://n8n.thinkaimedical.hu/webhook-test/03341c53-31f6-4ada-85fc-465984a62c62";
+    // Primary webhook URL for Szótár generation
+    const webhookUrl = "https://n8n.thinkaimedical.hu/webhook/03341c53-31f6-4ada-85fc-465984a62c62";
     const encryptionKey = Deno.env.get("FLEXI_ENCRYPTION_KEY");
 
-    if (!webhookUrl) {
-      throw new Error("Primary webhook URL not configured");
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -165,60 +162,29 @@ serve(async (req) => {
       callback_url: `${supabaseUrl}/functions/v1/szotar-callback`,
     };
 
-    console.log('Sending payload to n8n webhooks:', JSON.stringify(payload, null, 2));
+    console.log('Sending payload to n8n webhook:', JSON.stringify(payload, null, 2));
 
-    // Send to both webhooks in parallel
-    const primaryPromise = fetch(webhookUrl, {
+    // Send to webhook
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Primary webhook error:', errorText);
-        return { success: false, error: errorText };
-      }
-      const data = await res.json();
-      console.log('Primary webhook response:', data);
-      return { success: true, data };
-    }).catch((err) => {
-      console.error('Primary webhook exception:', err);
-      return { success: false, error: err.message };
     });
 
-    const secondaryPromise = fetch(secondaryWebhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Secondary webhook error:', errorText);
-        return { success: false, error: errorText };
-      }
-      const data = await res.json();
-      console.log('Secondary webhook response:', data);
-      return { success: true, data };
-    }).catch((err) => {
-      console.error('Secondary webhook exception:', err);
-      return { success: false, error: err.message };
-    });
-
-    const [primaryResult, secondaryResult] = await Promise.all([primaryPromise, secondaryPromise]);
-
-    // Success if at least one webhook succeeded
-    const overallSuccess = primaryResult.success || secondaryResult.success;
-
-    if (!overallSuccess) {
-      throw new Error('Both webhooks failed');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Webhook error:', errorText);
+      throw new Error(`Webhook failed: ${errorText}`);
     }
+
+    const data = await response.json();
+    console.log('Webhook response:', data);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Webhook(s) triggered successfully',
-        primary: primaryResult.success,
-        secondary: secondaryResult.success
+        message: 'Webhook triggered successfully',
+        data
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
