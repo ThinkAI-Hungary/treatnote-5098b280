@@ -319,7 +319,37 @@ export function KezelesiSzabalyokTab({
       }
 
       if (data?.ok) {
-        if (data.status === 'processed') {
+        if (data.status === 'started') {
+          // 🚀 Background processing started - use polling to check for new rules
+          toast.success('Szabályok generálása elindult! A háttérben fut...');
+          setGenerating(false); // Allow button to be clicked again
+          
+          // Start aggressive polling: every 3 seconds for 2 minutes
+          const initialRuleCount = rules.length;
+          let pollCount = 0;
+          const maxPolls = 40; // 2 minutes / 3 seconds = 40 polls
+          
+          const pollInterval = setInterval(async () => {
+            pollCount++;
+            await loadRules();
+            
+            // Check if new rules appeared
+            const currentRuleCount = rules.length;
+            if (currentRuleCount > initialRuleCount) {
+              clearInterval(pollInterval);
+              toast.success(`Új szabályok érkeztek! (${currentRuleCount - initialRuleCount} új)`);
+            }
+            
+            if (pollCount >= maxPolls) {
+              clearInterval(pollInterval);
+              toast.info('Szabályok frissítve');
+            }
+          }, 3000);
+          
+          return; // Exit early, don't set generating to false again
+          
+        } else if (data.status === 'processed') {
+          // Synchronous mode (legacy fallback)
           toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
           if (data.duplicates > 0) {
             toast.info(`${data.duplicates} duplikált szabály kihagyva`);

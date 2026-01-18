@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -253,80 +253,25 @@ async function callProtocolWebhook(
   }
 }
 
-serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
-  const eventId = generateUUID();
-  console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}`);
-  console.log(`[szotar-rules-webhook] Will send ${TREATMENT_PROTOCOLS.length} webhook calls in batches of 2`);
+// Background processing function - runs after HTTP response is sent
+async function processWebhooksAndImport(
+  eventId: string,
+  telephely_id: string,
+  user_id: string,
+  telephelyData: { name: string; flexi_domain: string | null },
+  kezelesek: Array<{ id: string; name: string; category: string }>,
+  supabase: SupabaseClient
+): Promise<void> {
+  const timestamp = new Date().toISOString();
+  
+  console.log(`[Background ${eventId}] Starting webhook processing...`);
+  console.log(`[Background ${eventId}] Will process ${TREATMENT_PROTOCOLS.length} protocols in batches of 2`);
 
   try {
-    // Parse request body
-    const body = await req.json();
-    const { telephely_id, user_id } = body;
-
-    if (!telephely_id) {
-      return new Response(
-        JSON.stringify({ ok: false, status: 'error', code: 'MISSING_TELEPHELY', message: 'telephely_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials');
-      return new Response(
-        JSON.stringify({ ok: false, status: 'error', code: 'CONFIG_ERROR', message: 'Supabase configuration missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Fetch telephely info
-    console.log(`Fetching telephely info for: ${telephely_id}`);
-    const { data: telephelyData, error: telephelyError } = await supabase
-      .from('telephely')
-      .select('name, flexi_domain')
-      .eq('id', telephely_id)
-      .single();
-
-    if (telephelyError) {
-      console.error('Error fetching telephely:', telephelyError);
-      return new Response(
-        JSON.stringify({ ok: false, status: 'error', code: 'TELEPHELY_NOT_FOUND', message: 'Telephely not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const timestamp = new Date().toISOString();
-
-    // Fetch szotar_kezelesek for this telephely
-    console.log(`Fetching szotar_kezelesek for telephely: ${telephely_id}`);
-    const { data: kezelesekData, error: kezelesekError } = await supabase
-      .from('szotar_kezelesek')
-      .select('id, name, category')
-      .eq('telephely_id', telephely_id);
-
-    if (kezelesekError) {
-      console.error('Error fetching kezelesek:', kezelesekError);
-    }
-
-    const kezelesek = kezelesekData || [];
-    console.log(`Found ${kezelesek.length} kezelesek entries`);
-
     // Process protocols in batches of 2 with 500ms delay between batches
-    console.log('Starting batched webhook calls (2 protocols per batch)...');
-    
     const results = await processBatches(TREATMENT_PROTOCOLS, 2, async (protocol) => {
       const payload: ProtocolPayload = {
-        version: '2.0', // New version for parallel protocol architecture
+        version: '2.0',
         event_id: eventId,
         protocol_id: protocol.id,
         telephely_id,
@@ -347,27 +292,12 @@ serve(async (req) => {
         return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
       }
       return result;
-    }, 500); // 500ms delay between batches
+    }, 500);
 
     // Log summary
     const successCount = results.filter(r => r.success).length;
     const failedCount = results.filter(r => !r.success).length;
-    console.log(`Webhook results: ${successCount} success, ${failedCount} failed`);
-
-    // If all failed, return error
-    if (successCount === 0) {
-      const errors = results.map(r => `${r.protocolName}: ${r.error}`).join('; ');
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          status: 'error', 
-          code: 'ALL_WEBHOOKS_FAILED', 
-          message: errors,
-          event_id: eventId 
-        }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`[Background ${eventId}] Webhooks done: ${successCount} success, ${failedCount} failed`);
 
     // Process all successful responses and insert into database
     let totalInserted = 0;
@@ -471,21 +401,107 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Processing complete: ${totalInserted} inserted, ${totalDuplicates} duplicates, ${totalErrors} errors`);
+    console.log(`[Background ${eventId}] Complete: ${totalInserted} inserted, ${totalDuplicates} duplicates, ${totalErrors} errors`);
 
+  } catch (error) {
+    console.error(`[Background ${eventId}] Fatal error:`, error);
+  }
+}
+
+// Declare EdgeRuntime for Deno
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  const eventId = generateUUID();
+  console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}`);
+
+  try {
+    // Parse request body
+    const body = await req.json();
+    const { telephely_id, user_id } = body;
+
+    if (!telephely_id) {
+      return new Response(
+        JSON.stringify({ ok: false, status: 'error', code: 'MISSING_TELEPHELY', message: 'telephely_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase credentials');
+      return new Response(
+        JSON.stringify({ ok: false, status: 'error', code: 'CONFIG_ERROR', message: 'Supabase configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch telephely info
+    console.log(`Fetching telephely info for: ${telephely_id}`);
+    const { data: telephelyData, error: telephelyError } = await supabase
+      .from('telephely')
+      .select('name, flexi_domain')
+      .eq('id', telephely_id)
+      .single();
+
+    if (telephelyError) {
+      console.error('Error fetching telephely:', telephelyError);
+      return new Response(
+        JSON.stringify({ ok: false, status: 'error', code: 'TELEPHELY_NOT_FOUND', message: 'Telephely not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch szotar_kezelesek for this telephely
+    console.log(`Fetching szotar_kezelesek for telephely: ${telephely_id}`);
+    const { data: kezelesekData, error: kezelesekError } = await supabase
+      .from('szotar_kezelesek')
+      .select('id, name, category')
+      .eq('telephely_id', telephely_id);
+
+    if (kezelesekError) {
+      console.error('Error fetching kezelesek:', kezelesekError);
+    }
+
+    const kezelesek = kezelesekData || [];
+    console.log(`Found ${kezelesek.length} kezelesek entries`);
+
+    // 🚀 Start background processing with EdgeRuntime.waitUntil
+    // This allows the function to return immediately while processing continues
+    EdgeRuntime.waitUntil(
+      processWebhooksAndImport(
+        eventId,
+        telephely_id,
+        user_id || '',
+        telephelyData,
+        kezelesek,
+        supabase
+      )
+    );
+
+    // 🚀 Return immediately with "started" status
+    console.log(`[szotar-rules-webhook] Returning immediately, processing continues in background`);
     return new Response(
       JSON.stringify({
         ok: true,
-        status: 'processed',
+        status: 'started',
         event_id: eventId,
-        inserted: totalInserted,
-        duplicates: totalDuplicates,
-        errors: totalErrors,
-        webhooks_success: successCount,
-        webhooks_failed: failedCount,
+        message: 'A feldolgozás elindult háttérben',
         total_protocols: TREATMENT_PROTOCOLS.length,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
