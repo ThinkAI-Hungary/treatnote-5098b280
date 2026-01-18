@@ -265,11 +265,11 @@ async function processWebhooksAndImport(
   const timestamp = new Date().toISOString();
   
   console.log(`[Background ${eventId}] Starting webhook processing...`);
-  console.log(`[Background ${eventId}] Will process ${TREATMENT_PROTOCOLS.length} protocols in batches of 2`);
+  console.log(`[Background ${eventId}] Will process ALL ${TREATMENT_PROTOCOLS.length} protocols in PARALLEL`);
 
   try {
-    // Process protocols in batches of 2 with 500ms delay between batches
-    const results = await processBatches(TREATMENT_PROTOCOLS, 2, async (protocol) => {
+    // Process ALL protocols in parallel - n8n can handle it
+    const results = await Promise.all(TREATMENT_PROTOCOLS.map(async (protocol) => {
       const payload: ProtocolPayload = {
         version: '2.0',
         event_id: eventId,
@@ -292,7 +292,7 @@ async function processWebhooksAndImport(
         return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
       }
       return result;
-    }, 500);
+    }));
 
     // Log summary
     const successCount = results.filter(r => r.success).length;
