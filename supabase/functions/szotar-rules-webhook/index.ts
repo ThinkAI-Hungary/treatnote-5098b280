@@ -97,7 +97,8 @@ const TREATMENT_PROTOCOLS = [
 async function processBatches<T, R>(
   items: T[],
   batchSize: number,
-  processor: (item: T) => Promise<R>
+  processor: (item: T) => Promise<R>,
+  delayBetweenBatches = 0
 ): Promise<R[]> {
   const results: R[] = [];
   for (let i = 0; i < items.length; i += batchSize) {
@@ -107,6 +108,11 @@ async function processBatches<T, R>(
     console.log(`Processing batch ${batchNum}/${totalBatches}: protocols ${i + 1}-${Math.min(i + batchSize, items.length)}`);
     const batchResults = await Promise.all(batch.map(processor));
     results.push(...batchResults);
+    
+    // Small delay between batches to prevent resource exhaustion
+    if (delayBetweenBatches > 0 && i + batchSize < items.length) {
+      await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+    }
   }
   return results;
 }
@@ -255,7 +261,7 @@ serve(async (req) => {
 
   const eventId = generateUUID();
   console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}`);
-  console.log(`[szotar-rules-webhook] Will send ${TREATMENT_PROTOCOLS.length} webhook calls in batches of 4`);
+  console.log(`[szotar-rules-webhook] Will send ${TREATMENT_PROTOCOLS.length} webhook calls in batches of 2`);
 
   try {
     // Parse request body
@@ -315,10 +321,10 @@ serve(async (req) => {
     const kezelesek = kezelesekData || [];
     console.log(`Found ${kezelesek.length} kezelesek entries`);
 
-    // Process protocols in batches of 4 to avoid overwhelming n8n
-    console.log('Starting batched webhook calls (4 protocols per batch)...');
+    // Process protocols in batches of 2 with 500ms delay between batches
+    console.log('Starting batched webhook calls (2 protocols per batch)...');
     
-    const results = await processBatches(TREATMENT_PROTOCOLS, 4, async (protocol) => {
+    const results = await processBatches(TREATMENT_PROTOCOLS, 2, async (protocol) => {
       const payload: ProtocolPayload = {
         version: '2.0', // New version for parallel protocol architecture
         event_id: eventId,
@@ -341,7 +347,7 @@ serve(async (req) => {
         return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
       }
       return result;
-    });
+    }, 500); // 500ms delay between batches
 
     // Log summary
     const successCount = results.filter(r => r.success).length;
