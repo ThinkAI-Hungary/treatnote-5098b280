@@ -7,6 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Webhook URLs
+const PRIMARY_WEBHOOK_URL = "https://n8n.thinkaimedical.hu/webhook/99f5b5e4-6e0e-49d1-9277-da2d08d7fd85";
+const SECONDARY_WEBHOOK_URL = "https://n8n.thinkaimedical.hu/webhook-test/99f5b5e4-6e0e-49d1-9277-da2d08d7fd85";
+
 // Helper functions
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -78,6 +82,46 @@ interface N8nResponse {
   extractions?: ExtractionItem[];
 }
 
+interface WebhookResult {
+  success: boolean;
+  error?: string;
+  response?: N8nResponse;
+}
+
+// Call a single webhook and parse response
+async function callWebhook(url: string, payload: WebhookPayload, name: string): Promise<WebhookResult> {
+  try {
+    console.log(`[${name}] Calling webhook...`);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[${name}] HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+      return { success: false, error: `HTTP ${response.status}` };
+    }
+
+    const responseText = await response.text();
+    let responseData: N8nResponse;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      console.error(`[${name}] Invalid JSON response`);
+      return { success: false, error: 'Invalid JSON response' };
+    }
+
+    console.log(`[${name}] Success, received response`);
+    return { success: true, response: responseData };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[${name}] Network error: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -102,20 +146,11 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const webhookUrl = Deno.env.get('N8N_SZOTAR_RULES_WEBHOOK_URL');
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ ok: false, status: 'error', code: 'CONFIG_ERROR', message: 'Supabase configuration missing' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!webhookUrl) {
-      console.error('N8N_SZOTAR_RULES_WEBHOOK_URL not configured');
-      return new Response(
-        JSON.stringify({ ok: false, status: 'error', code: 'N8N_WEBHOOK_NOT_CONFIGURED', message: 'n8n webhook URL not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -182,51 +217,39 @@ serve(async (req) => {
       timestamp: new Date().toISOString(),
     };
 
-    console.log('Sending payload to n8n webhook...');
+    console.log('Sending payload to both n8n webhooks in parallel...');
 
-    // Send to n8n webhook (synchronous - waiting for respond to webhook)
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    // Call both webhooks in parallel
+    const [primaryResult, secondaryResult] = await Promise.all([
+      callWebhook(PRIMARY_WEBHOOK_URL, payload, 'PRIMARY'),
+      callWebhook(SECONDARY_WEBHOOK_URL, payload, 'SECONDARY'),
+    ]);
 
-    if (!webhookResponse.ok) {
-      const errorText = await webhookResponse.text();
-      console.error(`n8n webhook error: HTTP ${webhookResponse.status}: ${errorText}`);
+    console.log(`Primary result: success=${primaryResult.success}, error=${primaryResult.error || 'none'}`);
+    console.log(`Secondary result: success=${secondaryResult.success}, error=${secondaryResult.error || 'none'}`);
+
+    // Check if at least one succeeded
+    const anySuccess = primaryResult.success || secondaryResult.success;
+    
+    if (!anySuccess) {
+      console.error('Both webhooks failed');
       return new Response(
         JSON.stringify({ 
           ok: false, 
           status: 'error', 
-          code: 'N8N_WEBHOOK_ERROR', 
-          message: `Webhook returned ${webhookResponse.status}`,
+          code: 'ALL_WEBHOOKS_FAILED', 
+          message: `Primary: ${primaryResult.error}, Secondary: ${secondaryResult.error}`,
           event_id: eventId 
         }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse n8n response
-    let n8nResponse: N8nResponse;
-    try {
-      n8nResponse = await webhookResponse.json();
-      console.log('n8n response received:', JSON.stringify(n8nResponse, null, 2));
-    } catch {
-      console.error('Failed to parse n8n response as JSON');
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          status: 'error', 
-          code: 'N8N_INVALID_RESPONSE', 
-          message: 'Invalid JSON response from n8n',
-          event_id: eventId 
-        }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Use the successful response (prefer primary)
+    const successfulResponse = primaryResult.success ? primaryResult.response : secondaryResult.response;
 
     // Check for extractions in response
-    const extractionsData = n8nResponse.extractions;
+    const extractionsData = successfulResponse?.extractions;
     if (!extractionsData || !Array.isArray(extractionsData) || extractionsData.length === 0) {
       console.log('No extractions in n8n response');
       return new Response(
@@ -234,7 +257,9 @@ serve(async (req) => {
           ok: true, 
           status: 'no_extractions', 
           message: 'No extractions returned from n8n',
-          event_id: eventId 
+          event_id: eventId,
+          primary: primaryResult.success,
+          secondary: secondaryResult.success
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -346,6 +371,8 @@ serve(async (req) => {
         inserted: insertedCount,
         duplicates: duplicateCount,
         errors: errorCount,
+        primary: primaryResult.success,
+        secondary: secondaryResult.success,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
