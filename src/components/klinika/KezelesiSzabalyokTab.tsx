@@ -66,6 +66,7 @@ export function KezelesiSzabalyokTab({
   
   // Generate from dictionary state
   const [generating, setGenerating] = useState(false);
+  const [backgroundProcessing, setBackgroundProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   // Load rules with visits and items
@@ -323,6 +324,7 @@ export function KezelesiSzabalyokTab({
           // 🚀 Background processing started - use polling to check for new rules
           toast.success('Szabályok generálása elindult! A háttérben fut...');
           setGenerating(false); // Allow button to be clicked again
+          setBackgroundProcessing(true); // Show processing indicator
           
           // Start aggressive polling: every 3 seconds for 2 minutes
           const initialRuleCount = rules.length;
@@ -337,11 +339,13 @@ export function KezelesiSzabalyokTab({
             const currentRuleCount = rules.length;
             if (currentRuleCount > initialRuleCount) {
               clearInterval(pollInterval);
+              setBackgroundProcessing(false);
               toast.success(`Új szabályok érkeztek! (${currentRuleCount - initialRuleCount} új)`);
             }
             
             if (pollCount >= maxPolls) {
               clearInterval(pollInterval);
+              setBackgroundProcessing(false);
               toast.info('Szabályok frissítve');
             }
           }, 3000);
@@ -390,9 +394,20 @@ export function KezelesiSzabalyokTab({
             </div>
             <div>
               <CardTitle>Kezelési Szabályok</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {rules.length} szabály • {telephelyName}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-muted-foreground">
+                  {rules.length} szabály • {telephelyName}
+                </p>
+                {backgroundProcessing && (
+                  <Badge 
+                    variant="secondary" 
+                    className="animate-pulse bg-primary/20 text-primary border-primary/30"
+                  >
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Feldolgozás...
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           
