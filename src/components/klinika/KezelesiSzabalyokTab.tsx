@@ -188,19 +188,8 @@ export function KezelesiSzabalyokTab({
     return rule.visits?.reduce((sum, visit) => sum + (visit.items?.length || 0), 0) || 0;
   };
 
-  // PDF Upload handlers
-  const handleFilePrepare = async (file: File) => {
-    if (!companyId || !telephelyId || !companyName || !telephelyName || !user) {
-      toast.error('Hiányzó cég vagy telephely azonosító');
-      return;
-    }
-
-    if (file.type !== 'application/pdf') {
-      toast.error('Csak PDF fájlok tölthetők fel!');
-      return;
-    }
-
-    setUploading(true);
+  // PDF Upload handlers - process single PDF and return result for aggregation
+  const processSinglePdf = async (file: File): Promise<{ success: boolean; inserted: number; duplicates: number; error?: string }> => {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const base64 = btoa(
@@ -215,45 +204,68 @@ export function KezelesiSzabalyokTab({
           company_name: companyName,
           telephely_id: telephelyId,
           telephely_name: telephelyName,
-          uploaded_by: user.id,
+          uploaded_by: user?.id,
         },
       });
 
       if (error) {
-        throw new Error(error.message || 'Edge function error');
+        return { success: false, inserted: 0, duplicates: 0, error: error.message || 'Edge function error' };
       }
 
       if (data?.ok) {
         if (data.status === 'processed') {
-          toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
-          if (data.duplicates > 0) {
-            toast.info(`${data.duplicates} duplikált szabály kihagyva`);
+          return { success: true, inserted: data.inserted || 0, duplicates: data.duplicates || 0 };
+        } else {
+          // Async processing started
+          return { success: true, inserted: 0, duplicates: 0 };
+        }
+      } else {
+        const errorMessage = data?.message || 'Webhook küldése sikertelen';
+        return { success: false, inserted: 0, duplicates: 0, error: errorMessage };
+      }
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      return { success: false, inserted: 0, duplicates: 0, error: err.message || 'Hiba a fájl feltöltésekor' };
+    }
+  };
+
+  // Single file upload handler (for single file selection)
+  const handleFilePrepare = async (file: File) => {
+    if (!companyId || !telephelyId || !companyName || !telephelyName || !user) {
+      toast.error('Hiányzó cég vagy telephely azonosító');
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Csak PDF fájlok tölthetők fel!');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const result = await processSinglePdf(file);
+      
+      if (result.success) {
+        if (result.inserted > 0) {
+          toast.success(`${result.inserted} szabály sikeresen hozzáadva!`);
+          if (result.duplicates > 0) {
+            toast.info(`${result.duplicates} duplikált szabály kihagyva`);
           }
-          // Reload rules to show new data
           loadRules();
           setActiveSubTab('list');
         } else {
           toast.success('PDF elküldve feldolgozásra');
-          toast.info('Az eredmények hamarosan megjelennek...');
-          // Poll for results
           setTimeout(() => loadRules(), 5000);
         }
       } else {
-        const errorMessage = data?.message || 'Webhook küldése sikertelen';
-        if (data?.code === 'N8N_WEBHOOK_NOT_REGISTERED') {
-          toast.error('Az n8n webhook nincs aktiválva.');
-        } else {
-          toast.error(errorMessage);
-        }
+        toast.error(result.error || 'Hiba a fájl feltöltésekor');
       }
-    } catch (err: any) {
-      console.error('Error uploading file:', err);
-      toast.error(err.message || 'Hiba a fájl feltöltésekor');
     } finally {
       setUploading(false);
     }
   };
 
+  // Multiple file upload handler - process all PDFs in parallel
   const handleMultipleFiles = async (fileList: FileList) => {
     const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
     
@@ -265,9 +277,46 @@ export function KezelesiSzabalyokTab({
     if (pdfFiles.length < fileList.length) {
       toast.warning(`${fileList.length - pdfFiles.length} fájl kihagyva (nem PDF)`);
     }
+
+    if (!companyId || !telephelyId || !companyName || !telephelyName || !user) {
+      toast.error('Hiányzó cég vagy telephely azonosító');
+      return;
+    }
     
-    for (const file of pdfFiles) {
-      await handleFilePrepare(file);
+    setUploading(true);
+    toast.info(`${pdfFiles.length} PDF feldolgozása...`);
+    
+    try {
+      // Process all PDFs in parallel
+      const results = await Promise.all(pdfFiles.map(file => processSinglePdf(file)));
+      
+      // Aggregate results
+      const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
+      const totalDuplicates = results.reduce((sum, r) => sum + r.duplicates, 0);
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => !r.success).length;
+      
+      if (totalInserted > 0) {
+        toast.success(`${totalInserted} szabály sikeresen hozzáadva ${successCount} fájlból!`);
+      }
+      if (totalDuplicates > 0) {
+        toast.info(`${totalDuplicates} duplikált szabály kihagyva`);
+      }
+      if (failedCount > 0) {
+        toast.error(`${failedCount} fájl feldolgozása sikertelen`);
+      }
+      if (successCount > 0 && totalInserted === 0) {
+        toast.success(`${successCount} PDF elküldve feldolgozásra`);
+      }
+      
+      // Reload rules after processing
+      loadRules();
+      setActiveSubTab('list');
+      
+      // Poll for async results
+      setTimeout(() => loadRules(), 5000);
+    } finally {
+      setUploading(false);
     }
   };
 
