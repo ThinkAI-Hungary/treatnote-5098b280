@@ -11,7 +11,7 @@ const corsHeaders = {
 const PRIMARY_WEBHOOK_URL = "https://n8n.thinkaimedical.hu/webhook/99f5b5e4-6e0e-49d1-9277-da2d08d7fd85";
 const SECONDARY_WEBHOOK_URL = "https://n8n.thinkaimedical.hu/webhook-test/99f5b5e4-6e0e-49d1-9277-da2d08d7fd85";
 
-// 13 előre definiált kezelési protokoll
+// 14 előre definiált kezelési protokoll
 const TREATMENT_PROTOCOLS = [
   {
     id: 1,
@@ -22,19 +22,19 @@ const TREATMENT_PROTOCOLS = [
   {
     id: 2,
     category: "Parodontológia",
-    name: "Parodontális zárt kürett (Mélytisztítás)",
+    name: "Parodontális zárt kürett",
     protocol: "Kezelés 2 alkalommal (állcsontonként):\n1. Vizit (pl. Felső állcsont):\n- Érzéstelenítés.\n- Tasakmélységek mérése szondával (státusz).\n- Íny alatti tisztítás kézi műszerekkel (kürett), gyulladt szövet eltávolítása.\n- Fertőtlenítő átöblítés.\n2. Vizit (pl. Alsó állcsont):\n- Ugyanaz a folyamat a másik állcsonton 1-2 nap múlva."
   },
   {
     id: 3,
     category: "Konzerváló Fogászat",
-    name: "Esztétikus Tömés (Nagyőrlő)",
+    name: "Esztétikus Tömés",
     protocol: "1. Vizit (Egyetlen alkalom):\n- Érzéstelenítés (pl. QuickSleeper).\n- Szuvas rész eltávolítása, üreg alakítása.\n- Izolálás (Kofferdam).\n- Bondozás és rétegzéses tömés (kompozit) több felszínre.\n- Kidolgozás, magasság beállítás, polírozás."
   },
   {
     id: 4,
     category: "Konzerváló Fogászat",
-    name: "Mikroszkópos Gyökérkezelés (3-4 csatorna)",
+    name: "Mikroszkópos Gyökérkezelés",
     protocol: "Kezelés 2-3 alkalommal:\n1. Vizit:\n- Diagnosztika (CT vagy kusröntgen).\n- Érzéstelenítés, Trepanálás (megnyitás).\n- Idegek eltávolítása, csatornahossz mérése.\n- Gépi tágítás mikroszkóp alatt.\n- Gyógyszeres lezárás.\n2. Vizit:\n- Csatornák átöblítése.\n- Végleges gyökértömés (guttapercha).\n- Kontroll röntgen.\n- Fedőtömés vagy csap előkészítés."
   },
   {
@@ -94,7 +94,7 @@ const TREATMENT_PROTOCOLS = [
   {
     id: 14,
     category: "Fogpótlás",
-    name: "Fogászati Híd (3 tagú - 1 hiány pótlása)",
+    name: "Fogászati Híd",
     protocol: "Kezelés 3 alkalommal:\n1. Vizit (Előkészítés):\n- Érzéstelenítés.\n- A hiányt határoló szomszédos fogak (pillérek) lecsiszolása.\n- Precíziós lenyomatvétel a csonkokról.\n- Ideiglenes híd készítése és felragasztása a védelem érdekében.\n2. Vizit (Vázpróba):\n- A híd vázának (fém vagy cirkon) ellenőrzése.\n3. Vizit (Átadás):\n- A kész, leplezett híd beragasztása végleges cementtel.\n- Harapás ellenőrzése."
   }
 ];
