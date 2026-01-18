@@ -125,6 +125,7 @@ interface ProtocolPayload {
   name: string;
   protocol: string;
   timestamp: string;
+  kezelesek: Array<{ id: string; name: string; category: string }>;
 }
 
 // Response types from n8n
@@ -282,6 +283,20 @@ serve(async (req) => {
 
     const timestamp = new Date().toISOString();
 
+    // Fetch szotar_kezelesek for this telephely
+    console.log(`Fetching szotar_kezelesek for telephely: ${telephely_id}`);
+    const { data: kezelesekData, error: kezelesekError } = await supabase
+      .from('szotar_kezelesek')
+      .select('id, name, category')
+      .eq('telephely_id', telephely_id);
+
+    if (kezelesekError) {
+      console.error('Error fetching kezelesek:', kezelesekError);
+    }
+
+    const kezelesek = kezelesekData || [];
+    console.log(`Found ${kezelesek.length} kezelesek entries`);
+
     // Create 13 parallel webhook calls - one for each protocol
     console.log('Starting 13 parallel webhook calls...');
     
@@ -298,6 +313,7 @@ serve(async (req) => {
         name: protocol.name,
         protocol: protocol.protocol,
         timestamp,
+        kezelesek,
       };
 
       // Try primary webhook first, fall back to secondary
