@@ -110,8 +110,20 @@ async function callWebhook(url: string, payload: WebhookPayload, name: string): 
       responseData = JSON.parse(responseText);
     } catch {
       console.error(`[${name}] Invalid JSON response`);
+      console.error(`[${name}] Raw response was: ${responseText.substring(0, 500)}`);
       return { success: false, error: 'Invalid JSON response' };
     }
+
+    // Detailed logging of full n8n response
+    console.log(`[${name}] ===== FULL N8N RESPONSE START =====`);
+    console.log(`[${name}] Raw response text: ${responseText}`);
+    console.log(`[${name}] Parsed response: ${JSON.stringify(responseData, null, 2)}`);
+    console.log(`[${name}] Has 'extractions' field: ${!!responseData?.extractions}`);
+    console.log(`[${name}] Extractions type: ${typeof responseData?.extractions}`);
+    console.log(`[${name}] Is array: ${Array.isArray(responseData?.extractions)}`);
+    console.log(`[${name}] Extractions count: ${responseData?.extractions?.length || 0}`);
+    console.log(`[${name}] All response keys: ${Object.keys(responseData || {}).join(', ')}`);
+    console.log(`[${name}] ===== FULL N8N RESPONSE END =====`);
 
     console.log(`[${name}] Success, received response`);
     return { success: true, response: responseData };
@@ -247,11 +259,26 @@ serve(async (req) => {
 
     // Use the successful response (prefer primary)
     const successfulResponse = primaryResult.success ? primaryResult.response : secondaryResult.response;
+    const usedWebhook = primaryResult.success ? 'PRIMARY' : 'SECONDARY';
+
+    // Detailed logging of which response we're using
+    console.log(`===== USING ${usedWebhook} WEBHOOK RESPONSE =====`);
+    console.log(`Full successful response object: ${JSON.stringify(successfulResponse, null, 2)}`);
 
     // Check for extractions in response
     const extractionsData = successfulResponse?.extractions;
+    console.log(`Extractions field check:`);
+    console.log(`  - exists: ${extractionsData !== undefined}`);
+    console.log(`  - type: ${typeof extractionsData}`);
+    console.log(`  - isArray: ${Array.isArray(extractionsData)}`);
+    console.log(`  - length: ${extractionsData?.length || 0}`);
+    
     if (!extractionsData || !Array.isArray(extractionsData) || extractionsData.length === 0) {
-      console.log('No extractions in n8n response');
+      console.log('No valid extractions found in n8n response');
+      console.log(`All keys in response: ${Object.keys(successfulResponse || {}).join(', ')}`);
+      if (successfulResponse && typeof successfulResponse === 'object') {
+        console.log(`Response structure preview: ${JSON.stringify(successfulResponse, null, 2).substring(0, 1000)}`);
+      }
       return new Response(
         JSON.stringify({ 
           ok: true, 
@@ -259,7 +286,8 @@ serve(async (req) => {
           message: 'No extractions returned from n8n',
           event_id: eventId,
           primary: primaryResult.success,
-          secondary: secondaryResult.success
+          secondary: secondaryResult.success,
+          response_keys: Object.keys(successfulResponse || {})
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
