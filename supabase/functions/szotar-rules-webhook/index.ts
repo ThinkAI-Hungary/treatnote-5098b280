@@ -88,15 +88,21 @@ interface WebhookResult {
   response?: N8nResponse;
 }
 
-// Call a single webhook and parse response
+// Call a single webhook and parse response (with timeout)
 async function callWebhook(url: string, payload: WebhookPayload, name: string): Promise<WebhookResult> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
+  
   try {
     console.log(`[${name}] Calling webhook...`);
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -109,25 +115,23 @@ async function callWebhook(url: string, payload: WebhookPayload, name: string): 
     try {
       responseData = JSON.parse(responseText);
     } catch {
-      console.error(`[${name}] Invalid JSON response`);
-      console.error(`[${name}] Raw response was: ${responseText.substring(0, 500)}`);
+      console.error(`[${name}] Invalid JSON`);
       return { success: false, error: 'Invalid JSON response' };
     }
 
-    // Detailed logging of full n8n response
-    console.log(`[${name}] ===== FULL N8N RESPONSE START =====`);
-    console.log(`[${name}] Raw response text: ${responseText}`);
-    console.log(`[${name}] Parsed response: ${JSON.stringify(responseData, null, 2)}`);
-    console.log(`[${name}] Has 'extractions' field: ${!!responseData?.extractions}`);
-    console.log(`[${name}] Extractions type: ${typeof responseData?.extractions}`);
-    console.log(`[${name}] Is array: ${Array.isArray(responseData?.extractions)}`);
-    console.log(`[${name}] Extractions count: ${responseData?.extractions?.length || 0}`);
-    console.log(`[${name}] All response keys: ${Object.keys(responseData || {}).join(', ')}`);
-    console.log(`[${name}] ===== FULL N8N RESPONSE END =====`);
+    // Minimal logging - only key info
+    const keys = Object.keys(responseData || {});
+    const hasExtractions = Array.isArray(responseData?.extractions);
+    const extractionCount = hasExtractions ? responseData.extractions!.length : 0;
+    console.log(`[${name}] OK - keys: [${keys.join(',')}], extractions: ${extractionCount}`);
 
-    console.log(`[${name}] Success, received response`);
     return { success: true, response: responseData };
   } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === 'AbortError') {
+      console.error(`[${name}] Timeout after 55s`);
+      return { success: false, error: 'Timeout' };
+    }
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[${name}] Network error: ${errorMsg}`);
     return { success: false, error: errorMsg };
@@ -212,10 +216,10 @@ serve(async (req) => {
         id: k.id,
         name: k.name,
         category: k.category || '',
-      })),
+    })),
     };
 
-    console.log(`Found ${szotar.kezelesek.length} kezelesek entries`);
+    console.log(`Kezelesek: ${szotar.kezelesek.length}`);
 
     // Build webhook payload
     const payload: WebhookPayload = {
@@ -260,41 +264,37 @@ serve(async (req) => {
     // Use the successful response (prefer primary)
     let successfulResponse = primaryResult.success ? primaryResult.response : secondaryResult.response;
     const usedWebhook = primaryResult.success ? 'PRIMARY' : 'SECONDARY';
+    console.log(`Using ${usedWebhook} response`);
 
-    // Detailed logging of which response we're using
-    console.log(`===== USING ${usedWebhook} WEBHOOK RESPONSE =====`);
-    console.log(`Full successful response object: ${JSON.stringify(successfulResponse, null, 2)}`);
-
-    // Handle array-wrapped response from n8n
-    // n8n sometimes returns [{ extractions: [...] }] instead of { extractions: [...] }
+    // Handle array-wrapped response from n8n (e.g., [{ extractions: [...] }])
     if (Array.isArray(successfulResponse) && successfulResponse.length > 0) {
-      console.log('Response is array-wrapped, extracting first element');
+      console.log('Unwrapping array response');
       successfulResponse = successfulResponse[0];
     }
 
-    // Check for extractions in response
+    // Also check for nested json wrapper (e.g., { json: { extractions: [...] } })
+    // deno-lint-ignore no-explicit-any
+    const sr = successfulResponse as any;
+    if (sr?.json?.extractions && Array.isArray(sr.json.extractions)) {
+      console.log('Found extractions in .json wrapper');
+      successfulResponse = sr.json;
+    }
+
+    // Extract data
     const extractionsData = successfulResponse?.extractions;
-    console.log(`Extractions field check:`);
-    console.log(`  - exists: ${extractionsData !== undefined}`);
-    console.log(`  - type: ${typeof extractionsData}`);
-    console.log(`  - isArray: ${Array.isArray(extractionsData)}`);
-    console.log(`  - length: ${extractionsData?.length || 0}`);
+    const extractionCount = Array.isArray(extractionsData) ? extractionsData.length : 0;
+    console.log(`Extractions count: ${extractionCount}`);
     
     if (!extractionsData || !Array.isArray(extractionsData) || extractionsData.length === 0) {
-      console.log('No valid extractions found in n8n response');
-      console.log(`All keys in response: ${Object.keys(successfulResponse || {}).join(', ')}`);
-      if (successfulResponse && typeof successfulResponse === 'object') {
-        console.log(`Response structure preview: ${JSON.stringify(successfulResponse, null, 2).substring(0, 1000)}`);
-      }
+      const keys = Object.keys(successfulResponse || {});
+      console.log(`No extractions - keys: [${keys.join(',')}]`);
       return new Response(
         JSON.stringify({ 
           ok: true, 
           status: 'no_extractions', 
           message: 'No extractions returned from n8n',
           event_id: eventId,
-          primary: primaryResult.success,
-          secondary: secondaryResult.success,
-          response_keys: Object.keys(successfulResponse || {})
+          response_keys: keys
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
