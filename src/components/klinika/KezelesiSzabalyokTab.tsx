@@ -18,7 +18,8 @@ import {
   Clock,
   Filter,
   FileUp,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -62,6 +63,9 @@ export function KezelesiSzabalyokTab({
 
   // Upload state
   const [uploading, setUploading] = useState(false);
+  
+  // Generate from dictionary state
+  const [generating, setGenerating] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   // Load rules with visits and items
@@ -294,6 +298,58 @@ export function KezelesiSzabalyokTab({
     e.target.value = '';
   };
 
+  // Generate rules from dictionary
+  const handleGenerateFromDictionary = async () => {
+    if (!telephelyId || !user) {
+      toast.error('Hiányzó telephely azonosító');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('szotar-rules-webhook', {
+        body: {
+          telephely_id: telephelyId,
+          user_id: user.id,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Edge function error');
+      }
+
+      if (data?.ok) {
+        if (data.status === 'processed') {
+          toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
+          if (data.duplicates > 0) {
+            toast.info(`${data.duplicates} duplikált szabály kihagyva`);
+          }
+          if (data.errors > 0) {
+            toast.warning(`${data.errors} szabály hibás volt`);
+          }
+          loadRules();
+          setActiveSubTab('list');
+        } else if (data.status === 'no_extractions') {
+          toast.info('Az n8n nem küldött vissza szabályokat');
+        } else {
+          toast.success('Kérés elküldve feldolgozásra');
+        }
+      } else {
+        const errorMessage = data?.message || 'Webhook hiba';
+        if (data?.code === 'N8N_WEBHOOK_NOT_CONFIGURED') {
+          toast.error('Az n8n webhook nincs konfigurálva');
+        } else {
+          toast.error(errorMessage);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error generating from dictionary:', err);
+      toast.error(err.message || 'Hiba a szabályok generálásakor');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <AnimatedCard data-tour="kezelesi-szabalyok">
       <CardHeader className="pb-4">
@@ -311,6 +367,18 @@ export function KezelesiSzabalyokTab({
           </div>
           
           <div className="flex items-center gap-2">
+            <GalaxyButton 
+              onClick={handleGenerateFromDictionary}
+              disabled={generating}
+              className="relative"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              {generating ? 'Generálás...' : 'Generálás szótárból'}
+            </GalaxyButton>
             <Button
               variant="outline"
               size="icon"
