@@ -592,20 +592,15 @@ export function TreatmentRuleEditor({
                             )}
                           </div>
                           
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(visitIndex, itemIndex, 'quantity', parseInt(e.target.value) || 1)}
-                            className="w-14 h-8 text-center"
-                            min={1}
-                          />
-                          
-                          <Input
-                            value={item.unit}
-                            onChange={(e) => updateItem(visitIndex, itemIndex, 'unit', e.target.value)}
-                            placeholder="db"
-                            className="w-16 h-8"
-                          />
+                          {item.scaling === 'per_case' && (
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => updateItem(visitIndex, itemIndex, 'quantity', parseInt(e.target.value) || 1)}
+                              className="w-14 h-8 text-center"
+                              min={1}
+                            />
+                          )}
                           
                           <Select 
                             value={item.scaling} 
