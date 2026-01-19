@@ -130,12 +130,26 @@ export function KezelesiSzabalyokTab({
     loadRules();
   }, [loadRules]);
 
-  // Filter rules
+  // Filter rules - search in name, trigger words, and treatment items
   const filteredRules = rules.filter(rule => {
-    const matchesSearch = !searchTerm || 
-      rule.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rule.trigger_words.some(w => w.toLowerCase().includes(searchTerm.toLowerCase()));
+    const lowerSearch = searchTerm.toLowerCase();
     
+    // Search in rule name
+    const matchesName = rule.name.toLowerCase().includes(lowerSearch);
+    
+    // Search in trigger words
+    const matchesTrigger = rule.trigger_words.some(w => 
+      w.toLowerCase().includes(lowerSearch)
+    );
+    
+    // Search in treatment items (items within visits)
+    const matchesItem = rule.visits?.some(visit => 
+      visit.items?.some(item => 
+        item.name.toLowerCase().includes(lowerSearch)
+      )
+    ) || false;
+    
+    const matchesSearch = !searchTerm || matchesName || matchesTrigger || matchesItem;
     const matchesCategory = categoryFilter === 'all' || rule.category === categoryFilter;
     
     return matchesSearch && matchesCategory;
