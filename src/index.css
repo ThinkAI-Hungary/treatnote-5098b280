@@ -423,35 +423,36 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   /* Checkbox glow border animation when locked/checked */
   .checkbox-glow-active {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .checkbox-glow-active::before {
     content: '';
     position: absolute;
-    inset: -3px;
-    border-radius: calc(var(--radius) - 2px);
-    background: linear-gradient(
-      90deg,
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
       hsl(270 70% 55%) 0%,
       hsl(195 85% 55%) 25%,
       hsl(270 70% 55%) 50%,
       hsl(195 85% 55%) 75%,
       hsl(270 70% 55%) 100%
     );
-    background-size: 200% 100%;
     opacity: 1;
     z-index: 0;
-    animation: borderGlow 2s linear infinite, checkboxGlowIn 0.3s ease-out forwards;
+    animation: checkboxBorderSpin 2s linear infinite, checkboxGlowIn 0.3s ease-out forwards;
   }
 
   .checkbox-glow-active::after {
     content: '';
     position: absolute;
-    inset: -3px;
-    border-radius: calc(var(--radius) - 2px);
+    inset: -2px;
+    border-radius: 50%;
     background: hsl(var(--background));
-    z-index: 0;
-    margin: 2px;
+    z-index: 1;
   }
 
   /* Flowing color orbs for background */
@@ -642,6 +643,15 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes checkboxBorderSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 

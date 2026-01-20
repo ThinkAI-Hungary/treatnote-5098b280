@@ -196,7 +196,7 @@ export default {
         shimmer: "shimmer 2s linear infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         float: "float 3s ease-in-out infinite",
-        "pulse-fade": "pulse-fade 1s ease-in-out",
+        "pulse-fade": "pulse-fade 2s ease-in-out infinite",
         enter: "fade-in 0.3s ease-out, scale-in 0.2s ease-out",
         exit: "fade-out 0.3s ease-out, scale-out 0.2s ease-out",
       },
