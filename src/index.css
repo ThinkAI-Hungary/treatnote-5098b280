@@ -41,6 +41,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     --input: 260 20% 88%;
     --ring: 270 60% 55%;
 
+    --warning: 25 95% 55%;
+    --warning-foreground: 25 95% 15%;
+
     --radius: 0.75rem;
 
     --sidebar-background: 260 25% 98%;
@@ -91,6 +94,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     --border: 260 30% 18%;
     --input: 260 30% 18%;
     --ring: 270 70% 60%;
+
+    --warning: 25 100% 50%;
+    --warning-foreground: 0 0% 100%;
 
     --sidebar-background: 260 40% 8%;
     --sidebar-foreground: 260 10% 80%;
