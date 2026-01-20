@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, AlertTriangle } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,11 @@ export default function VoiceRecording() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>('treatnote');
   const [paciensId, setPaciensId] = useState('');
+  const [isPaciensIdLocked, setIsPaciensIdLocked] = useState(false);
+  const [paciensIdError, setPaciensIdError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCheckboxPulsing, setIsCheckboxPulsing] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -278,13 +283,71 @@ export default function VoiceRecording() {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Input
-                type="text"
-                placeholder="Páciens ID-ja"
-                value={paciensId}
-                onChange={(e) => setPaciensId(e.target.value)}
-                disabled={isRecording}
-              />
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Páciens ID-ja (# nélkül)"
+                    value={paciensId}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                      setPaciensId(value);
+                      setPaciensIdError(false);
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow control keys
+                      if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                        return;
+                      }
+                      // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                      if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                        return;
+                      }
+                      // Block non-numeric
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                        return;
+                      }
+                      // Block if already at max length
+                      if (paciensId.length >= 8) {
+                        e.preventDefault();
+                        setPaciensIdError(true);
+                        setTimeout(() => setPaciensIdError(false), 2000);
+                      }
+                    }}
+                    disabled={isRecording || isPaciensIdLocked}
+                    className={`transition-all duration-300 ${
+                      paciensIdError 
+                        ? 'border-2 border-warning ring-2 ring-destructive/50 shadow-[0_0_10px_hsl(var(--warning)/0.5)]' 
+                        : ''
+                    } ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                  />
+                  {paciensIdError && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-pulse">
+                      <AlertTriangle className="h-5 w-5 text-warning" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    ref={checkboxRef}
+                    id="lock-paciens-id"
+                    checked={isPaciensIdLocked}
+                    onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                    disabled={isRecording}
+                    className={`transition-all duration-300 ${
+                      isCheckboxPulsing ? 'animate-[pulse-fade_0.6s_ease-in-out_infinite]' : ''
+                    }`}
+                  />
+                  <Label 
+                    htmlFor="lock-paciens-id" 
+                    className="text-sm text-muted-foreground cursor-pointer select-none"
+                  >
+                    Zárolás
+                  </Label>
+                </div>
+              </div>
             </div>
 
             {/* Recording controls */}
@@ -403,7 +466,16 @@ export default function VoiceRecording() {
                   <Button
                     className="flex-1"
                     onClick={handleUpload}
-                    disabled={isUploading}
+                    disabled={isUploading || !isPaciensIdLocked}
+                    onMouseEnter={() => {
+                      if (!isPaciensIdLocked) {
+                        setIsCheckboxPulsing(true);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      // Let the current animation cycle complete before stopping
+                      setTimeout(() => setIsCheckboxPulsing(false), 600);
+                    }}
                   >
                     {isUploading ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
