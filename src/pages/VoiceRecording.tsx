@@ -313,7 +313,6 @@ export default function VoiceRecording() {
                       if (paciensId.length >= 8) {
                         e.preventDefault();
                         setPaciensIdError(true);
-                        setTimeout(() => setPaciensIdError(false), 2000);
                       }
                     }}
                     disabled={isRecording || isPaciensIdLocked}
@@ -324,9 +323,18 @@ export default function VoiceRecording() {
                     } ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   />
                   {paciensIdError && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-pulse">
-                      <AlertTriangle className="h-5 w-5 text-warning" />
-                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-pulse cursor-help">
+                            <AlertTriangle className="h-5 w-5 text-warning" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>A nyolc karakteres szabványhossz után is érzékelhető volt karakterlenyomás! Kérem ellenőrízze, hogy helyes-e a bevitt adat!</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -463,10 +471,8 @@ export default function VoiceRecording() {
                     <Trash2 className="mr-2 h-4 w-4" />
                     Törlés
                   </Button>
-                  <Button
+                  <div 
                     className="flex-1"
-                    onClick={handleUpload}
-                    disabled={isUploading || !isPaciensIdLocked}
                     onMouseEnter={() => {
                       if (!isPaciensIdLocked) {
                         setIsCheckboxPulsing(true);
@@ -477,13 +483,19 @@ export default function VoiceRecording() {
                       setTimeout(() => setIsCheckboxPulsing(false), 600);
                     }}
                   >
-                    {isUploading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-4 w-4" />
-                    )}
-                    {isUploading ? 'Feltöltés...' : 'Feltöltés'}
-                  </Button>
+                    <Button
+                      className="w-full"
+                      onClick={handleUpload}
+                      disabled={isUploading || !isPaciensIdLocked}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {isUploading ? 'Feltöltés...' : 'Feltöltés'}
+                    </Button>
+                  </div>
                 </div>
               </>
             ) : (
