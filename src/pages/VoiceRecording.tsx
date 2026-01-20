@@ -338,16 +338,18 @@ export default function VoiceRecording() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Checkbox
-                    ref={checkboxRef}
-                    id="lock-paciens-id"
-                    checked={isPaciensIdLocked}
-                    onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                    disabled={isRecording}
-                    className={`transition-all duration-300 ${
-                      isCheckboxPulsing ? 'animate-[pulse-fade_0.6s_ease-in-out_infinite]' : ''
-                    }`}
-                  />
+                  <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                    <Checkbox
+                      ref={checkboxRef}
+                      id="lock-paciens-id"
+                      checked={isPaciensIdLocked}
+                      onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                      disabled={isRecording}
+                      className={`transition-all duration-300 relative z-10 ${
+                        isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                      }`}
+                    />
+                  </div>
                   <Label 
                     htmlFor="lock-paciens-id" 
                     className="text-sm text-muted-foreground cursor-pointer select-none"
@@ -480,7 +482,7 @@ export default function VoiceRecording() {
                     }}
                     onMouseLeave={() => {
                       // Let the current animation cycle complete before stopping
-                      setTimeout(() => setIsCheckboxPulsing(false), 1800);
+                      setTimeout(() => setIsCheckboxPulsing(false), 1000);
                     }}
                   >
                     <Button
