@@ -338,21 +338,34 @@ export default function VoiceRecording() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
-                    <Checkbox
-                      ref={checkboxRef}
-                      id="lock-paciens-id"
-                      checked={isPaciensIdLocked}
-                      onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                      disabled={isRecording}
-                      className={`transition-all duration-300 relative z-10 ${
-                        isCheckboxPulsing ? 'animate-pulse-fade' : ''
-                      }`}
-                    />
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                          <Checkbox
+                            ref={checkboxRef}
+                            id="lock-paciens-id"
+                            checked={isPaciensIdLocked}
+                            onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                            disabled={isRecording || paciensId.length !== 8}
+                            className={`transition-all duration-300 relative z-10 ${
+                              isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                            }`}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      {paciensId.length !== 8 && !isPaciensIdLocked && (
+                        <TooltipContent className="max-w-xs">
+                          <p>A beírt páciens ID nem szabványméret (8 karakter) hosszú, kérem ellenőrízze a beírt értéket!</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   <Label 
                     htmlFor="lock-paciens-id" 
-                    className="text-sm text-muted-foreground cursor-pointer select-none"
+                    className={`text-sm cursor-pointer select-none ${
+                      paciensId.length !== 8 ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                    }`}
                   >
                     Zárolás
                   </Label>
