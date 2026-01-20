@@ -480,7 +480,7 @@ export default function VoiceRecording() {
                     }}
                     onMouseLeave={() => {
                       // Let the current animation cycle complete before stopping
-                      setTimeout(() => setIsCheckboxPulsing(false), 600);
+                      setTimeout(() => setIsCheckboxPulsing(false), 1800);
                     }}
                   >
                     <Button
