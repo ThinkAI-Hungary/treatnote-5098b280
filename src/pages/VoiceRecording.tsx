@@ -1,8 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +29,7 @@ export default function VoiceRecording() {
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>('treatnote');
+  const [paciensId, setPaciensId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -107,6 +110,7 @@ export default function VoiceRecording() {
       formData.append('user_id', user.id);
       formData.append('company_id', profile?.company_id || '');
       formData.append('telephely_id', profile?.telephely_id || '');
+      formData.append('PaciensID', paciensId);
 
       // Call edge function directly with fetch since supabase.functions.invoke doesn't handle FormData properly
       const { data: { session } } = await supabase.auth.getSession();
@@ -257,6 +261,30 @@ export default function VoiceRecording() {
                   <SelectItem value="voxis">Voxis</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Páciens ID input */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Páciens ID-ja</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>A Páciens ID megtalálható a "Páciens lista"-ban való szűrést követően az "ID" oszlopban, ezt a sorszámot kell ide beilleszteni arra a páciensre, akinek a felhasználójával dolgozni szeretne.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                type="text"
+                placeholder="Páciens ID-ja"
+                value={paciensId}
+                onChange={(e) => setPaciensId(e.target.value)}
+                disabled={isRecording}
+              />
             </div>
 
             {/* Recording controls */}

@@ -58,6 +58,7 @@ serve(async (req) => {
     const userId = formData.get("user_id") as string;
     const companyId = formData.get("company_id") as string;
     const telephelyId = formData.get("telephely_id") as string;
+    const paciensId = formData.get("PaciensID") as string;
 
     if (!audio || !mode) {
       console.error("Missing required fields: audio or mode");
@@ -222,6 +223,7 @@ serve(async (req) => {
       webhookFormData.append("flexi_username", flexiUsername);
       webhookFormData.append("flexi_pw", decryptedFlexiPw);
       webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
+      webhookFormData.append("PaciensID", paciensId || "");
       
       // Include treatment_rules for TreatNote mode
       if (mode === "treatnote" && treatmentRulesData.length > 0) {
