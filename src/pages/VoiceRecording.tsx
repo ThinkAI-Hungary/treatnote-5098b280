@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, AlertTriangle } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +32,6 @@ export default function VoiceRecording() {
   const [mode, setMode] = useState<RecordingMode>('treatnote');
   const [paciensId, setPaciensId] = useState('');
   const [isPaciensIdLocked, setIsPaciensIdLocked] = useState(false);
-  const [paciensIdError, setPaciensIdError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckboxPulsing, setIsCheckboxPulsing] = useState(false);
   const checkboxRef = useRef<HTMLButtonElement>(null);
@@ -291,9 +290,8 @@ export default function VoiceRecording() {
                     placeholder="Páciens ID-ja (# nélkül)"
                     value={paciensId}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                      const value = e.target.value.replace(/\D/g, '');
                       setPaciensId(value);
-                      setPaciensIdError(false);
                     }}
                     onKeyDown={(e) => {
                       // Allow control keys
@@ -307,64 +305,29 @@ export default function VoiceRecording() {
                       // Block non-numeric
                       if (!/^\d$/.test(e.key)) {
                         e.preventDefault();
-                        return;
-                      }
-                      // Block if already at max length
-                      if (paciensId.length >= 8) {
-                        e.preventDefault();
-                        setPaciensIdError(true);
                       }
                     }}
                     disabled={isRecording || isPaciensIdLocked}
-                    className={`transition-all duration-300 ${
-                      paciensIdError 
-                        ? 'border-2 border-warning ring-2 ring-destructive/50 shadow-[0_0_10px_hsl(var(--warning)/0.5)]' 
-                        : ''
-                    } ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   />
-                  {paciensIdError && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-pulse cursor-help">
-                            <AlertTriangle className="h-5 w-5 text-warning" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>A nyolc karakteres szabványhossz után is érzékelhető volt karakterlenyomás! Kérem ellenőrízze, hogy helyes-e a bevitt adat!</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
-                          <Checkbox
-                            ref={checkboxRef}
-                            id="lock-paciens-id"
-                            checked={isPaciensIdLocked}
-                            onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                            disabled={isRecording || paciensId.length !== 8}
-                            className={`transition-all duration-300 relative z-10 ${
-                              isCheckboxPulsing ? 'animate-pulse-fade' : ''
-                            }`}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      {paciensId.length !== 8 && !isPaciensIdLocked && (
-                        <TooltipContent className="max-w-xs">
-                          <p>A beírt páciens ID nem szabványméret (8 karakter) hosszú, kérem ellenőrízze a beírt értéket!</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                    <Checkbox
+                      ref={checkboxRef}
+                      id="lock-paciens-id"
+                      checked={isPaciensIdLocked}
+                      onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                      disabled={isRecording || !paciensId}
+                      className={`transition-all duration-300 relative z-10 ${
+                        isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                      }`}
+                    />
+                  </div>
                   <Label 
                     htmlFor="lock-paciens-id" 
                     className={`text-sm cursor-pointer select-none ${
-                      paciensId.length !== 8 ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                      !paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
                     }`}
                   >
                     Zárolás

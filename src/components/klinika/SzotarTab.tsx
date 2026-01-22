@@ -469,7 +469,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     const probaButtonContent = (
       <>
         <User className="mr-2 h-4 w-4" />
-        Próba user
+        Próba ID
         {hasProbaPaciens && (
           <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600">
             <CheckCircle className="h-3 w-3" />

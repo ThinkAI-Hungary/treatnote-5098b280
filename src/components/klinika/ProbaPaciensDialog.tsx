@@ -82,7 +82,7 @@ export function ProbaPaciensDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Próba páciens beállítása
+            Próba ID beállítása
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -92,25 +92,24 @@ export function ProbaPaciensDialog({
                   <p>
                     A létrehozott próbapáciensen fog a rendszer különböző kezelési adatokhoz jutni, 
                     illetve próbafutásokat végezni. Kérem hozzon létre egy olyan felhasználót, 
-                    amelynek a neve összeegyeztethetetlen bármilyen páciensével. 
-                    Pl.: "Próba Példa Péter"
+                    amely neve egyértelműen jelzi a teszt jelleget, és annak ID-ját illessze be a lenti mezőbe
                   </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </DialogTitle>
           <DialogDescription>
-            Adja meg a próbapáciens nevét a tesztek futtatásához
+            Adja meg a próba páciens ID-ját a tesztek futtatásához
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="probapaciens-name">Próbapáciens neve</Label>
+            <Label htmlFor="probapaciens-name">Próba páciens ID-ja</Label>
             <Input
               id="probapaciens-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Pl.: Próba Példa Péter"
+              placeholder="Pl.: 12345678"
               autoComplete="off"
             />
           </div>
