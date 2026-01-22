@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,6 +69,8 @@ export default function VoiceRecording() {
     if (isRecording) {
       stopRecording();
     } else {
+      // Clear verdikt when starting a new recording
+      setVerdikt(null);
       startRecording();
     }
   };
@@ -104,7 +106,6 @@ export default function VoiceRecording() {
 
     setIsUploading(true);
     setIsVerdiktLoading(true);
-    setVerdikt(null);
 
     try {
       const timestamp = new Date().toISOString();
@@ -523,11 +524,23 @@ export default function VoiceRecording() {
         {/* Verdikt card */}
         {(isVerdiktLoading || verdikt) && (
           <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Verdikt</CardTitle>
-              <CardDescription>
-                A feldolgozás eredménye
-              </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0">
+              <div>
+                <CardTitle>Verdikt</CardTitle>
+                <CardDescription>
+                  A feldolgozás eredménye
+                </CardDescription>
+              </div>
+              {!isVerdiktLoading && verdikt && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setVerdikt(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {isVerdiktLoading ? (
