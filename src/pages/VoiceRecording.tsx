@@ -39,6 +39,7 @@ export default function VoiceRecording() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [verdikt, setVerdikt] = useState<string | null>(null);
+  const [isVerdiktLoading, setIsVerdiktLoading] = useState(false);
 
   const {
     isRecording,
@@ -102,6 +103,8 @@ export default function VoiceRecording() {
     }
 
     setIsUploading(true);
+    setIsVerdiktLoading(true);
+    setVerdikt(null);
 
     try {
       const timestamp = new Date().toISOString();
@@ -138,18 +141,21 @@ export default function VoiceRecording() {
       }
 
       const data = await response.json();
+      console.log('Webhook response:', data);
 
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
-        resetRecording();
         
         // Extract szoveges_lista from response if available
         if (Array.isArray(data.webhookResponse) && data.webhookResponse.length > 0) {
           const szoveg = data.webhookResponse[0]?.szoveges_lista;
+          console.log('szoveges_lista:', szoveg);
           if (szoveg) {
             setVerdikt(szoveg);
           }
         }
+        
+        resetRecording();
       } else {
         throw new Error(data?.error || 'Ismeretlen hiba');
       }
@@ -158,6 +164,7 @@ export default function VoiceRecording() {
       toast.error('Hiba a feltöltés során: ' + (error.message || 'Ismeretlen hiba'));
     } finally {
       setIsUploading(false);
+      setIsVerdiktLoading(false);
     }
   };
 
@@ -514,7 +521,7 @@ export default function VoiceRecording() {
         </Card>
 
         {/* Verdikt card */}
-        {verdikt && (
+        {(isVerdiktLoading || verdikt) && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle>Verdikt</CardTitle>
@@ -523,9 +530,18 @@ export default function VoiceRecording() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                {verdikt}
-              </div>
+              {isVerdiktLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p className="text-muted-foreground text-center">
+                    Feldolgozás folyamatban...
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto">
+                  {verdikt}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
