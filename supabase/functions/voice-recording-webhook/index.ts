@@ -247,8 +247,10 @@ serve(async (req) => {
       // Try to parse the response as JSON
       try {
         const responseData = await response.json();
+        console.log("Webhook response data:", JSON.stringify(responseData).substring(0, 500));
         return responseData;
-      } catch {
+      } catch (parseError) {
+        console.log("Could not parse webhook response as JSON:", parseError);
         return null;
       }
     });

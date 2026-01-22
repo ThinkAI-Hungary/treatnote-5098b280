@@ -142,18 +142,24 @@ export default function VoiceRecording() {
       }
 
       const data = await response.json();
-      console.log('Webhook response:', data);
+      console.log('Webhook response:', JSON.stringify(data));
 
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
         
         // Extract szoveges_lista from response if available
+        // Check both webhookResponse array and direct response
+        let szoveg: string | null = null;
+        
         if (Array.isArray(data.webhookResponse) && data.webhookResponse.length > 0) {
-          const szoveg = data.webhookResponse[0]?.szoveges_lista;
-          console.log('szoveges_lista:', szoveg);
-          if (szoveg) {
-            setVerdikt(szoveg);
-          }
+          szoveg = data.webhookResponse[0]?.szoveges_lista;
+        } else if (data.webhookResponse?.szoveges_lista) {
+          szoveg = data.webhookResponse.szoveges_lista;
+        }
+        
+        console.log('szoveges_lista:', szoveg);
+        if (szoveg) {
+          setVerdikt(szoveg);
         }
         
         resetRecording();
