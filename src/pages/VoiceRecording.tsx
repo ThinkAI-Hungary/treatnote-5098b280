@@ -38,6 +38,7 @@ export default function VoiceRecording() {
   const checkboxRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [verdikt, setVerdikt] = useState<string | null>(null);
 
   const {
     isRecording,
@@ -141,6 +142,14 @@ export default function VoiceRecording() {
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
         resetRecording();
+        
+        // Extract szoveges_lista from response if available
+        if (Array.isArray(data.webhookResponse) && data.webhookResponse.length > 0) {
+          const szoveg = data.webhookResponse[0]?.szoveges_lista;
+          if (szoveg) {
+            setVerdikt(szoveg);
+          }
+        }
       } else {
         throw new Error(data?.error || 'Ismeretlen hiba');
       }
@@ -503,6 +512,23 @@ export default function VoiceRecording() {
             )}
           </CardContent>
         </Card>
+
+        {/* Verdikt card */}
+        {verdikt && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Verdikt</CardTitle>
+              <CardDescription>
+                A feldolgozás eredménye
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto">
+                {verdikt}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
