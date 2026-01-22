@@ -244,15 +244,24 @@ serve(async (req) => {
         throw new Error(`Webhook failed: ${response.status}`);
       }
 
-      return response;
+      // Try to parse the response as JSON
+      try {
+        const responseData = await response.json();
+        return responseData;
+      } catch {
+        return null;
+      }
     });
 
-    await Promise.all(sendPromises);
+    const results = await Promise.all(sendPromises);
 
     console.log("Voice recording forwarded successfully to all webhooks");
 
+    // Return the first non-null response
+    const webhookResponse = results.find(r => r !== null);
+
     return new Response(
-      JSON.stringify({ success: true, message: "Voice recording forwarded successfully" }),
+      JSON.stringify({ success: true, message: "Voice recording forwarded successfully", webhookResponse }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
