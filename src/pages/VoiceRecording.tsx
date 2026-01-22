@@ -47,13 +47,13 @@ function parseVerdikt(text: string): React.ReactNode[] {
     if (trimmedLine.toLowerCase().startsWith('vizit')) {
       indentClass = ''; // No indent for Vizit
     } else if (trimmedLine.toLowerCase().startsWith('fog')) {
-      indentClass = 'pl-6'; // 1 tab (24px)
+      indentClass = 'pl-16'; // 3 tabs (64px)
     } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
-      // Records/items - 2 tabs
-      indentClass = 'pl-12'; // 2 tabs (48px)
+      // Records/items - 5 tabs
+      indentClass = 'pl-28'; // 5 tabs (112px)
     } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
-      // Bullet points are records
-      indentClass = 'pl-12';
+      // Bullet points are records - 5 tabs
+      indentClass = 'pl-28';
     }
     
     // Split line by URL pattern and create clickable links
