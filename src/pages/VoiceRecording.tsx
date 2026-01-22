@@ -312,12 +312,7 @@ export default function VoiceRecording() {
                     className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   />
                 </div>
-                <div className="flex flex-col items-start gap-1">
-                  {isZarolasHovered && !paciensId && (
-                    <span className="text-xs text-destructive animate-fade-in">
-                      Kérem töltse ki a Páciens ID értéket.
-                    </span>
-                  )}
+                <div className="relative flex items-center gap-2">
                   <div 
                     className="flex items-center gap-2"
                     onMouseEnter={() => setIsZarolasHovered(true)}
@@ -344,6 +339,11 @@ export default function VoiceRecording() {
                       Zárolás
                     </Label>
                   </div>
+                  {isZarolasHovered && !paciensId && (
+                    <span className="absolute left-0 -top-5 text-xs text-destructive whitespace-nowrap">
+                      Kérem töltse ki a Páciens ID értéket.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
