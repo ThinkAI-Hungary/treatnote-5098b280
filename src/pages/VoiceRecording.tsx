@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X, Sparkles, ExternalLink } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -18,8 +18,52 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 
 type RecordingMode = 'voxis' | 'treatnote';
+
+// Helper to parse verdikt and increment vizitek, make links clickable
+function parseVerdikt(text: string): React.ReactNode[] {
+  const lines = text.split('\n');
+  
+  return lines.map((line, lineIndex) => {
+    // Process vizitek: add +1 to the number
+    let processedLine = line.replace(/vizitek:\s*(\d+)/gi, (match, num) => {
+      const incremented = parseInt(num, 10) + 1;
+      return `vizitek: ${incremented}`;
+    });
+    
+    // Split line by URL pattern and create clickable links
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = processedLine.split(urlRegex);
+    
+    const elements = parts.map((part, partIndex) => {
+      if (urlRegex.test(part)) {
+        // Reset regex lastIndex
+        urlRegex.lastIndex = 0;
+        return (
+          <a
+            key={`${lineIndex}-${partIndex}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
+          >
+            {part}
+            <ExternalLink className="h-3 w-3 inline-block" />
+          </a>
+        );
+      }
+      return <span key={`${lineIndex}-${partIndex}`}>{part}</span>;
+    });
+    
+    return (
+      <div key={lineIndex}>
+        {elements}
+      </div>
+    );
+  });
+}
 
 export default function VoiceRecording() {
   const { user } = useAuth();
@@ -29,16 +73,27 @@ export default function VoiceRecording() {
   const { admins: klinikaAdmins } = useKlinikaAdmins();
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<RecordingMode>('treatnote');
-  const [paciensId, setPaciensId] = useState('');
-  const [isPaciensIdLocked, setIsPaciensIdLocked] = useState(false);
+  
+  // Persistent state from store
+  const { 
+    verdikt, 
+    paciensId, 
+    isPaciensIdLocked, 
+    mode,
+    setVerdikt, 
+    setPaciensId, 
+    setIsPaciensIdLocked, 
+    setMode,
+    clearVerdikt 
+  } = useVoiceRecordingStore();
+  
+  // Local state
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckboxPulsing, setIsCheckboxPulsing] = useState(false);
   const [isZarolasHovered, setIsZarolasHovered] = useState(false);
   const checkboxRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [verdikt, setVerdikt] = useState<string | null>(null);
   const [isVerdiktLoading, setIsVerdiktLoading] = useState(false);
 
   const {
@@ -61,6 +116,12 @@ export default function VoiceRecording() {
     },
   });
 
+  // Memoize parsed verdikt
+  const parsedVerdikt = useMemo(() => {
+    if (!verdikt) return null;
+    return parseVerdikt(verdikt);
+  }, [verdikt]);
+
   const handleOpenFlexiDialog = () => {
     navigate('/profile?openFlexi=true');
   };
@@ -70,7 +131,7 @@ export default function VoiceRecording() {
       stopRecording();
     } else {
       // Clear verdikt when starting a new recording
-      setVerdikt(null);
+      clearVerdikt();
       startRecording();
     }
   };
@@ -530,22 +591,27 @@ export default function VoiceRecording() {
           </CardContent>
         </Card>
 
-        {/* Verdikt card */}
+        {/* Verdikt card - styled to match galaxy theme */}
         {(isVerdiktLoading || verdikt) && (
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle>Verdikt</CardTitle>
-                <CardDescription>
-                  A feldolgozás eredménye
-                </CardDescription>
+          <Card className="md:col-span-2 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sparkle-blue/20 to-galaxy-purple/20 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-sparkle-blue" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Verdikt</CardTitle>
+                  <CardDescription>
+                    A feldolgozás eredménye
+                  </CardDescription>
+                </div>
               </div>
               {!isVerdiktLoading && verdikt && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setVerdikt(null)}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-destructive/10"
+                  onClick={clearVerdikt}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -554,14 +620,21 @@ export default function VoiceRecording() {
             <CardContent>
               {isVerdiktLoading ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground text-center">
+                  <div className="relative">
+                    <Loader2 className="h-10 w-10 animate-spin text-sparkle-blue" />
+                    <div className="absolute inset-0 h-10 w-10 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
+                  </div>
+                  <p className="text-muted-foreground text-center mt-4">
                     Feldolgozás folyamatban...
                   </p>
                 </div>
               ) : (
-                <div className="bg-muted/50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap overflow-x-auto">
-                  {verdikt}
+                <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-sparkle-blue/5 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-galaxy-purple/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative text-sm leading-relaxed text-foreground/90 space-y-1">
+                    {parsedVerdikt}
+                  </div>
                 </div>
               )}
             </CardContent>
