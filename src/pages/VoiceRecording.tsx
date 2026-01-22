@@ -22,16 +22,39 @@ import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 
 type RecordingMode = 'voxis' | 'treatnote';
 
-// Helper to parse verdikt and increment vizitek, make links clickable
+// Helper to parse verdikt with formatting and clickable links
 function parseVerdikt(text: string): React.ReactNode[] {
   const lines = text.split('\n');
   
   return lines.map((line, lineIndex) => {
-    // Process vizitek: add +1 to the number
-    let processedLine = line.replace(/vizitek:\s*(\d+)/gi, (match, num) => {
+    let processedLine = line;
+    let indentClass = '';
+    
+    // Increment Vizit numbers by 1
+    processedLine = processedLine.replace(/Vizit:\s*(\d+)/gi, (match, num) => {
+      const incremented = parseInt(num, 10) + 1;
+      return `Vizit: ${incremented}`;
+    });
+    
+    // Also handle vizitek variant
+    processedLine = processedLine.replace(/vizitek:\s*(\d+)/gi, (match, num) => {
       const incremented = parseInt(num, 10) + 1;
       return `vizitek: ${incremented}`;
     });
+    
+    // Determine indentation based on content
+    const trimmedLine = processedLine.trim();
+    if (trimmedLine.toLowerCase().startsWith('vizit')) {
+      indentClass = ''; // No indent for Vizit
+    } else if (trimmedLine.toLowerCase().startsWith('fog')) {
+      indentClass = 'pl-6'; // 1 tab (24px)
+    } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
+      // Records/items - 2 tabs
+      indentClass = 'pl-12'; // 2 tabs (48px)
+    } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+      // Bullet points are records
+      indentClass = 'pl-12';
+    }
     
     // Split line by URL pattern and create clickable links
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -39,7 +62,6 @@ function parseVerdikt(text: string): React.ReactNode[] {
     
     const elements = parts.map((part, partIndex) => {
       if (urlRegex.test(part)) {
-        // Reset regex lastIndex
         urlRegex.lastIndex = 0;
         return (
           <a
@@ -57,8 +79,15 @@ function parseVerdikt(text: string): React.ReactNode[] {
       return <span key={`${lineIndex}-${partIndex}`}>{part}</span>;
     });
     
+    // Style Vizit and Fog headers
+    const isVizitLine = trimmedLine.toLowerCase().startsWith('vizit');
+    const isFogLine = trimmedLine.toLowerCase().startsWith('fog');
+    
     return (
-      <div key={lineIndex}>
+      <div 
+        key={lineIndex} 
+        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''}`}
+      >
         {elements}
       </div>
     );
