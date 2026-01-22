@@ -244,14 +244,17 @@ serve(async (req) => {
         throw new Error(`Webhook failed: ${response.status}`);
       }
 
-      // Try to parse the response as JSON
+      // Get response as text first
+      const responseText = await response.text();
+      console.log("Webhook response (first 500 chars):", responseText.substring(0, 500));
+      
+      // Try to parse as JSON, otherwise return as text
       try {
-        const responseData = await response.json();
-        console.log("Webhook response data:", JSON.stringify(responseData).substring(0, 500));
+        const responseData = JSON.parse(responseText);
         return responseData;
-      } catch (parseError) {
-        console.log("Could not parse webhook response as JSON:", parseError);
-        return null;
+      } catch {
+        // Return text response directly
+        return { szoveges_lista: responseText };
       }
     });
 
