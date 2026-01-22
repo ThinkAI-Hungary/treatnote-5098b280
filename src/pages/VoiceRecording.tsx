@@ -47,7 +47,7 @@ function parseVerdikt(text: string): React.ReactNode[] {
     if (trimmedLine.toLowerCase().startsWith('vizit')) {
       indentClass = ''; // No indent for Vizit
     } else if (trimmedLine.toLowerCase().startsWith('fog')) {
-      indentClass = 'pl-16'; // 3 tabs (64px)
+      indentClass = 'pl-12'; // 2 tabs (48px)
     } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
       // Records/items - 5 tabs
       indentClass = 'pl-28'; // 5 tabs (112px)
