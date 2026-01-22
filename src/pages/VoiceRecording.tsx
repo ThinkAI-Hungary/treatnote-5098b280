@@ -312,38 +312,42 @@ export default function VoiceRecording() {
                     className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   />
                 </div>
-                <div className="relative flex items-center gap-2">
-                  <div 
-                    className="flex items-center gap-2"
-                    onMouseEnter={() => setIsZarolasHovered(true)}
-                    onMouseLeave={() => setIsZarolasHovered(false)}
-                  >
-                    <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
-                      <Checkbox
-                        ref={checkboxRef}
-                        id="lock-paciens-id"
-                        checked={isPaciensIdLocked}
-                        onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                        disabled={isRecording || !paciensId}
-                        className={`transition-all duration-300 relative z-10 ${
-                          isCheckboxPulsing ? 'animate-pulse-fade' : ''
-                        }`}
-                      />
-                    </div>
-                    <Label 
-                      htmlFor="lock-paciens-id" 
-                      className={`text-sm cursor-pointer select-none ${
-                        !paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
-                      }`}
-                    >
-                      Zárolás
-                    </Label>
-                  </div>
-                  {isZarolasHovered && !paciensId && (
-                    <span className="absolute left-0 -top-5 text-xs text-destructive whitespace-nowrap">
-                      Kérem töltse ki a Páciens ID értéket.
-                    </span>
-                  )}
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip open={isZarolasHovered && !paciensId}>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className="flex items-center gap-2"
+                          onMouseEnter={() => setIsZarolasHovered(true)}
+                          onMouseLeave={() => setIsZarolasHovered(false)}
+                        >
+                          <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                            <Checkbox
+                              ref={checkboxRef}
+                              id="lock-paciens-id"
+                              checked={isPaciensIdLocked}
+                              onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                              disabled={isRecording || !paciensId}
+                              className={`transition-all duration-300 relative z-10 ${
+                                isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                              }`}
+                            />
+                          </div>
+                          <Label 
+                            htmlFor="lock-paciens-id" 
+                            className={`text-sm cursor-pointer select-none ${
+                              !paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                            }`}
+                          >
+                            Zárolás
+                          </Label>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Kérem töltse ki a Páciens ID értéket.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>
