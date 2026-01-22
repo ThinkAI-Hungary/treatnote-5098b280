@@ -309,9 +309,7 @@ export default function VoiceRecording() {
                       }
                     }}
                     disabled={isRecording || isPaciensIdLocked}
-                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''} ${
-                      isZarolasHovered && !paciensId ? 'animate-pulse-fade ring-2 ring-primary/50' : ''
-                    }`}
+                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                   />
                 </div>
                 <div className="flex flex-col items-start gap-1">
