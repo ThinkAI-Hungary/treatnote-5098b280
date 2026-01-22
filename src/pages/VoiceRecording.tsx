@@ -34,6 +34,7 @@ export default function VoiceRecording() {
   const [isPaciensIdLocked, setIsPaciensIdLocked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCheckboxPulsing, setIsCheckboxPulsing] = useState(false);
+  const [isZarolasHovered, setIsZarolasHovered] = useState(false);
   const checkboxRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -308,30 +309,43 @@ export default function VoiceRecording() {
                       }
                     }}
                     disabled={isRecording || isPaciensIdLocked}
-                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''} ${
+                      isZarolasHovered && !paciensId ? 'animate-pulse-fade ring-2 ring-primary/50' : ''
+                    }`}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
-                    <Checkbox
-                      ref={checkboxRef}
-                      id="lock-paciens-id"
-                      checked={isPaciensIdLocked}
-                      onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                      disabled={isRecording || !paciensId}
-                      className={`transition-all duration-300 relative z-10 ${
-                        isCheckboxPulsing ? 'animate-pulse-fade' : ''
-                      }`}
-                    />
-                  </div>
-                  <Label 
-                    htmlFor="lock-paciens-id" 
-                    className={`text-sm cursor-pointer select-none ${
-                      !paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
-                    }`}
+                <div className="flex flex-col items-start gap-1">
+                  {isZarolasHovered && !paciensId && (
+                    <span className="text-xs text-destructive animate-fade-in">
+                      Kérem töltse ki a Páciens ID értéket.
+                    </span>
+                  )}
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseEnter={() => setIsZarolasHovered(true)}
+                    onMouseLeave={() => setIsZarolasHovered(false)}
                   >
-                    Zárolás
-                  </Label>
+                    <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                      <Checkbox
+                        ref={checkboxRef}
+                        id="lock-paciens-id"
+                        checked={isPaciensIdLocked}
+                        onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                        disabled={isRecording || !paciensId}
+                        className={`transition-all duration-300 relative z-10 ${
+                          isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                        }`}
+                      />
+                    </div>
+                    <Label 
+                      htmlFor="lock-paciens-id" 
+                      className={`text-sm cursor-pointer select-none ${
+                        !paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                      }`}
+                    >
+                      Zárolás
+                    </Label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -503,7 +517,10 @@ export default function VoiceRecording() {
             gombra és diktálja a jegyzőkönyvet.
           </p>
           <p>
-            <strong>3. Töltse fel a felvételt:</strong> A felvétel befejezése
+            <strong>3. Zárolás:</strong> Miután meggyőződött a Páciens ID helyességéről, kattintsa be a "Zárolás" gombot.
+          </p>
+          <p>
+            <strong>4. Töltse fel a felvételt:</strong> A felvétel befejezése
             után hallgassa meg, majd töltse fel feldolgozásra.
           </p>
         </CardContent>
