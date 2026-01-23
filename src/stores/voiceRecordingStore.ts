@@ -1,55 +1,105 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface VoiceRecordingState {
+interface UserVoiceRecordingData {
   verdikt: string | null;
   paciensId: string;
   isPaciensIdLocked: boolean;
   mode: 'voxis' | 'treatnote';
-  userId: string | null; // Track which user owns this data
-  
-  setVerdikt: (verdikt: string | null) => void;
-  setPaciensId: (id: string) => void;
-  setIsPaciensIdLocked: (locked: boolean) => void;
-  setMode: (mode: 'voxis' | 'treatnote') => void;
-  clearVerdikt: () => void;
-  reset: () => void;
-  setUserId: (userId: string | null) => void;
-  validateAndClearIfDifferentUser: (currentUserId: string | null) => void;
 }
+
+interface VoiceRecordingState {
+  // Data is stored per-user by their userId
+  userData: Record<string, UserVoiceRecordingData>;
+  
+  // Getters - require userId
+  getVerdikt: (userId: string) => string | null;
+  getPaciensId: (userId: string) => string;
+  getIsPaciensIdLocked: (userId: string) => boolean;
+  getMode: (userId: string) => 'voxis' | 'treatnote';
+  
+  // Setters - require userId
+  setVerdikt: (userId: string, verdikt: string | null) => void;
+  setPaciensId: (userId: string, id: string) => void;
+  setIsPaciensIdLocked: (userId: string, locked: boolean) => void;
+  setMode: (userId: string, mode: 'voxis' | 'treatnote') => void;
+  clearVerdikt: (userId: string) => void;
+  resetUser: (userId: string) => void;
+}
+
+const defaultUserData: UserVoiceRecordingData = {
+  verdikt: null,
+  paciensId: '',
+  isPaciensIdLocked: false,
+  mode: 'treatnote',
+};
 
 export const useVoiceRecordingStore = create<VoiceRecordingState>()(
   persist(
     (set, get) => ({
-      verdikt: null,
-      paciensId: '',
-      isPaciensIdLocked: false,
-      mode: 'treatnote',
-      userId: null,
+      userData: {},
 
-      setVerdikt: (verdikt) => set({ verdikt }),
-      setPaciensId: (paciensId) => set({ paciensId }),
-      setIsPaciensIdLocked: (isPaciensIdLocked) => set({ isPaciensIdLocked }),
-      setMode: (mode) => set({ mode }),
-      clearVerdikt: () => set({ verdikt: null }),
-      reset: () => set({ verdikt: null, paciensId: '', isPaciensIdLocked: false, mode: 'treatnote', userId: null }),
-      setUserId: (userId) => set({ userId }),
-      validateAndClearIfDifferentUser: (currentUserId) => {
-        const state = get();
-        // If there's stored data from a different user, clear it
-        if (state.userId && currentUserId && state.userId !== currentUserId) {
-          set({ 
-            verdikt: null, 
-            paciensId: '', 
-            isPaciensIdLocked: false, 
-            mode: 'treatnote',
-            userId: currentUserId 
-          });
-        } else if (currentUserId && !state.userId) {
-          // If no userId was stored, set it now
-          set({ userId: currentUserId });
-        }
-      },
+      getVerdikt: (userId) => get().userData[userId]?.verdikt ?? null,
+      getPaciensId: (userId) => get().userData[userId]?.paciensId ?? '',
+      getIsPaciensIdLocked: (userId) => get().userData[userId]?.isPaciensIdLocked ?? false,
+      getMode: (userId) => get().userData[userId]?.mode ?? 'treatnote',
+
+      setVerdikt: (userId, verdikt) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: {
+            ...(state.userData[userId] ?? defaultUserData),
+            verdikt,
+          },
+        },
+      })),
+
+      setPaciensId: (userId, paciensId) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: {
+            ...(state.userData[userId] ?? defaultUserData),
+            paciensId,
+          },
+        },
+      })),
+
+      setIsPaciensIdLocked: (userId, isPaciensIdLocked) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: {
+            ...(state.userData[userId] ?? defaultUserData),
+            isPaciensIdLocked,
+          },
+        },
+      })),
+
+      setMode: (userId, mode) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: {
+            ...(state.userData[userId] ?? defaultUserData),
+            mode,
+          },
+        },
+      })),
+
+      clearVerdikt: (userId) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: {
+            ...(state.userData[userId] ?? defaultUserData),
+            verdikt: null,
+          },
+        },
+      })),
+
+      resetUser: (userId) => set((state) => ({
+        userData: {
+          ...state.userData,
+          [userId]: { ...defaultUserData },
+        },
+      })),
     }),
     {
       name: 'voice-recording-storage',

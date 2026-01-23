@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X, Sparkles, ExternalLink } from 'lucide-react';
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -103,27 +103,21 @@ export default function VoiceRecording() {
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const navigate = useNavigate();
   
-  // Persistent state from store
-  const { 
-    verdikt, 
-    paciensId, 
-    isPaciensIdLocked, 
-    mode,
-    setVerdikt, 
-    setPaciensId, 
-    setIsPaciensIdLocked, 
-    setMode,
-    clearVerdikt,
-    validateAndClearIfDifferentUser,
-    setUserId
-  } = useVoiceRecordingStore();
+  // User ID for store operations
+  const userId = user?.id ?? '';
   
-  // Validate user on mount - clear data if different user
-  useEffect(() => {
-    if (user?.id) {
-      validateAndClearIfDifferentUser(user.id);
-    }
-  }, [user?.id, validateAndClearIfDifferentUser]);
+  // Persistent state from store - keyed by userId
+  const store = useVoiceRecordingStore();
+  const verdikt = store.getVerdikt(userId);
+  const paciensId = store.getPaciensId(userId);
+  const isPaciensIdLocked = store.getIsPaciensIdLocked(userId);
+  const mode = store.getMode(userId);
+  
+  const setVerdikt = (value: string | null) => store.setVerdikt(userId, value);
+  const setPaciensId = (value: string) => store.setPaciensId(userId, value);
+  const setIsPaciensIdLocked = (value: boolean) => store.setIsPaciensIdLocked(userId, value);
+  const setMode = (value: 'voxis' | 'treatnote') => store.setMode(userId, value);
+  const clearVerdikt = () => store.clearVerdikt(userId);
   
   // Local state
   const [isUploading, setIsUploading] = useState(false);
@@ -262,10 +256,6 @@ export default function VoiceRecording() {
         console.log('szoveges_lista:', szoveg);
         if (szoveg) {
           setVerdikt(szoveg);
-          // Store the user ID with the verdikt so it's user-specific
-          if (user?.id) {
-            setUserId(user.id);
-          }
         }
         
         resetRecording();
