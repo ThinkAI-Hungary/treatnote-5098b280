@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X, Sparkles, ExternalLink } from 'lucide-react';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -113,8 +113,17 @@ export default function VoiceRecording() {
     setPaciensId, 
     setIsPaciensIdLocked, 
     setMode,
-    clearVerdikt 
+    clearVerdikt,
+    validateAndClearIfDifferentUser,
+    setUserId
   } = useVoiceRecordingStore();
+  
+  // Validate user on mount - clear data if different user
+  useEffect(() => {
+    if (user?.id) {
+      validateAndClearIfDifferentUser(user.id);
+    }
+  }, [user?.id, validateAndClearIfDifferentUser]);
   
   // Local state
   const [isUploading, setIsUploading] = useState(false);
@@ -253,6 +262,10 @@ export default function VoiceRecording() {
         console.log('szoveges_lista:', szoveg);
         if (szoveg) {
           setVerdikt(szoveg);
+          // Store the user ID with the verdikt so it's user-specific
+          if (user?.id) {
+            setUserId(user.id);
+          }
         }
         
         resetRecording();
