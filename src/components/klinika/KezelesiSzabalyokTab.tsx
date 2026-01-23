@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Plus, 
   Search, 
@@ -52,6 +53,9 @@ export function KezelesiSzabalyokTab({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload'>('list');
   
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TreatmentRule | null>(null);
@@ -68,7 +72,6 @@ export function KezelesiSzabalyokTab({
   const [generating, setGenerating] = useState(false);
   const [backgroundProcessing, setBackgroundProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-
   // Load rules with visits and items
   const loadRules = useCallback(async () => {
     if (!telephelyId) return;
@@ -154,6 +157,33 @@ export function KezelesiSzabalyokTab({
     
     return matchesSearch && matchesCategory;
   });
+
+  // Selection derived state (after filteredRules is defined)
+  const filteredRuleIds = new Set(filteredRules.map(r => r.id!));
+  const visibleSelectedIds = new Set([...selectedIds].filter(id => filteredRuleIds.has(id)));
+  
+  const isAllSelected = filteredRules.length > 0 && visibleSelectedIds.size === filteredRules.length;
+  const isSomeSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < filteredRules.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredRules.map(r => r.id!)));
+    }
+  };
+
+  const toggleSelect = (ruleId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) {
+        next.delete(ruleId);
+      } else {
+        next.add(ruleId);
+      }
+      return next;
+    });
+  };
 
   // Open new rule editor
   const handleNewRule = () => {
@@ -551,6 +581,15 @@ export function KezelesiSzabalyokTab({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={isAllSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Összes kijelölése"
+                        className={cn(isSomeSelected && "data-[state=checked]:bg-primary/50")}
+                        {...(isSomeSelected ? { "data-state": "checked" } : {})}
+                      />
+                    </TableHead>
                     <TableHead className="w-[250px]">Név</TableHead>
                     <TableHead className="w-[150px]">Kategória</TableHead>
                     <TableHead>Trigger szavak</TableHead>
@@ -563,7 +602,7 @@ export function KezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -571,7 +610,7 @@ export function KezelesiSzabalyokTab({
                     </TableRow>
                   ) : filteredRules.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
@@ -601,10 +640,18 @@ export function KezelesiSzabalyokTab({
                         key={rule.id}
                         className={cn(
                           "animate-fade-in",
-                          "hover:bg-muted/30 transition-colors"
+                          "hover:bg-muted/30 transition-colors",
+                          selectedIds.has(rule.id!) && "bg-primary/10"
                         )}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(rule.id!)}
+                            onCheckedChange={() => toggleSelect(rule.id!)}
+                            aria-label={`${rule.name} kijelölése`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{rule.name}</TableCell>
                         <TableCell>
                           {rule.category ? (
