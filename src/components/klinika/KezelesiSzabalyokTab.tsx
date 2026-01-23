@@ -65,6 +65,11 @@ export function KezelesiSzabalyokTab({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleteAnchorPosition, setDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
 
+  // Bulk delete confirmation state
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [bulkDeleteAnchorPosition, setBulkDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // Upload state
   const [uploading, setUploading] = useState(false);
   
@@ -224,6 +229,38 @@ export function KezelesiSzabalyokTab({
     } finally {
       setDeleteConfirmOpen(false);
       setPendingDeleteId(null);
+    }
+  };
+
+  // Open bulk delete confirmation
+  const openBulkDeleteConfirm = (event: React.MouseEvent) => {
+    setBulkDeleteAnchorPosition({ x: event.clientX, y: event.clientY });
+    setBulkDeleteConfirmOpen(true);
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBulkDeleting(true);
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('treatment_rules')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) throw error;
+
+      toast.success(`${idsToDelete.length} szabály sikeresen törölve`);
+      setSelectedIds(new Set());
+      loadRules();
+    } catch (err: any) {
+      console.error('Error bulk deleting rules:', err);
+      toast.error('Hiba a törléskor');
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteConfirmOpen(false);
     }
   };
 
@@ -574,6 +611,23 @@ export function KezelesiSzabalyokTab({
                   ))}
                 </SelectContent>
               </Select>
+
+              {selectedIds.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={openBulkDeleteConfirm}
+                  disabled={bulkDeleting}
+                  className="flex items-center gap-2"
+                >
+                  {bulkDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Törlés ({selectedIds.size})
+                </Button>
+              )}
             </div>
 
             {/* Rules table */}
@@ -818,6 +872,19 @@ export function KezelesiSzabalyokTab({
         onConfirm={handleDelete}
         variant="danger"
         anchorPosition={deleteAnchorPosition}
+      />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+        title={`${selectedIds.size} szabály törlése`}
+        description={`Biztosan törölni szeretné a kijelölt ${selectedIds.size} szabályt? Ez a művelet nem visszavonható.`}
+        confirmText={`Törlés (${selectedIds.size})`}
+        cancelText="Mégse"
+        onConfirm={handleBulkDelete}
+        variant="danger"
+        anchorPosition={bulkDeleteAnchorPosition}
       />
     </AnimatedCard>
   );
