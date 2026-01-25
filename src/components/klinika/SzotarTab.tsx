@@ -319,6 +319,19 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
             await loadSzotar();
             notifySzotarDataChanged();
             setGenerating(false);
+            
+            // Trigger embedding generation in the background
+            console.log('SzotarTab: Triggering embedding generation for telephely:', telephelyId);
+            supabase.functions.invoke('generate-szotar-embeddings', {
+              body: { telephely_id: telephelyId }
+            }).then(({ error }) => {
+              if (error) {
+                console.error('Error triggering embedding generation:', error);
+              } else {
+                console.log('Embedding generation triggered successfully');
+              }
+            });
+            
             return;
           }
 
