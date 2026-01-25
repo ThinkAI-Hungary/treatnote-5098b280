@@ -17,7 +17,8 @@ import {
   Save,
   Loader2,
   Calendar,
-  Clock
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -245,6 +246,30 @@ export function TreatmentRuleEditor({
     setDraggedItem(null);
   };
 
+  // Regenerate embedding for a rule
+  const regenerateEmbedding = async (ruleId: string) => {
+    try {
+      console.log('Regenerating embedding for rule:', ruleId);
+      const { data, error } = await supabase.functions.invoke('regenerate-rule-embedding', {
+        body: { rule_id: ruleId },
+      });
+
+      if (error) {
+        console.error('Embedding regeneration error:', error);
+        toast.error('Embedding újragenerálás sikertelen');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(`Embedding frissítve (${data.embeddings_created} db)`);
+      } else {
+        console.warn('Embedding regeneration failed:', data?.error);
+      }
+    } catch (err) {
+      console.error('Error regenerating embedding:', err);
+    }
+  };
+
   // Save changes
   const handleSave = async () => {
     if (!name.trim()) {
@@ -254,7 +279,11 @@ export function TreatmentRuleEditor({
 
     setSaving(true);
     try {
+      let savedRuleId: string | null = null;
+
       if (isEditing && rule?.id) {
+        savedRuleId = rule.id;
+        
         // Update existing rule
         const { error: ruleError } = await supabase
           .from('treatment_rules')
@@ -322,6 +351,8 @@ export function TreatmentRuleEditor({
 
         if (ruleError) throw ruleError;
 
+        savedRuleId = ruleData.id;
+
         // Insert visits and items
         for (const visit of renumberVisits(visits)) {
           const { data: visitData, error: visitError } = await supabase
@@ -358,6 +389,11 @@ export function TreatmentRuleEditor({
         }
 
         toast.success('Szabály sikeresen létrehozva');
+      }
+
+      // Regenerate embedding after save
+      if (savedRuleId) {
+        regenerateEmbedding(savedRuleId);
       }
 
       onSave();
