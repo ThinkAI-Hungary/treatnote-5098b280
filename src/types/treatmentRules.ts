@@ -30,6 +30,7 @@ export interface TreatmentRule {
   name: string;
   category: string | null;
   trigger_words: string[];
+  semantic_description: string | null;
   created_at?: string;
   updated_at?: string;
   visits?: RuleVisit[];
