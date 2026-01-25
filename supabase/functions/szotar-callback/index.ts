@@ -6,6 +6,135 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface KezelesItem {
+  name: string;
+  category?: string;
+}
+
+// Generate embeddings using OpenAI API
+async function generateEmbeddings(texts: string[], openaiApiKey: string): Promise<number[][]> {
+  if (texts.length === 0) return [];
+
+  const response = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'text-embedding-3-large',
+      input: texts,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('OpenAI API error:', error);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.data.map((item: { embedding: number[] }) => item.embedding);
+}
+
+// Process kezelesek in batches
+async function processKezelesekWithEmbeddings(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  telephelyId: string,
+  kezelesek: KezelesItem[],
+  openaiApiKey: string
+): Promise<{ processed: number; errors: string[] }> {
+  const errors: string[] = [];
+  let processed = 0;
+
+  // First, upsert all kezelesek to szotar_kezelesek table
+  const upsertResults: { id: string; name: string; category: string }[] = [];
+
+  for (const kezeles of kezelesek) {
+    const { data, error } = await supabase
+      .from('szotar_kezelesek')
+      .upsert(
+        {
+          telephely_id: telephelyId,
+          name: kezeles.name,
+          category: kezeles.category || '',
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'telephely_id,name',
+        }
+      )
+      .select('id, name, category')
+      .single();
+
+    if (error) {
+      console.error(`Error upserting kezeles "${kezeles.name}":`, error);
+      errors.push(`Upsert failed for "${kezeles.name}": ${error.message}`);
+    } else if (data) {
+      upsertResults.push(data);
+    }
+  }
+
+  console.log(`Upserted ${upsertResults.length} kezelesek`);
+
+  if (upsertResults.length === 0) {
+    return { processed: 0, errors };
+  }
+
+  // Prepare texts for embedding (name embeddings only for now)
+  const embeddingTasks: { id: string; text: string; sourceType: 'name' | 'category' }[] = [];
+  
+  for (const result of upsertResults) {
+    embeddingTasks.push({
+      id: result.id,
+      text: result.name,
+      sourceType: 'name',
+    });
+  }
+
+  // Process in batches of 100 (OpenAI limit)
+  const BATCH_SIZE = 100;
+  
+  for (let i = 0; i < embeddingTasks.length; i += BATCH_SIZE) {
+    const batch = embeddingTasks.slice(i, i + BATCH_SIZE);
+    const texts = batch.map(t => t.text);
+
+    try {
+      console.log(`Generating embeddings for batch ${i / BATCH_SIZE + 1} (${texts.length} items)`);
+      const embeddings = await generateEmbeddings(texts, openaiApiKey);
+
+      // Save embeddings to database
+      for (let j = 0; j < batch.length; j++) {
+        const task = batch[j];
+        const embedding = embeddings[j];
+
+        // Format embedding as vector string for Postgres
+        const embeddingStr = `[${embedding.join(',')}]`;
+
+        const { error: upsertError } = await supabase.rpc('upsert_szotar_embedding', {
+          p_szotar_kezeles_id: task.id,
+          p_text_source: task.text,
+          p_source_type: task.sourceType,
+          p_embedding: embeddingStr,
+        });
+
+        if (upsertError) {
+          console.error(`Error saving embedding for "${task.text}":`, upsertError);
+          errors.push(`Embedding save failed for "${task.text}": ${upsertError.message}`);
+        } else {
+          processed++;
+        }
+      }
+    } catch (batchError) {
+      console.error(`Batch embedding error:`, batchError);
+      errors.push(`Batch ${i / BATCH_SIZE + 1} failed: ${batchError instanceof Error ? batchError.message : 'Unknown error'}`);
+    }
+  }
+
+  return { processed, errors };
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -15,15 +144,16 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { telephely_id, user_id, content } = await req.json();
+    const { telephely_id, user_id, content, kezelesek } = await req.json();
 
     if (!telephely_id) {
       throw new Error("Missing required field: telephely_id");
     }
 
-    // Parse content - expect an array of strings or objects
+    // Parse content - expect an array of strings or objects (existing logic)
     let parsedContent: string[] = [];
     
     if (Array.isArray(content)) {
@@ -31,12 +161,10 @@ serve(async (req) => {
         typeof item === 'string' ? item : JSON.stringify(item)
       );
     } else if (typeof content === 'object' && content !== null) {
-      // If it's an object, extract values or convert to array
       parsedContent = Object.values(content).map(item =>
         typeof item === 'string' ? item : JSON.stringify(item)
       );
     } else if (typeof content === 'string') {
-      // Try to parse as JSON
       try {
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
@@ -51,9 +179,9 @@ serve(async (req) => {
       }
     }
 
-    console.log('Parsed content:', parsedContent);
+    console.log('Parsed content:', parsedContent.length, 'items');
 
-    // Check if szotar already exists for this telephely
+    // Handle szotar table update (existing logic)
     const { data: existing, error: fetchError } = await supabase
       .from('szotar')
       .select('id')
@@ -66,7 +194,6 @@ serve(async (req) => {
     }
 
     if (existing) {
-      // Update existing
       const { error: updateError } = await supabase
         .from('szotar')
         .update({
@@ -79,10 +206,8 @@ serve(async (req) => {
         console.error('Error updating szotar:', updateError);
         throw updateError;
       }
-
       console.log('Updated existing szotar:', existing.id);
     } else {
-      // Insert new
       const { error: insertError } = await supabase
         .from('szotar')
         .insert({
@@ -95,12 +220,58 @@ serve(async (req) => {
         console.error('Error inserting szotar:', insertError);
         throw insertError;
       }
-
       console.log('Created new szotar for telephely:', telephely_id);
     }
 
+    // NEW: Handle kezelesek with embeddings
+    let embeddingResult = { processed: 0, errors: [] as string[] };
+    
+    if (kezelesek && Array.isArray(kezelesek) && kezelesek.length > 0) {
+      console.log(`Processing ${kezelesek.length} kezelesek with embeddings`);
+      
+      if (!openaiApiKey) {
+        console.warn('OPENAI_API_KEY not configured, skipping embedding generation');
+        embeddingResult.errors.push('OPENAI_API_KEY not configured');
+        
+        // Still upsert kezelesek without embeddings
+        for (const kezeles of kezelesek as KezelesItem[]) {
+          const { error } = await supabase
+            .from('szotar_kezelesek')
+            .upsert(
+              {
+                telephely_id,
+                name: kezeles.name,
+                category: kezeles.category || '',
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'telephely_id,name' }
+            );
+          
+          if (error) {
+            console.error(`Error upserting kezeles "${kezeles.name}":`, error);
+          } else {
+            embeddingResult.processed++;
+          }
+        }
+      } else {
+        embeddingResult = await processKezelesekWithEmbeddings(
+          supabase,
+          telephely_id,
+          kezelesek as KezelesItem[],
+          openaiApiKey
+        );
+      }
+      
+      console.log(`Embedding processing complete: ${embeddingResult.processed} processed, ${embeddingResult.errors.length} errors`);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, items_count: parsedContent.length }),
+      JSON.stringify({ 
+        success: true, 
+        items_count: parsedContent.length,
+        kezelesek_processed: embeddingResult.processed,
+        kezelesek_errors: embeddingResult.errors.length > 0 ? embeddingResult.errors : undefined,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

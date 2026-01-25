@@ -948,6 +948,44 @@ export type Database = {
           },
         ]
       }
+      szotar_embeddings: {
+        Row: {
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          szotar_kezeles_id?: string
+          text_source?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_embeddings_szotar_kezeles_id_fkey"
+            columns: ["szotar_kezeles_id"]
+            isOneToOne: false
+            referencedRelation: "szotar_kezelesek"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       szotar_kezelesek: {
         Row: {
           category: string
@@ -1293,6 +1331,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      match_szotar_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_telephely_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          matched_text: string
+          name: string
+          similarity: number
+          source_type: string
+          szotar_kezeles_id: string
+        }[]
+      }
       match_treatment_embedding: {
         Args: {
           match_count?: number
@@ -1309,6 +1363,15 @@ export type Database = {
         }[]
       }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
+      upsert_szotar_embedding: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_szotar_kezeles_id: string
+          p_text_source: string
+        }
+        Returns: string
+      }
       upsert_treatment_embedding: {
         Args: {
           p_embedding: string
