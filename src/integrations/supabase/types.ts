@@ -1098,6 +1098,44 @@ export type Database = {
           },
         ]
       }
+      treatment_embeddings: {
+        Row: {
+          created_at: string
+          embedding: string
+          id: string
+          source_type: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          embedding: string
+          id?: string
+          source_type?: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string
+          id?: string
+          source_type?: string
+          text_source?: string
+          treatment_rule_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_embeddings_treatment_rule_id_fkey"
+            columns: ["treatment_rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_items: {
         Row: {
           created_at: string
@@ -1209,7 +1247,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      treatment_embeddings_stats: {
+        Row: {
+          clinic_id: string | null
+          item_embeddings: number | null
+          last_updated: string | null
+          name_embeddings: number | null
+          rules_with_embeddings: number | null
+          total_embeddings: number | null
+          trigger_embeddings: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_company_version: {
@@ -1220,6 +1277,7 @@ export type Database = {
         Args: { _path: string; _user_id: string }
         Returns: boolean
       }
+      cleanup_orphaned_embeddings: { Args: never; Returns: number }
       get_company_names: {
         Args: never
         Returns: {
@@ -1233,7 +1291,31 @@ export type Database = {
         }
         Returns: boolean
       }
+      match_treatment_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_clinic_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          matched_text: string
+          rule_name: string
+          similarity: number
+          source_type: string
+          treatment_rule_id: string
+        }[]
+      }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
+      upsert_treatment_embedding: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_text_source: string
+          p_treatment_rule_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "klinika_admin"
