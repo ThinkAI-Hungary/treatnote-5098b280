@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -20,7 +21,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
-import { TriggerWordsInput } from './TriggerWordsInput';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -62,7 +62,7 @@ export function TreatmentRuleEditor({
   // Form state
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string>('');
-  const [triggerWords, setTriggerWords] = useState<string[]>([]);
+  const [semanticDescription, setSemanticDescription] = useState('');
   const [visits, setVisits] = useState<RuleVisit[]>([]);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
@@ -94,13 +94,13 @@ export function TreatmentRuleEditor({
     if (rule) {
       setName(rule.name || '');
       setCategory(rule.category || '');
-      setTriggerWords(rule.trigger_words || []);
+      setSemanticDescription(rule.semantic_description || '');
       setVisits(rule.visits || []);
     } else {
       // New rule - reset form
       setName('');
       setCategory('');
-      setTriggerWords([]);
+      setSemanticDescription('');
       setVisits([]);
     }
   }, [rule, open]);
@@ -261,7 +261,7 @@ export function TreatmentRuleEditor({
           .update({
             name: name.trim(),
             category: category || null,
-            trigger_words: triggerWords,
+            semantic_description: semanticDescription.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', rule.id);
@@ -315,7 +315,7 @@ export function TreatmentRuleEditor({
             clinic_id: clinicId,
             name: name.trim(),
             category: category || null,
-            trigger_words: triggerWords,
+            semantic_description: semanticDescription.trim() || null,
           })
           .select('id')
           .single();
@@ -417,14 +417,16 @@ export function TreatmentRuleEditor({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Trigger szavak</Label>
-                  <TriggerWordsInput
-                    value={triggerWords}
-                    onChange={setTriggerWords}
-                    placeholder="Új trigger szó hozzáadása (Enter)"
+                  <Label>Szemantikus leírás</Label>
+                  <Textarea
+                    value={semanticDescription}
+                    onChange={(e) => setSemanticDescription(e.target.value)}
+                    placeholder="AI által generált leírás a kezelésről (szinonimák, típusok, stb.)"
+                    rows={3}
+                    className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ezek a szavak aktiválják a szabályt a hangfelismerés során
+                    Ez a leírás segít az AI-nak felismerni a kezelést különböző megfogalmazásokból
                   </p>
                 </div>
               </CardContent>

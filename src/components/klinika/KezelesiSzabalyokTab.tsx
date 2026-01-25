@@ -138,17 +138,15 @@ export function KezelesiSzabalyokTab({
     loadRules();
   }, [loadRules]);
 
-  // Filter rules - search in name, trigger words, and treatment items
+  // Filter rules - search in name, semantic description, and treatment items
   const filteredRules = rules.filter(rule => {
     const lowerSearch = searchTerm.toLowerCase();
     
     // Search in rule name
     const matchesName = rule.name.toLowerCase().includes(lowerSearch);
     
-    // Search in trigger words
-    const matchesTrigger = rule.trigger_words.some(w => 
-      w.toLowerCase().includes(lowerSearch)
-    );
+    // Search in semantic description
+    const matchesDescription = rule.semantic_description?.toLowerCase().includes(lowerSearch) ?? false;
     
     // Search in treatment items (items within visits)
     const matchesItem = rule.visits?.some(visit => 
@@ -157,7 +155,7 @@ export function KezelesiSzabalyokTab({
       )
     ) || false;
     
-    const matchesSearch = !searchTerm || matchesName || matchesTrigger || matchesItem;
+    const matchesSearch = !searchTerm || matchesName || matchesDescription || matchesItem;
     const matchesCategory = categoryFilter === 'all' || rule.category === categoryFilter;
     
     return matchesSearch && matchesCategory;
@@ -646,7 +644,7 @@ export function KezelesiSzabalyokTab({
                     </TableHead>
                     <TableHead className="w-[250px]">Név</TableHead>
                     <TableHead className="w-[150px]">Kategória</TableHead>
-                    <TableHead>Trigger szavak</TableHead>
+                    <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
                     <TableHead className="w-[100px] text-center">Vizitek</TableHead>
                     <TableHead className="w-[100px] text-center">Tételek</TableHead>
                     <TableHead className="w-[150px]">Létrehozva</TableHead>
@@ -717,21 +715,15 @@ export function KezelesiSzabalyokTab({
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-[300px]">
-                            {rule.trigger_words.slice(0, 4).map((word) => (
-                              <Badge 
-                                key={word} 
-                                variant="outline" 
-                                className="text-xs"
-                              >
-                                <Tag className="h-2.5 w-2.5 mr-1" />
-                                {word}
-                              </Badge>
-                            ))}
-                            {rule.trigger_words.length > 4 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{rule.trigger_words.length - 4}
-                              </Badge>
+                          <div className="max-w-[350px]">
+                            {rule.semantic_description ? (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {rule.semantic_description}
+                              </p>
+                            ) : (
+                              <span className="text-muted-foreground text-xs italic">
+                                Nincs leírás
+                              </span>
                             )}
                           </div>
                         </TableCell>
