@@ -1193,6 +1193,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          semantic_description: string | null
           trigger_words: string[] | null
           updated_at: string
         }
@@ -1202,6 +1203,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string
         }
@@ -1211,6 +1213,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string
         }
@@ -1252,10 +1255,9 @@ export type Database = {
           clinic_id: string | null
           item_embeddings: number | null
           last_updated: string | null
-          name_embeddings: number | null
           rules_with_embeddings: number | null
+          semantic_embeddings: number | null
           total_embeddings: number | null
-          trigger_embeddings: number | null
         }
         Relationships: [
           {
