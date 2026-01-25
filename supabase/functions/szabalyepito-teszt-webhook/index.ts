@@ -86,56 +86,89 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 }
 
 // ==========================================================
-// Embedding mentése Supabase-be (CSAK semantic_description)
+// Embedding mentése Supabase-be (semantic_description + item_names)
 // ==========================================================
+interface EmbeddingItem {
+  text: string;
+  source_type: 'semantic_description' | 'item_name';
+}
+
 // deno-lint-ignore no-explicit-any
 async function saveEmbeddings(
   supabase: any,
   ruleId: string,
-  semanticDescription: string | null
+  semanticDescription: string | null,
+  itemNames: string[]
 ): Promise<{ success: number; failed: number }> {
   const stats = { success: 0, failed: 0 };
+  const textsToEmbed: EmbeddingItem[] = [];
   
-  // Csak semantic_description-t embeddelünk - az item_name-ek nem azonosítják a szabályt
-  if (!semanticDescription || !semanticDescription.trim()) {
-    console.log(`No semantic_description to embed for rule ${ruleId}`);
+  // Semantic description embedding
+  if (semanticDescription && semanticDescription.trim()) {
+    textsToEmbed.push({
+      text: semanticDescription.trim(),
+      source_type: 'semantic_description',
+    });
+  }
+  
+  // Item name embeddings (unique names only)
+  const uniqueItemNames = [...new Set(itemNames.filter(name => name && name.trim()))];
+  for (const itemName of uniqueItemNames) {
+    textsToEmbed.push({
+      text: itemName.trim(),
+      source_type: 'item_name',
+    });
+  }
+  
+  if (textsToEmbed.length === 0) {
+    console.log(`No texts to embed for rule ${ruleId}`);
     return stats;
   }
   
-  const textToEmbed = semanticDescription.trim();
-  console.log(`Generating semantic_description embedding for rule ${ruleId}`);
+  console.log(`Generating ${textsToEmbed.length} embeddings for rule ${ruleId}`);
   
-  // Embedding generálás
-  const embeddings = await generateEmbeddings([textToEmbed]);
+  // Embedding generálás batch-ben
+  const embeddings = await generateEmbeddings(textsToEmbed.map(t => t.text));
   
-  if (embeddings.length === 0 || !embeddings[0]) {
-    console.error(`Failed to generate embedding for rule ${ruleId}`);
-    stats.failed = 1;
+  if (embeddings.length === 0) {
+    console.error(`Failed to generate embeddings for rule ${ruleId}`);
+    stats.failed = textsToEmbed.length;
     return stats;
   }
   
   // Mentés Supabase-be
-  const embeddingVector = `[${embeddings[0].join(',')}]`;
-  const { error } = await supabase
-    .from('treatment_embeddings')
-    .upsert({
-      treatment_rule_id: ruleId,
-      text_source: textToEmbed,
-      source_type: 'semantic_description',
-      embedding: embeddingVector,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'treatment_rule_id,text_source,source_type',
-    });
-  
-  if (error) {
-    console.error(`Failed to save embedding: ${error.message}`);
-    stats.failed = 1;
-  } else {
-    stats.success = 1;
+  for (let i = 0; i < textsToEmbed.length; i++) {
+    const item = textsToEmbed[i];
+    const embedding = embeddings[i];
+    
+    if (!embedding) {
+      console.error(`Missing embedding for index ${i}`);
+      stats.failed++;
+      continue;
+    }
+    
+    const embeddingVector = `[${embedding.join(',')}]`;
+    const { error } = await supabase
+      .from('treatment_embeddings')
+      .upsert({
+        treatment_rule_id: ruleId,
+        text_source: item.text,
+        source_type: item.source_type,
+        embedding: embeddingVector,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'treatment_rule_id,text_source,source_type',
+      });
+    
+    if (error) {
+      console.error(`Failed to save ${item.source_type} embedding: ${error.message}`);
+      stats.failed++;
+    } else {
+      stats.success++;
+    }
   }
   
-  console.log(`Embedding for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
+  console.log(`Embeddings for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
   return stats;
 }
 
@@ -523,8 +556,10 @@ serve(async (req) => {
             }
           }
 
-          // Insert visits and items
+          // Insert visits and items, collect item names for embedding
           const visits = extraction.parsed?.visits || [];
+          const allItemNames: string[] = [];
+          
           for (let vi = 0; vi < visits.length; vi++) {
             const visit = visits[vi];
             
@@ -556,6 +591,13 @@ serve(async (req) => {
                 display_order: ii,
               }));
 
+              // Collect item names for embedding
+              for (const item of visit.items) {
+                if (item.name) {
+                  allItemNames.push(item.name);
+                }
+              }
+
               const { error: itemsError } = await supabaseForInsert
                 .from('rule_items')
                 .insert(itemsToInsert);
@@ -566,12 +608,13 @@ serve(async (req) => {
             }
           }
 
-          // EMBEDDING GENERÁLÁS ÉS MENTÉS (csak semantic_description)
-          console.log(`Generating embedding for rule: ${extraction.fogalom} (ID: ${ruleData.id})`);
+          // EMBEDDING GENERÁLÁS ÉS MENTÉS (semantic_description + item_names)
+          console.log(`Generating embeddings for rule: ${extraction.fogalom} (ID: ${ruleData.id}), items: ${allItemNames.length}`);
           const ruleEmbeddingStats = await saveEmbeddings(
             supabaseForInsert,
             ruleData.id,
-            extraction.semantic_description || null
+            extraction.semantic_description || null,
+            allItemNames
           );
           embeddingStats.success += ruleEmbeddingStats.success;
           embeddingStats.failed += ruleEmbeddingStats.failed;
