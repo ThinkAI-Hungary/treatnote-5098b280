@@ -21,6 +21,7 @@ interface AdminUser {
   subscription_end_date: string | null;
   role: string;
   can_create_users: boolean;
+  flexi_username: string | null;
 }
 
 interface Company {
@@ -35,7 +36,7 @@ interface Telephely {
   company_id: string;
 }
 
-type SortField = 'company_name' | 'telephely_name' | 'full_name' | 'email' | 'role' | 'subscription_status';
+type SortField = 'company_name' | 'telephely_name' | 'full_name' | 'email' | 'role' | 'subscription_status' | 'flexi_username';
 type SortDirection = 'asc' | 'desc' | null;
 
 interface UsersTableProps {
@@ -171,6 +172,7 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
       <SortableHeader field="telephely_name">Telephely</SortableHeader>
       <SortableHeader field="full_name">Név</SortableHeader>
       <SortableHeader field="email">Email</SortableHeader>
+      <SortableHeader field="flexi_username">Flexi</SortableHeader>
       <SortableHeader field="role">Szerep</SortableHeader>
       <SortableHeader field="subscription_status">Státusz</SortableHeader>
       <TableHead className="text-right font-semibold">Műveletek</TableHead>
@@ -265,6 +267,15 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
             <TableCell>{userData.telephely_name || '-'}</TableCell>
             <TableCell className="font-medium">{userData.full_name || '-'}</TableCell>
             <TableCell>{userData.email}</TableCell>
+            <TableCell>
+              {userData.flexi_username ? (
+                <Badge variant="outline" className="text-green-700 dark:text-green-400 border-green-600/50 bg-green-50/50 dark:bg-green-950/30">
+                  {userData.flexi_username}
+                </Badge>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
             <TableCell>
               <Badge variant={userData.role === 'admin' ? 'destructive' : userData.role === 'klinika_admin' ? 'default' : 'outline'}>
                 {userData.role === 'admin' ? 'Admin' : userData.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
