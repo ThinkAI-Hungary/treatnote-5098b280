@@ -46,6 +46,137 @@ function sanitizeSlug(name: string): string {
     .replace(/_+/g, '_');
 }
 
+// ==========================================================
+// Embedding generálás OpenAI API-val
+// ==========================================================
+async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  if (!texts || texts.length === 0) return [];
+  
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    console.error('Missing OPENAI_API_KEY secret');
+    return [];
+  }
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-large',
+        input: texts,
+      }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${error}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.data.map((d: { embedding: number[] }) => d.embedding);
+  } catch (error) {
+    console.error('Embedding generation error:', error);
+    return [];
+  }
+}
+
+// ==========================================================
+// Embedding mentése Supabase-be
+// ==========================================================
+// deno-lint-ignore no-explicit-any
+async function saveEmbeddings(
+  supabase: any,
+  ruleId: string,
+  semanticDescription: string | null,
+  items: { name: string }[]
+): Promise<{ success: number; failed: number }> {
+  const stats = { success: 0, failed: 0 };
+  
+  // Összegyűjtjük a szövegeket
+  const textsToEmbed: { text: string; type: 'semantic_description' | 'item_name' }[] = [];
+  
+  // 1. Semantic description (fő forrás)
+  if (semanticDescription && semanticDescription.trim()) {
+    textsToEmbed.push({
+      text: semanticDescription.trim(),
+      type: 'semantic_description',
+    });
+  }
+  
+  // 2. Item names (másodlagos)
+  for (const item of items) {
+    if (item.name && item.name.trim()) {
+      textsToEmbed.push({
+        text: item.name.trim(),
+        type: 'item_name',
+      });
+    }
+  }
+  
+  // Deduplikálás
+  const seen = new Set<string>();
+  const uniqueTexts = textsToEmbed.filter(t => {
+    const key = `${t.text}|${t.type}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  
+  if (uniqueTexts.length === 0) {
+    console.log(`No texts to embed for rule ${ruleId}`);
+    return stats;
+  }
+  
+  console.log(`Generating ${uniqueTexts.length} embeddings for rule ${ruleId}`);
+  
+  // Embedding generálás
+  const texts = uniqueTexts.map(t => t.text);
+  const embeddings = await generateEmbeddings(texts);
+  
+  if (embeddings.length === 0) {
+    console.error(`Failed to generate embeddings for rule ${ruleId}`);
+    stats.failed = uniqueTexts.length;
+    return stats;
+  }
+  
+  // Mentés Supabase-be
+  for (let i = 0; i < uniqueTexts.length; i++) {
+    if (!embeddings[i]) {
+      stats.failed++;
+      continue;
+    }
+    
+    // Direct insert/upsert to treatment_embeddings table
+    const embeddingVector = `[${embeddings[i].join(',')}]`;
+    const { error } = await supabase
+      .from('treatment_embeddings')
+      .upsert({
+        treatment_rule_id: ruleId,
+        text_source: uniqueTexts[i].text,
+        source_type: uniqueTexts[i].type,
+        embedding: embeddingVector,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'treatment_rule_id,text_source,source_type',
+      });
+    
+    if (error) {
+      console.error(`Failed to save embedding: ${error.message}`);
+      stats.failed++;
+    } else {
+      stats.success++;
+    }
+  }
+  
+  console.log(`Embeddings for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
+  return stats;
+}
+
 interface SzotarKezelesItem {
   id: string;
   name: string;
@@ -81,6 +212,10 @@ interface SuccessResponse {
   event_id: string;
   inserted?: number;
   duplicates?: number;
+  embeddings?: {
+    success: number;
+    failed: number;
+  };
 }
 
 interface VisitItem {
@@ -101,7 +236,7 @@ interface ParsedVisit {
 interface ExtractionItem {
   fogalom: string;
   kategoria?: string;
-  trigger_words?: string[];
+  semantic_description?: string;
   file_name?: string;
   parsed?: {
     visits?: ParsedVisit[];
@@ -391,21 +526,14 @@ serve(async (req) => {
         const extractions = extractionsData as ExtractionItem[];
         let insertedCount = 0;
         let duplicateCount = 0;
+        
+        // Embedding statisztika
+        const embeddingStats = { success: 0, failed: 0 };
 
         for (const extraction of extractions) {
           if (!extraction.fogalom) {
             console.log('Skipping extraction without fogalom');
             continue;
-          }
-
-          // Parse trigger words - handle various formats
-          let triggerWords: string[] = [];
-          if (extraction.trigger_words) {
-            if (Array.isArray(extraction.trigger_words)) {
-              triggerWords = extraction.trigger_words;
-            } else if (typeof extraction.trigger_words === 'object') {
-              triggerWords = Object.values(extraction.trigger_words).filter(v => typeof v === 'string') as string[];
-            }
           }
 
           // Insert directly into treatment_rules (normalized structure)
@@ -417,7 +545,7 @@ serve(async (req) => {
               clinic_id: telephely_id,
               name: extraction.fogalom,
               category: extraction.kategoria || null,
-              trigger_words: triggerWords,
+              semantic_description: extraction.semantic_description || null,
             })
             .select('id')
             .single();
@@ -432,6 +560,9 @@ serve(async (req) => {
               continue;
             }
           }
+
+          // Gyűjtsük össze az összes item-et az embedding generáláshoz
+          const allItems: { name: string }[] = [];
 
           // Insert visits and items
           const visits = extraction.parsed?.visits || [];
@@ -473,19 +604,36 @@ serve(async (req) => {
               if (itemsError) {
                 console.error('Items insert error:', itemsError);
               }
+              
+              // Gyűjtsük össze az item neveket
+              allItems.push(...visit.items.filter(item => item.name));
             }
           }
+
+          // EMBEDDING GENERÁLÁS ÉS MENTÉS
+          console.log(`Generating embeddings for rule: ${extraction.fogalom} (ID: ${ruleData.id})`);
+          const ruleEmbeddingStats = await saveEmbeddings(
+            supabaseForInsert,
+            ruleData.id,
+            extraction.semantic_description || null,
+            allItems
+          );
+          embeddingStats.success += ruleEmbeddingStats.success;
+          embeddingStats.failed += ruleEmbeddingStats.failed;
 
           insertedCount++;
         }
 
         console.log(`Processing complete: ${insertedCount} inserted, ${duplicateCount} duplicates`);
+        console.log(`Embeddings total: ${embeddingStats.success} success, ${embeddingStats.failed} failed`);
+        
         const successResponse: SuccessResponse = {
           ok: true,
           status: 'processed',
           event_id: eventId,
           inserted: insertedCount,
           duplicates: duplicateCount,
+          embeddings: embeddingStats,
         };
         return new Response(JSON.stringify(successResponse), {
           status: 200,
