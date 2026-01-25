@@ -115,7 +115,7 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
           const kezelesekForFog = fogToKezelesek[fog].sort();
           kezelesekForFog.forEach((kezeles, kezelesIdx) => {
             elements.push(
-              <div key={`vizit-${vizitKey}-fog-${fog}-kezeles-${kezelesIdx}`} className="pl-16 text-foreground/80">
+              <div key={`vizit-${vizitKey}-fog-${fog}-kezeles-${kezelesIdx}`} className="pl-24 text-foreground/80">
                 - {kezeles}
               </div>
             );
