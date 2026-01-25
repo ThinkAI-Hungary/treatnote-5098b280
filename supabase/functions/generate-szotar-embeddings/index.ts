@@ -67,22 +67,24 @@ async function processEmbeddings(
 
   console.log(`Found ${kezelesek.length} szotar_kezelesek records`);
 
-  // 2. Get existing embeddings to find which ones are missing
-  const kezelesIds = kezelesek.map((k: SzotarKezeles) => k.id);
+  // 2. Get existing embeddings - fetch all for this telephely via join instead of IN clause
+  // This avoids URL length limits with many UUIDs
   const { data: existingEmbeddings, error: embeddingsError } = await supabase
     .from('szotar_embeddings')
-    .select('szotar_kezeles_id, source_type')
-    .in('szotar_kezeles_id', kezelesIds);
+    .select('szotar_kezeles_id, source_type, szotar_kezelesek!inner(telephely_id)')
+    .eq('szotar_kezelesek.telephely_id', telephelyId);
 
   if (embeddingsError) {
     console.error('Error fetching existing embeddings:', embeddingsError);
-    return { processed: 0, errors: [embeddingsError.message] };
+    // Continue anyway - we'll just regenerate all embeddings
   }
 
   // Create a set of existing embedding keys (id + source_type)
   const existingKeys = new Set(
     (existingEmbeddings || []).map(e => `${e.szotar_kezeles_id}_${e.source_type}`)
   );
+
+  console.log(`Found ${existingKeys.size} existing embeddings`);
 
   // 3. Build list of embeddings to generate
   interface EmbeddingTask {
