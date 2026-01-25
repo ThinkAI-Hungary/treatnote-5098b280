@@ -62,3 +62,5 @@ verify_jwt = false
 
 [functions.szotar-callback]
 verify_jwt = false
+
+[functions.generate-szotar-embeddings]
