@@ -86,94 +86,56 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 }
 
 // ==========================================================
-// Embedding mentése Supabase-be
+// Embedding mentése Supabase-be (CSAK semantic_description)
 // ==========================================================
 // deno-lint-ignore no-explicit-any
 async function saveEmbeddings(
   supabase: any,
   ruleId: string,
-  semanticDescription: string | null,
-  items: { name: string }[]
+  semanticDescription: string | null
 ): Promise<{ success: number; failed: number }> {
   const stats = { success: 0, failed: 0 };
   
-  // Összegyűjtjük a szövegeket
-  const textsToEmbed: { text: string; type: 'semantic_description' | 'item_name' }[] = [];
-  
-  // 1. Semantic description (fő forrás)
-  if (semanticDescription && semanticDescription.trim()) {
-    textsToEmbed.push({
-      text: semanticDescription.trim(),
-      type: 'semantic_description',
-    });
-  }
-  
-  // 2. Item names (másodlagos)
-  for (const item of items) {
-    if (item.name && item.name.trim()) {
-      textsToEmbed.push({
-        text: item.name.trim(),
-        type: 'item_name',
-      });
-    }
-  }
-  
-  // Deduplikálás
-  const seen = new Set<string>();
-  const uniqueTexts = textsToEmbed.filter(t => {
-    const key = `${t.text}|${t.type}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  
-  if (uniqueTexts.length === 0) {
-    console.log(`No texts to embed for rule ${ruleId}`);
+  // Csak semantic_description-t embeddelünk - az item_name-ek nem azonosítják a szabályt
+  if (!semanticDescription || !semanticDescription.trim()) {
+    console.log(`No semantic_description to embed for rule ${ruleId}`);
     return stats;
   }
   
-  console.log(`Generating ${uniqueTexts.length} embeddings for rule ${ruleId}`);
+  const textToEmbed = semanticDescription.trim();
+  console.log(`Generating semantic_description embedding for rule ${ruleId}`);
   
   // Embedding generálás
-  const texts = uniqueTexts.map(t => t.text);
-  const embeddings = await generateEmbeddings(texts);
+  const embeddings = await generateEmbeddings([textToEmbed]);
   
-  if (embeddings.length === 0) {
-    console.error(`Failed to generate embeddings for rule ${ruleId}`);
-    stats.failed = uniqueTexts.length;
+  if (embeddings.length === 0 || !embeddings[0]) {
+    console.error(`Failed to generate embedding for rule ${ruleId}`);
+    stats.failed = 1;
     return stats;
   }
   
   // Mentés Supabase-be
-  for (let i = 0; i < uniqueTexts.length; i++) {
-    if (!embeddings[i]) {
-      stats.failed++;
-      continue;
-    }
-    
-    // Direct insert/upsert to treatment_embeddings table
-    const embeddingVector = `[${embeddings[i].join(',')}]`;
-    const { error } = await supabase
-      .from('treatment_embeddings')
-      .upsert({
-        treatment_rule_id: ruleId,
-        text_source: uniqueTexts[i].text,
-        source_type: uniqueTexts[i].type,
-        embedding: embeddingVector,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'treatment_rule_id,text_source,source_type',
-      });
-    
-    if (error) {
-      console.error(`Failed to save embedding: ${error.message}`);
-      stats.failed++;
-    } else {
-      stats.success++;
-    }
+  const embeddingVector = `[${embeddings[0].join(',')}]`;
+  const { error } = await supabase
+    .from('treatment_embeddings')
+    .upsert({
+      treatment_rule_id: ruleId,
+      text_source: textToEmbed,
+      source_type: 'semantic_description',
+      embedding: embeddingVector,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'treatment_rule_id,text_source,source_type',
+    });
+  
+  if (error) {
+    console.error(`Failed to save embedding: ${error.message}`);
+    stats.failed = 1;
+  } else {
+    stats.success = 1;
   }
   
-  console.log(`Embeddings for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
+  console.log(`Embedding for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
   return stats;
 }
 
@@ -561,9 +523,6 @@ serve(async (req) => {
             }
           }
 
-          // Gyűjtsük össze az összes item-et az embedding generáláshoz
-          const allItems: { name: string }[] = [];
-
           // Insert visits and items
           const visits = extraction.parsed?.visits || [];
           for (let vi = 0; vi < visits.length; vi++) {
@@ -604,19 +563,15 @@ serve(async (req) => {
               if (itemsError) {
                 console.error('Items insert error:', itemsError);
               }
-              
-              // Gyűjtsük össze az item neveket
-              allItems.push(...visit.items.filter(item => item.name));
             }
           }
 
-          // EMBEDDING GENERÁLÁS ÉS MENTÉS
-          console.log(`Generating embeddings for rule: ${extraction.fogalom} (ID: ${ruleData.id})`);
+          // EMBEDDING GENERÁLÁS ÉS MENTÉS (csak semantic_description)
+          console.log(`Generating embedding for rule: ${extraction.fogalom} (ID: ${ruleData.id})`);
           const ruleEmbeddingStats = await saveEmbeddings(
             supabaseForInsert,
             ruleData.id,
-            extraction.semantic_description || null,
-            allItems
+            extraction.semantic_description || null
           );
           embeddingStats.success += ruleEmbeddingStats.success;
           embeddingStats.failed += ruleEmbeddingStats.failed;
