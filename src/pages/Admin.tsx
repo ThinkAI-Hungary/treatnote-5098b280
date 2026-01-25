@@ -40,6 +40,7 @@ interface AdminUser {
   subscription_end_date: string | null;
   role: string;
   can_create_users: boolean;
+  flexi_username: string | null;
 }
 
 interface Company {

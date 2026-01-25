@@ -113,12 +113,22 @@ serve(async (req) => {
       console.error('Error fetching roles:', rolesError);
     }
 
+    // Get flexi connections
+    const { data: flexiConnections, error: flexiError } = await supabaseAdmin
+      .from('flexi_auth')
+      .select('user_id, flexi_username');
+
+    if (flexiError) {
+      console.error('Error fetching flexi connections:', flexiError);
+    }
+
     // Combine all data and filter only confirmed users
     const combinedUsers = authUsers.users
       .filter(authUser => authUser.email_confirmed_at !== null)
       .map(authUser => {
         const profile = profiles?.find(p => p.user_id === authUser.id);
         const roleData = userRoles?.find(r => r.user_id === authUser.id);
+        const flexiData = flexiConnections?.find(f => f.user_id === authUser.id);
 
         const userTelephely = telephelyek?.find(t => t.id === profile?.telephely_id);
 
@@ -139,6 +149,7 @@ serve(async (req) => {
           subscription_amount: profile?.subscription_amount || null,
           subscription_end_date: profile?.subscription_end_date || null,
           can_create_users: profile?.can_create_users || false,
+          flexi_username: flexiData?.flexi_username || null,
         };
       });
 
