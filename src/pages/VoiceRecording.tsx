@@ -22,8 +22,132 @@ import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 
 type RecordingMode = 'voxis' | 'treatnote';
 
-// Helper to parse verdikt with formatting and clickable links
-function parseVerdikt(text: string): React.ReactNode[] {
+// Helper to parse verdikt from structured JSON response
+function parseVerdikt(responseData: unknown): React.ReactNode[] {
+  const elements: React.ReactNode[] = [];
+  
+  try {
+    // Parse if string
+    let data = responseData;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        // If not valid JSON, return as plain text with link detection
+        return parseVerdiktPlainText(data as string);
+      }
+    }
+    
+    // Handle array response (webhook returns array)
+    if (Array.isArray(data) && data.length > 0) {
+      data = data[0];
+    }
+    
+    const response = data as {
+      link?: string;
+      osszesitett?: {
+        vizitek?: Record<string, {
+          kezelesek?: Record<string, { fogak?: string[] }>;
+        }>;
+      };
+      szoveges_lista?: string;
+    };
+    
+    // Add link line
+    if (response.link) {
+      elements.push(
+        <div key="link-line" className="mb-4">
+          <span>A kitöltés értékét itt tudja megtekinteni: </span>
+          <a
+            href={response.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
+          >
+            {response.link}
+            <ExternalLink className="h-3 w-3 inline-block" />
+          </a>
+        </div>
+      );
+    }
+    
+    // Parse osszesitett.vizitek
+    const vizitek = response.osszesitett?.vizitek;
+    if (vizitek) {
+      // Sort vizit keys numerically
+      const vizitKeys = Object.keys(vizitek).sort((a, b) => parseInt(a) - parseInt(b));
+      
+      vizitKeys.forEach((vizitKey, vizitIdx) => {
+        const vizitNum = parseInt(vizitKey) + 1; // +1 as requested
+        const vizitData = vizitek[vizitKey];
+        
+        elements.push(
+          <div key={`vizit-${vizitKey}`} className={`font-semibold text-foreground ${vizitIdx > 0 ? 'mt-4' : ''}`}>
+            Vizit: {vizitNum}
+          </div>
+        );
+        
+        // Group kezelesek by fog
+        const kezelesek = vizitData.kezelesek || {};
+        const fogToKezelesek: Record<string, string[]> = {};
+        
+        Object.entries(kezelesek).forEach(([kezelesNev, kezelesData]) => {
+          const fogak = kezelesData.fogak || [];
+          fogak.forEach((fog) => {
+            if (!fogToKezelesek[fog]) {
+              fogToKezelesek[fog] = [];
+            }
+            fogToKezelesek[fog].push(kezelesNev);
+          });
+        });
+        
+        // Sort fog numbers
+        const sortedFogak = Object.keys(fogToKezelesek).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        sortedFogak.forEach((fog) => {
+          elements.push(
+            <div key={`vizit-${vizitKey}-fog-${fog}`} className="font-medium text-foreground/90 mt-2 pl-8">
+              Fog: {fog}
+            </div>
+          );
+          
+          // Sort kezelesek alphabetically
+          const kezelesekForFog = fogToKezelesek[fog].sort();
+          kezelesekForFog.forEach((kezeles, kezelesIdx) => {
+            elements.push(
+              <div key={`vizit-${vizitKey}-fog-${fog}-kezeles-${kezelesIdx}`} className="pl-16 text-foreground/80">
+                - {kezeles}
+              </div>
+            );
+          });
+        });
+      });
+      
+      return elements;
+    }
+    
+    // Fallback to szoveges_lista if no structured data
+    if (response.szoveges_lista) {
+      return parseVerdiktPlainText(response.szoveges_lista);
+    }
+    
+    // If nothing matched, try plain text parsing on original
+    if (typeof responseData === 'string') {
+      return parseVerdiktPlainText(responseData);
+    }
+    
+    return elements.length > 0 ? elements : [<div key="empty">Nincs megjeleníthető adat</div>];
+  } catch (e) {
+    console.error('Error parsing verdikt:', e);
+    if (typeof responseData === 'string') {
+      return parseVerdiktPlainText(responseData);
+    }
+    return [<div key="error">Hiba a válasz feldolgozása során</div>];
+  }
+}
+
+// Fallback plain text parser
+function parseVerdiktPlainText(text: string): React.ReactNode[] {
   const lines = text.split('\n');
   
   return lines.map((line, lineIndex) => {
@@ -45,14 +169,12 @@ function parseVerdikt(text: string): React.ReactNode[] {
     // Determine indentation based on content
     const trimmedLine = processedLine.trim();
     if (trimmedLine.toLowerCase().startsWith('vizit')) {
-      indentClass = ''; // No indent for Vizit
+      indentClass = '';
     } else if (trimmedLine.toLowerCase().startsWith('fog')) {
-      indentClass = 'pl-12'; // 2 tabs (48px)
+      indentClass = 'pl-12';
     } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
-      // Records/items - 5 tabs
-      indentClass = 'pl-28'; // 5 tabs (112px)
+      indentClass = 'pl-28';
     } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
-      // Bullet points are records - 5 tabs
       indentClass = 'pl-28';
     }
     
@@ -79,7 +201,6 @@ function parseVerdikt(text: string): React.ReactNode[] {
       return <span key={`${lineIndex}-${partIndex}`}>{part}</span>;
     });
     
-    // Style Vizit and Fog headers
     const isVizitLine = trimmedLine.toLowerCase().startsWith('vizit');
     const isFogLine = trimmedLine.toLowerCase().startsWith('fog');
     
@@ -240,22 +361,14 @@ export default function VoiceRecording() {
       if (data?.success) {
         toast.success('Felvétel sikeresen feltöltve!');
         
-        // Extract szoveges_lista from response if available
-        let szoveg: string | null = null;
-        
+        // Store full webhook response for structured parsing
         if (data.webhookResponse) {
-          if (Array.isArray(data.webhookResponse) && data.webhookResponse.length > 0) {
-            szoveg = data.webhookResponse[0]?.szoveges_lista;
-          } else if (typeof data.webhookResponse === 'object' && data.webhookResponse.szoveges_lista) {
-            szoveg = data.webhookResponse.szoveges_lista;
-          } else if (typeof data.webhookResponse === 'string') {
-            szoveg = data.webhookResponse;
-          }
-        }
-        
-        console.log('szoveges_lista:', szoveg);
-        if (szoveg) {
-          setVerdikt(szoveg);
+          // Store as JSON string for the parser to handle
+          const responseToStore = typeof data.webhookResponse === 'string' 
+            ? data.webhookResponse 
+            : JSON.stringify(data.webhookResponse);
+          console.log('Webhook response stored:', responseToStore.substring(0, 200));
+          setVerdikt(responseToStore);
         }
         
         resetRecording();
