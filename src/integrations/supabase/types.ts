@@ -1331,58 +1331,24 @@ export type Database = {
         }
         Returns: boolean
       }
-      match_szotar_embedding:
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
-              p_source_types?: string[]
-              p_telephely_id?: string
-              query_embedding: string
-            }
-            Returns: {
-              category: string
-              matched_text: string
-              name: string
-              rule_name: string
-              similarity: number
-              source_type: string
-              szotar_kezeles_id: string
-            }[]
-          }
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
-              p_source_types?: string[]
-              p_telephely_id?: string
-              query_embedding: string
-            }
-            Returns: {
-              category: string
-              matched_text: string
-              name: string
-              similarity: number
-              source_type: string
-              szotar_kezeles_id: string
-            }[]
-          }
-        | {
-            Args: {
-              match_count?: number
-              match_threshold?: number
-              p_telephely_id?: string
-              query_embedding: string
-            }
-            Returns: {
-              category: string
-              matched_text: string
-              name: string
-              similarity: number
-              source_type: string
-              szotar_kezeles_id: string
-            }[]
-          }
+      match_szotar_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          p_telephely_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          matched_text: string
+          name: string
+          rule_name: string
+          similarity: number
+          source_type: string
+          szotar_kezeles_id: string
+        }[]
+      }
       match_treatment_embedding:
         | {
             Args: {
