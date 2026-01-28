@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 
-type RecordingMode = 'voxis' | 'treatnote';
+type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 
 // Helper to parse verdikt from structured JSON response
 function parseVerdikt(responseData: unknown): React.ReactNode[] {
@@ -237,7 +237,7 @@ export default function VoiceRecording() {
   const setVerdikt = (value: string | null) => store.setVerdikt(userId, value);
   const setPaciensId = (value: string) => store.setPaciensId(userId, value);
   const setIsPaciensIdLocked = (value: boolean) => store.setIsPaciensIdLocked(userId, value);
-  const setMode = (value: 'voxis' | 'treatnote') => store.setMode(userId, value);
+  const setMode = (value: 'voxis' | 'treatnote' | 'ambulans') => store.setMode(userId, value);
   const clearVerdikt = () => store.clearVerdikt(userId);
   
   // Local state
@@ -496,6 +496,7 @@ export default function VoiceRecording() {
                 <SelectContent>
                   <SelectItem value="treatnote">TreatNote</SelectItem>
                   <SelectItem value="voxis">Voxis</SelectItem>
+                  <SelectItem value="ambulans">Ambuláns adatlap</SelectItem>
                 </SelectContent>
               </Select>
             </div>
