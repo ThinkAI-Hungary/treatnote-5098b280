@@ -68,3 +68,15 @@ verify_jwt = false
 [functions.regenerate-rule-embedding]
 
 [functions.import-bno-codes]
+
+[functions.szabalyepito-teszt-callback]
+verify_jwt = false
+
+[functions.szabalyepito-teszt-webhook]
+
+[functions.szotar-webhook]
+
+[functions.get-klinika-admins]
+
+[functions.search-bno-codes]
+verify_jwt = false
