@@ -77,6 +77,68 @@ export type Database = {
           },
         ]
       }
+      bno_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bno_embeddings: {
+        Row: {
+          bno_code_id: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          text_source: string
+          updated_at: string | null
+        }
+        Insert: {
+          bno_code_id: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source: string
+          updated_at?: string | null
+        }
+        Update: {
+          bno_code_id?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bno_embeddings_bno_code_id_fkey"
+            columns: ["bno_code_id"]
+            isOneToOne: false
+            referencedRelation: "bno_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bridge_actions: {
         Row: {
           blue_teeth: number[]
@@ -1331,6 +1393,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      match_bno_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          query_embedding: string
+        }
+        Returns: {
+          bno_code_id: string
+          code: string
+          matched_text: string
+          name: string
+          similarity: number
+          source_type: string
+        }[]
+      }
       match_szotar_embedding: {
         Args: {
           match_count?: number
@@ -1382,6 +1460,15 @@ export type Database = {
             }[]
           }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
+      upsert_bno_embedding: {
+        Args: {
+          p_bno_code_id: string
+          p_embedding: string
+          p_source_type: string
+          p_text_source: string
+        }
+        Returns: string
+      }
       upsert_szotar_embedding: {
         Args: {
           p_embedding: string
