@@ -66,3 +66,5 @@ verify_jwt = false
 [functions.generate-szotar-embeddings]
 
 [functions.regenerate-rule-embedding]
+
+[functions.import-bno-codes]
