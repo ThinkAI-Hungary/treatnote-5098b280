@@ -199,6 +199,9 @@ serve(async (req) => {
       if (treatnoteUrl) {
         webhookUrls.push(treatnoteUrl);
       }
+    } else if (mode === "ambulans") {
+      // Hardcoded URL for Ambuláns adatlap mode
+      webhookUrls.push("https://n8n.thinkaimedical.hu/webhook-test/372cd83b-fb33-4ce4-9655-2fdae766a672");
     }
 
     if (webhookUrls.length === 0) {

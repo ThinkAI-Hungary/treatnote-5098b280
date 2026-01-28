@@ -5,7 +5,7 @@ interface UserVoiceRecordingData {
   verdikt: string | null;
   paciensId: string;
   isPaciensIdLocked: boolean;
-  mode: 'voxis' | 'treatnote';
+  mode: 'voxis' | 'treatnote' | 'ambulans';
 }
 
 interface VoiceRecordingState {
@@ -16,13 +16,13 @@ interface VoiceRecordingState {
   getVerdikt: (userId: string) => string | null;
   getPaciensId: (userId: string) => string;
   getIsPaciensIdLocked: (userId: string) => boolean;
-  getMode: (userId: string) => 'voxis' | 'treatnote';
+  getMode: (userId: string) => 'voxis' | 'treatnote' | 'ambulans';
   
   // Setters - require userId
   setVerdikt: (userId: string, verdikt: string | null) => void;
   setPaciensId: (userId: string, id: string) => void;
   setIsPaciensIdLocked: (userId: string, locked: boolean) => void;
-  setMode: (userId: string, mode: 'voxis' | 'treatnote') => void;
+  setMode: (userId: string, mode: 'voxis' | 'treatnote' | 'ambulans') => void;
   clearVerdikt: (userId: string) => void;
   resetUser: (userId: string) => void;
 }
