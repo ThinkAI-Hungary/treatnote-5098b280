@@ -1,127 +1,118 @@
 
 
-# BNO Search Edge Function
+# BNO Embedding Auto-Generatorater with Cron Job
 
 ## Summary
 
-Create a dedicated `search-bno-codes` edge function that simplifies n8n integration by accepting plain text search queries and returning matching BNO codes. The function will handle embedding generation internally using OpenAI, eliminating the need for n8n to manage embeddings.
+Create an automatic embedding generation system that runs on a schedule (cron) inside Supabase. The system will process BNO codes without embeddings in small, reliable batches, avoiding the timeout issues with background tasks.
 
-## How It Works
+## Problem Analysis
+
+The current `EdgeRuntime.waitUntil` approach fails because:
+- Edge functions are being shut down before background tasks complete
+- Processing 11,698 codes in one call exceeds execution limits
+- Logs show repeated "shutdown" events, killing the batch process
+
+## Solution: Paginated Cron Job
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           n8n Workflow                              │
+│                      Cron Job (every minute)                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│   ┌──────────────┐         ┌──────────────────────────────────────┐ │
-│   │   Trigger    │────────▶│        HTTP Request Node             │ │
-│   │  (webhook)   │         │                                      │ │
-│   └──────────────┘         │  POST /search-bno-codes              │ │
-│                            │  { "query": "tüdőgyulladás" }        │ │
-│                            └──────────────┬───────────────────────┘ │
-│                                           │                         │
-│                                           ▼                         │
-│                            ┌──────────────────────────────────────┐ │
-│                            │          Response                    │ │
-│                            │  [{ code, name, similarity }]        │ │
-│                            └──────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-
-                                    │
-                                    ▼
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                    search-bno-codes Edge Function                   │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Receive search query text                                       │
-│                                                                     │
-│  2. Generate embedding via OpenAI API                               │
-│     ┌────────────────────────────────────────┐                     │
-│     │  POST api.openai.com/v1/embeddings     │                     │
-│     │  model: text-embedding-3-large         │                     │
-│     │  input: "tüdőgyulladás"                │                     │
-│     └────────────────────────────────────────┘                     │
-│                                                                     │
-│  3. Call match_bno_embedding() with vector                          │
-│     ┌────────────────────────────────────────┐                     │
-│     │  SELECT * FROM match_bno_embedding(    │                     │
-│     │    query_embedding,                    │                     │
-│     │    match_threshold,                    │                     │
-│     │    match_count                         │                     │
-│     │  )                                     │                     │
-│     └────────────────────────────────────────┘                     │
-│                                                                     │
-│  4. Return matching BNO codes with similarity scores                │
+│   pg_cron ─────▶ pg_net.http_post ─────▶ generate-bno-embeddings   │
+│      │                                            │                 │
+│      │                                            ▼                 │
+│      │                              ┌──────────────────────────┐   │
+│      │                              │  1. Query bno_codes      │   │
+│      │                              │     without embeddings   │   │
+│      │                              │     LIMIT 50             │   │
+│      │                              │                          │   │
+│      │                              │  2. Generate embeddings  │   │
+│      │                              │     via OpenAI           │   │
+│      │                              │                          │   │
+│      │                              │  3. Upsert to            │   │
+│      │                              │     bno_embeddings       │   │
+│      │                              │                          │   │
+│      │                              │  4. Return result        │   │
+│      │                              └──────────────────────────┘   │
+│      │                                                              │
+│      └────────────── Repeats until all codes processed ────────────┘
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## API Specification
+## Implementation Steps
 
-### Endpoint
-`POST /functions/v1/search-bno-codes`
+### Step 1: Create New Edge Function
 
-### Request Body
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| query | string | Yes | - | Search text (e.g., "tüdőgyulladás") |
-| match_count | number | No | 10 | Maximum results to return |
-| match_threshold | number | No | 0.5 | Minimum similarity score (0-1) |
+Create `supabase/functions/generate-bno-embeddings/index.ts`:
+- Fetches BNO codes that don't have embeddings (using LEFT JOIN)
+- Processes exactly 50 codes per invocation (safe batch size)
+- Generates embeddings via OpenAI
+- Inserts into `bno_embeddings` table
+- Returns status: `{ processed: N, remaining: M }`
 
-### Response
-```json
-{
-  "success": true,
-  "results": [
-    {
-      "code": "J189",
-      "name": "Tüdőgyulladás k.m.n.",
-      "similarity": 0.89
-    },
-    {
-      "code": "J180",
-      "name": "Bronchopneumonia k.m.n.",
-      "similarity": 0.76
-    }
-  ],
-  "query": "tüdőgyulladás",
-  "count": 2
-}
+### Step 2: Update Config
+
+Add to `supabase/config.toml`:
+```toml
+[functions.generate-bno-embeddings]
+verify_jwt = false
 ```
 
-## n8n Integration Example
+### Step 3: Enable Cron Extensions
 
-### HTTP Request Node Configuration
-| Setting | Value |
-|---------|-------|
-| Method | POST |
-| URL | `https://bpjzgapmoyhtgryglcke.supabase.co/functions/v1/search-bno-codes` |
-| Headers | `apikey`: Supabase anon key |
-| Body | `{ "query": "{{$json.searchText}}", "match_count": 5 }` |
+SQL migration to enable `pg_cron` and `pg_net` extensions.
+
+### Step 4: Create Cron Job
+
+SQL to schedule the function to run every minute:
+```sql
+SELECT cron.schedule(
+  'generate-bno-embeddings-job',
+  '* * * * *',
+  $$ SELECT net.http_post(...) $$
+);
+```
+
+The cron job will automatically stop when there are no more codes to process (function returns early).
 
 ## Files to Create/Modify
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/functions/search-bno-codes/index.ts` | Create | New edge function for semantic BNO search |
-| `supabase/config.toml` | Modify | Add function configuration with `verify_jwt = false` |
+| `supabase/functions/generate-bno-embeddings/index.ts` | Create | New edge function for batch embedding |
+| `supabase/config.toml` | Modify | Add function config |
+| SQL Migration | Execute | Enable pg_cron, pg_net, create schedule |
 
 ## Technical Details
 
 ### Edge Function Logic
-1. Validate request body (query is required)
-2. Generate embedding using OpenAI `text-embedding-3-large` model (same as used for BNO embeddings)
-3. Call `match_bno_embedding` RPC function with the generated vector
-4. Return formatted results with code, name, and similarity score
+```typescript
+// Pseudocode
+1. Query: SELECT bc.* FROM bno_codes bc
+          LEFT JOIN bno_embeddings be ON bc.id = be.bno_code_id
+          WHERE be.id IS NULL
+          LIMIT 50
 
-### Security Considerations
-- Set `verify_jwt = false` to allow n8n webhook calls without Supabase auth
-- Uses existing `OPENAI_API_KEY` secret (already configured)
-- Read-only operation (only SELECT via RPC)
+2. If no results -> return { processed: 0, complete: true }
 
-### Error Handling
-- Missing query: 400 Bad Request
-- OpenAI API failure: 500 with descriptive error
-- Database error: 500 with error details
+3. Generate embeddings via OpenAI (batch of 50 texts)
+
+4. For each: CALL upsert_bno_embedding(...)
+
+5. Return { processed: 50, remaining: X }
+```
+
+### Processing Timeline
+- 11,698 codes / 50 per minute = ~234 minutes (~4 hours)
+- Can increase batch size to 100 for ~2 hours completion
+- Runs automatically, no manual intervention needed
+
+### Safety Features
+- Function is idempotent (safe to re-run)
+- LEFT JOIN ensures only unprocessed codes are selected
+- Small batch size prevents timeouts and rate limits
+- Cron job can be paused/deleted via SQL
 
