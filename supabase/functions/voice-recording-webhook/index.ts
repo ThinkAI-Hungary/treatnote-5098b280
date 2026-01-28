@@ -200,8 +200,10 @@ serve(async (req) => {
         webhookUrls.push(treatnoteUrl);
       }
     } else if (mode === "ambulans") {
-      // Hardcoded URL for Ambuláns adatlap mode
-      webhookUrls.push("https://n8n.thinkaimedical.hu/webhook-test/372cd83b-fb33-4ce4-9655-2fdae766a672");
+      const ambulansUrl = Deno.env.get("TREATNOTE_AMBULANSLAP");
+      if (ambulansUrl) {
+        webhookUrls.push(ambulansUrl);
+      }
     }
 
     if (webhookUrls.length === 0) {
