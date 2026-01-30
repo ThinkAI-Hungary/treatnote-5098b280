@@ -57,42 +57,31 @@ serve(async (req) => {
 
     console.log("Starting batch embedding generation...");
 
-    // Get BNO codes that don't have embeddings yet using a subquery approach
-    // First get all bno_code_ids that already have embeddings
-    const { data: existingEmbeddings, error: existingError } = await supabase
-      .from("bno_embeddings")
-      .select("bno_code_id");
+    // Use RPC to get codes without embeddings (bypasses 1000-row API limit)
+    const { data: codesToProcess, error: fetchError } = await supabase.rpc(
+      "get_bno_codes_without_embeddings",
+      { p_limit: BATCH_SIZE }
+    );
 
-    if (existingError) {
-      console.error("Error fetching existing embeddings:", existingError);
-      throw existingError;
+    if (fetchError) {
+      console.error("Error fetching codes without embeddings:", fetchError);
+      throw fetchError;
     }
 
-    const existingIds = new Set((existingEmbeddings || []).map(e => e.bno_code_id));
-    console.log(`Found ${existingIds.size} existing embeddings`);
+    // Get total remaining count using RPC
+    const { data: totalRemaining, error: countError } = await supabase.rpc(
+      "count_bno_codes_without_embeddings"
+    );
 
-    // Get all BNO codes
-    const { data: allCodes, error: codesError } = await supabase
-      .from("bno_codes")
-      .select("id, code, name")
-      .order("code", { ascending: true });
-
-    if (codesError) {
-      console.error("Error fetching BNO codes:", codesError);
-      throw codesError;
+    if (countError) {
+      console.error("Error counting remaining codes:", countError);
+      throw countError;
     }
 
-    // Filter to only codes without embeddings and limit to batch size
-    const codesToProcess = (allCodes || [])
-      .filter(c => !existingIds.has(c.id))
-      .slice(0, BATCH_SIZE);
-
-    const totalRemaining = (allCodes || []).filter(c => !existingIds.has(c.id)).length;
-
-    console.log(`Total codes: ${allCodes?.length || 0}, Remaining without embeddings: ${totalRemaining}, Processing: ${codesToProcess.length}`);
+    console.log(`Total remaining: ${totalRemaining}, Processing: ${codesToProcess?.length || 0}`);
 
     // If no codes to process, we're done
-    if (codesToProcess.length === 0) {
+    if (!codesToProcess || codesToProcess.length === 0) {
       console.log("All BNO codes have embeddings - job complete!");
       return new Response(
         JSON.stringify({
@@ -107,7 +96,7 @@ serve(async (req) => {
     }
 
     // Generate embeddings for the batch
-    const texts = codesToProcess.map(c => c.name);
+    const texts = codesToProcess.map((c: { name: string }) => c.name);
     console.log(`Generating embeddings for ${texts.length} codes...`);
 
     const embeddings = await generateEmbeddings(texts, openaiApiKey);
@@ -137,7 +126,7 @@ serve(async (req) => {
       }
     }
 
-    const remainingAfter = totalRemaining - processed;
+    const remainingAfter = Number(totalRemaining) - processed;
     console.log(`Batch complete: ${processed} processed, ${errors.length} errors, ${remainingAfter} remaining`);
 
     return new Response(
