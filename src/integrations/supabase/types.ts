@@ -1380,6 +1380,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_orphaned_embeddings: { Args: never; Returns: number }
+      count_bno_codes_without_embeddings: { Args: never; Returns: number }
+      get_bno_codes_without_embeddings: {
+        Args: { p_limit?: number }
+        Returns: {
+          code: string
+          id: string
+          name: string
+        }[]
+      }
       get_company_names: {
         Args: never
         Returns: {
