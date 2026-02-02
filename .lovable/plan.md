@@ -1,218 +1,93 @@
 
 
-# BNO Embedding Backfill Javítás - API Limit Megkerülése
+# BNO Kódok Karakterkódolási Hiba Javítása
 
-## Probléma Összefoglalása
+## Probléma Azonosítása
 
-A jelenlegi edge function **két helyen** is a Supabase 1000-es API limitbe ütközik:
+Az adatbázisban lévő BNO kód nevek hibás karakterkódolással kerültek be:
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                         HIBÁS LEKÉRDEZÉSEK                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. supabase.from("bno_embeddings").select("bno_code_id")          │
-│     → Max 1000 sor (pedig 1000+ van)                               │
-│                                                                     │
-│  2. supabase.from("bno_codes").select("id, code, name")            │
-│     → Max 1000 sor (pedig 11,698 van)                              │
-│                                                                     │
-│  Eredmény: A függvény azt hiszi, hogy 1000 kód van, mind           │
-│            rendelkezik embedding-gel → "job complete!"              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+| Hibás karakter | Helyes karakter | Érintett rekordok |
+|----------------|-----------------|-------------------|
+| ï | ő | 3,044 |
+| ¹ | ű | 1,067 |
+| **Összesen** | | **3,750** |
 
-**Jelenlegi állapot az adatbázisban:**
-- `bno_codes`: 11,698 sor
-- `bno_embeddings`: 1,000 sor (1,000 distinct bno_code_id)
-- **Hiányzó embeddings: 10,698**
+Példák:
+- `fertïzés` → `fertőzés`
+- `Tüdïgümïkór` → `Tüdőgümőkór`  
+- `eredet¹` → `eredetű`
 
-## Meglévő Infrastruktúra (nem kell módosítani)
+A többi magyar ékezetes karakter (á, é, í, ó, ö, ü) helyesen lett tárolva.
 
-A `bno_embeddings` tábla már rendelkezik:
-- ✅ UNIQUE constraint: `(bno_code_id, text_source, source_type)` - ez biztosítja az UPSERT működést
-- ✅ `upsert_bno_embedding` RPC függvény - ON CONFLICT-tal működik
-- ✅ Foreign key a `bno_codes` táblához
+## Megoldás
 
-## Megoldás: SQL RPC Függvények
+Két lépéses javítás:
 
-Új SQL függvények létrehozása, amelyek a szűrést és számolást **adatbázis oldalon** végzik:
-
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                      JAVÍTOTT ARCHITEKTÚRA                          │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  Edge Function                                                      │
-│       │                                                             │
-│       ├─▶ supabase.rpc("get_bno_codes_without_embeddings",         │
-│       │                 { p_limit: 50 })                            │
-│       │   → Visszaad max 50 kódot, aminek NINCS embedding-je       │
-│       │                                                             │
-│       ├─▶ supabase.rpc("count_bno_codes_without_embeddings")       │
-│       │   → Visszaadja a hiányzó embeddings számát (pl. 10648)     │
-│       │                                                             │
-│       ├─▶ OpenAI embeddings generálás                              │
-│       │                                                             │
-│       └─▶ supabase.rpc("upsert_bno_embedding", {...})              │
-│           → Mentés (már létezik, működik)                          │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-## Implementációs Lépések
-
-### 1. lépés: SQL Migration - Új RPC Függvények
+### 1. lépés: bno_codes tábla javítása
 
 ```sql
--- Batch lekérdezés: hiányzó embedding-ek
-CREATE OR REPLACE FUNCTION get_bno_codes_without_embeddings(p_limit INTEGER DEFAULT 50)
-RETURNS TABLE (id UUID, code TEXT, name TEXT)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = 'public'
-AS $$
-  SELECT bc.id, bc.code, bc.name
-  FROM bno_codes bc
-  LEFT JOIN bno_embeddings be ON bc.id = be.bno_code_id
-  WHERE be.id IS NULL
-  ORDER BY bc.code
-  LIMIT p_limit;
-$$;
-
--- Számláló: hány embedding hiányzik még
-CREATE OR REPLACE FUNCTION count_bno_codes_without_embeddings()
-RETURNS BIGINT
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = 'public'
-AS $$
-  SELECT COUNT(*)
-  FROM bno_codes bc
-  LEFT JOIN bno_embeddings be ON bc.id = be.bno_code_id
-  WHERE be.id IS NULL;
-$$;
+UPDATE bno_codes
+SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
+WHERE name LIKE '%ï%' OR name LIKE '%¹%';
 ```
 
-### 2. lépés: Edge Function Módosítása
+### 2. lépés: bno_embeddings újragenerálása
 
-A `supabase/functions/generate-bno-embeddings/index.ts` átírása:
+A hibás szövegből generált embeddings-ek is hibásak. Két lehetőség:
 
-**RÉGI kód (hibás):**
-```typescript
-// 1000-es limitbe ütközik mindkét lekérdezés
-const { data: existingEmbeddings } = await supabase
-  .from("bno_embeddings")
-  .select("bno_code_id");
+**A) Teljes újragenerálás (ajánlott):**
+- Töröljük az összes embeddinget
+- A cron job újra legenerálja az összeset helyes szöveggel
+- ~4 óra az összes 11,698 rekordhoz
 
-const { data: allCodes } = await supabase
-  .from("bno_codes")
-  .select("id, code, name");
+**B) Csak az érintettek újragenerálása:**
+- Töröljük csak azokat az embeddingeket, ahol a bno_code_id olyan rekordhoz tartozik, ami javítva lett
+- A cron job csak ezeket generálja újra
 
-const codesToProcess = allCodes.filter(...).slice(0, 50);
-```
-
-**ÚJ kód (javított):**
-```typescript
-// RPC hívások - nincs API limit
-const { data: codesToProcess } = await supabase.rpc(
-  "get_bno_codes_without_embeddings", 
-  { p_limit: BATCH_SIZE }
-);
-
-const { data: totalRemaining } = await supabase.rpc(
-  "count_bno_codes_without_embeddings"
-);
-```
-
-## Változtatások Összefoglalása
+## Fájlok és Változások
 
 | Fájl | Művelet | Leírás |
 |------|---------|--------|
-| SQL Migration | Létrehozás | `get_bno_codes_without_embeddings()` és `count_bno_codes_without_embeddings()` RPC függvények |
-| `supabase/functions/generate-bno-embeddings/index.ts` | Módosítás | Client-side szűrés cseréje RPC hívásokra |
-
-## Embedding Szöveg Formátum
-
-A jelenlegi implementáció a `name` mezőt használja embedding forrásként:
-```typescript
-const texts = codesToProcess.map(c => c.name);
-```
-
-Ez megfelelő, mert:
-- A `name` mező tartalmazza a BNO kód magyar nevét (pl. "Hastífusz")
-- A szemantikus keresés a betegség nevére keres
-- A `code` mező (pl. "A01.0") nem ad hozzá szemantikus jelentést
-
-## Biztonsági Jellemzők
-
-- **UPSERT**: A meglévő `upsert_bno_embedding` RPC ON CONFLICT-tal működik
-- **Idempotens**: Újrafuttatás nem hoz létre duplikátumokat
-- **Konkurencia-biztos**: Párhuzamos futtatások nem zavarják egymást
-- **Service Role**: Az edge function service role kulcsot használ (nincs RLS limit)
-
-## Várt Eredmény
-
-A javítás után:
-- A job helyesen detektálja a ~10,698 hiányzó embeddinget
-- Percenként 50 kódot dolgoz fel
-- ~214 perc (~3.5 óra) alatt befejeződik a backfill
-- A logokban: `Remaining: 10648 → 10598 → ...` csökkenő értékek
+| SQL Migration | Létrehozás | UPDATE a karaktercserékhez + DELETE a régi embeddingekhez |
 
 ## Technikai Részletek
 
-### Edge Function Új Logika
+### SQL Migration
 
-```typescript
-serve(async (req) => {
-  // ... CORS, env vars ...
-  
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+```sql
+-- 1. Javítsuk a karakterkódolási hibákat
+UPDATE bno_codes
+SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
+WHERE name LIKE '%ï%' OR name LIKE '%¹%';
 
-  // 1. Lekérdezés: hiányzó kódok (max BATCH_SIZE)
-  const { data: codesToProcess, error: fetchError } = await supabase.rpc(
-    "get_bno_codes_without_embeddings",
-    { p_limit: BATCH_SIZE }
-  );
-
-  // 2. Számláló: összes hiányzó
-  const { data: totalRemaining } = await supabase.rpc(
-    "count_bno_codes_without_embeddings"
-  );
-
-  console.log(`Total remaining: ${totalRemaining}, Processing: ${codesToProcess?.length || 0}`);
-
-  // 3. Ha nincs mit feldolgozni, kész
-  if (!codesToProcess || codesToProcess.length === 0) {
-    console.log("All BNO codes have embeddings - job complete!");
-    return new Response(JSON.stringify({ complete: true }));
-  }
-
-  // 4. OpenAI embedding generálás
-  const texts = codesToProcess.map(c => c.name);
-  const embeddings = await generateEmbeddings(texts, openaiApiKey);
-
-  // 5. Upsert az adatbázisba
-  for (let i = 0; i < codesToProcess.length; i++) {
-    await supabase.rpc("upsert_bno_embedding", {
-      p_bno_code_id: codesToProcess[i].id,
-      p_text_source: codesToProcess[i].name,
-      p_source_type: "name",
-      p_embedding: `[${embeddings[i].join(",")}]`
-    });
-  }
-
-  return new Response(JSON.stringify({
-    processed: codesToProcess.length,
-    remaining: totalRemaining - codesToProcess.length
-  }));
-});
+-- 2. Töröljük a meglévő embeddingeket, hogy újrageneráljuk helyes szöveggel
+-- (A cron job automatikusan újragenerálja)
+DELETE FROM bno_embeddings;
 ```
 
-### Cron Job
+### Várt Eredmény
 
-A cron job már be van állítva és fut percenként. A javítás után automatikusan folytatja a feldolgozást a helyes logikával.
+- 3,750 rekord javítva a bno_codes táblában
+- A cron job újragenerálja az összes embeddinget helyes magyar karakterekkel
+- A szemantikus keresés pontosabb lesz, mert "fertőzés" helyett nem "fertïzés"-t keres
+
+### Alternatív: Csak érintett embeddings törlése
+
+Ha nem akarod az összes embeddinget törölni:
+
+```sql
+-- Csak az érintett embeddings-ek törlése
+DELETE FROM bno_embeddings 
+WHERE bno_code_id IN (
+  SELECT id FROM bno_codes 
+  WHERE name LIKE '%ï%' OR name LIKE '%¹%'
+);
+
+-- Ezután a karakterek javítása
+UPDATE bno_codes
+SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
+WHERE name LIKE '%ï%' OR name LIKE '%¹%';
+```
+
+Ez gyorsabb újragenerálást eredményez (~75 perc a 3,750 rekordhoz), de kockázatosabb, mert a többi embedding is a potenciálisan hibás szövegből készült.
 
