@@ -23,8 +23,18 @@ import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 
 // Helper to parse verdikt from structured JSON response
-function parseVerdikt(responseData: unknown): React.ReactNode[] {
-  const elements: React.ReactNode[] = [];
+interface ParsedVerdiktResult {
+  vizitekElements: React.ReactNode[];
+  szovegesLista: string | null;
+  link: string | null;
+}
+
+function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
+  const result: ParsedVerdiktResult = {
+    vizitekElements: [],
+    szovegesLista: null,
+    link: null,
+  };
   
   try {
     // Parse if string
@@ -33,8 +43,9 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
       try {
         data = JSON.parse(data);
       } catch {
-        // If not valid JSON, return as plain text with link detection
-        return parseVerdiktPlainText(data as string);
+        // If not valid JSON, return as plain text
+        result.vizitekElements = parseVerdiktPlainText(data as string);
+        return result;
       }
     }
     
@@ -53,23 +64,11 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
       szoveges_lista?: string;
     };
     
-    // Add link line
-    if (response.link) {
-      elements.push(
-        <div key="link-line" className="mb-4">
-          <span>A kitöltés értékét itt tudja megtekinteni: </span>
-          <a
-            href={response.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
-          >
-            {response.link}
-            <ExternalLink className="h-3 w-3 inline-block" />
-          </a>
-        </div>
-      );
-    }
+    // Extract link
+    result.link = response.link || null;
+    
+    // Extract szoveges_lista separately
+    result.szovegesLista = response.szoveges_lista || null;
     
     // Parse osszesitett.vizitek
     const vizitek = response.osszesitett?.vizitek;
@@ -81,7 +80,7 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
         const vizitNum = parseInt(vizitKey) + 1; // +1 as requested
         const vizitData = vizitek[vizitKey];
         
-        elements.push(
+        result.vizitekElements.push(
           <div key={`vizit-${vizitKey}`} className={`font-semibold text-foreground ${vizitIdx > 0 ? 'mt-4' : ''}`}>
             Vizit: {vizitNum}
           </div>
@@ -105,7 +104,7 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
         const sortedFogak = Object.keys(fogToKezelesek).sort((a, b) => parseInt(a) - parseInt(b));
         
         sortedFogak.forEach((fog) => {
-          elements.push(
+          result.vizitekElements.push(
             <div key={`vizit-${vizitKey}-fog-${fog}`} className="font-medium text-foreground/90 mt-2 pl-8">
               Fog: {fog}
             </div>
@@ -114,7 +113,7 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
           // Sort kezelesek alphabetically
           const kezelesekForFog = fogToKezelesek[fog].sort();
           kezelesekForFog.forEach((kezeles, kezelesIdx) => {
-            elements.push(
+            result.vizitekElements.push(
               <div key={`vizit-${vizitKey}-fog-${fog}-kezeles-${kezelesIdx}`} className="pl-24 text-foreground/80">
                 - {kezeles}
               </div>
@@ -123,26 +122,33 @@ function parseVerdikt(responseData: unknown): React.ReactNode[] {
         });
       });
       
-      return elements;
+      return result;
     }
     
     // Fallback to szoveges_lista if no structured data
-    if (response.szoveges_lista) {
-      return parseVerdiktPlainText(response.szoveges_lista);
+    if (result.szovegesLista && result.vizitekElements.length === 0) {
+      result.vizitekElements = parseVerdiktPlainText(result.szovegesLista);
+      result.szovegesLista = null; // Don't show separately if it's the only content
     }
     
     // If nothing matched, try plain text parsing on original
-    if (typeof responseData === 'string') {
-      return parseVerdiktPlainText(responseData);
+    if (typeof responseData === 'string' && result.vizitekElements.length === 0) {
+      result.vizitekElements = parseVerdiktPlainText(responseData);
     }
     
-    return elements.length > 0 ? elements : [<div key="empty">Nincs megjeleníthető adat</div>];
+    if (result.vizitekElements.length === 0) {
+      result.vizitekElements = [<div key="empty">Nincs megjeleníthető adat</div>];
+    }
+    
+    return result;
   } catch (e) {
     console.error('Error parsing verdikt:', e);
     if (typeof responseData === 'string') {
-      return parseVerdiktPlainText(responseData);
+      result.vizitekElements = parseVerdiktPlainText(responseData);
+    } else {
+      result.vizitekElements = [<div key="error">Hiba a válasz feldolgozása során</div>];
     }
-    return [<div key="error">Hiba a válasz feldolgozása során</div>];
+    return result;
   }
 }
 
@@ -775,12 +781,46 @@ export default function VoiceRecording() {
                   </p>
                 </div>
               ) : (
-                <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-sparkle-blue/5 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-galaxy-purple/5 rounded-full blur-2xl pointer-events-none" />
-                  <div className="relative text-sm leading-relaxed text-foreground/90 space-y-1">
-                    {parsedVerdikt}
+                <div className="flex flex-col lg:flex-row gap-4">
+                  {/* Left side - Vizitek and Link */}
+                  <div className={`relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm ${parsedVerdikt?.szovegesLista ? 'lg:flex-1' : 'w-full'}`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-sparkle-blue/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-galaxy-purple/5 rounded-full blur-2xl pointer-events-none" />
+                    <div className="relative text-sm leading-relaxed text-foreground/90 space-y-1">
+                      {/* Link at top */}
+                      {parsedVerdikt?.link && (
+                        <div className="mb-4">
+                          <span>A kitöltés értékét itt tudja megtekinteni: </span>
+                          <a
+                            href={parsedVerdikt.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
+                          >
+                            {parsedVerdikt.link}
+                            <ExternalLink className="h-3 w-3 inline-block" />
+                          </a>
+                        </div>
+                      )}
+                      {parsedVerdikt?.vizitekElements}
+                    </div>
                   </div>
+                  
+                  {/* Right side - Felmondott szöveg */}
+                  {parsedVerdikt?.szovegesLista && (
+                    <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-80 xl:w-96">
+                      <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="relative">
+                        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <Book className="h-4 w-4 text-galaxy-purple" />
+                          Felmondott szöveg
+                        </h4>
+                        <p className="text-sm leading-relaxed text-foreground/80 italic">
+                          "{parsedVerdikt.szovegesLista}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

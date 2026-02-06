@@ -1371,6 +1371,14 @@ export type Database = {
       }
     }
     Functions: {
+      audit_two_tables: {
+        Args: { p_codes_table: unknown; p_embeddings_table: unknown }
+        Returns: {
+          check_name: string
+          details: string
+          ok: boolean
+        }[]
+      }
       can_access_company_version: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -1380,6 +1388,11 @@ export type Database = {
         Returns: boolean
       }
       cleanup_orphaned_embeddings: { Args: never; Returns: number }
+      col_exists: {
+        Args: { p_col: string; p_table: unknown }
+        Returns: boolean
+      }
+      col_type: { Args: { p_col: string; p_table: unknown }; Returns: string }
       count_bno_codes_without_embeddings: { Args: never; Returns: number }
       get_bno_codes_without_embeddings: {
         Args: { p_limit?: number }
@@ -1395,6 +1408,21 @@ export type Database = {
           company_name: string
         }[]
       }
+      has_any_trigger: { Args: { p_table: unknown }; Returns: boolean }
+      has_fk: {
+        Args: {
+          p_from: unknown
+          p_from_col: string
+          p_to: unknown
+          p_to_col: string
+        }
+        Returns: boolean
+      }
+      has_index_like: {
+        Args: { p_pattern: string; p_table: unknown }
+        Returns: boolean
+      }
+      has_pk_on_id: { Args: { p_table: unknown }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1402,6 +1430,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_updated_at_trigger: { Args: { p_table: unknown }; Returns: boolean }
       match_bno_embedding: {
         Args: {
           match_count?: number
@@ -1468,6 +1497,8 @@ export type Database = {
               treatment_rule_id: string
             }[]
           }
+      policy_count: { Args: { p_table: unknown }; Returns: number }
+      rls_enabled: { Args: { p_table: unknown }; Returns: boolean }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
       upsert_bno_embedding: {
         Args: {
