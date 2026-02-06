@@ -168,7 +168,21 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if user already has a processing job
+    // Clean up stale jobs (processing for more than 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    const { data: staleJobs } = await supabaseAdmin
+      .from('voice_jobs')
+      .delete()
+      .eq('status', 'processing')
+      .lt('created_at', fiveMinutesAgo)
+      .select('id');
+    
+    if (staleJobs && staleJobs.length > 0) {
+      console.log(`Cleaned up ${staleJobs.length} stale jobs`);
+    }
+
+    // Check if user already has a processing job (that's not stale)
     if (userId) {
       const { data: activeJob } = await supabaseAdmin
         .from('voice_jobs')
