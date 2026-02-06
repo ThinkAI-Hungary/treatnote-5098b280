@@ -1348,6 +1348,54 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_jobs: {
+        Row: {
+          audio_filename: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          paciens_id: string | null
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode: string
+          paciens_id?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode?: string
+          paciens_id?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       treatment_embeddings_stats: {

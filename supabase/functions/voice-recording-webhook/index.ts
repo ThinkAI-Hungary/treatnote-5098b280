@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,11 +13,7 @@ const corsHeaders = {
 // AES-256-GCM decryption using Web Crypto API
 async function decryptPassword(encryptedBase64: string, keyBase64: string): Promise<string> {
   const decoder = new TextDecoder();
-  
-  // Decode the base64 key
   const keyData = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
-  
-  // Import the key for AES-GCM
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     keyData,
@@ -21,26 +21,125 @@ async function decryptPassword(encryptedBase64: string, keyBase64: string): Prom
     false,
     ['decrypt']
   );
-  
-  // Decode the encrypted data (IV + ciphertext)
   const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
-  
-  // Extract IV (first 12 bytes) and ciphertext
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
-  
-  // Decrypt
   const decryptedData = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv },
     cryptoKey,
     ciphertext
   );
-  
   return decoder.decode(decryptedData);
 }
 
+interface WebhookPayload {
+  audio: File;
+  mode: string;
+  timestamp: string;
+  filename: string;
+  userId: string;
+  companyId: string;
+  telephelyId: string;
+  paciensId: string;
+  flexiDomain: string;
+  flexiUsername: string;
+  decryptedFlexiPw: string;
+  szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}>;
+  treatmentRulesData: unknown[];
+  durationSeconds: number;
+}
+
+async function processWebhookInBackground(
+  payload: WebhookPayload,
+  jobId: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string
+) {
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  
+  try {
+    // Get webhook URL based on mode
+    let webhookUrl: string | undefined;
+    
+    if (payload.mode === "voxis") {
+      webhookUrl = Deno.env.get("N8N_VOXIS_WEBHOOK_URL");
+    } else if (payload.mode === "treatnote") {
+      webhookUrl = Deno.env.get("N8N_TREATNOTE_WEBHOOK_URL");
+    } else if (payload.mode === "ambulans") {
+      webhookUrl = Deno.env.get("TREATNOTE_AMBULANSLAP");
+    }
+
+    if (!webhookUrl) {
+      throw new Error(`No webhook URL configured for mode: ${payload.mode}`);
+    }
+
+    // Build FormData for n8n
+    const webhookFormData = new FormData();
+    webhookFormData.append("data", payload.audio, payload.filename);
+    webhookFormData.append("mode", payload.mode);
+    webhookFormData.append("timestamp", payload.timestamp);
+    webhookFormData.append("user_id", payload.userId);
+    webhookFormData.append("company_id", payload.companyId);
+    webhookFormData.append("telephely_id", payload.telephelyId);
+    webhookFormData.append("flexi_domain", payload.flexiDomain);
+    webhookFormData.append("flexi_username", payload.flexiUsername);
+    webhookFormData.append("flexi_pw", payload.decryptedFlexiPw);
+    webhookFormData.append("szabalyok", JSON.stringify(payload.szabalyokData));
+    webhookFormData.append("PaciensID", payload.paciensId);
+    
+    if (payload.mode === "treatnote" && payload.treatmentRulesData.length > 0) {
+      webhookFormData.append("treatment_rules", JSON.stringify(payload.treatmentRulesData));
+    }
+
+    console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl}`);
+    
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      body: webhookFormData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
+    }
+
+    const responseText = await response.text();
+    console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
+    
+    let resultData: unknown;
+    try {
+      resultData = JSON.parse(responseText);
+    } catch {
+      resultData = { szoveges_lista: responseText };
+    }
+
+    // Update job with success
+    await supabaseAdmin
+      .from('voice_jobs')
+      .update({
+        status: 'completed',
+        result: resultData,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    console.log(`[Job ${jobId}] Completed successfully`);
+  } catch (error) {
+    console.error(`[Job ${jobId}] Error:`, error);
+    
+    // Update job with error
+    await supabaseAdmin
+      .from('voice_jobs')
+      .update({
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -61,36 +160,30 @@ serve(async (req) => {
     const paciensId = formData.get("PaciensID") as string;
 
     if (!audio || !mode) {
-      console.error("Missing required fields: audio or mode");
       return new Response(
         JSON.stringify({ error: "Missing required fields: audio and mode" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch flexi credentials directly from database using user_id
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch flexi credentials
     let flexiUsername = "";
     let decryptedFlexiPw = "";
     
     if (userId) {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-      
-      const { data: flexiData, error: flexiError } = await supabaseAdmin
+      const { data: flexiData } = await supabaseAdmin
         .from('flexi_auth')
         .select('flexi_username, flexi_pw')
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (flexiError) {
-        console.error("Error fetching flexi credentials:", flexiError);
-      } else if (flexiData) {
+      if (flexiData) {
         flexiUsername = flexiData.flexi_username || "";
-        
-        // Decrypt the password if we have it and the encryption key
         if (flexiData.flexi_pw && encryptionKey) {
           try {
             decryptedFlexiPw = await decryptPassword(flexiData.flexi_pw, encryptionKey);
-            console.log("Flexi password decrypted successfully");
           } catch (decryptError) {
             console.error("Failed to decrypt Flexi password:", decryptError);
           }
@@ -98,28 +191,24 @@ serve(async (req) => {
       }
     }
 
-    // Fetch all processed szabályok for this company/telephely
+    // Fetch szabályok and flexi_domain
     let szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}> = [];
     let flexiDomain = "";
     let treatmentRulesData: unknown[] = [];
 
     if (companyId && telephelyId) {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-      
       // Fetch telephely to get flexi_domain
-      const { data: telephelyData, error: telephelyError } = await supabaseAdmin
+      const { data: telephelyData } = await supabaseAdmin
         .from('telephely')
         .select('flexi_domain')
         .eq('id', telephelyId)
         .maybeSingle();
       
-      if (telephelyError) {
-        console.error("Error fetching telephely:", telephelyError);
-      } else if (telephelyData) {
+      if (telephelyData) {
         flexiDomain = telephelyData.flexi_domain || "";
       }
       
-      const { data: szabalyok, error: szabalyokError } = await supabaseAdmin
+      const { data: szabalyok } = await supabaseAdmin
         .from('feltoltott_pdf')
         .select(`
           id,
@@ -134,20 +223,17 @@ serve(async (req) => {
         .eq('telephely_id', telephelyId)
         .eq('webhook_status', 'feldolgozva');
 
-      if (szabalyokError) {
-        console.error("Error fetching szabályok:", szabalyokError);
-      } else if (szabalyok) {
+      if (szabalyok) {
         szabalyokData = szabalyok.map((pdf: any) => ({
           fogalom: pdf.fogalom,
           file_name: pdf.file_name,
           raw_json: pdf.pdf_extractions?.[0]?.raw_json || null
         }));
-        console.log(`Found ${szabalyokData.length} szabályok for company/telephely`);
       }
 
-      // Fetch treatment_rules with nested rule_visits and rule_items for TreatNote mode
+      // Fetch treatment_rules for TreatNote mode
       if (mode === "treatnote") {
-        const { data: rules, error: rulesError } = await supabaseAdmin
+        const { data: rules } = await supabaseAdmin
           .from('treatment_rules')
           .select(`
             id,
@@ -173,112 +259,79 @@ serve(async (req) => {
           `)
           .eq('clinic_id', telephelyId);
 
-        if (rulesError) {
-          console.error("Error fetching treatment_rules:", rulesError);
-        } else if (rules) {
+        if (rules) {
           treatmentRulesData = rules;
-          console.log(`Found ${rules.length} treatment_rules for telephely`);
         }
       }
     }
 
-    // Use provided filename or fall back to audio.name
     const finalFilename = filename || audio.name;
-    console.log(`Processing voice recording - Mode: ${mode}, Timestamp: ${timestamp}, Filename: ${finalFilename}, User: ${userId}, Company: ${companyId}, Telephely: ${telephelyId}, FlexiUser: ${flexiUsername}`);
-
-    // Get webhook URLs based on mode
-    let webhookUrls: string[] = [];
     
-    if (mode === "voxis") {
-      const voxisUrl = Deno.env.get("N8N_VOXIS_WEBHOOK_URL");
-      if (voxisUrl) {
-        webhookUrls.push(voxisUrl);
-      }
-    } else if (mode === "treatnote") {
-      const treatnoteUrl = Deno.env.get("N8N_TREATNOTE_WEBHOOK_URL");
-      if (treatnoteUrl) {
-        webhookUrls.push(treatnoteUrl);
-      }
-    } else if (mode === "ambulans") {
-      const ambulansUrl = Deno.env.get("TREATNOTE_AMBULANSLAP");
-      if (ambulansUrl) {
-        webhookUrls.push(ambulansUrl);
-      }
-    }
+    // Estimate duration from audio size (rough estimate: ~16KB/s for webm)
+    const estimatedDuration = Math.round(audio.size / 16000);
 
-    if (webhookUrls.length === 0) {
-      console.error(`No webhook URL configured for mode: ${mode}`);
+    // Create job record
+    const { data: jobData, error: jobError } = await supabaseAdmin
+      .from('voice_jobs')
+      .insert({
+        user_id: userId,
+        company_id: companyId || null,
+        telephely_id: telephelyId || null,
+        mode,
+        paciens_id: paciensId || null,
+        status: 'processing',
+        audio_filename: finalFilename,
+        duration_seconds: estimatedDuration,
+      })
+      .select('id')
+      .single();
+
+    if (jobError || !jobData) {
+      console.error("Failed to create job:", jobError);
       return new Response(
-        JSON.stringify({ error: `No webhook URL configured for mode: ${mode}` }),
+        JSON.stringify({ error: "Failed to create job" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Forward audio to all configured webhooks
-    const sendPromises = webhookUrls.map(async (url) => {
-      const webhookFormData = new FormData();
-      // n8n expects binary data in a field called "data"
-      webhookFormData.append("data", audio, finalFilename);
-      webhookFormData.append("mode", mode);
-      webhookFormData.append("timestamp", timestamp || new Date().toISOString());
-      webhookFormData.append("user_id", userId || "");
-      webhookFormData.append("company_id", companyId || "");
-      webhookFormData.append("telephely_id", telephelyId || "");
-      webhookFormData.append("flexi_domain", flexiDomain);
-      webhookFormData.append("flexi_username", flexiUsername);
-      webhookFormData.append("flexi_pw", decryptedFlexiPw);
-      webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
-      webhookFormData.append("PaciensID", paciensId || "");
-      
-      // Include treatment_rules for TreatNote mode
-      if (mode === "treatnote" && treatmentRulesData.length > 0) {
-        webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));
-        console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok and ${treatmentRulesData.length} treatment_rules`);
-      } else {
-        console.log(`Sending audio to webhook: ${url}, with ${szabalyokData.length} szabályok`);
-      }
-      
-      const response = await fetch(url, {
-        method: "POST",
-        body: webhookFormData,
-      });
+    const jobId = jobData.id;
+    console.log(`Created job ${jobId} for mode: ${mode}, user: ${userId}`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Webhook error (${url}):`, errorText);
-        throw new Error(`Webhook failed: ${response.status}`);
-      }
+    // Process webhook in background using EdgeRuntime.waitUntil
+    const payload: WebhookPayload = {
+      audio,
+      mode,
+      timestamp: timestamp || new Date().toISOString(),
+      filename: finalFilename,
+      userId,
+      companyId,
+      telephelyId,
+      paciensId,
+      flexiDomain,
+      flexiUsername,
+      decryptedFlexiPw,
+      szabalyokData,
+      treatmentRulesData,
+      durationSeconds: estimatedDuration,
+    };
 
-      // Get response as text first
-      const responseText = await response.text();
-      console.log("Webhook response (first 500 chars):", responseText.substring(0, 500));
-      
-      // Try to parse as JSON, otherwise return as text
-      try {
-        const responseData = JSON.parse(responseText);
-        return responseData;
-      } catch {
-        // Return text response directly
-        return { szoveges_lista: responseText };
-      }
-    });
+    EdgeRuntime.waitUntil(
+      processWebhookInBackground(payload, jobId, supabaseUrl, supabaseServiceKey)
+    );
 
-    const results = await Promise.all(sendPromises);
-
-    console.log("Voice recording forwarded successfully to all webhooks");
-
-    // Return the first non-null response
-    const webhookResponse = results.find(r => r !== null);
-
+    // Return immediately with job_id
     return new Response(
-      JSON.stringify({ success: true, message: "Voice recording forwarded successfully", webhookResponse }),
+      JSON.stringify({ 
+        success: true, 
+        job_id: jobId,
+        message: "Voice recording job created, processing in background" 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in voice-recording-webhook function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
