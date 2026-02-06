@@ -61,7 +61,7 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob }:
   }
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col min-h-[400px] max-h-[400px]">
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-base flex items-center gap-2">
           <Clock className="h-4 w-4" />
@@ -75,14 +75,14 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob }:
       </CardHeader>
       <CardContent className="flex-1 p-0 overflow-hidden">
         {jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+          <div className="flex flex-col items-center justify-center h-full px-4 text-center">
             <Mic className="h-8 w-8 text-muted-foreground/30 mb-2" />
             <p className="text-sm text-muted-foreground">
               Még nincs előzmény
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-20rem)]">
+          <ScrollArea className="h-full">
             <div className="space-y-1 p-3 pt-0">
               {jobs.map((job) => (
                 <button

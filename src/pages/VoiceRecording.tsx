@@ -174,15 +174,22 @@ function parseVerdiktPlainText(text: string): React.ReactNode[] {
       return `vizitek: ${incremented}`;
     });
     
-    // Determine indentation based on content
+    // Determine indentation and styling based on content
     const trimmedLine = processedLine.trim();
+    const lowerLine = trimmedLine.toLowerCase();
+    
+    // Check for "szöveges magyarázat" line - highlight it
+    const isSzovegesMagyarazat = lowerLine.includes('szöveges magyarázat') || lowerLine.includes('szoveges magyarazat');
+    
     if (trimmedLine.toLowerCase().startsWith('vizit')) {
       indentClass = '';
     } else if (trimmedLine.toLowerCase().startsWith('fog')) {
       indentClass = 'pl-12';
+    } else if (isSzovegesMagyarazat) {
+      indentClass = 'mt-6'; // Extra spacing before this section
     } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
       indentClass = 'pl-28';
-    } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+    } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•') || trimmedLine.startsWith('+')) {
       indentClass = 'pl-28';
     }
     
@@ -212,12 +219,26 @@ function parseVerdiktPlainText(text: string): React.ReactNode[] {
     const isVizitLine = trimmedLine.toLowerCase().startsWith('vizit');
     const isFogLine = trimmedLine.toLowerCase().startsWith('fog');
     
+    // Remove leading "+" from the display text
+    const displayElements = elements.map((el, idx) => {
+      if (idx === 0 && typeof el === 'object' && el !== null && 'props' in el) {
+        const content = (el as React.ReactElement<{children: string}>).props.children;
+        if (typeof content === 'string' && content.trim().startsWith('+')) {
+          return <span key={`${lineIndex}-${idx}`}>{content.replace(/^\s*\+\s*/, '')}</span>;
+        }
+      }
+      return el;
+    });
+    
     return (
       <div 
         key={lineIndex} 
-        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''}`}
+        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''} ${isSzovegesMagyarazat ? 'mt-6 pt-4 border-t border-galaxy-purple/30 font-semibold text-galaxy-purple flex items-center gap-2' : ''}`}
       >
-        {elements}
+        {isSzovegesMagyarazat && (
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-galaxy-purple/20 text-galaxy-purple text-xs">✦</span>
+        )}
+        {displayElements}
       </div>
     );
   });
@@ -519,8 +540,8 @@ export default function VoiceRecording() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {/* History sidebar - first on xl screens */}
-        <div className="hidden xl:block xl:row-span-2">
+        {/* History sidebar - static size matching other cards */}
+        <div className="hidden xl:block">
           <VoiceJobHistory 
             jobs={jobs}
             isLoading={historyLoading}
@@ -792,9 +813,9 @@ export default function VoiceRecording() {
             </CardContent>
           </Card>
 
-          {/* Verdikt card - styled to match galaxy theme */}
+          {/* Verdikt card - full width below all cards */}
           {(isVerdiktLoading || verdikt || selectedJob) && (
-            <Card className="md:col-span-2 xl:col-span-2 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
+            <Card className="md:col-span-2 xl:col-span-3 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sparkle-blue/20 to-galaxy-purple/20 flex items-center justify-center">
