@@ -510,18 +510,26 @@ export default function VoiceRecording() {
   }
 
   return (
-    <div className="flex gap-6">
-      {/* Main content */}
-      <div className="flex-1 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hangfelvétel</h1>
-          <p className="text-muted-foreground mt-1">
-            Vizsgálati jegyzőkönyv diktálása
-          </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Hangfelvétel</h1>
+        <p className="text-muted-foreground mt-1">
+          Vizsgálati jegyzőkönyv diktálása
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {/* History sidebar - first on xl screens */}
+        <div className="hidden xl:block xl:row-span-2">
+          <VoiceJobHistory 
+            jobs={jobs}
+            isLoading={historyLoading}
+            selectedJobId={selectedJobId}
+            onSelectJob={handleSelectJob}
+          />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+        <Card>
             <CardHeader>
               <CardTitle>Felvétel készítése</CardTitle>
               <CardDescription>
@@ -786,7 +794,7 @@ export default function VoiceRecording() {
 
           {/* Verdikt card - styled to match galaxy theme */}
           {(isVerdiktLoading || verdikt || selectedJob) && (
-            <Card className="md:col-span-2 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
+            <Card className="md:col-span-2 xl:col-span-2 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sparkle-blue/20 to-galaxy-purple/20 flex items-center justify-center">
@@ -887,43 +895,30 @@ export default function VoiceRecording() {
               </CardContent>
             </Card>
           )}
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Használati útmutató</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>
-              <strong>1. Válassza ki a feldolgozási módot:</strong> A TreatNote mód
-              vizsgálati jegyzőkönyvet, a Voxis mód általános átírást készít.
-            </p>
-            <p>
-              <strong>2. Indítsa el a felvételt:</strong> Kattintson a mikrofon
-              gombra és diktálja a jegyzőkönyvet.
-            </p>
-            <p>
-              <strong>3. Zárolás:</strong> Miután meggyőződött a Páciens ID helyességéről, kattintsa be a "Zárolás" gombot.
-            </p>
-            <p>
-              <strong>4. Töltse fel a felvételt:</strong> A felvétel befejezése
-              után hallgassa meg, majd töltse fel feldolgozásra.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* History sidebar */}
-      <div className="hidden xl:block w-80 flex-shrink-0">
-        <div className="sticky top-6">
-          <VoiceJobHistory 
-            jobs={jobs}
-            isLoading={historyLoading}
-            selectedJobId={selectedJobId}
-            onSelectJob={handleSelectJob}
-          />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Használati útmutató</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            <strong>1. Válassza ki a feldolgozási módot:</strong> A TreatNote mód
+            vizsgálati jegyzőkönyvet, a Voxis mód általános átírást készít.
+          </p>
+          <p>
+            <strong>2. Indítsa el a felvételt:</strong> Kattintson a mikrofon
+            gombra és diktálja a jegyzőkönyvet.
+          </p>
+          <p>
+            <strong>3. Zárolás:</strong> Miután meggyőződött a Páciens ID helyességéről, kattintsa be a "Zárolás" gombot.
+          </p>
+          <p>
+            <strong>4. Töltse fel a felvételt:</strong> A felvétel befejezése
+            után hallgassa meg, majd töltse fel feldolgozásra.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
