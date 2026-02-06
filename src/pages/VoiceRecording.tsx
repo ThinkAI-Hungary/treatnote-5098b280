@@ -28,6 +28,7 @@ type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 interface ParsedVerdiktResult {
   vizitekElements: React.ReactNode[];
   szovegesLista: string | null;
+  szovegesMagyarazat: string | null;
   link: string | null;
 }
 
@@ -35,6 +36,7 @@ function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
   const result: ParsedVerdiktResult = {
     vizitekElements: [],
     szovegesLista: null,
+    szovegesMagyarazat: null,
     link: null,
   };
   
@@ -46,7 +48,9 @@ function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
         data = JSON.parse(data);
       } catch {
         // If not valid JSON, return as plain text
-        result.vizitekElements = parseVerdiktPlainText(data as string);
+        const parsed = parseVerdiktPlainText(data as string);
+        result.vizitekElements = parsed.elements;
+        result.szovegesMagyarazat = parsed.szovegesMagyarazat;
         return result;
       }
     }
@@ -129,13 +133,17 @@ function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
     
     // Fallback to szoveges_lista if no structured data
     if (result.szovegesLista && result.vizitekElements.length === 0) {
-      result.vizitekElements = parseVerdiktPlainText(result.szovegesLista);
+      const parsed = parseVerdiktPlainText(result.szovegesLista);
+      result.vizitekElements = parsed.elements;
+      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
       result.szovegesLista = null; // Don't show separately if it's the only content
     }
     
     // If nothing matched, try plain text parsing on original
     if (typeof responseData === 'string' && result.vizitekElements.length === 0) {
-      result.vizitekElements = parseVerdiktPlainText(responseData);
+      const parsed = parseVerdiktPlainText(responseData);
+      result.vizitekElements = parsed.elements;
+      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
     }
     
     if (result.vizitekElements.length === 0) {
@@ -146,7 +154,9 @@ function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
   } catch (e) {
     console.error('Error parsing verdikt:', e);
     if (typeof responseData === 'string') {
-      result.vizitekElements = parseVerdiktPlainText(responseData);
+      const parsed = parseVerdiktPlainText(responseData);
+      result.vizitekElements = parsed.elements;
+      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
     } else {
       result.vizitekElements = [<div key="error">Hiba a válasz feldolgozása során</div>];
     }
@@ -154,11 +164,56 @@ function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
   }
 }
 
-// Fallback plain text parser
-function parseVerdiktPlainText(text: string): React.ReactNode[] {
+// Fallback plain text parser - now returns result object to extract szöveges magyarázat
+function parseVerdiktPlainText(text: string): { elements: React.ReactNode[]; szovegesMagyarazat: string | null } {
   const lines = text.split('\n');
   
-  return lines.map((line, lineIndex) => {
+  // Find "szöveges magyarázat" section and extract it
+  let szovegesMagyarazatText: string | null = null;
+  let magyarazatStartIndex = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const lowerLine = lines[i].toLowerCase();
+    if (lowerLine.includes('szöveges magyarázat') || lowerLine.includes('szoveges magyarazat')) {
+      magyarazatStartIndex = i;
+      break;
+    }
+  }
+  
+  // If found, extract the content after it (could be on same line or next lines)
+  if (magyarazatStartIndex >= 0) {
+    const magyarazatLines: string[] = [];
+    
+    // Check if content is on the same line (after colon or similar)
+    const firstLine = lines[magyarazatStartIndex];
+    const colonIndex = firstLine.indexOf(':');
+    if (colonIndex >= 0 && colonIndex < firstLine.length - 1) {
+      magyarazatLines.push(firstLine.substring(colonIndex + 1).trim().replace(/^\+\s*/, ''));
+    }
+    
+    // Also get any following lines that aren't vizit/fog/kezelés lines
+    for (let i = magyarazatStartIndex + 1; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      const lower = trimmed.toLowerCase();
+      if (lower.startsWith('vizit') || lower.startsWith('fog') || lower.startsWith('kezelés')) {
+        break;
+      }
+      if (trimmed.length > 0) {
+        magyarazatLines.push(trimmed.replace(/^\+\s*/, ''));
+      }
+    }
+    
+    if (magyarazatLines.length > 0) {
+      szovegesMagyarazatText = magyarazatLines.join(' ').trim();
+    }
+  }
+  
+  // Filter out the magyarázat lines from the main elements
+  const filteredLines = magyarazatStartIndex >= 0 
+    ? lines.slice(0, magyarazatStartIndex)
+    : lines;
+  
+  const elements = filteredLines.map((line, lineIndex) => {
     let processedLine = line;
     let indentClass = '';
     
@@ -174,19 +229,13 @@ function parseVerdiktPlainText(text: string): React.ReactNode[] {
       return `vizitek: ${incremented}`;
     });
     
-    // Determine indentation and styling based on content
+    // Determine indentation based on content
     const trimmedLine = processedLine.trim();
-    const lowerLine = trimmedLine.toLowerCase();
-    
-    // Check for "szöveges magyarázat" line - highlight it
-    const isSzovegesMagyarazat = lowerLine.includes('szöveges magyarázat') || lowerLine.includes('szoveges magyarazat');
     
     if (trimmedLine.toLowerCase().startsWith('vizit')) {
       indentClass = '';
     } else if (trimmedLine.toLowerCase().startsWith('fog')) {
       indentClass = 'pl-12';
-    } else if (isSzovegesMagyarazat) {
-      indentClass = 'mt-6'; // Extra spacing before this section
     } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
       indentClass = 'pl-28';
     } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•') || trimmedLine.startsWith('+')) {
@@ -219,29 +268,17 @@ function parseVerdiktPlainText(text: string): React.ReactNode[] {
     const isVizitLine = trimmedLine.toLowerCase().startsWith('vizit');
     const isFogLine = trimmedLine.toLowerCase().startsWith('fog');
     
-    // Remove leading "+" from the display text
-    const displayElements = elements.map((el, idx) => {
-      if (idx === 0 && typeof el === 'object' && el !== null && 'props' in el) {
-        const content = (el as React.ReactElement<{children: string}>).props.children;
-        if (typeof content === 'string' && content.trim().startsWith('+')) {
-          return <span key={`${lineIndex}-${idx}`}>{content.replace(/^\s*\+\s*/, '')}</span>;
-        }
-      }
-      return el;
-    });
-    
     return (
       <div 
         key={lineIndex} 
-        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''} ${isSzovegesMagyarazat ? 'mt-6 pt-4 border-t border-galaxy-purple/30 font-semibold text-galaxy-purple flex items-center gap-2' : ''}`}
+        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''}`}
       >
-        {isSzovegesMagyarazat && (
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-galaxy-purple/20 text-galaxy-purple text-xs">✦</span>
-        )}
-        {displayElements}
+        {elements}
       </div>
     );
   });
+  
+  return { elements, szovegesMagyarazat: szovegesMagyarazatText };
 }
 
 export default function VoiceRecording() {
@@ -870,7 +907,7 @@ export default function VoiceRecording() {
                 ) : (
                   <div className="flex flex-col lg:flex-row gap-4">
                     {/* Left side - Vizitek and Link */}
-                    <div className={`relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm ${parsedVerdikt?.szovegesLista ? 'lg:flex-1' : 'w-full'}`}>
+                    <div className={`relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm ${(parsedVerdikt?.szovegesLista || parsedVerdikt?.szovegesMagyarazat) ? 'lg:flex-1' : 'w-full'}`}>
                       <div className="absolute top-0 right-0 w-32 h-32 bg-sparkle-blue/5 rounded-full blur-3xl pointer-events-none" />
                       <div className="absolute bottom-0 left-0 w-24 h-24 bg-galaxy-purple/5 rounded-full blur-2xl pointer-events-none" />
                       <div className="relative text-sm leading-relaxed text-foreground/90 space-y-1">
@@ -893,8 +930,27 @@ export default function VoiceRecording() {
                       </div>
                     </div>
                     
-                    {/* Right side - Felmondott szöveg */}
-                    {parsedVerdikt?.szovegesLista && (
+                    {/* Right side - Szöveges magyarázat (extracted summary) */}
+                    {parsedVerdikt?.szovegesMagyarazat && (
+                      <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-[28rem] lg:flex-shrink-0">
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="relative">
+                          <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-galaxy-purple/20 text-galaxy-purple text-sm">✦</span>
+                            Szöveges magyarázat
+                          </h4>
+                          <p 
+                            className="text-sm leading-relaxed text-foreground/90"
+                            style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                          >
+                            {parsedVerdikt.szovegesMagyarazat}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Right side - Felmondott szöveg (if available and no szoveges magyarázat) */}
+                    {parsedVerdikt?.szovegesLista && !parsedVerdikt?.szovegesMagyarazat && (
                       <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-[28rem] lg:flex-shrink-0 max-h-[400px] overflow-y-auto">
                         <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
                         <div className="relative">
