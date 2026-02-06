@@ -244,9 +244,7 @@ serve(async (req) => {
       );
     }
 
-    // Build FormData for n8n - include callback URL and job_id
-    const callbackUrl = `${supabaseUrl}/functions/v1/voice-job-callback`;
-    
+    // Build FormData for n8n
     const webhookFormData = new FormData();
     webhookFormData.append("data", audio, finalFilename);
     webhookFormData.append("mode", mode);
@@ -259,32 +257,79 @@ serve(async (req) => {
     webhookFormData.append("flexi_pw", decryptedFlexiPw);
     webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
     webhookFormData.append("PaciensID", paciensId);
-    webhookFormData.append("job_id", jobId);
-    webhookFormData.append("callback_url", callbackUrl);
     
     if (mode === "treatnote" && treatmentRulesData.length > 0) {
       webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));
     }
 
-    console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl} with callback: ${callbackUrl}`);
+    console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl}`);
     
-    // Send to n8n - don't wait for response, n8n will call back
-    fetch(webhookUrl, {
-      method: "POST",
-      body: webhookFormData,
-    }).catch(err => {
-      console.error(`[Job ${jobId}] Failed to send to webhook:`, err);
-    });
+    try {
+      // Send to n8n and wait for response
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        body: webhookFormData,
+      });
 
-    // Return immediately with job_id
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        job_id: jobId,
-        message: "Voice recording job created, n8n will process and callback" 
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
+      }
+
+      const responseText = await response.text();
+      console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
+      
+      let resultData: unknown;
+      try {
+        resultData = JSON.parse(responseText);
+      } catch {
+        resultData = { szoveges_lista: responseText };
+      }
+
+      // Update job with success
+      await supabaseAdmin
+        .from('voice_jobs')
+        .update({
+          status: 'completed',
+          result: resultData,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      console.log(`[Job ${jobId}] Completed successfully`);
+
+      // Return result to frontend
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          job_id: jobId,
+          result: resultData
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (webhookError) {
+      console.error(`[Job ${jobId}] Webhook error:`, webhookError);
+      
+      // Update job with error
+      const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error';
+      await supabaseAdmin
+        .from('voice_jobs')
+        .update({
+          status: 'error',
+          error: errorMessage,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          job_id: jobId,
+          error: errorMessage
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error) {
     console.error("Error in voice-recording-webhook function:", error);
     return new Response(
