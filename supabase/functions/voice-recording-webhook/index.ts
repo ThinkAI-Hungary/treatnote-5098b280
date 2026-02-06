@@ -168,6 +168,26 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Check if user already has a processing job
+    if (userId) {
+      const { data: activeJob } = await supabaseAdmin
+        .from('voice_jobs')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'processing')
+        .maybeSingle();
+
+      if (activeJob) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Már fut egy feldolgozás. Kérjük, várjon amíg befejeződik.",
+            active_job_id: activeJob.id 
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Fetch flexi credentials
     let flexiUsername = "";
     let decryptedFlexiPw = "";
