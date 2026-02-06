@@ -808,14 +808,17 @@ export default function VoiceRecording() {
                   
                   {/* Right side - Felmondott szöveg */}
                   {parsedVerdikt?.szovegesLista && (
-                    <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-80 xl:w-96">
+                    <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-[28rem] lg:flex-shrink-0 max-h-[400px] overflow-y-auto">
                       <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
                       <div className="relative">
                         <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                           <Book className="h-4 w-4 text-galaxy-purple" />
                           Felmondott szöveg
                         </h4>
-                        <p className="text-sm leading-relaxed text-foreground/80 italic">
+                        <p 
+                          className="text-sm leading-relaxed text-foreground/80 italic font-mono break-words"
+                          style={{ maxWidth: '64ch', wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                        >
                           "{parsedVerdikt.szovegesLista}"
                         </p>
                       </div>
