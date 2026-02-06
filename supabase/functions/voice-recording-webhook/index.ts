@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-declare const EdgeRuntime: {
-  waitUntil: (promise: Promise<unknown>) => void;
-};
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -30,113 +26,6 @@ async function decryptPassword(encryptedBase64: string, keyBase64: string): Prom
     ciphertext
   );
   return decoder.decode(decryptedData);
-}
-
-interface WebhookPayload {
-  audio: File;
-  mode: string;
-  timestamp: string;
-  filename: string;
-  userId: string;
-  companyId: string;
-  telephelyId: string;
-  paciensId: string;
-  flexiDomain: string;
-  flexiUsername: string;
-  decryptedFlexiPw: string;
-  szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}>;
-  treatmentRulesData: unknown[];
-  durationSeconds: number;
-}
-
-async function processWebhookInBackground(
-  payload: WebhookPayload,
-  jobId: string,
-  supabaseUrl: string,
-  supabaseServiceKey: string
-) {
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-  
-  try {
-    // Get webhook URL based on mode
-    let webhookUrl: string | undefined;
-    
-    if (payload.mode === "voxis") {
-      webhookUrl = Deno.env.get("N8N_VOXIS_WEBHOOK_URL");
-    } else if (payload.mode === "treatnote") {
-      webhookUrl = Deno.env.get("N8N_TREATNOTE_WEBHOOK_URL");
-    } else if (payload.mode === "ambulans") {
-      webhookUrl = Deno.env.get("TREATNOTE_AMBULANSLAP");
-    }
-
-    if (!webhookUrl) {
-      throw new Error(`No webhook URL configured for mode: ${payload.mode}`);
-    }
-
-    // Build FormData for n8n
-    const webhookFormData = new FormData();
-    webhookFormData.append("data", payload.audio, payload.filename);
-    webhookFormData.append("mode", payload.mode);
-    webhookFormData.append("timestamp", payload.timestamp);
-    webhookFormData.append("user_id", payload.userId);
-    webhookFormData.append("company_id", payload.companyId);
-    webhookFormData.append("telephely_id", payload.telephelyId);
-    webhookFormData.append("flexi_domain", payload.flexiDomain);
-    webhookFormData.append("flexi_username", payload.flexiUsername);
-    webhookFormData.append("flexi_pw", payload.decryptedFlexiPw);
-    webhookFormData.append("szabalyok", JSON.stringify(payload.szabalyokData));
-    webhookFormData.append("PaciensID", payload.paciensId);
-    
-    if (payload.mode === "treatnote" && payload.treatmentRulesData.length > 0) {
-      webhookFormData.append("treatment_rules", JSON.stringify(payload.treatmentRulesData));
-    }
-
-    console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl}`);
-    
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      body: webhookFormData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
-    }
-
-    const responseText = await response.text();
-    console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
-    
-    let resultData: unknown;
-    try {
-      resultData = JSON.parse(responseText);
-    } catch {
-      resultData = { szoveges_lista: responseText };
-    }
-
-    // Update job with success
-    await supabaseAdmin
-      .from('voice_jobs')
-      .update({
-        status: 'completed',
-        result: resultData,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    console.log(`[Job ${jobId}] Completed successfully`);
-  } catch (error) {
-    console.error(`[Job ${jobId}] Error:`, error);
-    
-    // Update job with error
-    await supabaseAdmin
-      .from('voice_jobs')
-      .update({
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-  }
 }
 
 serve(async (req) => {
@@ -331,34 +220,68 @@ serve(async (req) => {
     const jobId = jobData.id;
     console.log(`Created job ${jobId} for mode: ${mode}, user: ${userId}`);
 
-    // Process webhook in background using EdgeRuntime.waitUntil
-    const payload: WebhookPayload = {
-      audio,
-      mode,
-      timestamp: timestamp || new Date().toISOString(),
-      filename: finalFilename,
-      userId,
-      companyId,
-      telephelyId,
-      paciensId,
-      flexiDomain,
-      flexiUsername,
-      decryptedFlexiPw,
-      szabalyokData,
-      treatmentRulesData,
-      durationSeconds: estimatedDuration,
-    };
+    // Get webhook URL based on mode
+    let webhookUrl: string | undefined;
+    
+    if (mode === "voxis") {
+      webhookUrl = Deno.env.get("N8N_VOXIS_WEBHOOK_URL");
+    } else if (mode === "treatnote") {
+      webhookUrl = Deno.env.get("N8N_TREATNOTE_WEBHOOK_URL");
+    } else if (mode === "ambulans") {
+      webhookUrl = Deno.env.get("TREATNOTE_AMBULANSLAP");
+    }
 
-    EdgeRuntime.waitUntil(
-      processWebhookInBackground(payload, jobId, supabaseUrl, supabaseServiceKey)
-    );
+    if (!webhookUrl) {
+      // Mark job as error if no webhook URL
+      await supabaseAdmin
+        .from('voice_jobs')
+        .update({ status: 'error', error: `No webhook URL configured for mode: ${mode}`, completed_at: new Date().toISOString() })
+        .eq('id', jobId);
+      
+      return new Response(
+        JSON.stringify({ error: `No webhook URL configured for mode: ${mode}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Build FormData for n8n - include callback URL and job_id
+    const callbackUrl = `${supabaseUrl}/functions/v1/voice-job-callback`;
+    
+    const webhookFormData = new FormData();
+    webhookFormData.append("data", audio, finalFilename);
+    webhookFormData.append("mode", mode);
+    webhookFormData.append("timestamp", timestamp || new Date().toISOString());
+    webhookFormData.append("user_id", userId);
+    webhookFormData.append("company_id", companyId);
+    webhookFormData.append("telephely_id", telephelyId);
+    webhookFormData.append("flexi_domain", flexiDomain);
+    webhookFormData.append("flexi_username", flexiUsername);
+    webhookFormData.append("flexi_pw", decryptedFlexiPw);
+    webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
+    webhookFormData.append("PaciensID", paciensId);
+    webhookFormData.append("job_id", jobId);
+    webhookFormData.append("callback_url", callbackUrl);
+    
+    if (mode === "treatnote" && treatmentRulesData.length > 0) {
+      webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));
+    }
+
+    console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl} with callback: ${callbackUrl}`);
+    
+    // Send to n8n - don't wait for response, n8n will call back
+    fetch(webhookUrl, {
+      method: "POST",
+      body: webhookFormData,
+    }).catch(err => {
+      console.error(`[Job ${jobId}] Failed to send to webhook:`, err);
+    });
 
     // Return immediately with job_id
     return new Response(
       JSON.stringify({ 
         success: true, 
         job_id: jobId,
-        message: "Voice recording job created, processing in background" 
+        message: "Voice recording job created, n8n will process and callback" 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
