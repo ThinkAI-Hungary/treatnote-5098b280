@@ -43,6 +43,17 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
     }
 
     try {
+      // First, delete stale jobs (processing for more than 5 minutes)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      
+      await supabase
+        .from('voice_jobs')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('status', 'processing')
+        .lt('created_at', fiveMinutesAgo);
+
+      // Then fetch remaining jobs
       const { data, error: fetchError } = await supabase
         .from('voice_jobs')
         .select('*')
