@@ -1293,6 +1293,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sajat_feltoltes: number
           semantic_description: string | null
           trigger_words: string[] | null
           updated_at: string
@@ -1303,6 +1304,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          sajat_feltoltes?: number
           semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string
@@ -1313,6 +1315,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          sajat_feltoltes?: number
           semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string

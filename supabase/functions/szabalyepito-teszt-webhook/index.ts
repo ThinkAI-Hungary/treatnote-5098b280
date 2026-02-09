@@ -541,6 +541,7 @@ serve(async (req) => {
               name: extraction.fogalom,
               category: extraction.kategoria || null,
               semantic_description: extraction.semantic_description || null,
+              sajat_feltoltes: 1,
             })
             .select('id')
             .single();
