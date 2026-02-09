@@ -1,93 +1,39 @@
 
 
-# BNO Kódok Karakterkódolási Hiba Javítása
+## Add `sajat_feltoltes` column to `treatment_rules`
 
-## Probléma Azonosítása
+### What this does
+Adds a new column `sajat_feltoltes` to the `treatment_rules` table that flags whether a treatment rule was uploaded via the Szabalyepito Teszt webhook (value = 1) or created through any other method (value = 0).
 
-Az adatbázisban lévő BNO kód nevek hibás karakterkódolással kerültek be:
+### Steps
 
-| Hibás karakter | Helyes karakter | Érintett rekordok |
-|----------------|-----------------|-------------------|
-| ï | ő | 3,044 |
-| ¹ | ű | 1,067 |
-| **Összesen** | | **3,750** |
+1. **Database Migration** -- Add `sajat_feltoltes` column to `treatment_rules`
+   - Type: `smallint`, NOT NULL, DEFAULT `0`
+   - All existing rows will automatically get value `0`
 
-Példák:
-- `fertïzés` → `fertőzés`
-- `Tüdïgümïkór` → `Tüdőgümőkór`  
-- `eredet¹` → `eredetű`
+2. **Update `szabalyepito-teszt-webhook` Edge Function** -- Set `sajat_feltoltes = 1` on insert
+   - In the extraction processing loop (around line 538), add `sajat_feltoltes: 1` to the `treatment_rules` insert payload
 
-A többi magyar ékezetes karakter (á, é, í, ó, ö, ü) helyesen lett tárolva.
+3. **Update TypeScript types** -- Regenerate or manually add the field to `src/integrations/supabase/types.ts` so the frontend is aware of the new column
 
-## Megoldás
+### Technical details
 
-Két lépéses javítás:
-
-### 1. lépés: bno_codes tábla javítása
-
+**Migration SQL:**
 ```sql
-UPDATE bno_codes
-SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
-WHERE name LIKE '%ï%' OR name LIKE '%¹%';
+ALTER TABLE treatment_rules
+  ADD COLUMN sajat_feltoltes smallint NOT NULL DEFAULT 0;
 ```
 
-### 2. lépés: bno_embeddings újragenerálása
-
-A hibás szövegből generált embeddings-ek is hibásak. Két lehetőség:
-
-**A) Teljes újragenerálás (ajánlott):**
-- Töröljük az összes embeddinget
-- A cron job újra legenerálja az összeset helyes szöveggel
-- ~4 óra az összes 11,698 rekordhoz
-
-**B) Csak az érintettek újragenerálása:**
-- Töröljük csak azokat az embeddingeket, ahol a bno_code_id olyan rekordhoz tartozik, ami javítva lett
-- A cron job csak ezeket generálja újra
-
-## Fájlok és Változások
-
-| Fájl | Művelet | Leírás |
-|------|---------|--------|
-| SQL Migration | Létrehozás | UPDATE a karaktercserékhez + DELETE a régi embeddingekhez |
-
-## Technikai Részletek
-
-### SQL Migration
-
-```sql
--- 1. Javítsuk a karakterkódolási hibákat
-UPDATE bno_codes
-SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
-WHERE name LIKE '%ï%' OR name LIKE '%¹%';
-
--- 2. Töröljük a meglévő embeddingeket, hogy újrageneráljuk helyes szöveggel
--- (A cron job automatikusan újragenerálja)
-DELETE FROM bno_embeddings;
+**Edge Function change (line ~538):**
+```typescript
+.insert({
+  clinic_id: telephely_id,
+  name: extraction.fogalom,
+  category: extraction.kategoria || null,
+  semantic_description: extraction.semantic_description || null,
+  sajat_feltoltes: 1,  // <-- new
+})
 ```
 
-### Várt Eredmény
-
-- 3,750 rekord javítva a bno_codes táblában
-- A cron job újragenerálja az összes embeddinget helyes magyar karakterekkel
-- A szemantikus keresés pontosabb lesz, mert "fertőzés" helyett nem "fertïzés"-t keres
-
-### Alternatív: Csak érintett embeddings törlése
-
-Ha nem akarod az összes embeddinget törölni:
-
-```sql
--- Csak az érintett embeddings-ek törlése
-DELETE FROM bno_embeddings 
-WHERE bno_code_id IN (
-  SELECT id FROM bno_codes 
-  WHERE name LIKE '%ï%' OR name LIKE '%¹%'
-);
-
--- Ezután a karakterek javítása
-UPDATE bno_codes
-SET name = REPLACE(REPLACE(name, 'ï', 'ő'), '¹', 'ű')
-WHERE name LIKE '%ï%' OR name LIKE '%¹%';
-```
-
-Ez gyorsabb újragenerálást eredményez (~75 perc a 3,750 rekordhoz), de kockázatosabb, mert a többi embedding is a potenciálisan hibás szövegből készült.
+No other edge functions or UI code that inserts into `treatment_rules` needs changes -- the DEFAULT 0 handles everything else automatically.
 
