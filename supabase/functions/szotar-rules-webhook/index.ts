@@ -498,6 +498,7 @@ async function processWebhooksAndImport(
             name: extraction.fogalom,
             category: extraction.kategoria || result.response.extractions[0]?.kategoria || null,
             semantic_description: extraction.semantic_description || null,
+            alapszabaly: true,
           })
           .select('id')
           .single();

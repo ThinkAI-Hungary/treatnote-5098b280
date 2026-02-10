@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,9 @@ import {
   Filter,
   FileUp,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Flag,
+  Power
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -236,21 +239,28 @@ export function KezelesiSzabalyokTab({
     setBulkDeleteConfirmOpen(true);
   };
 
-  // Handle bulk delete
+  // Handle bulk delete (exclude alapszabaly rules)
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
+    const deletableIds = Array.from(selectedIds).filter(id => {
+      const rule = rules.find(r => r.id === id);
+      return rule && !rule.alapszabaly;
+    });
+    if (deletableIds.length === 0) {
+      toast.info('Az alapszabályok nem törölhetők');
+      setBulkDeleteConfirmOpen(false);
+      return;
+    }
     
     setBulkDeleting(true);
     try {
-      const idsToDelete = Array.from(selectedIds);
       const { error } = await supabase
         .from('treatment_rules')
         .delete()
-        .in('id', idsToDelete);
+        .in('id', deletableIds);
 
       if (error) throw error;
 
-      toast.success(`${idsToDelete.length} szabály sikeresen törölve`);
+      toast.success(`${deletableIds.length} szabály sikeresen törölve`);
       setSelectedIds(new Set());
       loadRules();
     } catch (err: any) {
@@ -259,6 +269,24 @@ export function KezelesiSzabalyokTab({
     } finally {
       setBulkDeleting(false);
       setBulkDeleteConfirmOpen(false);
+    }
+  };
+
+  // Toggle aktiv status
+  const handleToggleAktiv = async (rule: TreatmentRule) => {
+    if (!rule.id) return;
+    const newValue = !rule.aktiv;
+    try {
+      const { error } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: newValue })
+        .eq('id', rule.id);
+      if (error) throw error;
+      toast.success(newValue ? 'Szabály aktiválva' : 'Szabály inaktiválva');
+      loadRules();
+    } catch (err: any) {
+      console.error('Error toggling aktiv:', err);
+      toast.error('Hiba a státusz módosításakor');
     }
   };
 
@@ -633,7 +661,7 @@ export function KezelesiSzabalyokTab({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[50px]">
+                     <TableHead className="w-[50px]">
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={toggleSelectAll}
@@ -642,6 +670,7 @@ export function KezelesiSzabalyokTab({
                         {...(isSomeSelected ? { "data-state": "checked" } : {})}
                       />
                     </TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                     <TableHead className="w-[250px]">Név</TableHead>
                     <TableHead className="w-[150px]">Kategória</TableHead>
                     <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
@@ -654,7 +683,7 @@ export function KezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-32">
+                       <TableCell colSpan={9} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -662,7 +691,7 @@ export function KezelesiSzabalyokTab({
                     </TableRow>
                   ) : filteredRules.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-32">
+                      <TableCell colSpan={9} className="h-32">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
@@ -693,7 +722,8 @@ export function KezelesiSzabalyokTab({
                         className={cn(
                           "animate-fade-in",
                           "hover:bg-muted/30 transition-colors",
-                          selectedIds.has(rule.id!) && "bg-primary/10"
+                          selectedIds.has(rule.id!) && "bg-primary/10",
+                          rule.aktiv === false && "opacity-50"
                         )}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
@@ -703,6 +733,25 @@ export function KezelesiSzabalyokTab({
                             onCheckedChange={() => toggleSelect(rule.id!)}
                             aria-label={`${rule.name} kijelölése`}
                           />
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            {rule.alapszabaly ? (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Flag className="h-4 w-4 text-purple-500 fill-purple-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>Alapszabály</TooltipContent>
+                              </Tooltip>
+                            ) : rule.aktiv === false ? (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Flag className="h-4 w-4 text-muted-foreground fill-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>Inaktív</TooltipContent>
+                              </Tooltip>
+                            ) : null}
+                          </TooltipProvider>
                         </TableCell>
                         <TableCell className="font-medium">{rule.name}</TableCell>
                         <TableCell>
@@ -747,6 +796,22 @@ export function KezelesiSzabalyokTab({
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn("h-8 w-8", rule.aktiv === false && "text-muted-foreground")}
+                                    onClick={() => handleToggleAktiv(rule)}
+                                    title={rule.aktiv ? 'Kikapcsolás' : 'Bekapcsolás'}
+                                  >
+                                    <Power className={cn("h-4 w-4", rule.aktiv !== false && "text-green-500")} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{rule.aktiv !== false ? 'Kikapcsolás' : 'Bekapcsolás'}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -756,15 +821,17 @@ export function KezelesiSzabalyokTab({
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={(e) => openDeleteConfirm(rule.id!, e)}
-                              title="Törlés"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {!rule.alapszabaly && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={(e) => openDeleteConfirm(rule.id!, e)}
+                                title="Törlés"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

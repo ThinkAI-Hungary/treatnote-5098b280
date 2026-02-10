@@ -1383,34 +1383,37 @@ export type Database = {
       }
       treatment_rules: {
         Row: {
+          aktiv: boolean
+          alapszabaly: boolean
           category: string | null
           clinic_id: string
           created_at: string
           id: string
           name: string
-          sajat_feltoltes: number
           semantic_description: string | null
           trigger_words: string[] | null
           updated_at: string
         }
         Insert: {
+          aktiv?: boolean
+          alapszabaly?: boolean
           category?: string | null
           clinic_id: string
           created_at?: string
           id?: string
           name: string
-          sajat_feltoltes?: number
           semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string
         }
         Update: {
+          aktiv?: boolean
+          alapszabaly?: boolean
           category?: string | null
           clinic_id?: string
           created_at?: string
           id?: string
           name?: string
-          sajat_feltoltes?: number
           semantic_description?: string | null
           trigger_words?: string[] | null
           updated_at?: string
