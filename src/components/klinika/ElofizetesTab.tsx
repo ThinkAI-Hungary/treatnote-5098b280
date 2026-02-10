@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   CreditCard, Users, Minus, Plus, ExternalLink, RefreshCw, Check,
   Calendar, TrendingUp, Clock, Zap, ArrowRightLeft, AlertCircle,
@@ -111,6 +112,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [seatCount, setSeatCount] = useState(1);
+  const [addSeats, setAddSeats] = useState(1);
   const [polling, setPolling] = useState(false);
   const [pollingTimedOut, setPollingTimedOut] = useState(false);
   const [subTab, setSubTab] = useState<'manage' | 'history' | 'licenses'>('manage');
@@ -232,7 +234,6 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
     }
 
     if (error) {
-      // Try to extract error message from response
       const msg = typeof error === 'object' && 'message' in error ? error.message : String(error);
       throw new Error(msg);
     }
@@ -282,6 +283,13 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
     }
   }
 
+  async function handleBuyMoreSeats() {
+    if (!companyId || !company) return;
+    const newTotal = company.seats + addSeats;
+    await handleUpdateSeats(newTotal);
+    setAddSeats(1);
+  }
+
   async function handleSwitchPlan() {
     if (!companyId || !company) return;
     const newPriceId = company.subscription_price_id === MONTHLY_PRICE_ID ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
@@ -289,7 +297,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
     setActionError(null);
     try {
       await invokeFunction('switch-plan', { company_id: companyId, new_price_id: newPriceId });
-      toast.success('Csomag váltás elindítva!');
+      toast.success('Csomag váltás sikeres!');
       fetchCompany();
       fetchEvents();
     } catch (err: any) {
@@ -338,7 +346,6 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const currentPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Éves' : 'Havi';
   const otherPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Havi' : 'Éves';
 
-  // Build a map from user ID to display name
   const userNameMap = useMemo(() => {
     const map: Record<string, string> = {};
     klinikaUsers.forEach((u) => {
@@ -363,28 +370,23 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
 
   const periodLabel = selectedPlan === 'monthly' ? '/ hó' : '/ év';
 
-  const ctaLabel = useMemo(() => {
-    if (!hasSubscription) return 'Előfizetés indítása';
-    return 'Előfizetés indítása';
-  }, [hasSubscription]);
-
   // ─── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
       <AnimatedCard>
-        <CardContent className="flex items-center justify-center py-12">
-          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center py-8">
+          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
         </CardContent>
       </AnimatedCard>
     );
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Polling banner */}
       {polling && (
         <AnimatedCard className="border-accent/40">
-          <CardContent className="flex items-center gap-3 py-3 px-4">
+          <CardContent className="flex items-center gap-3 py-2.5 px-4">
             <RefreshCw className="h-4 w-4 text-accent animate-spin" />
             <p className="text-sm text-muted-foreground">Fizetés feldolgozás alatt… kérjük, várjon.</p>
           </CardContent>
@@ -394,27 +396,25 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
       {/* Polling timeout banner */}
       {pollingTimedOut && (
         <AnimatedCard className="border-destructive/40">
-          <CardContent className="flex flex-col gap-3 py-4 px-4">
+          <CardContent className="flex flex-col gap-2 py-3 px-4">
             <div className="flex items-start gap-2">
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-destructive">Nem érkezett meg a fizetés visszaigazolása</p>
                 <p className="text-xs text-muted-foreground">
-                  Ez akkor fordulhat elő, ha a Stripe webhook feldolgozása késik. Kérjük, próbálja újra egy perc múlva, vagy frissítse az oldalt.
+                  Kérjük, próbálja újra egy perc múlva, vagy frissítse az oldalt.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 ml-7">
-              <Button variant="outline" size="sm" onClick={() => startPolling()} className="h-8 text-xs">
-                <RefreshCw className="h-3 w-3 mr-1.5" />
-                Újrapróbálás
+              <Button variant="outline" size="sm" onClick={() => startPolling()} className="h-7 text-xs">
+                <RefreshCw className="h-3 w-3 mr-1.5" /> Újrapróbálás
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="h-8 text-xs">
+              <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="h-7 text-xs">
                 Oldal frissítése
               </Button>
-              <Button variant="ghost" size="sm" onClick={copyDebugInfo} className="h-8 text-xs">
-                <Copy className="h-3 w-3 mr-1.5" />
-                Debug info
+              <Button variant="ghost" size="sm" onClick={copyDebugInfo} className="h-7 text-xs">
+                <Copy className="h-3 w-3 mr-1.5" /> Debug info
               </Button>
             </div>
           </CardContent>
@@ -424,15 +424,14 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
       {/* Error banner */}
       {actionError && (
         <AnimatedCard className="border-destructive/40">
-          <CardContent className="flex items-center justify-between gap-3 py-3 px-4">
+          <CardContent className="flex items-center justify-between gap-3 py-2.5 px-4">
             <div className="flex items-center gap-2 min-w-0">
               <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
               <p className="text-sm text-destructive truncate">{actionError}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button variant="ghost" size="sm" onClick={copyDebugInfo} className="h-7 text-xs">
-                <Copy className="h-3 w-3 mr-1" />
-                Debug
+                <Copy className="h-3 w-3 mr-1" /> Debug
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setActionError(null)} className="h-7 text-xs">
                 ✕
@@ -442,39 +441,36 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
         </AnimatedCard>
       )}
 
-      {/* ═══ Dashboard Header ═══ */}
+      {/* ═══ Compact Dashboard Header ═══ */}
       <AnimatedCard className="overflow-hidden">
-        <div className="relative p-5">
+        <div className="relative p-4">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3">
             <MetricTile
-              icon={<Users className="h-4 w-4" />}
+              icon={<Users className="h-3.5 w-3.5" />}
               label="Licencek"
               value={hasSubscription ? String(company?.seats ?? 0) : '–'}
-              subtitle={hasSubscription ? `${assignedLicenses.length} kiosztva / ${availableLicenses.length} szabad` : undefined}
+              subtitle={hasSubscription ? `${assignedLicenses.length} kiosztva · ${availableLicenses.length} szabad` : undefined}
               accent
             />
             <MetricTile
-              icon={<CreditCard className="h-4 w-4" />}
+              icon={<CreditCard className="h-3.5 w-3.5" />}
               label="Csomag"
               value={hasSubscription ? currentPlanLabel : 'Nincs'}
             />
-            <div className="flex flex-col gap-1.5 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-3 transition-colors duration-200">
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5" /> Státusz
+            <div className="flex flex-col gap-1 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-2.5 transition-colors duration-200">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <Zap className="h-3 w-3" /> Státusz
               </span>
               <Badge
                 variant={isActive ? 'default' : isPastDue ? 'destructive' : 'secondary'}
-                className={cn("w-fit text-xs", isActive && "bg-accent/20 text-accent border-accent/30")}
+                className={cn("w-fit text-[11px]", isActive && "bg-accent/20 text-accent border-accent/30")}
               >
                 {isActive ? 'Aktív' : isPastDue ? 'Lejárt fizetés' : 'Inaktív'}
               </Badge>
-              {company?.cancel_at_period_end && (
-                <span className="text-[10px] text-destructive/70">Lemondva</span>
-              )}
             </div>
             <MetricTile
-              icon={<Calendar className="h-4 w-4" />}
+              icon={<Calendar className="h-3.5 w-3.5" />}
               label="Megújítás"
               value={
                 company?.current_period_end
@@ -486,84 +482,148 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
         </div>
       </AnimatedCard>
 
-      {/* ═══ Sub-tabs: Manage / History / Licenses ═══ */}
-      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'history' | 'licenses')} className="space-y-4">
-        <TabsList className="bg-card/60 backdrop-blur-sm border border-primary/15 dark:border-sparkle-blue/15 p-0.5 h-9">
-          <TabsTrigger value="manage" className="text-xs h-8 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
+      {/* ═══ Sub-tabs: Manage / Licenses / History ═══ */}
+      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'history' | 'licenses')} className="space-y-3">
+        <TabsList className="bg-card/60 backdrop-blur-sm border border-primary/15 dark:border-sparkle-blue/15 p-0.5 h-8">
+          <TabsTrigger value="manage" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Kezelés
           </TabsTrigger>
-          <TabsTrigger value="licenses" className="text-xs h-8 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
+          <TabsTrigger value="licenses" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Licencek
           </TabsTrigger>
-          <TabsTrigger value="history" className="text-xs h-8 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
+          <TabsTrigger value="history" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <Receipt className="h-3.5 w-3.5 mr-1.5" /> Előzmények
           </TabsTrigger>
         </TabsList>
 
         {/* ─── Manage tab ─── */}
-        <TabsContent value="manage" className="mt-0 space-y-5">
+        <TabsContent value="manage" className="mt-0 space-y-4">
           {hasSubscription && company ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Seat management */}
-                <AnimatedCard>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="h-4 w-4 text-accent" /> Licencek kezelése
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Button variant="outline" size="icon"
-                        className="h-9 w-9 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
-                        disabled={actionLoading || company.seats <= 1}
-                        onClick={() => handleUpdateSeats(company.seats - 1)}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="text-3xl font-bold min-w-[3rem] text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        {company.seats}
-                      </span>
-                      <Button variant="outline" size="icon"
-                        className="h-9 w-9 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
-                        disabled={actionLoading || company.seats >= 500}
-                        onClick={() => handleUpdateSeats(company.seats + 1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Az arányos elszámolás automatikusan történik.
-                    </p>
-                  </CardContent>
-                </AnimatedCard>
+              {/* Buy more licenses */}
+              <AnimatedCard>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-accent" /> Licenc vásárlás
+                  </CardTitle>
+                  <CardDescription className="text-xs">Jelenlegi licencek: <strong>{company.seats}</strong></CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Button variant="outline" size="icon"
+                      className="h-8 w-8 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
+                      disabled={actionLoading || addSeats <= 1}
+                      onClick={() => setAddSeats(s => Math.max(1, s - 1))}>
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="text-2xl font-bold min-w-[2.5rem] text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tabular-nums">
+                      +{addSeats}
+                    </span>
+                    <Button variant="outline" size="icon"
+                      className="h-8 w-8 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
+                      disabled={actionLoading || (company.seats + addSeats) >= 500}
+                      onClick={() => setAddSeats(s => Math.min(500 - company.seats, s + 1))}>
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                    <GalaxyButton onClick={handleBuyMoreSeats} disabled={actionLoading} className="ml-auto h-9 px-4 text-sm">
+                      {actionLoading ? <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" /> : <CreditCard className="h-4 w-4 mr-1.5" />}
+                      Vásárlás ({company.seats + addSeats} összesen)
+                    </GalaxyButton>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Az arányos elszámolás automatikusan történik.
+                  </p>
+                </CardContent>
+              </AnimatedCard>
 
-                {/* Plan switch */}
-                <AnimatedCard>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <ArrowRightLeft className="h-4 w-4 text-accent" /> Csomag váltás
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Jelenlegi: <strong className="text-foreground">{currentPlanLabel}</strong>
-                    </p>
-                    <GalaxyButton onClick={handleSwitchPlan} disabled={actionLoading} className="w-full">
-                      {actionLoading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <ArrowRightLeft className="h-4 w-4 mr-2" />}
+              {/* License table with plan type and switch */}
+              <AnimatedCard>
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ArrowRightLeft className="h-4 w-4 text-accent" /> Licencek és csomag
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Összes licenc a jelenlegi csomagtípussal
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-0 pb-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Felhasználó</TableHead>
+                        <TableHead className="text-xs">Állapot</TableHead>
+                        <TableHead className="text-xs">Csomag</TableHead>
+                        <TableHead className="text-xs">Lejárat</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {licenses.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-sm">
+                            Még nincs licenc.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        licenses.map((lic) => (
+                          <TableRow key={lic.id}>
+                            <TableCell className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                  {lic.status === 'assigned'
+                                    ? <User className="h-3 w-3 text-accent" />
+                                    : <ShieldCheck className="h-3 w-3 text-muted-foreground" />}
+                                </div>
+                                <span className="truncate max-w-[160px]">
+                                  {lic.assigned_user_id
+                                    ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
+                                    : <span className="text-muted-foreground italic">Szabad</span>}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={lic.status === 'assigned' ? 'default' : 'secondary'} className="text-[10px] h-5 px-1.5">
+                                {lic.status === 'assigned' ? 'Kiosztva' : 'Szabad'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                                {currentPlanLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {lic.expires_at
+                                ? new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'short', day: 'numeric' })
+                                : '–'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+
+                  {/* Global plan switch */}
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-border/50">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Jelenlegi csomag: </span>
+                      <strong className="text-foreground">{currentPlanLabel}</strong>
+                    </div>
+                    <GalaxyButton onClick={handleSwitchPlan} disabled={actionLoading} className="h-8 px-3 text-xs">
+                      {actionLoading ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />}
                       Váltás {otherPlanLabel} csomagra
                     </GalaxyButton>
-                  </CardContent>
-                </AnimatedCard>
-              </div>
+                  </div>
+                </CardContent>
+              </AnimatedCard>
 
               {/* Portal link */}
               <AnimatedCard>
-                <CardContent className="flex items-center justify-between py-3 px-4">
+                <CardContent className="flex items-center justify-between py-2.5 px-4">
                   <div>
                     <p className="text-sm font-medium">Stripe számlázási portál</p>
-                    <p className="text-xs text-muted-foreground">Számlák, fizetési mód, lemondás</p>
+                    <p className="text-[11px] text-muted-foreground">Számlák, fizetési mód, lemondás</p>
                   </div>
                   <Button onClick={handlePortal} disabled={actionLoading} variant="outline" size="sm"
-                    className="border-primary/20 hover:bg-primary/10 transition-all duration-200">
+                    className="h-8 border-primary/20 hover:bg-primary/10 transition-all duration-200">
                     <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Megnyitás
                   </Button>
                 </CardContent>
@@ -571,9 +631,9 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
             </div>
           ) : !polling ? (
             /* New subscription flow */
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Plan cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <PlanCard
                   title="Havi"
                   description="Rugalmas, havi elszámolás"
@@ -595,7 +655,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
 
               {pricesError && (
                 <AnimatedCard className="border-destructive/30">
-                  <CardContent className="flex items-center justify-between py-3 px-4">
+                  <CardContent className="flex items-center justify-between py-2.5 px-4">
                     <p className="text-sm text-muted-foreground">Nem sikerült betölteni az árakat.</p>
                     <Button variant="ghost" size="sm" onClick={fetchPrices} className="h-7 text-xs">
                       <RefreshCw className="h-3 w-3 mr-1" /> Újra
@@ -606,24 +666,24 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
 
               {/* Seat selector */}
               <AnimatedCard>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-sm flex items-center gap-2">
                     <Users className="h-4 w-4 text-accent" /> Licencek száma
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="flex items-center gap-3">
                     <Button variant="outline" size="icon"
-                      className="h-10 w-10 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
+                      className="h-9 w-9 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
                       disabled={seatCount <= 1}
                       onClick={() => setSeatCount((s) => Math.max(1, s - 1))}>
                       <Minus className="h-4 w-4" />
                     </Button>
-                    <span className="text-4xl font-bold min-w-[4rem] text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tabular-nums">
+                    <span className="text-3xl font-bold min-w-[3rem] text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tabular-nums">
                       {seatCount}
                     </span>
                     <Button variant="outline" size="icon"
-                      className="h-10 w-10 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
+                      className="h-9 w-9 border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200 active:scale-95"
                       disabled={seatCount >= 500}
                       onClick={() => setSeatCount((s) => Math.min(500, s + 1))}>
                       <Plus className="h-4 w-4" />
@@ -631,12 +691,12 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
                   </div>
 
                   {/* Estimated total */}
-                  <div className="flex items-center justify-between rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-primary/5 dark:bg-primary/10 px-4 py-2.5">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <TrendingUp className="h-3.5 w-3.5" /> Becsült összeg
+                  <div className="flex items-center justify-between rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-primary/5 dark:bg-primary/10 px-3 py-2">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <TrendingUp className="h-3 w-3" /> Becsült összeg
                     </span>
-                    <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tabular-nums">
-                      {estimatedTotal} {prices.monthly?.currency === 'huf' || !prices.monthly ? 'Ft' : prices.monthly.currency.toUpperCase()} <span className="text-xs font-normal text-muted-foreground">{periodLabel}</span>
+                    <span className="text-base font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tabular-nums">
+                      {estimatedTotal} {prices.monthly?.currency === 'huf' || !prices.monthly ? 'Ft' : prices.monthly.currency.toUpperCase()} <span className="text-[11px] font-normal text-muted-foreground">{periodLabel}</span>
                     </span>
                   </div>
 
@@ -648,23 +708,17 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
 
               {/* CTA */}
               <GalaxyButton
-                className="w-full h-12 text-base"
+                className="w-full h-10 text-sm"
                 onClick={handleCheckout}
                 disabled={actionLoading || pricesLoading}
               >
                 {actionLoading ? (
-                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <CreditCard className="h-5 w-5 mr-2" />
+                  <CreditCard className="h-4 w-4 mr-2" />
                 )}
-                {ctaLabel}
+                Előfizetés indítása
               </GalaxyButton>
-
-              {actionError && (
-                <Button variant="outline" size="sm" onClick={handleCheckout} className="w-full">
-                  <RefreshCw className="h-4 w-4 mr-2" /> Újrapróbálás
-                </Button>
-              )}
             </div>
           ) : null}
         </TabsContent>
@@ -672,8 +726,8 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
         {/* ─── Licenses tab ─── */}
         <TabsContent value="licenses" className="mt-0">
           <AnimatedCard>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-accent" /> Licencek ({licenses.length})
               </CardTitle>
               <CardDescription className="text-xs">
@@ -682,31 +736,31 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
             </CardHeader>
             <CardContent className="p-0">
               {licenses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <ShieldCheck className="h-8 w-8 mb-2 opacity-40" />
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <ShieldCheck className="h-7 w-7 mb-2 opacity-40" />
                   <p className="text-sm">Még nincs licenc.</p>
                 </div>
               ) : (
-                <ScrollArea className="h-[260px]">
+                <ScrollArea className="h-[220px]">
                   <div className="divide-y divide-border/50">
                     {licenses.map((lic) => (
-                      <div key={lic.id} className="flex items-center gap-3 px-5 py-3 transition-colors duration-200 hover:bg-primary/5 dark:hover:bg-primary/10">
-                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
+                      <div key={lic.id} className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-200 hover:bg-primary/5 dark:hover:bg-primary/10">
+                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
                           {lic.status === 'assigned' ? (
-                            <User className="h-4 w-4 text-accent" />
+                            <User className="h-3.5 w-3.5 text-accent" />
                           ) : (
-                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
                         </div>
-                         <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {lic.assigned_user_id 
+                            {lic.assigned_user_id
                               ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
                               : 'Szabad licenc'}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {lic.expires_at 
-                              ? `Lejárat: ${new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}` 
+                            {lic.expires_at
+                              ? `Lejárat: ${new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}`
                               : '–'}
                           </p>
                         </div>
@@ -725,24 +779,24 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
         {/* ─── History tab ─── */}
         <TabsContent value="history" className="mt-0">
           <AnimatedCard>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
                 <Clock className="h-4 w-4 text-accent" /> Számlázási előzmények
               </CardTitle>
               <CardDescription className="text-xs">Legutóbbi Stripe események</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {events.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                  <Receipt className="h-8 w-8 mb-2 opacity-40" />
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <Receipt className="h-7 w-7 mb-2 opacity-40" />
                   <p className="text-sm">Még nincs számlázási esemény.</p>
                 </div>
               ) : (
-                <ScrollArea className="h-[260px]">
+                <ScrollArea className="h-[220px]">
                   <div className="divide-y divide-border/50">
                     {events.map((ev) => (
-                      <div key={ev.id} className="flex items-center gap-3 px-5 py-3 transition-colors duration-200 hover:bg-primary/5 dark:hover:bg-primary/10">
-                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
+                      <div key={ev.id} className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-200 hover:bg-primary/5 dark:hover:bg-primary/10">
+                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
                           {eventIcon(ev.event_type)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -780,12 +834,12 @@ function MetricTile({ icon, label, value, subtitle, accent }: {
   icon: React.ReactNode; label: string; value: string; subtitle?: string; accent?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-3 transition-colors duration-200">
-      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+    <div className="flex flex-col gap-1 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-2.5 transition-colors duration-200">
+      <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
         {icon} {label}
       </span>
       <span className={cn(
-        "text-xl font-bold tabular-nums",
+        "text-lg font-bold tabular-nums",
         accent ? "bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" : "text-foreground",
       )}>
         {value}
@@ -810,26 +864,26 @@ function PlanCard({ title, description, price, period, selected, badge, onClick 
       onClick={onClick}
     >
       {selected && (
-        <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-scale-in">
-          <Check className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="absolute top-2.5 right-2.5 h-5 w-5 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-scale-in">
+          <Check className="h-3 w-3 text-primary-foreground" />
         </div>
       )}
       {badge && (
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-2.5 left-2.5">
           <Badge variant="secondary" className="text-[10px] bg-accent/15 text-accent border-accent/20">
             {badge}
           </Badge>
         </div>
       )}
-      <CardHeader className={cn("pb-1", badge && "pt-10")}>
-        <CardTitle className="text-lg">
+      <CardHeader className={cn("pb-1 pt-4", badge && "pt-9")}>
+        <CardTitle className="text-base">
           <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">{title}</span>
         </CardTitle>
         <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-4">
         <div className="flex items-baseline gap-1">
-          <span className="text-2xl font-bold text-foreground">{price}</span>
+          <span className="text-xl font-bold text-foreground">{price}</span>
           <span className="text-xs text-muted-foreground">{period}</span>
         </div>
       </CardContent>
