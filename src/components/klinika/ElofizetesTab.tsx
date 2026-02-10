@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  CreditCard, Users, Minus, Plus, ExternalLink, RefreshCw, Check,
-  Calendar, TrendingUp, Clock, Zap, AlertCircle,
-  CheckCircle2, XCircle, Receipt, Copy, ShieldCheck, User
+  CreditCard, Users, Minus, Plus, ExternalLink, RefreshCw,
+  Calendar, Clock, Zap, AlertCircle,
+  CheckCircle2, XCircle, Receipt, Copy, ShieldCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -115,7 +114,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const [yearlySeats, setYearlySeats] = useState(1);
   const [polling, setPolling] = useState(false);
   const [pollingTimedOut, setPollingTimedOut] = useState(false);
-  const [subTab, setSubTab] = useState<'manage' | 'history' | 'licenses'>('manage');
+  const [subTab, setSubTab] = useState<'manage' | 'history'>('manage');
 
   // ─── Data fetching ──────────────────────────────────────────
   const fetchCompany = useCallback(async () => {
@@ -167,12 +166,47 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
     }
   }, []);
 
+  // ─── Auto-assign: match unassigned users with free licenses ──
+  const autoAssignLicenses = useCallback(async () => {
+    if (!companyId || klinikaUsers.length === 0) return;
+
+    const availableLics = licenses.filter(l => l.status === 'available');
+    if (availableLics.length === 0) return;
+
+    const assignedUserIds = new Set(licenses.filter(l => l.status === 'assigned' && l.assigned_user_id).map(l => l.assigned_user_id));
+    const unassignedUsers = klinikaUsers.filter(u => !assignedUserIds.has(u.id));
+    if (unassignedUsers.length === 0) return;
+
+    const toAssign = Math.min(availableLics.length, unassignedUsers.length);
+    let changed = false;
+    for (let i = 0; i < toAssign; i++) {
+      const { error } = await supabase
+        .from('licenses')
+        .update({ assigned_user_id: unassignedUsers[i].id, status: 'assigned' })
+        .eq('id', availableLics[i].id)
+        .eq('status', 'available'); // optimistic lock
+      if (!error) changed = true;
+    }
+    if (changed) {
+      fetchLicenses();
+      toast.success(`${toAssign} licenc automatikusan kiosztva.`);
+    }
+  }, [companyId, klinikaUsers, licenses, fetchLicenses]);
+
   useEffect(() => {
     fetchCompany();
     fetchEvents();
     fetchLicenses();
     fetchPrices();
   }, [fetchCompany, fetchEvents, fetchLicenses, fetchPrices]);
+
+  // Run auto-assign after licenses and users are loaded
+  useEffect(() => {
+    if (!loading && licenses.length > 0 && klinikaUsers.length > 0) {
+      autoAssignLicenses();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, licenses.length, klinikaUsers.length]);
 
   // ─── Poll after checkout ────────────────────────────────────
   const startPolling = useCallback(() => {
@@ -291,18 +325,23 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const isPastDue = company?.subscription_status === 'past_due';
   const hasSubscription = isActive || isPastDue;
 
-  const userNameMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    klinikaUsers.forEach((u) => {
-      map[u.id] = u.full_name || u.email;
-    });
-    return map;
-  }, [klinikaUsers]);
-
-  const assignedLicenses = licenses.filter(l => l.status === 'assigned');
-  const availableLicenses = licenses.filter(l => l.status === 'available');
   const monthlyLicenses = licenses.filter(l => l.billing_interval === 'monthly');
   const yearlyLicenses = licenses.filter(l => l.billing_interval === 'yearly');
+  const assignedLicenses = licenses.filter(l => l.status === 'assigned');
+  const availableLicenses = licenses.filter(l => l.status === 'available');
+
+  // Compute renewal lines grouped by date + interval
+  const renewalLines = useMemo(() => {
+    const groups: Record<string, { date: string; interval: string; count: number }> = {};
+    licenses.forEach(lic => {
+      if (!lic.expires_at) return;
+      const dateStr = new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const key = `${dateStr}-${lic.billing_interval}`;
+      if (!groups[key]) groups[key] = { date: dateStr, interval: lic.billing_interval, count: 0 };
+      groups[key].count++;
+    });
+    return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date));
+  }, [licenses]);
 
   // ─── Loading ────────────────────────────────────────────────
   if (loading) {
@@ -379,7 +418,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
       <AnimatedCard className="overflow-hidden">
         <div className="relative p-4">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="relative grid grid-cols-2 md:grid-cols-3 gap-3">
             <MetricTile
               icon={<Users className="h-3.5 w-3.5" />}
               label="Licencek"
@@ -392,38 +431,31 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
               label="Havi / Éves"
               value={`${monthlyLicenses.length} / ${yearlyLicenses.length}`}
             />
-            <div className="flex flex-col gap-1 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-2.5 transition-colors duration-200">
+            <div className="flex flex-col gap-1 rounded-lg border border-primary/10 dark:border-sparkle-blue/10 bg-card/50 p-2.5 transition-colors duration-200 col-span-2 md:col-span-1">
               <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <Zap className="h-3 w-3" /> Státusz
+                <Calendar className="h-3 w-3" /> Megújítás
               </span>
-              <Badge
-                variant={isActive ? 'default' : isPastDue ? 'destructive' : 'secondary'}
-                className={cn("w-fit text-[11px]", isActive && "bg-accent/20 text-accent border-accent/30")}
-              >
-                {isActive ? 'Aktív' : isPastDue ? 'Lejárt fizetés' : 'Inaktív'}
-              </Badge>
+              {renewalLines.length === 0 ? (
+                <span className="text-sm text-muted-foreground">–</span>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  {renewalLines.map((r, i) => (
+                    <span key={i} className="text-sm font-medium tabular-nums">
+                      {r.date} – {r.count}db {r.interval === 'yearly' ? 'éves' : 'havi'}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-            <MetricTile
-              icon={<Calendar className="h-3.5 w-3.5" />}
-              label="Megújítás"
-              value={
-                company?.current_period_end
-                  ? new Date(company.current_period_end).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })
-                  : '–'
-              }
-            />
           </div>
         </div>
       </AnimatedCard>
 
-      {/* ═══ Sub-tabs: Manage / Licenses / History ═══ */}
-      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'history' | 'licenses')} className="space-y-3">
+      {/* ═══ Sub-tabs: Manage / History ═══ */}
+      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'history')} className="space-y-3">
         <TabsList className="bg-card/60 backdrop-blur-sm border border-primary/15 dark:border-sparkle-blue/15 p-0.5 h-8">
           <TabsTrigger value="manage" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Kezelés
-          </TabsTrigger>
-          <TabsTrigger value="licenses" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
-            <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Licencek
           </TabsTrigger>
           <TabsTrigger value="history" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <Receipt className="h-3.5 w-3.5 mr-1.5" /> Előzmények
@@ -470,12 +502,9 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
           {/* Buy yearly licenses */}
           <AnimatedCard>
             <CardHeader className="pb-2 pt-4 px-4">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-accent" /> Éves licenc vásárlás
-                </CardTitle>
-                
-              </div>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-accent" /> Éves licenc vásárlás
+              </CardTitle>
               <CardDescription className="text-xs">
                 {pricesLoading ? '...' : prices.yearly ? `${formatPrice(prices.yearly.unit_amount, prices.yearly.currency)} / év / licenc` : '–'}
               </CardDescription>
@@ -505,67 +534,30 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
             </CardContent>
           </AnimatedCard>
 
-          {/* License table in Kezelés */}
+          {/* License summary in Kezelés */}
           <AnimatedCard>
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-accent" /> Licencek ({licenses.length})
+                <ShieldCheck className="h-4 w-4 text-accent" /> Licenc összesítő
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-0 pb-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Felhasználó</TableHead>
-                    <TableHead className="text-xs">Állapot</TableHead>
-                    <TableHead className="text-xs">Típus</TableHead>
-                    <TableHead className="text-xs">Lejárat</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {licenses.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-sm">
-                        Még nincs licenc. Vásároljon fent havi vagy éves licenceket.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    licenses.map((lic) => (
-                      <TableRow key={lic.id}>
-                        <TableCell className="text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                              {lic.status === 'assigned'
-                                ? <User className="h-3 w-3 text-accent" />
-                                : <ShieldCheck className="h-3 w-3 text-muted-foreground" />}
-                            </div>
-                            <span className="truncate max-w-[160px]">
-                              {lic.assigned_user_id
-                                ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
-                                : <span className="text-muted-foreground italic">Szabad</span>}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={lic.status === 'assigned' ? 'default' : 'secondary'} className="text-[10px] h-5 px-1.5">
-                            {lic.status === 'assigned' ? 'Kiosztva' : 'Szabad'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                            {lic.billing_interval === 'yearly' ? 'Éves' : 'Havi'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {lic.expires_at
-                            ? new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'short', day: 'numeric' })
-                            : '–'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+            <CardContent className="px-4 pb-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 rounded-lg border border-primary/10 bg-card/50 p-3">
+                  <span className="text-[11px] text-muted-foreground">Havi licencek</span>
+                  <span className="text-xl font-bold tabular-nums text-foreground">{monthlyLicenses.length}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {monthlyLicenses.filter(l => l.status === 'assigned').length} kiosztva · {monthlyLicenses.filter(l => l.status === 'available').length} szabad
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 rounded-lg border border-primary/10 bg-card/50 p-3">
+                  <span className="text-[11px] text-muted-foreground">Éves licencek</span>
+                  <span className="text-xl font-bold tabular-nums text-foreground">{yearlyLicenses.length}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {yearlyLicenses.filter(l => l.status === 'assigned').length} kiosztva · {yearlyLicenses.filter(l => l.status === 'available').length} szabad
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </AnimatedCard>
 
@@ -595,60 +587,6 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
               </CardContent>
             </AnimatedCard>
           )}
-        </TabsContent>
-
-        {/* ─── Licenses tab ─── */}
-        <TabsContent value="licenses" className="mt-0">
-          <AnimatedCard>
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-accent" /> Licencek ({licenses.length})
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {assignedLicenses.length} kiosztva · {availableLicenses.length} szabad · {monthlyLicenses.length} havi · {yearlyLicenses.length} éves
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {licenses.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <ShieldCheck className="h-7 w-7 mb-2 opacity-40" />
-                  <p className="text-sm">Még nincs licenc.</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[220px]">
-                  <div className="divide-y divide-border/50">
-                    {licenses.map((lic) => (
-                      <div key={lic.id} className="flex items-center gap-3 px-4 py-2.5 transition-colors duration-200 hover:bg-primary/5 dark:hover:bg-primary/10">
-                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center">
-                          {lic.status === 'assigned' ? (
-                            <User className="h-3.5 w-3.5 text-accent" />
-                          ) : (
-                            <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {lic.assigned_user_id
-                              ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
-                              : 'Szabad licenc'}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {lic.billing_interval === 'yearly' ? 'Éves' : 'Havi'}
-                            {lic.expires_at
-                              ? ` · Lejárat: ${new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}`
-                              : ''}
-                          </p>
-                        </div>
-                        <Badge variant={lic.status === 'assigned' ? 'default' : 'secondary'} className="text-[10px] h-5 px-1.5 flex-shrink-0">
-                          {lic.status === 'assigned' ? 'Kiosztva' : 'Szabad'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </AnimatedCard>
         </TabsContent>
 
         {/* ─── History tab ─── */}
