@@ -31,6 +31,8 @@ export interface TreatmentRule {
   category: string | null;
   trigger_words: string[];
   semantic_description: string | null;
+  alapszabaly?: boolean;
+  aktiv?: boolean;
   created_at?: string;
   updated_at?: string;
   visits?: RuleVisit[];
