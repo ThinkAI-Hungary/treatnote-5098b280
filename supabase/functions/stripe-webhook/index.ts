@@ -11,6 +11,9 @@ const MONTHLY_PRICE_ID = "price_1Sz1XkDG9IVOU80stgzB49Nq";
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
 const KNOWN_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
 
+function priceToInterval(priceId: string | null | undefined): string {
+  return priceId === YEARLY_PRICE_ID ? "yearly" : "monthly";
+}
 // ─── License reconciliation helper ───────────────────────────
 async function reconcileLicenses(
   supabase: ReturnType<typeof createClient>,
@@ -19,6 +22,7 @@ async function reconcileLicenses(
   subscriptionId: string | null,
   subscriptionItemId: string | null,
   expiresAt: string | null,
+  billingInterval: string = "monthly",
 ) {
   // Get current licenses
   const { data: currentLicenses } = await supabase
@@ -40,6 +44,7 @@ async function reconcileLicenses(
       stripe_subscription_id: subscriptionId,
       stripe_subscription_item_id: subscriptionItemId,
       expires_at: expiresAt,
+      billing_interval: billingInterval,
     }));
     await supabase.from("licenses").insert(newLicenses);
 
@@ -180,7 +185,7 @@ serve(async (req) => {
           }).eq("id", companyId);
 
           // Reconcile licenses
-          await reconcileLicenses(supabase, companyId, seats, subscriptionId, item?.id || null, periodEnd);
+          await reconcileLicenses(supabase, companyId, seats, subscriptionId, item?.id || null, periodEnd, priceToInterval(item?.price.id));
         }
         break;
       }
@@ -213,7 +218,7 @@ serve(async (req) => {
         // Get company_id for license reconciliation
         const { data: comp } = await supabase.from("companies").select("id").eq("stripe_customer_id", customerId).maybeSingle();
         if (comp) {
-          await reconcileLicenses(supabase, comp.id, seats, subscription.id, item?.id || null, periodEnd);
+          await reconcileLicenses(supabase, comp.id, seats, subscription.id, item?.id || null, periodEnd, priceToInterval(item?.price.id));
         }
         break;
       }
@@ -259,7 +264,7 @@ serve(async (req) => {
             const { data: comp } = await supabase.from("companies").select("id").eq("stripe_customer_id", customerId).maybeSingle();
             if (comp) {
               const item = sub.items.data.find((i) => KNOWN_PRICES.includes(i.price.id));
-              await reconcileLicenses(supabase, comp.id, item?.quantity || 0, subscriptionId, item?.id || null, periodEnd);
+              await reconcileLicenses(supabase, comp.id, item?.quantity || 0, subscriptionId, item?.id || null, periodEnd, priceToInterval(item?.price.id));
             }
           } catch (e) {
             console.warn("Could not fetch subscription for period end refresh:", e);
