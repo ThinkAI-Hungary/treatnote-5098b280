@@ -474,7 +474,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
                 <CardTitle className="text-sm flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-accent" /> Éves licenc vásárlás
                 </CardTitle>
-                <Badge variant="secondary" className="text-[10px] bg-accent/15 text-accent border-accent/20">Kedvezményes</Badge>
+                
               </div>
               <CardDescription className="text-xs">
                 {pricesLoading ? '...' : prices.yearly ? `${formatPrice(prices.yearly.unit_amount, prices.yearly.currency)} / év / licenc` : '–'}
