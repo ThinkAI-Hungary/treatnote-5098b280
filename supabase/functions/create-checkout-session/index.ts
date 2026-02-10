@@ -151,8 +151,8 @@ serve(async (req) => {
         price_id,
         seats: String(seats),
       },
-      success_url: `${origin}/billing?checkout=success`,
-      cancel_url: `${origin}/billing?checkout=cancel`,
+      success_url: `${origin}/klinika-admin?tab=elofizetes&checkout=success`,
+      cancel_url: `${origin}/klinika-admin?tab=elofizetes`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
