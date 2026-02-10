@@ -70,10 +70,11 @@ serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify klinika_admin role + company ownership
-    const { data: hasRole } = await serviceClient.rpc("has_role", {
+    const { data: hasRole, error: roleError } = await serviceClient.rpc("has_role", {
       _user_id: userId,
       _role: "klinika_admin",
     });
+    console.log("has_role check:", { userId, hasRole, roleError });
     if (!hasRole) {
       return new Response(JSON.stringify({ error: "Forbidden: klinika_admin role required" }), {
         status: 403,
