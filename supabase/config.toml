@@ -83,3 +83,14 @@ verify_jwt = false
 
 [functions.generate-bno-embeddings]
 verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-checkout-session]
+
+[functions.update-seats]
+
+[functions.switch-plan]
+
+[functions.create-portal-session]
