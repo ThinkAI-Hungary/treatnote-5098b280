@@ -176,26 +176,53 @@ export type Database = {
       }
       companies: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string | null
+          current_period_end: string | null
           id: string
+          livemode: boolean
           name: string
+          seats: number
           slug: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          subscription_price_id: string | null
+          subscription_status: string
           telephely: string | null
           updated_at: string | null
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string | null
+          current_period_end?: string | null
           id?: string
+          livemode?: boolean
           name: string
+          seats?: number
           slug: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          subscription_price_id?: string | null
+          subscription_status?: string
           telephely?: string | null
           updated_at?: string | null
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string | null
+          current_period_end?: string | null
           id?: string
+          livemode?: boolean
           name?: string
+          seats?: number
           slug?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          subscription_price_id?: string | null
+          subscription_status?: string
           telephely?: string | null
           updated_at?: string | null
         }
@@ -915,6 +942,30 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          id: string
+          livemode: boolean
+          processed_at: string | null
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          id?: string
+          livemode?: boolean
+          processed_at?: string | null
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          id?: string
+          livemode?: boolean
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       szabalyepito_teszt_extractions: {
         Row: {
           company_id: string | null
@@ -1439,6 +1490,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_orphaned_embeddings: { Args: never; Returns: number }
+      clinic_subscription_active: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       col_exists: {
         Args: { p_col: string; p_table: unknown }
         Returns: boolean
