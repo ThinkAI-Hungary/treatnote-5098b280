@@ -35,6 +35,7 @@ import { TreatmentRule, RuleVisit, RuleItem, CATEGORY_OPTIONS } from '@/types/tr
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 
 interface KezelesiSzabalyokTabProps {
   companyId: string;
@@ -50,6 +51,7 @@ export function KezelesiSzabalyokTab({
   telephelyName 
 }: KezelesiSzabalyokTabProps) {
   const { user } = useAuth();
+  const { isAdmin } = useCachedRoles();
   const [rules, setRules] = useState<TreatmentRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,6 +173,14 @@ export function KezelesiSzabalyokTab({
   const isAllSelected = filteredRules.length > 0 && visibleSelectedIds.size === filteredRules.length;
   const isSomeSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < filteredRules.length;
 
+  // Deletable = selected but NOT alapszabaly
+  const deletableSelectedIds = useMemo(() => {
+    return Array.from(selectedIds).filter(id => {
+      const rule = rules.find(r => r.id === id);
+      return rule && !rule.alapszabaly;
+    });
+  }, [selectedIds, rules]);
+
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedIds(new Set());
@@ -272,20 +282,53 @@ export function KezelesiSzabalyokTab({
     }
   };
 
-  // Toggle aktiv status
+  // Toggle aktiv status — if rule is selected and part of a selection group, toggle all selected
   const handleToggleAktiv = async (rule: TreatmentRule) => {
     if (!rule.id) return;
+    
+    // If this rule is part of a multi-selection, toggle all selected
+    const idsToToggle = selectedIds.has(rule.id) && selectedIds.size > 1
+      ? Array.from(selectedIds)
+      : [rule.id];
+    
     const newValue = !rule.aktiv;
     try {
       const { error } = await supabase
         .from('treatment_rules')
         .update({ aktiv: newValue })
-        .eq('id', rule.id);
+        .in('id', idsToToggle);
       if (error) throw error;
-      toast.success(newValue ? 'Szabály aktiválva' : 'Szabály inaktiválva');
+      toast.success(
+        idsToToggle.length > 1
+          ? `${idsToToggle.length} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`
+          : (newValue ? 'Szabály aktiválva' : 'Szabály inaktiválva')
+      );
       loadRules();
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
+      toast.error('Hiba a státusz módosításakor');
+    }
+  };
+
+  // Bulk toggle all selected rules
+  const handleBulkToggle = async () => {
+    if (selectedIds.size === 0) return;
+    // Determine target value: if any selected is active, deactivate all; otherwise activate all
+    const anyActive = Array.from(selectedIds).some(id => {
+      const r = rules.find(rule => rule.id === id);
+      return r?.aktiv !== false;
+    });
+    const newValue = !anyActive;
+    try {
+      const { error } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: newValue })
+        .in('id', Array.from(selectedIds));
+      if (error) throw error;
+      toast.success(`${selectedIds.size} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`);
+      loadRules();
+    } catch (err: any) {
+      console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
     }
   };
@@ -639,20 +682,40 @@ export function KezelesiSzabalyokTab({
               </Select>
 
               {selectedIds.size > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={openBulkDeleteConfirm}
-                  disabled={bulkDeleting}
-                  className="flex items-center gap-2"
-                >
-                  {bulkDeleting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleBulkToggle}
+                          className="flex items-center gap-2"
+                        >
+                          <Power className="h-4 w-4" />
+                          Ki/Be ({selectedIds.size})
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Kijelöltek aktiválása/inaktiválása</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {isAdmin && deletableSelectedIds.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={openBulkDeleteConfirm}
+                      disabled={bulkDeleting}
+                      className="flex items-center gap-2"
+                    >
+                      {bulkDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      Törlés ({deletableSelectedIds.length})
+                    </Button>
                   )}
-                  Törlés ({selectedIds.size})
-                </Button>
+                </div>
               )}
             </div>
 
@@ -821,7 +884,7 @@ export function KezelesiSzabalyokTab({
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {!rule.alapszabaly && (
+                            {isAdmin && !rule.alapszabaly && (
                               <Button
                                 variant="ghost"
                                 size="icon"
