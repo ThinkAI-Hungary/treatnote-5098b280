@@ -164,7 +164,7 @@ export function KezelesiSzabalyokTab({
     const matchesCategory = categoryFilter === 'all' || rule.category === categoryFilter;
     
     return matchesSearch && matchesCategory;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name, 'hu'));
 
   // Selection derived state (after filteredRules is defined)
   const filteredRuleIds = new Set(filteredRules.map(r => r.id!));
@@ -207,9 +207,29 @@ export function KezelesiSzabalyokTab({
     setEditorOpen(true);
   };
 
-  // Open edit rule editor
+  // Open edit rule editor — for alapszabály, clone into a new "(SZERKESZTETT)" rule
   const handleEditRule = (rule: TreatmentRule) => {
-    setEditingRule(rule);
+    if (rule.alapszabaly) {
+      // Clone the rule as a new editable copy
+      const clonedRule: TreatmentRule = {
+        ...rule,
+        id: undefined,
+        name: `${rule.name} (SZERKESZTETT)`,
+        alapszabaly: false,
+        aktiv: true,
+        created_at: undefined,
+        updated_at: undefined,
+        visits: rule.visits?.map(v => ({
+          ...v,
+          id: undefined,
+          rule_id: undefined,
+          items: v.items.map(i => ({ ...i, id: undefined, visit_id: undefined })),
+        })),
+      };
+      setEditingRule(clonedRule);
+    } else {
+      setEditingRule(rule);
+    }
     setEditorOpen(true);
   };
 
@@ -799,21 +819,32 @@ export function KezelesiSzabalyokTab({
                         </TableCell>
                         <TableCell>
                           <TooltipProvider>
-                            {rule.alapszabaly ? (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Flag className="h-4 w-4 text-purple-500 fill-purple-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>Alapszabály</TooltipContent>
-                              </Tooltip>
-                            ) : rule.aktiv === false ? (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Flag className="h-4 w-4 text-muted-foreground fill-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>Inaktív</TooltipContent>
-                              </Tooltip>
-                            ) : null}
+                            <div className="flex items-center gap-1">
+                              {rule.alapszabaly && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Flag className="h-4 w-4 text-purple-500 fill-purple-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Alapszabály</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {rule.name.includes('(SZERKESZTETT)') && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Flag className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Szerkesztett alapszabály</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {rule.aktiv === false && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Flag className="h-4 w-4 text-muted-foreground fill-muted-foreground" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Inaktív</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                           </TooltipProvider>
                         </TableCell>
                         <TableCell className="font-medium">{rule.name}</TableCell>
