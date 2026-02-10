@@ -164,6 +164,28 @@ serve(async (req) => {
             });
           }
 
+          // Auto-assign an available license
+          try {
+            const { data: availableLicense } = await supabaseAdmin
+              .from("licenses")
+              .select("id")
+              .eq("company_id", invitation.company_id)
+              .eq("status", "available")
+              .is("assigned_user_id", null)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (availableLicense) {
+              await supabaseAdmin
+                .from("licenses")
+                .update({ assigned_user_id: caller.id, status: "assigned" })
+                .eq("id", availableLicense.id);
+              console.log(`Auto-assigned license ${availableLicense.id} to accepted user ${caller.id}`);
+            }
+          } catch (licErr) {
+            console.error("Error auto-assigning license on invitation accept:", licErr);
+          }
+
           console.log(`User ${caller.id} accepted invitation to company ${invitation.company_id}`);
         } else {
           console.log(`User ${caller.id} declined invitation to company ${invitation.company_id}`);
@@ -398,6 +420,28 @@ serve(async (req) => {
               status: 500,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
+          }
+
+          // Auto-assign an available license
+          try {
+            const { data: availableLicense } = await supabaseAdmin
+              .from("licenses")
+              .select("id")
+              .eq("company_id", companyId)
+              .eq("status", "available")
+              .is("assigned_user_id", null)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (availableLicense) {
+              await supabaseAdmin
+                .from("licenses")
+                .update({ assigned_user_id: userId, status: "assigned" })
+                .eq("id", availableLicense.id);
+              console.log(`Auto-assigned license ${availableLicense.id} to local user ${userId}`);
+            }
+          } catch (licErr) {
+            console.error("Error auto-assigning license to local user:", licErr);
           }
 
           console.log(`Local user ${userId} added directly to company ${companyId} and telephely ${telephelyId}`);
