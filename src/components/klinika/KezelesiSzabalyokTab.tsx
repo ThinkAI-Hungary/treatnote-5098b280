@@ -23,7 +23,10 @@ import {
   RefreshCw,
   Sparkles,
   Flag,
-  Power
+  Power,
+  Link2,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -37,11 +40,35 @@ import { hu } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 
+// --- Sort helpers ---
+type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
+type SortDir = 'asc' | 'desc';
+
 interface KezelesiSzabalyokTabProps {
   companyId: string;
   telephelyId: string;
   companyName: string;
   telephelyName: string;
+}
+
+// --- Linked pair helpers ---
+/** Given a rule name, return the base name it's derived from (strip " (SZERKESZTETT)") */
+function getBaseName(name: string): string {
+  return name.replace(/\s*\(SZERKESZTETT\)\s*$/, '');
+}
+
+/** Find the linked counterpart of a rule (base ↔ edited) */
+function findLinkedRule(rule: TreatmentRule, allRules: TreatmentRule[]): TreatmentRule | undefined {
+  if (rule.name.includes('(SZERKESZTETT)')) {
+    // This is an edited copy → find its base rule
+    const baseName = getBaseName(rule.name);
+    return allRules.find(r => r.id !== rule.id && r.alapszabaly && r.name === baseName);
+  }
+  if (rule.alapszabaly) {
+    // This is a base rule → find its edited copy
+    return allRules.find(r => r.id !== rule.id && r.name === `${rule.name} (SZERKESZTETT)`);
+  }
+  return undefined;
 }
 
 export function KezelesiSzabalyokTab({ 
@@ -57,6 +84,10 @@ export function KezelesiSzabalyokTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload'>('list');
+  
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -75,6 +106,11 @@ export function KezelesiSzabalyokTab({
   const [bulkDeleteAnchorPosition, setBulkDeleteAnchorPosition] = useState<{ x: number; y: number } | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // Linked-pair toggle warning state
+  const [linkedToggleConfirmOpen, setLinkedToggleConfirmOpen] = useState(false);
+  const [pendingToggleRule, setPendingToggleRule] = useState<TreatmentRule | null>(null);
+  const [pendingToggleLinked, setPendingToggleLinked] = useState<TreatmentRule | null>(null);
+
   // Upload state
   const [uploading, setUploading] = useState(false);
   
@@ -82,6 +118,12 @@ export function KezelesiSzabalyokTab({
   const [generating, setGenerating] = useState(false);
   const [backgroundProcessing, setBackgroundProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // Count total items across all visits
+  const countTotalItems = (rule: TreatmentRule): number => {
+    return rule.visits?.reduce((sum, visit) => sum + (visit.items?.length || 0), 0) || 0;
+  };
+
   // Load rules with visits and items
   const loadRules = useCallback(async () => {
     if (!telephelyId) return;
@@ -143,28 +185,68 @@ export function KezelesiSzabalyokTab({
     loadRules();
   }, [loadRules]);
 
-  // Filter rules - search in name, semantic description, and treatment items
-  const filteredRules = rules.filter(rule => {
-    const lowerSearch = searchTerm.toLowerCase();
-    
-    // Search in rule name
-    const matchesName = rule.name.toLowerCase().includes(lowerSearch);
-    
-    // Search in semantic description
-    const matchesDescription = rule.semantic_description?.toLowerCase().includes(lowerSearch) ?? false;
-    
-    // Search in treatment items (items within visits)
-    const matchesItem = rule.visits?.some(visit => 
-      visit.items?.some(item => 
-        item.name.toLowerCase().includes(lowerSearch)
-      )
-    ) || false;
-    
-    const matchesSearch = !searchTerm || matchesName || matchesDescription || matchesItem;
-    const matchesCategory = categoryFilter === 'all' || rule.category === categoryFilter;
-    
-    return matchesSearch && matchesCategory;
-  }).sort((a, b) => a.name.localeCompare(b.name, 'hu'));
+  // --- Sorting & grouping ---
+  const getSortValue = (rule: TreatmentRule): string | number => {
+    switch (sortColumn) {
+      case 'name': return rule.name;
+      case 'category': return rule.category || '';
+      case 'visits': return rule.visits?.length || 0;
+      case 'items': return countTotalItems(rule);
+      case 'created_at': return rule.created_at || '';
+      default: return rule.name;
+    }
+  };
+
+  const compareRules = (a: TreatmentRule, b: TreatmentRule): number => {
+    const va = getSortValue(a);
+    const vb = getSortValue(b);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') {
+      cmp = va - vb;
+    } else {
+      cmp = String(va).localeCompare(String(vb), 'hu');
+    }
+    return sortDir === 'desc' ? -cmp : cmp;
+  };
+
+  // Filter, sort, then group linked pairs together
+  const filteredRules = useMemo(() => {
+    // 1. Filter
+    const filtered = rules.filter(rule => {
+      const lowerSearch = searchTerm.toLowerCase();
+      const matchesName = rule.name.toLowerCase().includes(lowerSearch);
+      const matchesDescription = rule.semantic_description?.toLowerCase().includes(lowerSearch) ?? false;
+      const matchesItem = rule.visits?.some(visit => 
+        visit.items?.some(item => item.name.toLowerCase().includes(lowerSearch))
+      ) || false;
+      const matchesSearch = !searchTerm || matchesName || matchesDescription || matchesItem;
+      const matchesCategory = categoryFilter === 'all' || rule.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+
+    // 2. Sort
+    const sorted = [...filtered].sort(compareRules);
+
+    // 3. Group linked pairs: ensure "(SZERKESZTETT)" copy immediately follows its base
+    // Build a set of IDs already placed
+    const placed = new Set<string>();
+    const result: TreatmentRule[] = [];
+
+    for (const rule of sorted) {
+      if (placed.has(rule.id!)) continue;
+      result.push(rule);
+      placed.add(rule.id!);
+
+      // If this rule has a linked counterpart in the filtered list, place it right after
+      const linked = findLinkedRule(rule, filtered);
+      if (linked && !placed.has(linked.id!)) {
+        result.push(linked);
+        placed.add(linked.id!);
+      }
+    }
+
+    return result;
+  }, [rules, searchTerm, categoryFilter, sortColumn, sortDir]);
 
   // Selection derived state (after filteredRules is defined)
   const filteredRuleIds = new Set(filteredRules.map(r => r.id!));
@@ -180,6 +262,34 @@ export function KezelesiSzabalyokTab({
       return rule && !rule.alapszabaly;
     });
   }, [selectedIds, rules]);
+
+  // Check if a rule has a linked counterpart in filteredRules
+  const linkedMap = useMemo(() => {
+    const map = new Map<string, string>(); // ruleId -> linkedRuleId
+    for (const rule of filteredRules) {
+      const linked = findLinkedRule(rule, filteredRules);
+      if (linked) {
+        map.set(rule.id!, linked.id!);
+      }
+    }
+    return map;
+  }, [filteredRules]);
+
+  const toggleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return null;
+    return sortDir === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1 inline" /> 
+      : <ArrowDown className="h-3 w-3 ml-1 inline" />;
+  };
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
@@ -302,16 +412,29 @@ export function KezelesiSzabalyokTab({
     }
   };
 
-  // Toggle aktiv status — if rule is selected and part of a selection group, toggle all selected
+  // Toggle aktiv status with linked-pair mutual exclusion
   const handleToggleAktiv = async (rule: TreatmentRule) => {
     if (!rule.id) return;
     
+    const newValue = !rule.aktiv;
+    
+    // If activating, check for a linked counterpart that's currently active
+    if (newValue === true) {
+      const linked = findLinkedRule(rule, rules);
+      if (linked && linked.aktiv !== false) {
+        // Show warning popup
+        setPendingToggleRule(rule);
+        setPendingToggleLinked(linked);
+        setLinkedToggleConfirmOpen(true);
+        return;
+      }
+    }
+
     // If this rule is part of a multi-selection, toggle all selected
     const idsToToggle = selectedIds.has(rule.id) && selectedIds.size > 1
       ? Array.from(selectedIds)
       : [rule.id];
     
-    const newValue = !rule.aktiv;
     try {
       const { error } = await supabase
         .from('treatment_rules')
@@ -327,6 +450,36 @@ export function KezelesiSzabalyokTab({
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
       toast.error('Hiba a státusz módosításakor');
+    }
+  };
+
+  // Confirm linked toggle: activate the target, deactivate the linked one
+  const handleConfirmLinkedToggle = async () => {
+    if (!pendingToggleRule?.id || !pendingToggleLinked?.id) return;
+    try {
+      // Deactivate the linked rule
+      const { error: err1 } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: false })
+        .eq('id', pendingToggleLinked.id);
+      if (err1) throw err1;
+
+      // Activate the target rule
+      const { error: err2 } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: true })
+        .eq('id', pendingToggleRule.id);
+      if (err2) throw err2;
+
+      toast.success('Szabály aktiválva, a párja inaktiválva');
+      loadRules();
+    } catch (err: any) {
+      console.error('Error linked toggle:', err);
+      toast.error('Hiba a státusz módosításakor');
+    } finally {
+      setLinkedToggleConfirmOpen(false);
+      setPendingToggleRule(null);
+      setPendingToggleLinked(null);
     }
   };
 
@@ -351,11 +504,6 @@ export function KezelesiSzabalyokTab({
       console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
     }
-  };
-
-  // Count total items across all visits
-  const countTotalItems = (rule: TreatmentRule): number => {
-    return rule.visits?.reduce((sum, visit) => sum + (visit.items?.length || 0), 0) || 0;
   };
 
   // PDF Upload handlers - process single PDF and return result for aggregation
@@ -386,7 +534,6 @@ export function KezelesiSzabalyokTab({
         if (data.status === 'processed') {
           return { success: true, inserted: data.inserted || 0, duplicates: data.duplicates || 0 };
         } else {
-          // Async processing started
           return { success: true, inserted: 0, duplicates: 0 };
         }
       } else {
@@ -399,7 +546,6 @@ export function KezelesiSzabalyokTab({
     }
   };
 
-  // Single file upload handler (for single file selection)
   const handleFilePrepare = async (file: File) => {
     if (!companyId || !telephelyId || !companyName || !telephelyName || !user) {
       toast.error('Hiányzó cég vagy telephely azonosító');
@@ -435,7 +581,6 @@ export function KezelesiSzabalyokTab({
     }
   };
 
-  // Multiple file upload handler - process all PDFs in parallel
   const handleMultipleFiles = async (fileList: FileList) => {
     const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
     
@@ -457,10 +602,8 @@ export function KezelesiSzabalyokTab({
     toast.info(`${pdfFiles.length} PDF feldolgozása...`);
     
     try {
-      // Process all PDFs in parallel
       const results = await Promise.all(pdfFiles.map(file => processSinglePdf(file)));
       
-      // Aggregate results
       const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
       const totalDuplicates = results.reduce((sum, r) => sum + r.duplicates, 0);
       const successCount = results.filter(r => r.success).length;
@@ -479,11 +622,8 @@ export function KezelesiSzabalyokTab({
         toast.success(`${successCount} PDF elküldve feldolgozásra`);
       }
       
-      // Reload rules after processing
       loadRules();
       setActiveSubTab('list');
-      
-      // Poll for async results
       setTimeout(() => loadRules(), 5000);
     } finally {
       setUploading(false);
@@ -518,7 +658,6 @@ export function KezelesiSzabalyokTab({
     e.target.value = '';
   };
 
-  // Generate rules from dictionary
   const handleGenerateFromDictionary = async () => {
     if (!telephelyId || !user) {
       toast.error('Hiányzó telephely azonosító');
@@ -540,21 +679,18 @@ export function KezelesiSzabalyokTab({
 
       if (data?.ok) {
         if (data.status === 'started') {
-          // 🚀 Background processing started - use polling to check for new rules
           toast.success('Szabályok generálása elindult! A háttérben fut...');
-          setGenerating(false); // Allow button to be clicked again
-          setBackgroundProcessing(true); // Show processing indicator
+          setGenerating(false);
+          setBackgroundProcessing(true);
           
-          // Start aggressive polling: every 3 seconds for 2 minutes
           const initialRuleCount = rules.length;
           let pollCount = 0;
-          const maxPolls = 40; // 2 minutes / 3 seconds = 40 polls
+          const maxPolls = 40;
           
           const pollInterval = setInterval(async () => {
             pollCount++;
             await loadRules();
             
-            // Check if new rules appeared
             const currentRuleCount = rules.length;
             if (currentRuleCount > initialRuleCount) {
               clearInterval(pollInterval);
@@ -569,10 +705,9 @@ export function KezelesiSzabalyokTab({
             }
           }, 3000);
           
-          return; // Exit early, don't set generating to false again
+          return;
           
         } else if (data.status === 'processed') {
-          // Synchronous mode (legacy fallback)
           toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
           if (data.duplicates > 0) {
             toast.info(`${data.duplicates} duplikált szabály kihagyva`);
@@ -754,12 +889,37 @@ export function KezelesiSzabalyokTab({
                       />
                     </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
-                    <TableHead className="w-[250px]">Név</TableHead>
-                    <TableHead className="w-[150px]">Kategória</TableHead>
+                    <TableHead 
+                      className="w-[250px] cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('name')}
+                    >
+                      Név <SortIcon column="name" />
+                    </TableHead>
+                    <TableHead 
+                      className="w-[150px] cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('category')}
+                    >
+                      Kategória <SortIcon column="category" />
+                    </TableHead>
                     <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
-                    <TableHead className="w-[100px] text-center">Vizitek</TableHead>
-                    <TableHead className="w-[100px] text-center">Tételek</TableHead>
-                    <TableHead className="w-[150px]">Létrehozva</TableHead>
+                    <TableHead 
+                      className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('visits')}
+                    >
+                      Vizitek <SortIcon column="visits" />
+                    </TableHead>
+                    <TableHead 
+                      className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('items')}
+                    >
+                      Tételek <SortIcon column="items" />
+                    </TableHead>
+                    <TableHead 
+                      className="w-[150px] cursor-pointer select-none hover:text-foreground transition-colors"
+                      onClick={() => toggleSort('created_at')}
+                    >
+                      Létrehozva <SortIcon column="created_at" />
+                    </TableHead>
                     <TableHead className="w-[100px] text-right">Műveletek</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -799,137 +959,159 @@ export function KezelesiSzabalyokTab({
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRules.map((rule, index) => (
-                      <TableRow 
-                        key={rule.id}
-                        className={cn(
-                          "animate-fade-in",
-                          "hover:bg-muted/30 transition-colors",
-                          selectedIds.has(rule.id!) && "bg-primary/10",
-                          rule.aktiv === false && "opacity-50"
-                        )}
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(rule.id!)}
-                            onCheckedChange={() => toggleSelect(rule.id!)}
-                            aria-label={`${rule.name} kijelölése`}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TooltipProvider>
-                            <div className="flex items-center gap-1">
-                              {rule.alapszabaly && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Flag className="h-4 w-4 text-purple-500 fill-purple-500" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Alapszabály</TooltipContent>
-                                </Tooltip>
-                              )}
-                              {rule.name.includes('(SZERKESZTETT)') && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Flag className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Szerkesztett alapszabály</TooltipContent>
-                                </Tooltip>
-                              )}
-                              {rule.aktiv === false && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Flag className="h-4 w-4 text-muted-foreground fill-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>Inaktív</TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                          </TooltipProvider>
-                        </TableCell>
-                        <TableCell className="font-medium">{rule.name}</TableCell>
-                        <TableCell>
-                          {rule.category ? (
-                            <Badge variant="secondary" className="bg-primary/10 text-primary">
-                              {rule.category}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
+                    filteredRules.map((rule, index) => {
+                      const hasLinked = linkedMap.has(rule.id!);
+                      const linkedId = linkedMap.get(rule.id!);
+                      // Determine if this rule is the "first" of a linked pair (base rule comes first)
+                      const isFirstOfPair = hasLinked && (
+                        rule.alapszabaly || 
+                        (!rule.name.includes('(SZERKESZTETT)') && index < filteredRules.findIndex(r => r.id === linkedId))
+                      );
+                      // Is this rule the "second" of a linked pair?
+                      const isSecondOfPair = hasLinked && !isFirstOfPair;
+
+                      return (
+                        <TableRow 
+                          key={rule.id}
+                          className={cn(
+                            "animate-fade-in",
+                            "hover:bg-muted/30 transition-colors",
+                            selectedIds.has(rule.id!) && "bg-primary/10",
+                            rule.aktiv === false && "opacity-50",
+                            isFirstOfPair && "border-b-0",
+                            isSecondOfPair && "border-t-0",
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[350px]">
-                            {rule.semantic_description ? (
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {rule.semantic_description}
-                              </p>
-                            ) : (
-                              <span className="text-muted-foreground text-xs italic">
-                                Nincs leírás
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">
-                            {rule.visits?.length || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">
-                            {countTotalItems(rule)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {rule.created_at ? (
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {format(new Date(rule.created_at), 'yyyy.MM.dd', { locale: hu })}
-                            </div>
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(rule.id!)}
+                              onCheckedChange={() => toggleSelect(rule.id!)}
+                              aria-label={`${rule.name} kijelölése`}
+                            />
+                          </TableCell>
+                          <TableCell>
                             <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={cn("h-8 w-8", rule.aktiv === false && "text-muted-foreground")}
-                                    onClick={() => handleToggleAktiv(rule)}
-                                    title={rule.aktiv ? 'Kikapcsolás' : 'Bekapcsolás'}
-                                  >
-                                    <Power className={cn("h-4 w-4", rule.aktiv !== false && "text-green-500")} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{rule.aktiv !== false ? 'Kikapcsolás' : 'Bekapcsolás'}</TooltipContent>
-                              </Tooltip>
+                              <div className="flex items-center gap-1">
+                                {rule.alapszabaly && (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Flag className="h-4 w-4 text-purple-500 fill-purple-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Alapszabály</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {rule.name.includes('(SZERKESZTETT)') && (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Flag className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Szerkesztett alapszabály</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {rule.aktiv === false && (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Flag className="h-4 w-4 text-muted-foreground fill-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Inaktív</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {hasLinked && (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Link2 className="h-3.5 w-3.5 text-primary/60" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Összekapcsolt szabálypár</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
                             </TooltipProvider>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEditRule(rule)}
-                              title="Szerkesztés"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            {isAdmin && !rule.alapszabaly && (
+                          </TableCell>
+                          <TableCell className="font-medium">{rule.name}</TableCell>
+                          <TableCell>
+                            {rule.category ? (
+                              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                                {rule.category}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="max-w-[350px]">
+                              {rule.semantic_description ? (
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {rule.semantic_description}
+                                </p>
+                              ) : (
+                                <span className="text-muted-foreground text-xs italic">
+                                  Nincs leírás
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">
+                              {rule.visits?.length || 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">
+                              {countTotalItems(rule)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {rule.created_at ? (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {format(new Date(rule.created_at), 'yyyy.MM.dd', { locale: hu })}
+                              </div>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={cn("h-8 w-8", rule.aktiv === false && "text-muted-foreground")}
+                                      onClick={() => handleToggleAktiv(rule)}
+                                      title={rule.aktiv ? 'Kikapcsolás' : 'Bekapcsolás'}
+                                    >
+                                      <Power className={cn("h-4 w-4", rule.aktiv !== false && "text-green-500")} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{rule.aktiv !== false ? 'Kikapcsolás' : 'Bekapcsolás'}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={(e) => openDeleteConfirm(rule.id!, e)}
-                                title="Törlés"
+                                className="h-8 w-8"
+                                onClick={() => handleEditRule(rule)}
+                                title="Szerkesztés"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Pencil className="h-4 w-4" />
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                              {isAdmin && !rule.alapszabaly && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={(e) => openDeleteConfirm(rule.id!, e)}
+                                  title="Törlés"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -1031,13 +1213,25 @@ export function KezelesiSzabalyokTab({
       <ConfirmDialog
         open={bulkDeleteConfirmOpen}
         onOpenChange={setBulkDeleteConfirmOpen}
-        title={`${selectedIds.size} szabály törlése`}
-        description={`Biztosan törölni szeretné a kijelölt ${selectedIds.size} szabályt? Ez a művelet nem visszavonható.`}
-        confirmText={`Törlés (${selectedIds.size})`}
+        title={`${deletableSelectedIds.length} szabály törlése`}
+        description={`Biztosan törölni szeretné a kijelölt ${deletableSelectedIds.length} szabályt? Ez a művelet nem visszavonható.`}
+        confirmText={`Törlés (${deletableSelectedIds.length})`}
         cancelText="Mégse"
         onConfirm={handleBulkDelete}
         variant="danger"
         anchorPosition={bulkDeleteAnchorPosition}
+      />
+
+      {/* Linked pair toggle warning */}
+      <ConfirmDialog
+        open={linkedToggleConfirmOpen}
+        onOpenChange={setLinkedToggleConfirmOpen}
+        title="Összekapcsolt szabály"
+        description={`A "${pendingToggleLinked?.name || ''}" jelenleg aktív. Ha ezt a szabályt aktiválja, a párja automatikusan inaktiválódik.`}
+        confirmText="Aktiválás"
+        cancelText="Mégse"
+        onConfirm={handleConfirmLinkedToggle}
+        variant="warning"
       />
     </AnimatedCard>
   );
