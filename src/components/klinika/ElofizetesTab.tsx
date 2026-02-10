@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   CreditCard, Users, Minus, Plus, ExternalLink, RefreshCw,
   Calendar, Clock, Zap, AlertCircle,
@@ -114,7 +115,7 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const [yearlySeats, setYearlySeats] = useState(1);
   const [polling, setPolling] = useState(false);
   const [pollingTimedOut, setPollingTimedOut] = useState(false);
-  const [subTab, setSubTab] = useState<'manage' | 'history'>('manage');
+  const [subTab, setSubTab] = useState<'manage' | 'licenses' | 'history'>('manage');
 
   // ─── Data fetching ──────────────────────────────────────────
   const fetchCompany = useCallback(async () => {
@@ -330,6 +331,14 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
   const assignedLicenses = licenses.filter(l => l.status === 'assigned');
   const availableLicenses = licenses.filter(l => l.status === 'available');
 
+  const userNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    klinikaUsers.forEach((u) => {
+      map[u.id] = u.full_name || u.email;
+    });
+    return map;
+  }, [klinikaUsers]);
+
   // Compute renewal lines grouped by date + interval
   const renewalLines = useMemo(() => {
     const groups: Record<string, { date: string; interval: string; count: number }> = {};
@@ -451,11 +460,14 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
         </div>
       </AnimatedCard>
 
-      {/* ═══ Sub-tabs: Manage / History ═══ */}
-      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'history')} className="space-y-3">
+      {/* ═══ Sub-tabs: Manage / Licenses / History ═══ */}
+      <Tabs value={subTab} onValueChange={(v) => setSubTab(v as 'manage' | 'licenses' | 'history')} className="space-y-3">
         <TabsList className="bg-card/60 backdrop-blur-sm border border-primary/15 dark:border-sparkle-blue/15 p-0.5 h-8">
           <TabsTrigger value="manage" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Kezelés
+          </TabsTrigger>
+          <TabsTrigger value="licenses" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
+            <ShieldCheck className="h-3.5 w-3.5 mr-1.5" /> Licencek
           </TabsTrigger>
           <TabsTrigger value="history" className="text-xs h-7 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all duration-200">
             <Receipt className="h-3.5 w-3.5 mr-1.5" /> Előzmények
@@ -633,6 +645,70 @@ export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = []
                   </div>
                 </ScrollArea>
               )}
+            </CardContent>
+          </AnimatedCard>
+        </TabsContent>
+
+        {/* ─── Licenses tab ─── */}
+        <TabsContent value="licenses" className="mt-0">
+          <AnimatedCard>
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-accent" /> Összes licenc ({licenses.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {assignedLicenses.length} kiosztva · {availableLicenses.length} szabad
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <ScrollArea className="h-[300px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Felhasználó</TableHead>
+                      <TableHead className="text-xs">Állapot</TableHead>
+                      <TableHead className="text-xs">Típus</TableHead>
+                      <TableHead className="text-xs">Lejárat</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {licenses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-6 text-sm">
+                          Még nincs licenc.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      licenses.map((lic) => (
+                        <TableRow key={lic.id}>
+                          <TableCell className="text-sm">
+                            <span className="truncate max-w-[180px] block">
+                              {lic.assigned_user_id
+                                ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
+                                : <span className="text-muted-foreground italic">Szabad</span>}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={lic.status === 'assigned' ? 'default' : 'secondary'} className="text-[10px] h-5 px-1.5">
+                              {lic.status === 'assigned' ? 'Kiosztva' : 'Szabad'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                              {lic.billing_interval === 'yearly' ? 'Éves' : 'Havi'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {lic.expires_at
+                              ? new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'short', day: 'numeric' })
+                              : '–'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </CardContent>
           </AnimatedCard>
         </TabsContent>
