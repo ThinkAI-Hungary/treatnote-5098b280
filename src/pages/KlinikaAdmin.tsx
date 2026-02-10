@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw, Pencil
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw, Pencil, CreditCard
 } from 'lucide-react';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { KezelesiSzabalyokTab } from '@/components/klinika/KezelesiSzabalyokTab';
+import { ElofizetesTab } from '@/components/klinika/ElofizetesTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
@@ -59,9 +60,10 @@ export default function KlinikaAdmin() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Controlled tab state for tour navigation
+  const validTabs = ['users', 'kezelesi-szabalyok', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
-    return tabParam && ['users', 'kezelesi-szabalyok', 'szotar'].includes(tabParam) 
+    return tabParam && validTabs.includes(tabParam) 
       ? tabParam 
       : 'users';
   });
@@ -69,7 +71,7 @@ export default function KlinikaAdmin() {
   // Sync tab from URL param on mount and when URL changes
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['users', 'kezelesi-szabalyok', 'szotar'].includes(tabParam)) {
+    if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -500,6 +502,13 @@ export default function KlinikaAdmin() {
                 <Book className="h-4 w-4" />
                 Szótár
               </TabsTrigger>
+              <TabsTrigger 
+                value="elofizetes"
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+              >
+                <CreditCard className="h-4 w-4" />
+                Előfizetés
+              </TabsTrigger>
             </TabsList>
 
             {/* Tab content with min-height to prevent layout jumps */}
@@ -716,6 +725,13 @@ export default function KlinikaAdmin() {
                   telephelyId={telephelyId} 
                   companyName={companyName}
                   telephelyName={telephelyName}
+                />
+              </TabsContent>
+
+              <TabsContent value="elofizetes" className="mt-0">
+                <ElofizetesTab
+                  companyId={companyId}
+                  companyName={companyName}
                 />
               </TabsContent>
             </div>

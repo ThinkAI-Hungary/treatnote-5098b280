@@ -53,9 +53,7 @@ const mainMenuItems = [
   { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true },
 ];
 
-const secondaryMenuItems = [
-  { title: 'Számlázás', url: '/billing', icon: CreditCard },
-];
+const secondaryMenuItems: typeof mainMenuItems = [];
 
 const adminMenuItems = [
   { title: 'Admin Panel', url: '/admin', icon: Shield, requiresAdmin: true },
@@ -430,17 +428,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Egyéb - Always rendered */}
-        <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Egyéb</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondaryMenuItems.map((item) => (
-                <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Egyéb - Hidden (moved to Klinika Admin) */}
 
         {/* Admin - Only shown if user is admin */}
         {isAdmin && (
