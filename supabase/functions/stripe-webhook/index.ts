@@ -126,7 +126,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    event = await stripe.webhooks.constructEventAsync(rawBody, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return new Response(JSON.stringify({ error: "Invalid signature" }), {
