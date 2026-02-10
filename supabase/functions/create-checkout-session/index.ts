@@ -112,13 +112,8 @@ serve(async (req) => {
       });
     }
 
-    // Check if already has active subscription
-    if (company.subscription_status === "active") {
-      return new Response(JSON.stringify({ error: "Company already has an active subscription. Use seat/plan management instead." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Note: We allow creating checkout sessions even with an active subscription
+    // This enables buying additional licenses (monthly or yearly separately)
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
 

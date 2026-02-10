@@ -744,6 +744,31 @@ serve(async (req) => {
           // Don't fail the user creation if folder creation fails
         }
 
+        // Auto-assign an available license to the new user
+        try {
+          const { data: availableLicense } = await supabaseAdmin
+            .from("licenses")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("status", "available")
+            .is("assigned_user_id", null)
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (availableLicense) {
+            await supabaseAdmin
+              .from("licenses")
+              .update({ assigned_user_id: newUser.user.id, status: "assigned" })
+              .eq("id", availableLicense.id);
+            console.log(`Auto-assigned license ${availableLicense.id} to new user ${newUser.user.id}`);
+          } else {
+            console.log(`No available license to auto-assign for new user ${newUser.user.id}`);
+          }
+        } catch (licenseError) {
+          console.error("Error auto-assigning license:", licenseError);
+        }
+
         console.log(`User ${newUser.user.id} created by klinika_admin ${caller.id} with company ${companyId}`);
 
         return new Response(JSON.stringify({
