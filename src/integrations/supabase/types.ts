@@ -685,6 +685,50 @@ export type Database = {
           },
         ]
       }
+      licenses: {
+        Row: {
+          assigned_user_id: string | null
+          company_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          status: string
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          company_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           company_id: string | null
