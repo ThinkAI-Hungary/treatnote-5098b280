@@ -662,7 +662,6 @@ export default function KlinikaAdmin() {
                             <TableHead className="font-semibold">Email</TableHead>
                             <TableHead className="font-semibold">Név</TableHead>
                             <TableHead className="font-semibold">Licenc</TableHead>
-                            <TableHead className="font-semibold">Státusz</TableHead>
                             <TableHead className="font-semibold">Szerep</TableHead>
                             <TableHead className="text-right font-semibold">Műveletek</TableHead>
                           </TableRow>
@@ -683,16 +682,6 @@ export default function KlinikaAdmin() {
                                   )}
                                 >
                                   {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge 
-                                  variant={user.subscription_status === 'active' ? 'default' : 'secondary'}
-                                  className={cn(
-                                    user.subscription_status === 'active' && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-                                  )}
-                                >
-                                  {user.subscription_status === 'active' ? 'Aktív' : 'Inaktív'}
                                 </Badge>
                               </TableCell>
                               <TableCell>
