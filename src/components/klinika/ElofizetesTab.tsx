@@ -105,6 +105,7 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [seatCount, setSeatCount] = useState(1);
   const [polling, setPolling] = useState(false);
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
   const [subTab, setSubTab] = useState<'manage' | 'history' | 'licenses'>('manage');
 
   // ─── Data fetching ──────────────────────────────────────────
@@ -165,28 +166,43 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
   }, [fetchCompany, fetchEvents, fetchLicenses, fetchPrices]);
 
   // ─── Poll after checkout ────────────────────────────────────
-  useEffect(() => {
-    if (searchParams.get('checkout') !== 'success') return;
+  const startPolling = useCallback(() => {
+    if (!companyId) return;
     setPolling(true);
+    setPollingTimedOut(false);
     const interval = setInterval(async () => {
-      if (!companyId) return;
-      const { data } = await supabase
-        .from('companies')
-        .select('subscription_status')
-        .eq('id', companyId)
-        .single();
-      if (data?.subscription_status === 'active') {
-        setPolling(false);
-        clearInterval(interval);
-        fetchCompany();
-        fetchEvents();
-        fetchLicenses();
-        toast.success('Előfizetés aktiválva!');
+      try {
+        const { data } = await supabase
+          .from('companies')
+          .select('subscription_status')
+          .eq('id', companyId)
+          .single();
+        if (data?.subscription_status === 'active') {
+          setPolling(false);
+          clearInterval(interval);
+          clearTimeout(timeout);
+          fetchCompany();
+          fetchEvents();
+          fetchLicenses();
+          toast.success('Előfizetés aktiválva!');
+        }
+      } catch (err) {
+        console.error('[ElofizetesTab] Polling error:', err);
       }
     }, 3000);
-    const timeout = setTimeout(() => { setPolling(false); clearInterval(interval); }, 60000);
+    const timeout = setTimeout(() => {
+      setPolling(false);
+      setPollingTimedOut(true);
+      clearInterval(interval);
+    }, 60000);
     return () => { clearInterval(interval); clearTimeout(timeout); };
-  }, [searchParams, companyId, fetchCompany, fetchEvents, fetchLicenses]);
+  }, [companyId, fetchCompany, fetchEvents, fetchLicenses]);
+
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'success') return;
+    const cleanup = startPolling();
+    return cleanup;
+  }, [searchParams, startPolling]);
 
   // ─── Edge function helper ───────────────────────────────────
   async function invokeFunction(name: string, body: Record<string, unknown>) {
@@ -355,6 +371,36 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
           <CardContent className="flex items-center gap-3 py-3 px-4">
             <RefreshCw className="h-4 w-4 text-accent animate-spin" />
             <p className="text-sm text-muted-foreground">Fizetés feldolgozás alatt… kérjük, várjon.</p>
+          </CardContent>
+        </AnimatedCard>
+      )}
+
+      {/* Polling timeout banner */}
+      {pollingTimedOut && (
+        <AnimatedCard className="border-destructive/40">
+          <CardContent className="flex flex-col gap-3 py-4 px-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">Nem érkezett meg a fizetés visszaigazolása</p>
+                <p className="text-xs text-muted-foreground">
+                  Ez akkor fordulhat elő, ha a Stripe webhook feldolgozása késik. Kérjük, próbálja újra egy perc múlva, vagy frissítse az oldalt.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-7">
+              <Button variant="outline" size="sm" onClick={() => startPolling()} className="h-8 text-xs">
+                <RefreshCw className="h-3 w-3 mr-1.5" />
+                Újrapróbálás
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="h-8 text-xs">
+                Oldal frissítése
+              </Button>
+              <Button variant="ghost" size="sm" onClick={copyDebugInfo} className="h-8 text-xs">
+                <Copy className="h-3 w-3 mr-1.5" />
+                Debug info
+              </Button>
+            </div>
           </CardContent>
         </AnimatedCard>
       )}
