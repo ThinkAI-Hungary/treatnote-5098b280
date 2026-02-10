@@ -17,7 +17,7 @@ import DentalCharting from "./pages/DentalCharting";
 import VoiceRecording from "./pages/VoiceRecording";
 import Analytics from "./pages/Analytics";
 import Downloads from "./pages/Downloads";
-import Billing from "./pages/Billing";
+
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -60,7 +60,7 @@ const App = () => (
                 <Route path="/voice-recording" element={<VoiceRecording />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/downloads" element={<Downloads />} />
-                <Route path="/billing" element={<Billing />} />
+                
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/admin" element={<Admin />} />
