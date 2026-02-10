@@ -56,6 +56,24 @@ export default function KlinikaAdmin() {
     refreshInvitations,
   } = useKlinikaData();
 
+  // Fetch licenses to show per-user license status
+  const [userLicenseMap, setUserLicenseMap] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (!companyId) return;
+    supabase
+      .from('licenses')
+      .select('assigned_user_id, status')
+      .eq('company_id', companyId)
+      .in('status', ['assigned'])
+      .then(({ data }) => {
+        const map: Record<string, boolean> = {};
+        data?.forEach((l) => {
+          if (l.assigned_user_id) map[l.assigned_user_id] = true;
+        });
+        setUserLicenseMap(map);
+      });
+  }, [companyId, users]);
+
   // URL search params for tab navigation
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -643,6 +661,7 @@ export default function KlinikaAdmin() {
                           <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
                             <TableHead className="font-semibold">Email</TableHead>
                             <TableHead className="font-semibold">Név</TableHead>
+                            <TableHead className="font-semibold">Licenc</TableHead>
                             <TableHead className="font-semibold">Státusz</TableHead>
                             <TableHead className="font-semibold">Szerep</TableHead>
                             <TableHead className="text-right font-semibold">Műveletek</TableHead>
@@ -656,6 +675,16 @@ export default function KlinikaAdmin() {
                             >
                               <TableCell className="font-medium">{user.email}</TableCell>
                               <TableCell>{user.full_name || '-'}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={userLicenseMap[user.id] ? 'default' : 'outline'}
+                                  className={cn(
+                                    userLicenseMap[user.id] && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+                                  )}
+                                >
+                                  {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
+                                </Badge>
+                              </TableCell>
                               <TableCell>
                                 <Badge 
                                   variant={user.subscription_status === 'active' ? 'default' : 'secondary'}
@@ -732,6 +761,7 @@ export default function KlinikaAdmin() {
                 <ElofizetesTab
                   companyId={companyId}
                   companyName={companyName}
+                  users={users}
                 />
               </TabsContent>
             </div>

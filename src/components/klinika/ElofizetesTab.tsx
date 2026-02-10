@@ -52,9 +52,16 @@ interface License {
   created_at: string;
 }
 
+interface KlinikaUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+}
+
 interface ElofizetesTabProps {
   companyId: string | null;
   companyName: string | null;
+  users?: KlinikaUser[];
 }
 
 // ─── Event helpers ─────────────────────────────────────────────
@@ -91,7 +98,7 @@ function formatPrice(amount: number | null, currency: string): string {
 }
 
 // ─── Main component ────────────────────────────────────────────
-export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
+export function ElofizetesTab({ companyId, companyName, users: klinikaUsers = [] }: ElofizetesTabProps) {
   const [searchParams] = useSearchParams();
   const [company, setCompany] = useState<CompanySubscription | null>(null);
   const [events, setEvents] = useState<StripeEvent[]>([]);
@@ -330,6 +337,15 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
   const hasSubscription = isActive || isPastDue;
   const currentPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Éves' : 'Havi';
   const otherPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Havi' : 'Éves';
+
+  // Build a map from user ID to display name
+  const userNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    klinikaUsers.forEach((u) => {
+      map[u.id] = u.full_name || u.email;
+    });
+    return map;
+  }, [klinikaUsers]);
 
   const assignedLicenses = licenses.filter(l => l.status === 'assigned');
   const availableLicenses = licenses.filter(l => l.status === 'available');
@@ -682,12 +698,16 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
                             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
+                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                            {lic.assigned_user_id ? lic.assigned_user_id.slice(0, 8) + '…' : 'Szabad licenc'}
+                            {lic.assigned_user_id 
+                              ? (userNameMap[lic.assigned_user_id] || lic.assigned_user_id.slice(0, 8) + '…')
+                              : 'Szabad licenc'}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {lic.expires_at ? `Lejárat: ${new Date(lic.expires_at).toLocaleDateString('hu-HU')}` : '–'}
+                            {lic.expires_at 
+                              ? `Lejárat: ${new Date(lic.expires_at).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}` 
+                              : '–'}
                           </p>
                         </div>
                         <Badge variant={lic.status === 'assigned' ? 'default' : 'secondary'} className="text-[10px] h-5 px-1.5 flex-shrink-0">
@@ -730,7 +750,7 @@ export function ElofizetesTab({ companyId, companyName }: ElofizetesTabProps) {
                           <p className="text-[11px] text-muted-foreground">
                             {ev.processed_at
                               ? new Date(ev.processed_at).toLocaleString('hu-HU', {
-                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                                  year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
                                 })
                               : '–'}
                           </p>
