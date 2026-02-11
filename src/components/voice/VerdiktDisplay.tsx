@@ -266,7 +266,12 @@ function normalizeNewlines(text: string): string {
 }
 
 function TextualListPanel({ text }: { text?: string }) {
-  const normalizedText = useMemo(() => text ? normalizeNewlines(text) : '', [text]);
+  const normalizedText = useMemo(() => {
+    if (!text) return '';
+    const nl = normalizeNewlines(text);
+    // Increment Vizit numbers by 1 so they start from 1 instead of 0
+    return nl.replace(/Vizit\s+(\d+)/gi, (_, num) => `Vizit ${parseInt(num, 10) + 1}`);
+  }, [text]);
 
   return (
     <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
