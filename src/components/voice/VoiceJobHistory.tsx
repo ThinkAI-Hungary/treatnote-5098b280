@@ -1,17 +1,22 @@
-import { Clock, CheckCircle2, XCircle, Loader2, Mic, ChevronRight } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Loader2, Mic, ChevronRight, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { VoiceJob } from '@/hooks/useVoiceJobHistory';
+import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { hu } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface VoiceJobHistoryProps {
   jobs: VoiceJob[];
   isLoading: boolean;
   selectedJobId: string | null;
   onSelectJob: (job: VoiceJob) => void;
+  onJobTerminated?: () => void;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -43,7 +48,27 @@ function StatusIcon({ status }: { status: VoiceJob['status'] }) {
   }
 }
 
-export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob }: VoiceJobHistoryProps) {
+export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, onJobTerminated }: VoiceJobHistoryProps) {
+  const [terminatingJobId, setTerminatingJobId] = useState<string | null>(null);
+
+  const handleTerminateJob = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation();
+    setTerminatingJobId(jobId);
+    try {
+      const { error } = await supabase
+        .from('voice_jobs')
+        .delete()
+        .eq('id', jobId);
+      if (error) throw error;
+      toast.success('Feldolgozás leállítva');
+      onJobTerminated?.();
+    } catch (err) {
+      console.error('Failed to terminate job:', err);
+      toast.error('Nem sikerült leállítani a feldolgozást');
+    } finally {
+      setTerminatingJobId(null);
+    }
+  };
   if (isLoading) {
     return (
       <Card className="h-full">
@@ -120,10 +145,27 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob }:
                         </div>
                       )}
                     </div>
+                    {job.status === 'processing' ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 flex-shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => handleTerminateJob(e, job.id)}
+                        disabled={terminatingJobId === job.id}
+                        title="Feldolgozás leállítása"
+                      >
+                        {terminatingJobId === job.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    ) : (
                     <ChevronRight className={cn(
                       "h-4 w-4 text-muted-foreground/50 flex-shrink-0 transition-transform",
                       selectedJobId === job.id && "text-sparkle-blue"
                     )} />
+                    )}
                   </div>
                 </button>
               ))}

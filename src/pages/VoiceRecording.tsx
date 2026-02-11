@@ -32,7 +32,7 @@ export default function VoiceRecording() {
   const { hasSzotar, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins } = useKlinikaAdmins();
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
-  const { jobs, isLoading: historyLoading, pollJob } = useVoiceJobHistory();
+  const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useVoiceJobHistory();
   const navigate = useNavigate();
   
   // User ID for store operations
@@ -209,7 +209,7 @@ export default function VoiceRecording() {
       const data = await response.json();
       console.log('Webhook response:', JSON.stringify(data));
 
-      if (data?.success && data?.job_id) {
+      if (data?.job_id) {
         toast.info('Felvétel feltöltve, feldolgozás folyamatban...');
         setCurrentJobId(data.job_id);
         resetRecording();
@@ -325,6 +325,7 @@ export default function VoiceRecording() {
             isLoading={historyLoading}
             selectedJobId={selectedJobId}
             onSelectJob={handleSelectJob}
+            onJobTerminated={refetchJobs}
           />
         </div>
 
