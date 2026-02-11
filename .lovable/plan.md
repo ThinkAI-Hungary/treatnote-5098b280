@@ -1,39 +1,35 @@
 
 
-## Add `sajat_feltoltes` column to `treatment_rules`
+## Fix VerdiktDisplay: Field Name Mismatches and Rendering Issues
 
-### What this does
-Adds a new column `sajat_feltoltes` to the `treatment_rules` table that flags whether a treatment rule was uploaded via the Szabalyepito Teszt webhook (value = 1) or created through any other method (value = 0).
+### Problems Found
 
-### Steps
+**Problem 1: Hungarian vs English field names in interfaces (CRITICAL)**
+The actual webhook JSON from n8n uses Hungarian field names, but the TypeScript interfaces in `VerdiktDisplay.tsx` use English names. This causes the "Szabaly talaltatok" panel to show all N/A values:
 
-1. **Database Migration** -- Add `sajat_feltoltes` column to `treatment_rules`
-   - Type: `smallint`, NOT NULL, DEFAULT `0`
-   - All existing rows will automatically get value `0`
+| Interface field (English) | Actual JSON field (Hungarian) |
+|---|---|
+| `final_decision` | `eredmeny` |
+| `search_details` | `keresek` |
+| `selected` / `candidates` | `kivalasztott` / `jeloltek` |
+| `override` | `alapszabaly_override` |
+| `similarity_summary` | `similarity_osszesites` |
+| `total`, `matched`, `match_rate` | nested under `statisztika` |
 
-2. **Update `szabalyepito-teszt-webhook` Edge Function** -- Set `sajat_feltoltes = 1` on insert
-   - In the extraction processing loop (around line 538), add `sajat_feltoltes: 1` to the `treatment_rules` insert payload
+**Problem 2: Kitoltes text may appear truncated**
+The `linkifyText` function uses a regex with the `g` (global) flag combined with `.test()` inside a `.map()` loop. The `g` flag causes `.test()` to maintain internal state (`lastIndex`) across calls, which can lead to incorrect match/no-match results on subsequent iterations. This is a known JavaScript footgun. Also the ScrollArea `max-h-[500px]` may be too small for long treatment plans.
 
-3. **Update TypeScript types** -- Regenerate or manually add the field to `src/integrations/supabase/types.ts` so the frontend is aware of the new column
+### Solution
 
-### Technical details
+**File: `src/components/voice/VerdiktDisplay.tsx`**
 
-**Migration SQL:**
-```sql
-ALTER TABLE treatment_rules
-  ADD COLUMN sajat_feltoltes smallint NOT NULL DEFAULT 0;
-```
+1. Update `ExecutionReportHuman` interface to match actual JSON structure -- add `statisztika` wrapper with `similarity_osszesites` sub-object, keep `talalatok` as-is.
 
-**Edge Function change (line ~538):**
-```typescript
-.insert({
-  clinic_id: telephely_id,
-  name: extraction.fogalom,
-  category: extraction.kategoria || null,
-  semantic_description: extraction.semantic_description || null,
-  sajat_feltoltes: 1,  // <-- new
-})
-```
+2. Update `Talalat` interface to use Hungarian field names: `eredmeny` instead of `final_decision`, `keresek` instead of `search_details`. Update nested types: `kivalasztott` instead of `selected`, `jeloltek` instead of `candidates`, `alapszabaly_override` instead of `override`.
 
-No other edge functions or UI code that inserts into `treatment_rules` needs changes -- the DEFAULT 0 handles everything else automatically.
+3. Update `MatchItem` component to reference the corrected Hungarian field names (`item.eredmeny`, `item.keresek`, etc.).
+
+4. Fix `linkifyText`: remove the `g` flag from the regex used in `.test()`, or use a separate non-global regex for testing. The `split()` method ignores the `g` flag anyway.
+
+5. Increase `max-h` on Kitoltes ScrollArea from `500px` to `800px` for longer treatment plans.
 
