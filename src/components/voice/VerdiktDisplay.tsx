@@ -86,7 +86,7 @@ function hasThreePanelData(payload: TreatNotePayload | null): boolean {
 
 function formatSim(val: number | undefined | null): string {
   if (val == null) return 'N/A';
-  return val.toFixed(4);
+  return val.toFixed(2);
 }
 
 function val(v: unknown, fallback = 'N/A'): string {
@@ -101,7 +101,7 @@ function OriginalTextPanel({ text }: { text?: string }) {
     <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
         <FileText className="h-4 w-4 text-sparkle-blue" />
-        Original Text
+        Eredeti szöveg
       </h4>
       <ScrollArea className="max-h-[500px]">
         <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
@@ -119,7 +119,7 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
       <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
         <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Search className="h-4 w-4 text-accent" />
-          Semantic Matcher Results
+          Szabály találatok
         </h4>
         <p className="text-sm text-muted-foreground">N/A</p>
       </div>
@@ -133,7 +133,7 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
     <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
       <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
         <Search className="h-4 w-4 text-accent" />
-        Semantic Matcher Results
+        Szabály találatok
       </h4>
       <ScrollArea className="max-h-[600px]">
         <div className="space-y-6 text-sm">
@@ -226,7 +226,7 @@ function MatchItem({ item }: { item: Talalat }) {
               </div>
               {sd.primary.selected && (
                 <div className="text-foreground/80">
-                  Selected: {val(sd.primary.selected.name)} (sim: {formatSim(sd.primary.selected.similarity)})
+                  Selected: {val(sd.primary.selected.name)} (Hasonlóság: {formatSim(sd.primary.selected.similarity)})
                   {sd.primary.selected.override && <span className="ml-1 text-yellow-500">[override]</span>}
                 </div>
               )}
@@ -238,7 +238,7 @@ function MatchItem({ item }: { item: Talalat }) {
                       .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
                       .map((c, ci) => (
                         <div key={ci} className="text-xs text-foreground/70">
-                          {val(c.name)} | sim: {formatSim(c.similarity)} | alapszabaly: {val(c.alapszabaly)}
+                          {val(c.name)} | Hasonlóság: {formatSim(c.similarity)} | alapszabaly: {val(c.alapszabaly)}
                         </div>
                       ))}
                   </div>
@@ -256,7 +256,7 @@ function MatchItem({ item }: { item: Talalat }) {
               </div>
               {sd.fallback.selected && (
                 <div className="text-foreground/80">
-                  Selected: {val(sd.fallback.selected.name)} (sim: {formatSim(sd.fallback.selected.similarity)})
+                  Selected: {val(sd.fallback.selected.name)} (Hasonlóság: {formatSim(sd.fallback.selected.similarity)})
                 </div>
               )}
             </div>
@@ -273,7 +273,7 @@ function TextualListPanel({ text }: { text?: string }) {
     <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
         <Book className="h-4 w-4 text-galaxy-purple" />
-        Textual List
+        Kitöltés
       </h4>
       <ScrollArea className="max-h-[500px]">
         <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre font-mono overflow-x-auto" style={{ tabSize: 4 }}>
@@ -358,9 +358,9 @@ export function VerdiktDisplay({
           /* New three-panel layout */
           <Tabs defaultValue="original" className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="original">Original Text</TabsTrigger>
-              <TabsTrigger value="semantic">Semantic Matcher</TabsTrigger>
-              <TabsTrigger value="textual">Textual List</TabsTrigger>
+              <TabsTrigger value="original">Eredeti szöveg</TabsTrigger>
+              <TabsTrigger value="semantic">Szabály találatok</TabsTrigger>
+              <TabsTrigger value="textual">Kitöltés</TabsTrigger>
             </TabsList>
             <TabsContent value="original">
               <OriginalTextPanel text={payload?.transcriber?.text} />
