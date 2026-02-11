@@ -57,14 +57,14 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Clean up stale jobs (processing for more than 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Clean up stale jobs (processing for more than 10 minutes)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     
     const { data: staleJobs } = await supabaseAdmin
       .from('voice_jobs')
       .delete()
       .eq('status', 'processing')
-      .lt('created_at', fiveMinutesAgo)
+      .lt('created_at', tenMinutesAgo)
       .select('id');
     
     if (staleJobs && staleJobs.length > 0) {
@@ -264,72 +264,80 @@ serve(async (req) => {
 
     console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl}`);
     
-    try {
-      // Send to n8n and wait for response
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        body: webhookFormData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
-      }
-
-      const responseText = await response.text();
-      console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
-      
-      let resultData: unknown;
+    // Process webhook in the background using EdgeRuntime.waitUntil
+    // This allows the edge function to return immediately without timing out
+    const backgroundProcessing = (async () => {
       try {
-        resultData = JSON.parse(responseText);
-      } catch {
-        resultData = { szoveges_lista: responseText };
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+        
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          body: webhookFormData,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
+        }
+
+        const responseText = await response.text();
+        console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
+        
+        let resultData: unknown;
+        try {
+          resultData = JSON.parse(responseText);
+        } catch {
+          resultData = { szoveges_lista: responseText };
+        }
+
+        // Update job with success
+        await supabaseAdmin
+          .from('voice_jobs')
+          .update({
+            status: 'completed',
+            result: resultData,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+
+        console.log(`[Job ${jobId}] Completed successfully`);
+      } catch (webhookError) {
+        console.error(`[Job ${jobId}] Webhook error:`, webhookError);
+        
+        const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error';
+        await supabaseAdmin
+          .from('voice_jobs')
+          .update({
+            status: 'error',
+            error: errorMessage,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
       }
+    })();
 
-      // Update job with success
-      await supabaseAdmin
-        .from('voice_jobs')
-        .update({
-          status: 'completed',
-          result: resultData,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', jobId);
-
-      console.log(`[Job ${jobId}] Completed successfully`);
-
-      // Return result to frontend
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          job_id: jobId,
-          result: resultData
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    } catch (webhookError) {
-      console.error(`[Job ${jobId}] Webhook error:`, webhookError);
-      
-      // Update job with error
-      const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error';
-      await supabaseAdmin
-        .from('voice_jobs')
-        .update({
-          status: 'error',
-          error: errorMessage,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', jobId);
-
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          job_id: jobId,
-          error: errorMessage
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Use EdgeRuntime.waitUntil to process in background
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(backgroundProcessing);
+    } else {
+      // Fallback: await directly (shouldn't happen in production)
+      await backgroundProcessing;
     }
+
+    // Return immediately to frontend
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        job_id: jobId,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("Error in voice-recording-webhook function:", error);
     return new Response(
