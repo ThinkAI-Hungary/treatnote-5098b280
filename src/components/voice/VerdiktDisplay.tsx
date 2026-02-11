@@ -136,41 +136,14 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
         Szabály találatok
       </h4>
       <ScrollArea className="max-h-[600px]">
-        <div className="space-y-6 text-sm">
-          {/* Overall Statistics */}
-          <div className="space-y-2">
-            <h5 className="font-medium text-foreground">Overall Statistics</h5>
-            <div className="grid grid-cols-3 gap-2 text-foreground/80">
-              <div>Total: <span className="font-medium text-foreground">{val(report.total)}</span></div>
-              <div>Matched: <span className="font-medium text-foreground">{val(report.matched)}</span></div>
-              <div>Match rate: <span className="font-medium text-foreground">{val(report.match_rate)}</span></div>
-            </div>
-            {sim && (
-              <div className="mt-2">
-                <h6 className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Similarity Summary</h6>
-                <div className="grid grid-cols-4 gap-2 text-foreground/80">
-                  <div>Avg: <span className="font-medium">{formatSim(sim.average)}</span></div>
-                  <div>Med: <span className="font-medium">{formatSim(sim.median)}</span></div>
-                  <div>Min: <span className="font-medium">{formatSim(sim.min)}</span></div>
-                  <div>Max: <span className="font-medium">{formatSim(sim.max)}</span></div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Separator */}
-          <div className="border-t border-border/40" />
-
-          {/* Matches */}
-          <div className="space-y-5">
-            <h5 className="font-medium text-foreground">Matches ({talalatok.length})</h5>
-            {talalatok.map((t, idx) => (
-              <MatchItem key={idx} item={t} />
-            ))}
-            {talalatok.length === 0 && (
-              <p className="text-muted-foreground">No matches found.</p>
-            )}
-          </div>
+        <div className="space-y-5 text-sm">
+          <h5 className="font-medium text-foreground">Találatok ({talalatok.length})</h5>
+          {talalatok.map((t, idx) => (
+            <MatchItem key={idx} item={t} />
+          ))}
+          {talalatok.length === 0 && (
+            <p className="text-muted-foreground">Nincs találat.</p>
+          )}
         </div>
       </ScrollArea>
     </div>
@@ -186,13 +159,12 @@ function MatchItem({ item }: { item: Talalat }) {
       {/* Header */}
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-mono text-muted-foreground">#{val(item.sorszam)}</span>
-        <span className="text-xs text-muted-foreground">ID: {val(item.id)}</span>
       </div>
 
       {/* Input & Context */}
       <div className="space-y-1">
-        <div><span className="text-muted-foreground">Input: </span><span className="text-foreground">{val(item.input_text)}</span></div>
-        <div><span className="text-muted-foreground">Context: </span><span className="text-foreground">{val(item.context_text)}</span></div>
+        <div><span className="text-muted-foreground">Szabály: </span><span className="text-foreground">{val(item.input_text)}</span></div>
+        <div><span className="text-muted-foreground">Szövegkörnyezet: </span><span className="text-foreground">{val(item.context_text)}</span></div>
       </div>
 
       {/* Final Decision */}
@@ -268,7 +240,27 @@ function MatchItem({ item }: { item: Talalat }) {
 }
 
 // ── Panel 3: Textual List ──
+function linkifyText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s\\]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    urlRegex.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-sparkle-blue underline hover:text-sparkle-blue/80 break-all">
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+function normalizeNewlines(text: string): string {
+  return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+}
+
 function TextualListPanel({ text }: { text?: string }) {
+  const normalizedText = useMemo(() => text ? normalizeNewlines(text) : '', [text]);
+
   return (
     <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -277,7 +269,7 @@ function TextualListPanel({ text }: { text?: string }) {
       </h4>
       <ScrollArea className="max-h-[500px]">
         <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre font-mono overflow-x-auto" style={{ tabSize: 4 }}>
-          {text || 'N/A'}
+          {normalizedText ? linkifyText(normalizedText) : 'N/A'}
         </pre>
       </ScrollArea>
     </div>
