@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, X, Sparkles, ExternalLink } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info } from 'lucide-react';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useVoiceJobHistory, VoiceJob } from '@/hooks/useVoiceJobHistory';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
+import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,263 +24,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 
 type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
-
-// Helper to parse verdikt from structured JSON response
-interface ParsedVerdiktResult {
-  vizitekElements: React.ReactNode[];
-  szovegesLista: string | null;
-  szovegesMagyarazat: string | null;
-  link: string | null;
-}
-
-function parseVerdikt(responseData: unknown): ParsedVerdiktResult {
-  const result: ParsedVerdiktResult = {
-    vizitekElements: [],
-    szovegesLista: null,
-    szovegesMagyarazat: null,
-    link: null,
-  };
-  
-  try {
-    // Parse if string
-    let data = responseData;
-    if (typeof data === 'string') {
-      try {
-        data = JSON.parse(data);
-      } catch {
-        // If not valid JSON, return as plain text
-        const parsed = parseVerdiktPlainText(data as string);
-        result.vizitekElements = parsed.elements;
-        result.szovegesMagyarazat = parsed.szovegesMagyarazat;
-        return result;
-      }
-    }
-    
-    // Handle array response (webhook returns array)
-    if (Array.isArray(data) && data.length > 0) {
-      data = data[0];
-    }
-    
-    const response = data as {
-      link?: string;
-      osszesitett?: {
-        vizitek?: Record<string, {
-          kezelesek?: Record<string, { fogak?: string[] }>;
-        }>;
-      };
-      szoveges_lista?: string;
-    };
-    
-    // Extract link
-    result.link = response.link || null;
-    
-    // Extract szoveges_lista separately
-    result.szovegesLista = response.szoveges_lista || null;
-    
-    // Parse osszesitett.vizitek
-    const vizitek = response.osszesitett?.vizitek;
-    if (vizitek) {
-      // Sort vizit keys numerically
-      const vizitKeys = Object.keys(vizitek).sort((a, b) => parseInt(a) - parseInt(b));
-      
-      vizitKeys.forEach((vizitKey, vizitIdx) => {
-        const vizitNum = parseInt(vizitKey) + 1; // +1 as requested
-        const vizitData = vizitek[vizitKey];
-        
-        result.vizitekElements.push(
-          <div key={`vizit-${vizitKey}`} className={`font-semibold text-foreground ${vizitIdx > 0 ? 'mt-4' : ''}`}>
-            Vizit: {vizitNum}
-          </div>
-        );
-        
-        // Group kezelesek by fog
-        const kezelesek = vizitData.kezelesek || {};
-        const fogToKezelesek: Record<string, string[]> = {};
-        
-        Object.entries(kezelesek).forEach(([kezelesNev, kezelesData]) => {
-          const fogak = kezelesData.fogak || [];
-          fogak.forEach((fog) => {
-            if (!fogToKezelesek[fog]) {
-              fogToKezelesek[fog] = [];
-            }
-            fogToKezelesek[fog].push(kezelesNev);
-          });
-        });
-        
-        // Sort fog numbers
-        const sortedFogak = Object.keys(fogToKezelesek).sort((a, b) => parseInt(a) - parseInt(b));
-        
-        sortedFogak.forEach((fog) => {
-          result.vizitekElements.push(
-            <div key={`vizit-${vizitKey}-fog-${fog}`} className="font-medium text-foreground/90 mt-2 pl-8">
-              Fog: {fog}
-            </div>
-          );
-          
-          // Sort kezelesek alphabetically
-          const kezelesekForFog = fogToKezelesek[fog].sort();
-          kezelesekForFog.forEach((kezeles, kezelesIdx) => {
-            result.vizitekElements.push(
-              <div key={`vizit-${vizitKey}-fog-${fog}-kezeles-${kezelesIdx}`} className="pl-24 text-foreground/80">
-                - {kezeles}
-              </div>
-            );
-          });
-        });
-      });
-      
-      return result;
-    }
-    
-    // Fallback to szoveges_lista if no structured data
-    if (result.szovegesLista && result.vizitekElements.length === 0) {
-      const parsed = parseVerdiktPlainText(result.szovegesLista);
-      result.vizitekElements = parsed.elements;
-      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
-      result.szovegesLista = null; // Don't show separately if it's the only content
-    }
-    
-    // If nothing matched, try plain text parsing on original
-    if (typeof responseData === 'string' && result.vizitekElements.length === 0) {
-      const parsed = parseVerdiktPlainText(responseData);
-      result.vizitekElements = parsed.elements;
-      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
-    }
-    
-    if (result.vizitekElements.length === 0) {
-      result.vizitekElements = [<div key="empty">Nincs megjeleníthető adat</div>];
-    }
-    
-    return result;
-  } catch (e) {
-    console.error('Error parsing verdikt:', e);
-    if (typeof responseData === 'string') {
-      const parsed = parseVerdiktPlainText(responseData);
-      result.vizitekElements = parsed.elements;
-      result.szovegesMagyarazat = parsed.szovegesMagyarazat;
-    } else {
-      result.vizitekElements = [<div key="error">Hiba a válasz feldolgozása során</div>];
-    }
-    return result;
-  }
-}
-
-// Fallback plain text parser - now returns result object to extract szöveges magyarázat
-function parseVerdiktPlainText(text: string): { elements: React.ReactNode[]; szovegesMagyarazat: string | null } {
-  const lines = text.split('\n');
-  
-  // Find "szöveges magyarázat" section and extract it
-  let szovegesMagyarazatText: string | null = null;
-  let magyarazatStartIndex = -1;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const lowerLine = lines[i].toLowerCase();
-    if (lowerLine.includes('szöveges magyarázat') || lowerLine.includes('szoveges magyarazat')) {
-      magyarazatStartIndex = i;
-      break;
-    }
-  }
-  
-  // If found, extract the content after it (could be on same line or next lines)
-  if (magyarazatStartIndex >= 0) {
-    const magyarazatLines: string[] = [];
-    
-    // Check if content is on the same line (after colon or similar)
-    const firstLine = lines[magyarazatStartIndex];
-    const colonIndex = firstLine.indexOf(':');
-    if (colonIndex >= 0 && colonIndex < firstLine.length - 1) {
-      magyarazatLines.push(firstLine.substring(colonIndex + 1).trim().replace(/^\+\s*/, ''));
-    }
-    
-    // Also get any following lines that aren't vizit/fog/kezelés lines
-    for (let i = magyarazatStartIndex + 1; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-      const lower = trimmed.toLowerCase();
-      if (lower.startsWith('vizit') || lower.startsWith('fog') || lower.startsWith('kezelés')) {
-        break;
-      }
-      if (trimmed.length > 0) {
-        magyarazatLines.push(trimmed.replace(/^\+\s*/, ''));
-      }
-    }
-    
-    if (magyarazatLines.length > 0) {
-      szovegesMagyarazatText = magyarazatLines.join(' ').trim();
-    }
-  }
-  
-  // Filter out the magyarázat lines from the main elements
-  const filteredLines = magyarazatStartIndex >= 0 
-    ? lines.slice(0, magyarazatStartIndex)
-    : lines;
-  
-  const elements = filteredLines.map((line, lineIndex) => {
-    let processedLine = line;
-    let indentClass = '';
-    
-    // Increment Vizit numbers by 1
-    processedLine = processedLine.replace(/Vizit:\s*(\d+)/gi, (match, num) => {
-      const incremented = parseInt(num, 10) + 1;
-      return `Vizit: ${incremented}`;
-    });
-    
-    // Also handle vizitek variant
-    processedLine = processedLine.replace(/vizitek:\s*(\d+)/gi, (match, num) => {
-      const incremented = parseInt(num, 10) + 1;
-      return `vizitek: ${incremented}`;
-    });
-    
-    // Determine indentation based on content
-    const trimmedLine = processedLine.trim();
-    
-    if (trimmedLine.toLowerCase().startsWith('vizit')) {
-      indentClass = '';
-    } else if (trimmedLine.toLowerCase().startsWith('fog')) {
-      indentClass = 'pl-12';
-    } else if (trimmedLine.length > 0 && !trimmedLine.includes(':') && !trimmedLine.toLowerCase().startsWith('a kitöltés')) {
-      indentClass = 'pl-28';
-    } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•') || trimmedLine.startsWith('+')) {
-      indentClass = 'pl-28';
-    }
-    
-    // Split line by URL pattern and create clickable links
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = processedLine.split(urlRegex);
-    
-    const elements = parts.map((part, partIndex) => {
-      if (urlRegex.test(part)) {
-        urlRegex.lastIndex = 0;
-        return (
-          <a
-            key={`${lineIndex}-${partIndex}`}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
-          >
-            {part}
-            <ExternalLink className="h-3 w-3 inline-block" />
-          </a>
-        );
-      }
-      return <span key={`${lineIndex}-${partIndex}`}>{part}</span>;
-    });
-    
-    const isVizitLine = trimmedLine.toLowerCase().startsWith('vizit');
-    const isFogLine = trimmedLine.toLowerCase().startsWith('fog');
-    
-    return (
-      <div 
-        key={lineIndex} 
-        className={`${indentClass} ${isVizitLine ? 'font-semibold text-foreground mt-3 first:mt-0' : ''} ${isFogLine ? 'font-medium text-foreground/90 mt-2' : ''}`}
-      >
-        {elements}
-      </div>
-    );
-  });
-  
-  return { elements, szovegesMagyarazat: szovegesMagyarazatText };
-}
 
 export default function VoiceRecording() {
   const { user } = useAuth();
@@ -364,17 +108,14 @@ export default function VoiceRecording() {
     return () => clearInterval(pollInterval);
   }, [currentJobId, pollJob, setVerdikt]);
 
-  // Memoize parsed verdikt based on selected job or current verdikt
-  const parsedVerdikt = useMemo(() => {
+  // Get response data for verdikt display
+  const verdiktResponseData = useMemo(() => {
     if (selectedJobId) {
-      const selectedJob = jobs.find(j => j.id === selectedJobId);
-      if (selectedJob?.result) {
-        return parseVerdikt(selectedJob.result);
-      }
-      return null;
+      const job = jobs.find(j => j.id === selectedJobId);
+      return job?.result ?? null;
     }
     if (!verdikt) return null;
-    return parseVerdikt(verdikt);
+    try { return JSON.parse(verdikt); } catch { return verdikt; }
   }, [verdikt, selectedJobId, jobs]);
 
   const handleOpenFlexiDialog = () => {
@@ -851,126 +592,23 @@ export default function VoiceRecording() {
           </Card>
 
           {/* Verdikt card - full width below all cards */}
-          {(isVerdiktLoading || verdikt || selectedJob) && (
-            <Card className="md:col-span-2 xl:col-span-3 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sparkle-blue/20 to-galaxy-purple/20 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-sparkle-blue" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">
-                      {selectedJob ? 'Előzmény részletei' : 'Verdikt'}
-                    </CardTitle>
-                    <CardDescription>
-                      {selectedJob 
-                        ? `${selectedJob.mode.toUpperCase()} - Páciens #${selectedJob.paciens_id || 'N/A'}`
-                        : 'A feldolgozás eredménye'
-                      }
-                    </CardDescription>
-                  </div>
-                </div>
-                {!isVerdiktLoading && (verdikt || selectedJob) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-destructive/10"
-                    onClick={() => {
-                      if (selectedJob) {
-                        setSelectedJobId(null);
-                      } else {
-                        clearVerdikt();
-                      }
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {isVerdiktLoading ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="relative">
-                      <Loader2 className="h-10 w-10 animate-spin text-sparkle-blue" />
-                      <div className="absolute inset-0 h-10 w-10 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
-                    </div>
-                    <p className="text-muted-foreground text-center mt-4">
-                      Feldolgozás folyamatban...
-                    </p>
-                  </div>
-                ) : selectedJob?.status === 'error' ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-destructive">
-                    <AlertCircle className="h-10 w-10 mb-4" />
-                    <p className="text-center font-medium">Hiba történt a feldolgozás során</p>
-                    <p className="text-sm text-muted-foreground mt-2">{selectedJob.error}</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Left side - Vizitek and Link */}
-                    <div className={`relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm ${(parsedVerdikt?.szovegesLista || parsedVerdikt?.szovegesMagyarazat) ? 'lg:flex-1' : 'w-full'}`}>
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-sparkle-blue/5 rounded-full blur-3xl pointer-events-none" />
-                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-galaxy-purple/5 rounded-full blur-2xl pointer-events-none" />
-                      <div className="relative text-sm leading-relaxed text-foreground/90 space-y-1">
-                        {/* Link at top */}
-                        {parsedVerdikt?.link && (
-                          <div className="mb-4">
-                            <span>A kitöltés értékét itt tudja megtekinteni: </span>
-                            <a
-                              href={parsedVerdikt.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sparkle-blue hover:text-sparkle-blue/80 underline underline-offset-2 inline-flex items-center gap-1 transition-colors"
-                            >
-                              {parsedVerdikt.link}
-                              <ExternalLink className="h-3 w-3 inline-block" />
-                            </a>
-                          </div>
-                        )}
-                        {parsedVerdikt?.vizitekElements}
-                      </div>
-                    </div>
-                    
-                    {/* Right side - Szöveges magyarázat (extracted summary) */}
-                    {parsedVerdikt?.szovegesMagyarazat && (
-                      <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-[28rem] lg:flex-shrink-0">
-                        <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
-                        <div className="relative">
-                          <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-galaxy-purple/20 text-galaxy-purple text-sm">✦</span>
-                            Szöveges magyarázat
-                          </h4>
-                          <p 
-                            className="text-sm leading-relaxed text-foreground/90"
-                            style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                          >
-                            {parsedVerdikt.szovegesMagyarazat}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Right side - Felmondott szöveg (if available and no szoveges magyarázat) */}
-                    {parsedVerdikt?.szovegesLista && !parsedVerdikt?.szovegesMagyarazat && (
-                      <div className="relative rounded-xl border border-galaxy-purple/30 bg-gradient-to-br from-galaxy-purple/10 via-muted/20 to-transparent p-5 backdrop-blur-sm lg:w-[28rem] lg:flex-shrink-0 max-h-[400px] overflow-y-auto">
-                        <div className="absolute top-0 left-0 w-24 h-24 bg-galaxy-purple/10 rounded-full blur-3xl pointer-events-none" />
-                        <div className="relative">
-                          <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                            <Book className="h-4 w-4 text-galaxy-purple" />
-                            Felmondott szöveg
-                          </h4>
-                          <p 
-                            className="text-sm leading-relaxed text-foreground/80 italic font-mono break-words"
-                            style={{ maxWidth: '64ch', wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                          >
-                            "{parsedVerdikt.szovegesLista}"
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {(isVerdiktLoading || verdiktResponseData || selectedJob) && (
+            <VerdiktDisplay
+              isLoading={isVerdiktLoading}
+              responseData={selectedJob ? selectedJob.result : verdiktResponseData}
+              isSelectedJob={!!selectedJob}
+              selectedJobMode={selectedJob?.mode}
+              selectedJobPaciensId={selectedJob?.paciens_id}
+              selectedJobError={selectedJob?.error}
+              selectedJobStatus={selectedJob?.status}
+              onClose={() => {
+                if (selectedJob) {
+                  setSelectedJobId(null);
+                } else {
+                  clearVerdikt();
+                }
+              }}
+            />
           )}
       </div>
 
