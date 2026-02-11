@@ -15,14 +15,17 @@ interface TreatNotePayload {
 }
 
 interface ExecutionReportHuman {
-  total?: number;
-  matched?: number;
-  match_rate?: string | number;
-  similarity_summary?: {
-    average?: number;
-    median?: number;
-    min?: number;
-    max?: number;
+  statisztika?: {
+    total?: number;
+    matched?: number;
+    match_rate?: string | number;
+    similarity_osszesites?: {
+      darab?: number;
+      atlag?: number;
+      median?: number;
+      min?: number;
+      max?: number;
+    };
   };
   talalatok?: Talalat[];
 }
@@ -32,7 +35,7 @@ interface Talalat {
   id?: string;
   input_text?: string;
   context_text?: string;
-  final_decision?: {
+  eredmeny?: {
     status?: string;
     rule_name?: string;
     rule_id?: string | null;
@@ -40,16 +43,16 @@ interface Talalat {
     valasztas_modja?: string;
     mi_alapjan?: string;
   };
-  search_details?: {
+  keresek?: {
     primary?: {
       status?: string;
       threshold?: number;
-      selected?: {
+      kivalasztott?: {
         name?: string;
         similarity?: number;
-        override?: boolean;
+        alapszabaly_override?: boolean;
       };
-      candidates?: Array<{
+      jeloltek?: Array<{
         name?: string;
         similarity?: number;
         alapszabaly?: boolean;
@@ -57,11 +60,11 @@ interface Talalat {
     };
     fallback?: {
       status?: string;
-      threshold?: number;
-      selected?: {
+      threshold?: number | null;
+      kivalasztott?: {
         name?: string;
         similarity?: number;
-      };
+      } | null;
     };
   };
 }
@@ -73,6 +76,10 @@ function parsePayload(responseData: unknown): TreatNotePayload | null {
       try { data = JSON.parse(data); } catch { return null; }
     }
     if (Array.isArray(data) && data.length > 0) data = data[0];
+    // Handle wrapped { payload: ... } structure
+    if (data && typeof data === 'object' && 'payload' in data) {
+      data = (data as Record<string, unknown>).payload;
+    }
     return data as TreatNotePayload;
   } catch {
     return null;
@@ -126,7 +133,6 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
     );
   }
 
-  const sim = report.similarity_summary;
   const talalatok = report.talalatok || [];
 
   return (
@@ -151,8 +157,13 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
 }
 
 function MatchItem({ item }: { item: Talalat }) {
-  const fd = item.final_decision;
-  const sd = item.search_details;
+  const fd = item.eredmeny;
+  const sd = item.keresek;
+
+  // Extract only the context part after "Kontextus:"
+  const contextOnly = item.context_text?.includes('Kontextus:')
+    ? item.context_text.split('Kontextus:')[1]?.trim()
+    : item.context_text;
 
   return (
     <div className="border border-border/30 rounded-lg p-4 space-y-3 bg-muted/10">
@@ -164,53 +175,52 @@ function MatchItem({ item }: { item: Talalat }) {
       {/* Input & Context */}
       <div className="space-y-1">
         <div><span className="text-muted-foreground">Szabály: </span><span className="text-foreground">{val(item.input_text)}</span></div>
-        <div><span className="text-muted-foreground">Szövegkörnyezet: </span><span className="text-foreground">{val(item.context_text)}</span></div>
+        <div><span className="text-muted-foreground">Szövegkörnyezet: </span><span className="text-foreground">{val(contextOnly)}</span></div>
       </div>
 
-      {/* Final Decision */}
+      {/* Eredmeny (Final Decision) */}
       {fd && (
         <div className="space-y-1 pl-3 border-l-2 border-sparkle-blue/40">
-          <h6 className="text-xs font-semibold uppercase tracking-wide text-sparkle-blue">Final Decision</h6>
+          <h6 className="text-xs font-semibold uppercase tracking-wide text-sparkle-blue">Eredmény</h6>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-foreground/80">
             <div>Status: <span className="font-medium">{val(fd.status)}</span></div>
             <div>Rule: <span className="font-medium">{val(fd.rule_name)}</span></div>
-            <div>Rule ID: <span className="font-mono text-xs">{fd.rule_id === null ? 'null' : val(fd.rule_id)}</span></div>
-            <div>Alapszabaly: <span className="font-medium">{val(fd.alapszabaly)}</span></div>
-            <div>Valasztas modja: <span className="font-medium">{val(fd.valasztas_modja)}</span></div>
+            <div>Alapszabály: <span className="font-medium">{val(fd.alapszabaly)}</span></div>
+            <div>Választás módja: <span className="font-medium">{val(fd.valasztas_modja)}</span></div>
           </div>
           {fd.mi_alapjan && (
-            <div className="mt-1"><span className="text-muted-foreground">Mi alapjan: </span><span className="text-foreground/90 italic">{fd.mi_alapjan}</span></div>
+            <div className="mt-1"><span className="text-muted-foreground">Mi alapján: </span><span className="text-foreground/90 italic">{fd.mi_alapjan}</span></div>
           )}
         </div>
       )}
 
-      {/* Search Details */}
+      {/* Keresek (Search Details) */}
       {sd && (
         <div className="space-y-2 pl-3 border-l-2 border-accent/30">
-          <h6 className="text-xs font-semibold uppercase tracking-wide text-accent">Search Details</h6>
+          <h6 className="text-xs font-semibold uppercase tracking-wide text-accent">Keresés részletei</h6>
           
           {/* Primary */}
           {sd.primary && (
             <div className="space-y-1">
               <div className="text-xs font-medium text-foreground">Primary</div>
               <div className="text-foreground/80">
-                Status: {val(sd.primary.status)} | Threshold: {formatSim(sd.primary.threshold)}
+                Status: {val(sd.primary.status)} | Küszöb: {formatSim(sd.primary.threshold)}
               </div>
-              {sd.primary.selected && (
+              {sd.primary.kivalasztott && (
                 <div className="text-foreground/80">
-                  Selected: {val(sd.primary.selected.name)} (Hasonlóság: {formatSim(sd.primary.selected.similarity)})
-                  {sd.primary.selected.override && <span className="ml-1 text-yellow-500">[override]</span>}
+                  Kiválasztott: {val(sd.primary.kivalasztott.name)} (Hasonlóság: {formatSim(sd.primary.kivalasztott.similarity)})
+                  {sd.primary.kivalasztott.alapszabaly_override && <span className="ml-1 text-yellow-500">[override]</span>}
                 </div>
               )}
-              {sd.primary.candidates && sd.primary.candidates.length > 0 && (
+              {sd.primary.jeloltek && sd.primary.jeloltek.length > 0 && (
                 <div className="mt-1">
-                  <div className="text-xs text-muted-foreground mb-1">Candidates (by similarity desc):</div>
+                  <div className="text-xs text-muted-foreground mb-1">Jelöltek (hasonlóság szerint):</div>
                   <div className="space-y-0.5 pl-2">
-                    {[...sd.primary.candidates]
+                    {[...sd.primary.jeloltek]
                       .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
                       .map((c, ci) => (
                         <div key={ci} className="text-xs text-foreground/70">
-                          {val(c.name)} | Hasonlóság: {formatSim(c.similarity)} | alapszabaly: {val(c.alapszabaly)}
+                          {val(c.name)} | Hasonlóság: {formatSim(c.similarity)} | alapszabály: {val(c.alapszabaly)}
                         </div>
                       ))}
                   </div>
@@ -220,15 +230,15 @@ function MatchItem({ item }: { item: Talalat }) {
           )}
 
           {/* Fallback */}
-          {sd.fallback && (
+          {sd.fallback && sd.fallback.status !== 'N/A' && (
             <div className="space-y-1">
               <div className="text-xs font-medium text-foreground">Fallback</div>
               <div className="text-foreground/80">
-                Status: {val(sd.fallback.status)} | Threshold: {formatSim(sd.fallback.threshold)}
+                Status: {val(sd.fallback.status)} | Küszöb: {formatSim(sd.fallback.threshold)}
               </div>
-              {sd.fallback.selected && (
+              {sd.fallback.kivalasztott && (
                 <div className="text-foreground/80">
-                  Selected: {val(sd.fallback.selected.name)} (Hasonlóság: {formatSim(sd.fallback.selected.similarity)})
+                  Kiválasztott: {val(sd.fallback.kivalasztott.name)} (Hasonlóság: {formatSim(sd.fallback.kivalasztott.similarity)})
                 </div>
               )}
             </div>
@@ -241,10 +251,11 @@ function MatchItem({ item }: { item: Talalat }) {
 
 // ── Panel 3: Textual List ──
 function linkifyText(text: string) {
-  const urlRegex = /(https?:\/\/[^\s\\]+)/g;
-  const parts = text.split(urlRegex);
+  const splitRegex = /(https?:\/\/[^\s\\]+)/g;
+  const testRegex = /^https?:\/\//;
+  const parts = text.split(splitRegex);
   return parts.map((part, i) =>
-    urlRegex.test(part) ? (
+    testRegex.test(part) ? (
       <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-sparkle-blue underline hover:text-sparkle-blue/80 break-all">
         {part}
       </a>
@@ -267,7 +278,7 @@ function TextualListPanel({ text }: { text?: string }) {
         <Book className="h-4 w-4 text-galaxy-purple" />
         Kitöltés
       </h4>
-      <ScrollArea className="max-h-[500px]">
+      <ScrollArea className="max-h-[800px]">
         <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre font-mono overflow-x-auto" style={{ tabSize: 4 }}>
           {normalizedText ? linkifyText(normalizedText) : 'N/A'}
         </pre>
@@ -310,12 +321,12 @@ export function VerdiktDisplay({
           </div>
           <div>
             <CardTitle className="text-lg">
-              {isSelectedJob ? 'Elomeny reszletei' : 'Verdikt'}
+              {isSelectedJob ? 'Előzmény részletei' : 'Verdikt'}
             </CardTitle>
             <CardDescription>
               {isSelectedJob
-                ? `${(selectedJobMode || '').toUpperCase()} - Paciens #${selectedJobPaciensId || 'N/A'}`
-                : 'A feldolgozas eredmenye'
+                ? `${(selectedJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
+                : 'A feldolgozás eredménye'
               }
             </CardDescription>
           </div>
@@ -338,16 +349,15 @@ export function VerdiktDisplay({
               <Loader2 className="h-10 w-10 animate-spin text-sparkle-blue" />
               <div className="absolute inset-0 h-10 w-10 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
             </div>
-            <p className="text-muted-foreground text-center mt-4">Feldolgozas folyamatban...</p>
+            <p className="text-muted-foreground text-center mt-4">Feldolgozás folyamatban...</p>
           </div>
         ) : selectedJobStatus === 'error' ? (
           <div className="flex flex-col items-center justify-center py-12 text-destructive">
             <AlertCircle className="h-10 w-10 mb-4" />
-            <p className="text-center font-medium">Hiba tortent a feldolgozas soran</p>
+            <p className="text-center font-medium">Hiba történt a feldolgozás során</p>
             <p className="text-sm text-muted-foreground mt-2">{selectedJobError}</p>
           </div>
         ) : isThreePanel ? (
-          /* New three-panel layout */
           <Tabs defaultValue="original" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="original">Eredeti szöveg</TabsTrigger>
@@ -365,7 +375,6 @@ export function VerdiktDisplay({
             </TabsContent>
           </Tabs>
         ) : (
-          /* Legacy fallback for non-treatnote or old format */
           <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm">
             <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
               {typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2)}
