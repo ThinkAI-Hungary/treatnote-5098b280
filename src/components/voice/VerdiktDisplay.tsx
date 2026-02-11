@@ -110,11 +110,9 @@ function OriginalTextPanel({ text }: { text?: string }) {
         <FileText className="h-4 w-4 text-sparkle-blue" />
         Eredeti szöveg
       </h4>
-      <ScrollArea className="max-h-[70vh]">
-        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
-          {text || 'N/A'}
-        </p>
-      </ScrollArea>
+      <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
+        {text || 'N/A'}
+      </p>
     </div>
   );
 }
@@ -141,17 +139,15 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
         <Search className="h-4 w-4 text-accent" />
         Szabály találatok
       </h4>
-      <ScrollArea className="max-h-[70vh]">
-        <div className="space-y-5 text-sm">
-          <h5 className="font-medium text-foreground">Találatok ({talalatok.length})</h5>
-          {talalatok.map((t, idx) => (
-            <MatchItem key={idx} item={t} />
-          ))}
-          {talalatok.length === 0 && (
-            <p className="text-muted-foreground">Nincs találat.</p>
-          )}
-        </div>
-      </ScrollArea>
+      <div className="space-y-5 text-sm">
+        <h5 className="font-medium text-foreground">Találatok ({talalatok.length})</h5>
+        {talalatok.map((t, idx) => (
+          <MatchItem key={idx} item={t} />
+        ))}
+        {talalatok.length === 0 && (
+          <p className="text-muted-foreground">Nincs találat.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -278,11 +274,9 @@ function TextualListPanel({ text }: { text?: string }) {
         <Book className="h-4 w-4 text-galaxy-purple" />
         Kitöltés
       </h4>
-      <ScrollArea className="max-h-[70vh]">
-        <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre font-mono overflow-x-auto" style={{ tabSize: 4 }}>
-          {normalizedText ? linkifyText(normalizedText) : 'N/A'}
-        </pre>
-      </ScrollArea>
+      <pre className="text-sm leading-relaxed text-foreground/90 whitespace-pre font-mono overflow-x-auto" style={{ tabSize: 4 }}>
+        {normalizedText ? linkifyText(normalizedText) : 'N/A'}
+      </pre>
     </div>
   );
 }
