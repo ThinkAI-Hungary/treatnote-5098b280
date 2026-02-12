@@ -10,7 +10,7 @@ import { PageLoader } from '@/components/PageLoader';
 import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 interface DashboardStats {
-  totalPatients: number;
+
   todayAppointments: number;
   totalExaminations: number;
   recentExaminations: number;
@@ -21,7 +21,7 @@ export default function Dashboard() {
   const { profile, loading: profileLoading } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   const [stats, setStats] = useState<DashboardStats>({
-    totalPatients: 0,
+
     todayAppointments: 0,
     totalExaminations: 0,
     recentExaminations: 0,
@@ -70,15 +70,15 @@ export default function Dashboard() {
         const today = new Date().toISOString().split('T')[0];
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [patientsRes, appointmentsRes, examinationsRes, recentExamsRes] = await Promise.all([
-          supabase.from('patients').select('id', { count: 'exact', head: true }),
+        const [appointmentsRes, examinationsRes, recentExamsRes] = await Promise.all([
+
           supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('appointment_date', today),
           supabase.from('examinations').select('id', { count: 'exact', head: true }),
           supabase.from('examinations').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
         ]);
 
         setStats({
-          totalPatients: patientsRes.count || 0,
+
           todayAppointments: appointmentsRes.count || 0,
           totalExaminations: examinationsRes.count || 0,
           recentExaminations: recentExamsRes.count || 0,
@@ -113,14 +113,6 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    {
-      title: 'Összes páciens',
-      value: stats.totalPatients,
-      description: 'Regisztrált páciensek',
-      icon: Users,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
-    },
     {
       title: 'Mai időpontok',
       value: stats.todayAppointments,
@@ -163,7 +155,7 @@ export default function Dashboard() {
       {/* Tour help button - fixed position */}
       {!showTour && <TourHelpButton onClick={startTour} />}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
