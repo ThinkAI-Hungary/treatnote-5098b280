@@ -11,7 +11,7 @@ import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/O
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 interface DashboardStats {
 
-  todayAppointments: number;
+
   totalExaminations: number;
   recentExaminations: number;
 }
@@ -22,7 +22,7 @@ export default function Dashboard() {
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   const [stats, setStats] = useState<DashboardStats>({
 
-    todayAppointments: 0,
+
     totalExaminations: 0,
     recentExaminations: 0,
   });
@@ -70,16 +70,14 @@ export default function Dashboard() {
         const today = new Date().toISOString().split('T')[0];
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [appointmentsRes, examinationsRes, recentExamsRes] = await Promise.all([
-
-          supabase.from('appointments').select('id', { count: 'exact', head: true }).eq('appointment_date', today),
+        const [examinationsRes, recentExamsRes] = await Promise.all([
           supabase.from('examinations').select('id', { count: 'exact', head: true }),
           supabase.from('examinations').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
         ]);
 
         setStats({
 
-          todayAppointments: appointmentsRes.count || 0,
+
           totalExaminations: examinationsRes.count || 0,
           recentExaminations: recentExamsRes.count || 0,
         });
@@ -113,14 +111,7 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    {
-      title: 'Mai időpontok',
-      value: stats.todayAppointments,
-      description: 'Mára foglalt időpontok',
-      icon: Calendar,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
-    },
+
     {
       title: 'Összes vizsgálat',
       value: stats.totalExaminations,
