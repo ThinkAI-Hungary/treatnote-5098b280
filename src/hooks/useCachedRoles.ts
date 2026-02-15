@@ -43,9 +43,9 @@ export function useCachedRoles(): CachedRolesData {
 
   useEffect(() => {
     // Only use cache if it's from the same page session AND same user
-    const cacheIsValid = roleCache.sessionKey === SESSION_KEY && 
-                         roleCache.userId === user?.id && 
-                         roleCache.data !== null;
+    const cacheIsValid = roleCache.sessionKey === SESSION_KEY &&
+      roleCache.userId === user?.id &&
+      roleCache.data !== null;
 
     if (user && cacheIsValid) {
       setData(roleCache.data!);
@@ -78,28 +78,55 @@ export function useCachedRoles(): CachedRolesData {
 
       try {
         // Fetch roles and profile in parallel
-        const [adminResult, klinikaResult, profileResult] = await Promise.all([
+        // We need to fetch basic profile first to know current_telephely_id, or fetch it all together.
+        // We'll fetch profile and global admin role.
+        const [adminResult, profileResult] = await Promise.all([
           supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
-          supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' }),
-          supabase.from('profiles').select('company_id, company_name, telephely_id').eq('user_id', user.id).single(),
+          supabase.from('profiles')
+            .select('company_id, company_name, telephely_id, current_telephely_id')
+            .eq('user_id', user.id)
+            .single(),
         ]);
 
+        const profileData = profileResult.data;
+        // Determine effective telephely ID (current > legacy > null)
+        const effectiveTelephelyId = profileData?.current_telephely_id || profileData?.telephely_id || null;
+
+        // Fetch telephely details
         let telephelyName: string | null = null;
-        if (profileResult.data?.telephely_id) {
-          const { data: telephely } = await supabase
-            .from('telephely')
-            .select('name')
-            .eq('id', profileResult.data.telephely_id)
-            .single();
-          telephelyName = telephely?.name || null;
+        let isKlinikaAdmin = false;
+
+        if (effectiveTelephelyId) {
+          // Fetch name and membership role in parallel
+          const [telephelyRes, membershipRes] = await Promise.all([
+            supabase.from('telephely').select('name').eq('id', effectiveTelephelyId).single(),
+            supabase.from('telephely_memberships')
+              .select('role')
+              .eq('user_id', user.id)
+              .eq('telephely_id', effectiveTelephelyId)
+              .maybeSingle()
+          ]);
+
+          telephelyName = telephelyRes.data?.name || null;
+          // Check if role is klinika_admin
+          isKlinikaAdmin = membershipRes.data?.role === 'klinika_admin';
+
+          // Fallback for legacy compatibility if no membership record exists yet (during migration phase)
+          // strict check: if membershipRes.data is null, they might use legacy rights?
+          // For safety, if no membership found, assume NO access or check legacy has_role?
+          // Let's assume migration has populated memberships or we fallback to legacy has_role if membership missing.
+          if (!membershipRes.data) {
+            const legacyRoleCheck = await supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' });
+            if (legacyRoleCheck.data) isKlinikaAdmin = true;
+          }
         }
 
         const newData = {
           isAdmin: !!adminResult.data,
-          isKlinikaAdmin: !!klinikaResult.data,
-          companyId: profileResult.data?.company_id || null,
-          companyName: profileResult.data?.company_name || null,
-          telephelyId: profileResult.data?.telephely_id || null,
+          isKlinikaAdmin: isKlinikaAdmin,
+          companyId: profileData?.company_id || null,
+          companyName: profileData?.company_name || null,
+          telephelyId: effectiveTelephelyId,
           telephelyName,
         };
 

@@ -43,6 +43,7 @@ serve(async (req) => {
             company_id,
             telephely_id,
             invited_by_user_id,
+            role,
             companies(name),
             telephely(name)
           `)
@@ -80,6 +81,7 @@ serve(async (req) => {
             company_name: companyData?.name || "Ismeretlen",
             telephely_name: telephelyData?.name || "Ismeretlen",
             invited_by_name: inviterProfile?.full_name || "Ismeretlen",
+            role: invitation.role,
           }
         }), {
           status: 200,
@@ -156,6 +158,7 @@ serve(async (req) => {
             status: response,
             responded_at: new Date().toISOString(),
             invited_user_id: user.id, // Link the actual user who responded
+            used_at: response === "accepted" ? new Date().toISOString() : null,
           })
           .eq("id", invitation.id);
 
@@ -168,10 +171,12 @@ serve(async (req) => {
         }
 
         if (response === "accepted") {
-          // Add user to company by updating their profile
+          // Add user to company by updating their profile (Legacy support + UI context)
           const { error: profileError } = await supabaseAdmin
             .from("profiles")
             .update({
+              current_telephely_id: invitation.telephely_id,
+              // Maintain backward compatibility for now
               company_id: invitation.company_id,
               telephely_id: invitation.telephely_id,
             })
@@ -179,13 +184,27 @@ serve(async (req) => {
 
           if (profileError) {
             console.error("Error updating profile:", profileError);
-            return new Response(JSON.stringify({ error: "Hiba a csatlakozás során" }), {
+            // Don't fail the whole request but log it
+          }
+
+          // Create Telephely Membership
+          const { error: membershipError } = await supabaseAdmin
+            .from("telephely_memberships")
+            .insert({
+              user_id: user.id,
+              telephely_id: invitation.telephely_id,
+              role: invitation.role || 'user',
+            });
+
+          if (membershipError) {
+            console.error("Error creating membership:", membershipError);
+            return new Response(JSON.stringify({ error: "Hiba a jogosultságok beállításakor" }), {
               status: 500,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
 
-          console.log(`User ${user.id} accepted invitation and joined company ${invitation.company_id}`);
+          console.log(`User ${user.id} accepted invitation and joined telephely ${invitation.telephely_id}`);
         } else {
           console.log(`User ${user.id} declined invitation to company ${invitation.company_id}`);
         }
@@ -236,7 +255,7 @@ serve(async (req) => {
           });
         }
 
-        const { email } = params;
+        const { email, role, full_name } = params; // Accepted role and full_name params
         if (!email || !email.includes("@")) {
           return new Response(JSON.stringify({ error: "Valid email is required" }), {
             status: 400,
@@ -244,14 +263,22 @@ serve(async (req) => {
           });
         }
 
-        // Get caller's company and telephely
+        // Validate role
+        const validRoles = ['user', 'klinika_admin'];
+        const inviteRole = role && validRoles.includes(role) ? role : 'user';
+
+        // Get caller's company and telephely (Current Context)
         const { data: callerProfile } = await supabaseAdmin
           .from("profiles")
-          .select("company_id, telephely_id, full_name")
+          .select("company_id, telephely_id, full_name, current_telephely_id")
           .eq("user_id", caller.id)
           .single();
 
-        if (!callerProfile?.company_id || !callerProfile?.telephely_id) {
+        // Use current_telephely_id if available, fallback to telephely_id
+        const targetTelephelyId = callerProfile?.current_telephely_id || callerProfile?.telephely_id;
+        const targetCompanyId = callerProfile?.company_id; // Company ID might need to be fetched from telephely if switching company is possible
+
+        if (!targetCompanyId || !targetTelephelyId) {
           return new Response(JSON.stringify({ error: "You must have a company and telephely assigned" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -263,13 +290,14 @@ serve(async (req) => {
           .from("invitations")
           .select("id")
           .eq("invited_email", email.toLowerCase())
-          .eq("company_id", callerProfile.company_id)
-          .eq("telephely_id", callerProfile.telephely_id)
+          .eq("company_id", targetCompanyId)
+          .eq("telephely_id", targetTelephelyId)
           .eq("status", "pending")
+          .gt("expires_at", new Date().toISOString()) // Check expiry
           .maybeSingle();
 
         if (existingInvitation) {
-          return new Response(JSON.stringify({ error: "Már van függőben lévő meghívás ehhez az email címhez" }), {
+          return new Response(JSON.stringify({ error: "Már van érvényes függőben lévő meghívás ehhez az email címhez" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -284,12 +312,14 @@ serve(async (req) => {
           .insert({
             invited_email: email.toLowerCase(),
             invited_by_user_id: caller.id,
-            company_id: callerProfile.company_id,
-            telephely_id: callerProfile.telephely_id,
+            company_id: targetCompanyId,
+            telephely_id: targetTelephelyId,
+            role: inviteRole,
+            full_name: full_name || null,
             status: "pending",
             invitation_token: invitationToken,
-            // invited_user_id will be set when user responds
-            invited_user_id: caller.id, // Temporary placeholder, will be updated when user accepts
+            invited_user_id: caller.id, // Temporary placeholder
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
           })
           .select()
           .single();
@@ -306,39 +336,51 @@ serve(async (req) => {
         const { data: companyData } = await supabaseAdmin
           .from("companies")
           .select("name")
-          .eq("id", callerProfile.company_id)
+          .eq("id", targetCompanyId)
           .single();
 
         const { data: telephelyData } = await supabaseAdmin
           .from("telephely")
           .select("name")
-          .eq("id", callerProfile.telephely_id)
+          .eq("id", targetTelephelyId)
           .single();
 
         // Construct the invitation URL
-        // Use the referer or origin to determine the base URL
         const referer = req.headers.get("referer") || req.headers.get("origin");
         let baseUrl = "https://bpjzgapmoyhtgryglcke.lovable.app";
         if (referer) {
           try {
             const url = new URL(referer);
             baseUrl = `${url.protocol}//${url.host}`;
-          } catch {}
+          } catch { }
         }
+
+        // Determine if user exists to send correct link type?
+        // Logic says: "If email belongs to existing... notification... If NOT... register"
+        // The URL is the same: /accept-invitation?token=...
+        // The Frontend at that URL will check if user is logged in.
+        // If logged in: "Join" button.
+        // If not logged in: "Register" or "Login" options. 
+        // Actually, for new users, we want a direct register flow.
+        // We can pass a hint e.g. /register?token=... if we know they don't exist.
+        // checking auth.users here requires admin privs on supabaseAdmin.
+
+        /*
+        const { data: existingUser } = await supabaseAdmin.from('auth.users').select('id').eq('email', email).single(); 
+        // Note: Direct access to auth schema via postgrest is not standard unless exposed. 
+        // Using auth admin API:
+        */
+        // supabaseAdmin.auth.admin.listUsers() is pagination based. getByEmail isn't direct in JS SDK v2 admin easily without getting user by id? 
+        // Actually listUsers({ email: ... }) works.
+        // But for now, we send the general link. Frontend handles the UX.
+
         const invitationUrl = `${baseUrl}/accept-invitation?token=${invitationToken}`;
 
-        // Send the email using Supabase's built-in email (auth.admin.inviteUserByEmail alternative)
-        // Since we want a custom email, we'll use a simple approach with the Resend API if available
-        // For now, we'll log the invitation URL and the admin can share it manually
-        // In production, you'd integrate with an email service like Resend, SendGrid, etc.
-        
         console.log(`Invitation created for ${email}`);
         console.log(`Invitation URL: ${invitationUrl}`);
         console.log(`Company: ${companyData?.name}, Telephely: ${telephelyData?.name}`);
         console.log(`Invited by: ${callerProfile.full_name}`);
 
-        // For now, return the invitation URL so the admin can share it
-        // In production, you'd send an actual email here
         return new Response(JSON.stringify({
           success: true,
           message: "Meghívó létrehozva",

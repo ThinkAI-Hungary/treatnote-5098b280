@@ -19,6 +19,7 @@ interface SentInvitation {
   email: string;
   full_name: string | null;
   status: string;
+  role?: string;
   created_at: string;
   responded_at: string | null;
 }
@@ -179,7 +180,7 @@ export function useKlinikaData() {
 
   useEffect(() => {
     mountedRef.current = true;
-    
+
     // Only fetch once per mount
     if (!authLoading && user && !fetchedRef.current) {
       fetchedRef.current = true;

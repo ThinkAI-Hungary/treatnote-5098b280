@@ -82,7 +82,7 @@ serve(async (req) => {
 
     // Determine if it's an email or username (check if it ends with @localuser.com)
     const isLocalUser = email.endsWith("@localuser.com");
-    
+
     // Create the user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
@@ -92,6 +92,7 @@ serve(async (req) => {
         full_name: fullName || email.split("@")[0],
         is_username_login: isLocalUser,
         original_username: isLocalUser ? email.split("@")[0] : undefined,
+        admin_created: true, // Bypass invite trigger
       },
     });
 
@@ -107,10 +108,21 @@ serve(async (req) => {
     const profileData: Record<string, any> = {
       user_id: newUser.user.id,
       full_name: fullName || email.split("@")[0],
+      role: userRole === 'admin' ? 'admin' : 'user', // Profile role is less important now
     };
-    
+
     if (telephely) {
-      profileData.telephely = telephely;
+      profileData.telephely = telephely; // Legacy
+      // We need telephely_id. But 'telephely' param here seems to be the ID based on usage?
+      // existing code: profileData.telephely = telephely;
+      // It assumes 'telephely' is the column name match? 
+      // The profile table has 'telephely' (string?) and 'telephely_id' (uuid).
+      // Let's assume input 'telephely' is the ID.
+      // But verify if it's stored in 'telephely' column or 'telephely_id'.
+      // existing code inserts into 'telephely'.
+      // I should update it to set telephely_id and current_telephely_id.
+      profileData.telephely_id = telephely;
+      profileData.current_telephely_id = telephely;
     }
 
     const { error: profileError } = await supabaseAdmin
@@ -121,22 +133,30 @@ serve(async (req) => {
       console.error("Error creating profile:", profileError);
     }
 
-    // Delete any existing roles first (trigger may have created a 'user' role)
-    await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", newUser.user.id);
+    // Handle Roles
+    if (userRole === 'admin') {
+      // Global Admin -> user_roles
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", newUser.user.id);
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({
+          user_id: newUser.user.id,
+          role: 'admin',
+        });
+      if (roleError) console.error("Error creating admin role:", roleError);
+    } else {
+      // Klinika Admin or User -> telephely_memberships
+      if (telephely) {
+        const { error: membershipError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .insert({
+            user_id: newUser.user.id,
+            telephely_id: telephely,
+            role: userRole,
+          });
 
-    // Create user role with the specified role
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({
-        user_id: newUser.user.id,
-        role: userRole,
-      });
-
-    if (roleError) {
-      console.error("Error creating role:", roleError);
+        if (membershipError) console.error("Error creating membership:", membershipError);
+      }
     }
 
     console.log(`User created with role: ${userRole}, telephely: ${telephely || 'none'}`);

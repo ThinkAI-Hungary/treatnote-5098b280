@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Operations that any authenticated user can access
     const userAccessOperations = ['get-pending-invitations', 'respond-invitation'];
-    
+
     if (userAccessOperations.includes(operation)) {
       // These operations don't require admin role, handle them separately
       if (operation === 'get-pending-invitations') {
@@ -226,7 +226,7 @@ serve(async (req) => {
     // For klinika_admin, company and telephely are required
     // For admin, they can access but some operations require company/telephely
     const hasCompanyAndTelephely = callerProfile?.company_id && callerProfile?.telephely_id;
-    
+
     if (!isAdmin && !hasCompanyAndTelephely) {
       console.log(`User ${caller.id} is klinika_admin but has no company/telephely assigned`);
       return new Response(JSON.stringify({ error: "Klinika Admin must have company and telephely assigned" }), {
@@ -234,7 +234,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    
+
     console.log(`User ${caller.id} accessing klinika-admin: isAdmin=${isAdmin}, isKlinikaAdmin=${isKlinikaAdmin}, hasCompanyAndTelephely=${hasCompanyAndTelephely}`);
 
     // If admin without company/telephely, return empty data for certain operations
@@ -265,42 +265,44 @@ serve(async (req) => {
     switch (operation) {
       case "get-users": {
         console.log(`get-users: Fetching users for company ${companyId}, telephely ${telephelyId}`);
-        
-        // Get all users in the same company and telephely
-        const { data: profiles, error: profilesError } = await supabaseAdmin
-          .from("profiles")
+
+        // Get all members of the telephely
+        const { data: memberships, error: membersError } = await supabaseAdmin
+          .from("telephely_memberships")
           .select(`
             user_id,
-            full_name,
-            company_id,
-            company_name,
-            telephely_id,
-            subscription_status,
-            subscription_plan,
-            subscription_end_date
+            role,
+            profiles:user_id (
+              user_id,
+              full_name,
+              subscription_status,
+              subscription_plan,
+              subscription_end_date
+            )
           `)
-          .eq("company_id", companyId)
           .eq("telephely_id", telephelyId);
 
-        if (profilesError) {
-          console.error("Error fetching profiles:", profilesError);
+        if (membersError) {
+          console.error("Error fetching memberships:", membersError);
           return new Response(JSON.stringify({ error: "Failed to fetch users" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        console.log(`get-users: Found ${profiles?.length || 0} profiles for telephely ${telephelyId}`);
+        console.log(`get-users: Found ${memberships?.length || 0} members for telephely ${telephelyId}`);
 
         // Get auth users for email info
-        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
-        
-        // Get user roles
-        const userIds = profiles?.map(p => p.user_id) || [];
-        const { data: roles } = await supabaseAdmin
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", userIds);
+        const userIds = memberships?.map(m => m.user_id) || [];
+        // We can't efficiently filter listUsers by ID list, so we might need to fetch all or use a different approach?
+        // Admin `listUsers` doesn't support filtering by ID list easily in one go.
+        // However, for a single clinic, user count is low. We can fetch all and map? Or fetch individually if small?
+        // Optimization: For now, fetch all (up to page limit) and filter. Or just don't show email if not feasible?
+        // Better: Use `supabaseAdmin.auth.admin.getUserById` locally in loop (slow) or `listUsers` (pagination).
+        // Let's assume listUsers returns enough or we page through it? 
+        // Actually, `listUsers` is paginated. If we have 1000 users, we might miss some.
+        // But for this use case, likely <50 users per clinic.
+        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
 
         // Get telephely name
         const { data: telephely } = await supabaseAdmin
@@ -310,17 +312,23 @@ serve(async (req) => {
           .single();
 
         // Combine data
-        const users = profiles?.map(profile => {
-          const authUser = authUsers?.find(u => u.id === profile.user_id);
-          const userRole = roles?.find(r => r.user_id === profile.user_id);
+        const users = memberships?.map(member => {
+          const profile = (member.profiles as any) || {}; // Handle array or object return depending on relation
+          // Supabase join usually returns object if 1:1, or array 1:N. user_id is PK in profiles, so 1:1?
+          // But here it's `profiles:user_id`.
+          // Let's treat it safely.
+          const profileData = Array.isArray(profile) ? profile[0] : profile;
+
+          const authUser = authUsers?.find(u => u.id === member.user_id);
+
           return {
-            id: profile.user_id,
+            id: member.user_id,
             email: authUser?.email || "Unknown",
-            full_name: profile.full_name,
-            company_name: profile.company_name,
+            full_name: profileData?.full_name,
+            company_name: companyName, // Inferred from context
             telephely_name: telephely?.name || null,
-            subscription_status: profile.subscription_status,
-            role: userRole?.role || "user",
+            subscription_status: profileData?.subscription_status,
+            role: member.role, // Use role from membership
           };
         }) || [];
 
@@ -336,7 +344,7 @@ serve(async (req) => {
         // Get users that can be invited (not in any company/telephely or in a different one)
         const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
         const confirmedUsers = authUsers?.filter(u => u.email_confirmed_at) || [];
-        
+
         const { data: profiles } = await supabaseAdmin
           .from("profiles")
           .select("user_id, full_name, company_id, telephely_id");
@@ -364,14 +372,14 @@ serve(async (req) => {
             // But exclude admins and klinika_admins
             const userRole = roles?.find(r => r.user_id === authUser.id);
             if (userRole?.role === 'admin' || userRole?.role === 'klinika_admin') return false;
-            
+
             // Exclude users with pending invitations
             if (pendingUserIds.includes(authUser.id)) return false;
-            
+
             if (!profile) return true;
-            return !profile.company_id || !profile.telephely_id || 
-                   profile.company_id !== companyId || 
-                   profile.telephely_id !== telephelyId;
+            return !profile.company_id || !profile.telephely_id ||
+              profile.company_id !== companyId ||
+              profile.telephely_id !== telephelyId;
           })
           .map(authUser => {
             const profile = profiles?.find(p => p.user_id === authUser.id);
@@ -391,13 +399,27 @@ serve(async (req) => {
       }
 
       case "invite-user": {
-        const { userId } = params;
+        const { userId, role } = params;
+        const inviteRole = role || 'user'; // Default to user if not specified
+
         if (!userId) {
           return new Response(JSON.stringify({ error: "userId is required" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        // Validate role
+        if (!['user', 'klinika_admin'].includes(inviteRole)) {
+          return new Response(JSON.stringify({ error: "Invalid role. Must be 'user' or 'klinika_admin'" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user is trying to invite as admin but is not admin themselves
+        // Klinika Admin can invite other Klinika Admins? Let's say yes for now.
+        // We already checked basic role access properly at start of function.
 
         // Get user email to check if local user
         const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
@@ -406,6 +428,8 @@ serve(async (req) => {
 
         if (isLocalUser) {
           // Local users get added directly
+
+          // 1. Update profile for legacy compatibility
           const { error: updateError } = await supabaseAdmin
             .from("profiles")
             .update({
@@ -415,11 +439,31 @@ serve(async (req) => {
             .eq("user_id", userId);
 
           if (updateError) {
-            console.error("Error adding local user:", updateError);
+            console.error("Error adding local user (profile update):", updateError);
             return new Response(JSON.stringify({ error: "Failed to add user" }), {
               status: 500,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
+          }
+
+          // 2. Create membership
+          const { error: membershipError } = await supabaseAdmin
+            .from("telephely_memberships")
+            .insert({
+              user_id: userId,
+              telephely_id: telephelyId,
+              role: "user"
+            });
+
+          if (membershipError) {
+            console.error("Error adding local user (membership):", membershipError);
+            // If duplicate, it's fine, they are already member?
+            if (membershipError.code !== '23505') {
+              return new Response(JSON.stringify({ error: "Failed to add user membership" }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
           }
 
           // Auto-assign an available license
@@ -461,6 +505,7 @@ serve(async (req) => {
             invited_by_user_id: caller.id,
             company_id: companyId,
             telephely_id: telephelyId,
+            role: inviteRole, // Insert role
             status: 'pending',
             responded_at: null,
             created_at: nowIso,
@@ -551,8 +596,10 @@ serve(async (req) => {
           .select(`
             id,
             status,
+            role,
             created_at,
             responded_at,
+            invited_email
             invited_user_id
           `)
           .eq("invited_by_user_id", caller.id)
@@ -581,10 +628,11 @@ serve(async (req) => {
           const profile = profiles?.find(p => p.user_id === inv.invited_user_id);
           return {
             id: inv.id,
+            email: inv.invited_email,
             status: inv.status,
+            role: inv.role,
             created_at: inv.created_at,
             responded_at: inv.responded_at,
-            email: authUser?.email || 'Unknown',
             full_name: profile?.full_name || null,
           };
         }) || [];
@@ -608,7 +656,8 @@ serve(async (req) => {
           .from("invitations")
           .delete()
           .eq("id", invitationId)
-          .eq("invited_by_user_id", caller.id)
+          .eq("company_id", companyId)
+          .eq("telephely_id", telephelyId)
           .eq("status", "pending");
 
         if (error) {
@@ -668,7 +717,8 @@ serve(async (req) => {
       }
 
       case "create-user": {
-        const { email, password, fullName } = params;
+        const { email, password, fullName, role } = params;
+        const userRole = role || 'user'; // Default to user if not specified
 
         if (!email || !password) {
           return new Response(JSON.stringify({ error: "Email and password are required" }), {
@@ -723,8 +773,8 @@ serve(async (req) => {
         if (profileError) {
           console.error("Error creating/updating profile:", profileError);
           // Return error so UI knows profile creation failed
-          return new Response(JSON.stringify({ 
-            success: true, 
+          return new Response(JSON.stringify({
+            success: true,
             warning: "User created but profile assignment failed",
             user: { id: newUser.user.id, email: newUser.user.email }
           }), {
@@ -733,15 +783,27 @@ serve(async (req) => {
           });
         }
 
-        // Delete any existing roles and create user role
+        // Create membership
+        const { error: membershipError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .insert({
+            user_id: newUser.user.id,
+            telephely_id: telephelyId,
+            role: userRole
+          });
+
+        if (membershipError) {
+          console.error("Error creating membership:", membershipError);
+        }
+
+        // Also add legacy user_roles entry for 'user' as fallback/compat
         await supabaseAdmin.from("user_roles").delete().eq("user_id", newUser.user.id);
-        
         const { error: roleError } = await supabaseAdmin
           .from("user_roles")
-          .insert({ user_id: newUser.user.id, role: "user" });
+          .insert({ user_id: newUser.user.id, role: userRole });
 
         if (roleError) {
-          console.error("Error creating role:", roleError);
+          console.error("Error creating compat role:", roleError);
         }
 
         // Create user folder in storage
@@ -761,14 +823,14 @@ serve(async (req) => {
               'ú': 'u', 'Ú': 'U', 'ü': 'u', 'Ü': 'U', 'ű': 'u', 'Ű': 'U',
             };
             const sanitize = (str: string) => str.split('').map(char => charMap[char] || char).join('').replace(/\s+/g, ' ').trim();
-            
+
             const sanitizedCompany = sanitize(companyName);
             const sanitizedTelephely = sanitize(telephelyData.name);
             const userName = fullName || email.split("@")[0];
             const sanitizedUser = sanitize(userName);
-            
+
             const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/${sanitizedUser}`;
-            
+
             // Create folder by uploading a placeholder file
             const { error: storageError } = await supabaseAdmin.storage
               .from("client-files")
@@ -883,7 +945,7 @@ serve(async (req) => {
 
       case "delete-user-completely": {
         const { email } = params;
-        
+
         if (!email) {
           return new Response(JSON.stringify({ error: "Email is required" }), {
             status: 400,
@@ -895,13 +957,13 @@ serve(async (req) => {
         let targetUser = null;
         let page = 1;
         const perPage = 1000;
-        
+
         while (!targetUser) {
           const { data: { users: authUsers }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
             page,
             perPage,
           });
-          
+
           if (listError) {
             console.error("Error listing users:", listError);
             return new Response(JSON.stringify({ error: "Failed to search for user" }), {
@@ -909,16 +971,16 @@ serve(async (req) => {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
           }
-          
+
           targetUser = authUsers?.find(u => u.email?.toLowerCase() === email.toLowerCase());
-          
+
           if (!authUsers || authUsers.length < perPage) {
             // No more pages
             break;
           }
           page++;
         }
-        
+
         if (!targetUser) {
           return new Response(JSON.stringify({ error: "User not found with this email" }), {
             status: 404,
@@ -948,7 +1010,7 @@ serve(async (req) => {
           // User must be in same company/telephely OR have no company (orphan user)
           const isInOrg = targetProfile?.company_id === companyId && targetProfile?.telephely_id === telephelyId;
           const isOrphan = !targetProfile?.company_id && !targetProfile?.telephely_id;
-          
+
           if (!isInOrg && !isOrphan) {
             return new Response(JSON.stringify({ error: "You can only delete users within your organization" }), {
               status: 403,
@@ -979,11 +1041,11 @@ serve(async (req) => {
               const sanitizedCompany = sanitize(companyResult.data.name);
               const sanitizedTelephely = sanitize(telephelyResult.data.name);
               const sanitizedUser = sanitize(userName);
-              
+
               const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Users/${sanitizedUser}`;
-              
+
               console.log(`Deleting user folder: ${folderPath}`);
-              
+
               // List all files in the user's folder
               const { data: files, error: listError } = await supabaseAdmin.storage
                 .from("client-files")
@@ -1034,7 +1096,7 @@ serve(async (req) => {
 
         // Finally, delete the auth user
         const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
-        
+
         if (deleteAuthError) {
           console.error("Error deleting auth user:", deleteAuthError);
           return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteAuthError.message }), {

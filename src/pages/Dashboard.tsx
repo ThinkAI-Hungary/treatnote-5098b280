@@ -10,9 +10,6 @@ import { PageLoader } from '@/components/PageLoader';
 import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 interface DashboardStats {
-
-
-  totalExaminations: number;
   recentExaminations: number;
 }
 
@@ -21,9 +18,6 @@ export default function Dashboard() {
   const { profile, loading: profileLoading } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   const [stats, setStats] = useState<DashboardStats>({
-
-
-    totalExaminations: 0,
     recentExaminations: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
@@ -70,16 +64,13 @@ export default function Dashboard() {
         const today = new Date().toISOString().split('T')[0];
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const [examinationsRes, recentExamsRes] = await Promise.all([
-          supabase.from('examinations').select('id', { count: 'exact', head: true }),
-          supabase.from('examinations').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-        ]);
+        const { count: recentCount } = await supabase
+          .from('examinations')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', weekAgo);
 
         setStats({
-
-
-          totalExaminations: examinationsRes.count || 0,
-          recentExaminations: recentExamsRes.count || 0,
+          recentExaminations: recentCount || 0,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -111,15 +102,6 @@ export default function Dashboard() {
   }
 
   const statCards = [
-
-    {
-      title: 'Összes vizsgálat',
-      value: stats.totalExaminations,
-      description: 'Elvégzett vizsgálatok',
-      icon: Stethoscope,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-    },
     {
       title: 'Heti aktivitás',
       value: stats.recentExaminations,

@@ -9,9 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, RefreshCw, Pencil, CreditCard
+import {
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, Copy, X, RefreshCw, Pencil, CreditCard
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,15 +50,15 @@ interface AvailableUser {
 
 export default function KlinikaAdmin() {
   // Single unified data hook - no cascading loading states
-  const { 
-    isAdmin, 
-    isKlinikaAdmin, 
-    companyId, 
-    companyName, 
-    telephelyId, 
-    telephelyName, 
-    users, 
-    sentInvitations, 
+  const {
+    isAdmin,
+    isKlinikaAdmin,
+    companyId,
+    companyName,
+    telephelyId,
+    telephelyName,
+    users,
+    sentInvitations,
     isLoading,
     refreshUsers,
     refreshInvitations,
@@ -76,13 +84,13 @@ export default function KlinikaAdmin() {
 
   // URL search params for tab navigation
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Controlled tab state for tour navigation
   const validTabs = ['users', 'kezelesi-szabalyok', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
-    return tabParam && validTabs.includes(tabParam) 
-      ? tabParam 
+    return tabParam && validTabs.includes(tabParam)
+      ? tabParam
       : 'users';
   });
 
@@ -164,9 +172,6 @@ export default function KlinikaAdmin() {
     startTour();
   }, [startTour, tourSteps]);
 
-  // Email invitation state
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [sendingInvite, setSendingInvite] = useState(false);
   const [lastInvitationUrl, setLastInvitationUrl] = useState<string | null>(null);
 
   // Create user state
@@ -177,9 +182,10 @@ export default function KlinikaAdmin() {
   const [newUserFullName, setNewUserFullName] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [newUserRole, setNewUserRole] = useState('user');
+  const [isLocalUser, setIsLocalUser] = useState(false);
 
   // Invite user state
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
   // Cancelling invitation state
@@ -191,35 +197,7 @@ export default function KlinikaAdmin() {
   const [editUserFullName, setEditUserFullName] = useState('');
   const [updatingUser, setUpdatingUser] = useState(false);
 
-  const handleSendEmailInvitation = useCallback(async () => {
-    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
-      toast.error('Kérjük adjon meg egy érvényes email címet');
-      return;
-    }
 
-    setSendingInvite(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('invitation-handler', {
-        body: { operation: 'send-invitation-email', email: inviteEmail.trim() },
-      });
-
-      if (error) throw error;
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      setLastInvitationUrl(data.invitation_url);
-      toast.success(`Meghívó létrehozva: ${inviteEmail}`);
-      setInviteEmail('');
-      refreshInvitations();
-    } catch (error: any) {
-      console.error('Error sending invitation:', error);
-      toast.error(error.message || 'Hiba a meghívó küldésekor');
-    } finally {
-      setSendingInvite(false);
-    }
-  }, [inviteEmail, refreshInvitations]);
 
   const handleCancelInvitation = useCallback(async (invitationId: string) => {
     setCancellingInvitationId(invitationId);
@@ -240,88 +218,102 @@ export default function KlinikaAdmin() {
   }, [refreshInvitations]);
 
   const handleCreateUser = useCallback(async () => {
-    if (!newUserEmail.trim() || !newUserPassword.trim()) {
-      toast.error('Kérjük töltse ki az email/felhasználónév és jelszó mezőket');
-      return;
-    }
-    if (newUserPassword !== newUserConfirmPassword) {
-      toast.error('A jelszavak nem egyeznek');
-      return;
-    }
-    if (newUserPassword.length < 6) {
-      toast.error('A jelszónak legalább 6 karakter hosszúnak kell lennie');
+    // Validation
+    if (!newUserEmail.trim()) {
+      toast.error(isLocalUser ? 'Kérjük adja meg a felhasználónevet' : 'Kérjük adja meg az email címet');
       return;
     }
 
-    // Auto-complete email domain using company slug (normalize Hungarian chars, remove spaces, lowercase)
-    const sanitizedCompanyName = normalizeHungarianString(companyName || 'local').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const sanitizedUsername = normalizeHungarianString(newUserEmail).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const finalEmail = newUserEmail.includes('@') 
-      ? newUserEmail 
-      : `${sanitizedUsername}@${sanitizedCompanyName}.com`;
+    if (isLocalUser) {
+      if (!newUserPassword.trim()) {
+        toast.error('Kérjük adja meg a jelszót');
+        return;
+      }
+      if (newUserPassword !== newUserConfirmPassword) {
+        toast.error('A jelszavak nem egyeznek');
+        return;
+      }
+      if (newUserPassword.length < 6) {
+        toast.error('A jelszónak legalább 6 karakter hosszúnak kell lennie');
+        return;
+      }
+    } else {
+      // Email validation for non-local users
+      if (!newUserEmail.includes('@')) {
+        toast.error('Kérjük adjon meg egy érvényes email címet');
+        return;
+      }
+    }
 
     setCreatingUser(true);
     try {
-      const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
-        operation: 'create-user',
-        email: finalEmail,
-        password: newUserPassword,
-        fullName: newUserFullName,
-      });
-      
-      // Check for error in the response
-      let errorMessage: string | null = null;
-      
-      if (error) {
-        errorMessage = error.message;
-        // Try to parse error from context body
-        const body = (error as any)?.context?.body;
-        if (typeof body === 'string') {
-          try {
-            const parsed = JSON.parse(body);
-            if (parsed?.error) errorMessage = parsed.error;
-          } catch {}
-        }
-      } else if (data?.error) {
-        errorMessage = data.error;
+      if (isLocalUser) {
+        // Local User Creation Flow
+        const sanitizedCompanyName = normalizeHungarianString(companyName || 'local').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const sanitizedUsername = normalizeHungarianString(newUserEmail).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const finalEmail = newUserEmail.includes('@')
+          ? newUserEmail
+          : `${sanitizedUsername}@${sanitizedCompanyName}.com`;
+
+        const { data, error } = await invokeWithRetry<{ error?: string }>('klinika-admin', {
+          operation: 'create-user',
+          email: finalEmail,
+          password: newUserPassword,
+          fullName: newUserFullName,
+          role: newUserRole,
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        toast.success(`Felhasználó létrehozva: ${newUserFullName || finalEmail}`);
+        refreshUsers(); // Refresh user list
+      } else {
+        // Invitation Flow
+        const { data, error } = await supabase.functions.invoke('invitation-handler', {
+          body: {
+            operation: 'send-invitation-email',
+            email: newUserEmail.trim(),
+            role: newUserRole,
+            full_name: newUserFullName // Send full name to be stored
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        setLastInvitationUrl(data.invitation_url);
+        toast.success(`Meghívó elküldve: ${newUserEmail}`);
+        refreshInvitations(); // Refresh invitation list
       }
-      
-      if (errorMessage) {
-        // Check for duplicate email error
-        if (errorMessage.toLowerCase().includes('already') && errorMessage.toLowerCase().includes('registered')) {
-          toast.error('Ez az email cím vagy felhasználónév már regisztrálva van');
-        } else {
-          toast.error(errorMessage);
-        }
-        return;
-      }
-      
-      toast.success('Felhasználó sikeresen létrehozva');
+
+      // Reset form and close dialog
+      setCreateUserOpen(false);
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserConfirmPassword('');
       setNewUserFullName('');
-      setCreateUserOpen(false);
-      refreshUsers();
-    } catch (error: any) {
-      console.error('Error creating user:', error);
+      setIsLocalUser(false);
+
+    } catch (err: any) {
+      console.error('Error creating/inviting user:', err);
       // Try to extract error message from various formats
-      let errorMessage = error.message || '';
-      
-      // Check if error has context body (edge function error response)
-      const body = error?.context?.body;
+      let errorMessage = err.message || '';
+
+      // Check for error in the response
+      const body = err?.context?.body;
       if (typeof body === 'string') {
         try {
           const parsed = JSON.parse(body);
           if (parsed?.error) errorMessage = parsed.error;
-        } catch {}
+        } catch { }
       }
-      
+
       // Check for duplicate email error
       if (errorMessage.toLowerCase().includes('already') && errorMessage.toLowerCase().includes('registered')) {
         toast.error('Ez az email cím már regisztrálva van a rendszerben');
       } else {
-        toast.error(errorMessage || 'Hiba a felhasználó létrehozásakor');
+        toast.error(errorMessage || 'Hiba a művelet során');
       }
     } finally {
       setCreatingUser(false);
@@ -344,7 +336,7 @@ export default function KlinikaAdmin() {
           try {
             const parsed = JSON.parse(body);
             if (parsed?.error) message = parsed.error;
-          } catch {}
+          } catch { }
         }
         toast.error(message);
         return;
@@ -422,11 +414,7 @@ export default function KlinikaAdmin() {
     }
   }, [editingUser, editUserFullName, refreshUsers]);
 
-  const openInviteDialog = useCallback(() => {
-    setInviteDialogOpen(true);
-    setInviteEmail('');
-    setLastInvitationUrl(null);
-  }, []);
+
 
   // Single loading gate - loader stays until ALL data is ready
   if (isLoading) {
@@ -459,115 +447,149 @@ export default function KlinikaAdmin() {
   // Main content - cinematic reveal with staggered animation
   return (
     <div className="relative min-h-screen">
-        {/* Background layer - fades in first */}
-        <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
-          <StarField />
-          <div className="absolute inset-0 pointer-events-none nebula-overlay" />
-        </div>
-        
-        {/* Content layer - slides up after background */}
-        <div 
-          className="relative z-10 space-y-8 pb-8 px-6 pt-6 animate-fade-in-up" 
-          style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
-        >
-          {/* Header section */}
-          <div data-tour="header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-            <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-            <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
-                    <Building2 className="h-7 w-7 text-primary-foreground" />
-                  </div>
+      {/* Background layer - fades in first */}
+      <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
+        <StarField />
+        <div className="absolute inset-0 pointer-events-none nebula-overlay" />
+      </div>
+
+      {/* Content layer - slides up after background */}
+      <div
+        className="relative z-10 space-y-8 pb-8 px-6 pt-6 animate-fade-in-up"
+        style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
+      >
+        {/* Header section */}
+        <div data-tour="header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
+          <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
+          <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+                  <Building2 className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                    {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
-                  </h1>
-                  <p className="text-muted-foreground mt-1 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Organizáció kezelése
-                  </p>
-                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
+                </h1>
+                <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Organizáció kezelése
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
 
-          {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
-              <TabsTrigger 
-                value="users" 
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <Users className="h-4 w-4" />
-                Tagok
-              </TabsTrigger>
-              <TabsTrigger 
-                value="kezelesi-szabalyok"
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <FileText className="h-4 w-4" />
-                Kezelési Szabályok
-              </TabsTrigger>
-              <TabsTrigger 
-                value="szotar"
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <Book className="h-4 w-4" />
-                Szótár
-              </TabsTrigger>
-              <TabsTrigger 
-                value="elofizetes"
-                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-              >
-                <CreditCard className="h-4 w-4" />
-                Előfizetés
-              </TabsTrigger>
-            </TabsList>
+        {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
+            <TabsTrigger
+              value="users"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <Users className="h-4 w-4" />
+              Tagok
+            </TabsTrigger>
+            <TabsTrigger
+              value="kezelesi-szabalyok"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <FileText className="h-4 w-4" />
+              Kezelési Szabályok
+            </TabsTrigger>
+            <TabsTrigger
+              value="szotar"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <Book className="h-4 w-4" />
+              Szótár
+            </TabsTrigger>
+            <TabsTrigger
+              value="elofizetes"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <CreditCard className="h-4 w-4" />
+              Előfizetés
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Tab content with min-height to prevent layout jumps */}
-            <div className="min-h-[400px]">
-              <TabsContent value="users" className="space-y-6 mt-0">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">
-                    Szervezeti tagok
-                  </h2>
-                  {companyId && telephelyId ? (
-                    <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                      <DialogTrigger asChild>
-                        <GalaxyButton data-tour="new-user-button">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Új felhasználó
-                        </GalaxyButton>
-                      </DialogTrigger>
+          {/* Tab content with min-height to prevent layout jumps */}
+          <div className="min-h-[400px]">
+            <TabsContent value="users" className="space-y-6 mt-0">
+              {lastInvitationUrl && (
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6 flex items-start gap-4 animate-fade-in">
+                  <div className="bg-primary/20 p-2 rounded-full">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-semibold text-primary">Meghívó sikeresen létrehozva!</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Ha a felhasználó nem kapja meg az emailt, küldje el neki az alábbi linket:
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 bg-background/50 p-2 rounded border border-primary/10">
+                      <code className="text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono selection:bg-primary/20">
+                        {lastInvitationUrl}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 hover:bg-primary/10"
+                        onClick={() => {
+                          navigator.clipboard.writeText(lastInvitationUrl);
+                          toast.success('Link másolva');
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setLastInvitationUrl(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">
+                  Szervezeti tagok
+                </h2>
+                {companyId && telephelyId ? (
+                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                    <DialogTrigger asChild>
+                      <GalaxyButton data-tour="new-user-button">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Új felhasználó
+                      </GalaxyButton>
+                    </DialogTrigger>
                     <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                           <UserPlus className="h-5 w-5 text-primary" />
-                          Új felhasználó létrehozása
+                          Új felhasználó hozzáadása
                         </DialogTitle>
                         <DialogDescription>
-                          Az új felhasználó automatikusan az organizációhoz kerül: {companyName} - {telephelyName}
+                          Hozzon létre új felhasználót vagy küldjön meghívót.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Email / Felhasználónév</Label>
-                          <Input
-                            type="text"
-                            placeholder="email@example.com vagy felhasználónév"
-                            value={newUserEmail}
-                            onChange={(e) => setNewUserEmail(e.target.value)}
-                            className="border-primary/20 focus:border-primary/40"
+                        <div className="flex items-center space-x-2 pb-2 border-b border-primary/10">
+                          <Switch
+                            id="local-user-mode"
+                            checked={isLocalUser}
+                            onCheckedChange={setIsLocalUser}
                           />
-                          <p className="text-xs text-muted-foreground">
-                            Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
-                          </p>
+                          <Label htmlFor="local-user-mode">Helyi felhasználó létrehozása (email nélkül)</Label>
                         </div>
+
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Teljes név</Label>
                           <Input
@@ -577,248 +599,358 @@ export default function KlinikaAdmin() {
                             className="border-primary/20 focus:border-primary/40"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Jelszó</Label>
-                          <div className="relative">
+
+                        {!isLocalUser ? (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Email cím</Label>
                             <Input
-                              type={showPassword ? 'text' : 'password'}
-                              placeholder="Jelszó"
-                              value={newUserPassword}
-                              onChange={(e) => setNewUserPassword(e.target.value)}
-                              className="border-primary/20 focus:border-primary/40 pr-10"
+                              type="email"
+                              placeholder="email@example.com"
+                              value={newUserEmail}
+                              onChange={(e) => setNewUserEmail(e.target.value)}
+                              className="border-primary/20 focus:border-primary/40"
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full hover:bg-transparent"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
-                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              A felhasználó kapni fog egy email meghívót a jelszó beállításához.
+                            </p>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Felhasználónév</Label>
+                            <Input
+                              placeholder="felhasználónév"
+                              value={newUserEmail}
+                              onChange={(e) => setNewUserEmail(e.target.value)}
+                              className="border-primary/20 focus:border-primary/40"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
+                            </p>
+                          </div>
+                        )}
+
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Jelszó megerősítése</Label>
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Jelszó megerősítése"
-                            value={newUserConfirmPassword}
-                            onChange={(e) => setNewUserConfirmPassword(e.target.value)}
-                            className="border-primary/20 focus:border-primary/40"
-                          />
-                          {newUserConfirmPassword && newUserPassword !== newUserConfirmPassword && (
-                            <p className="text-xs text-destructive">A jelszavak nem egyeznek</p>
-                          )}
+                          <Label className="text-sm font-medium">Jogosultság</Label>
+                          <Select value={newUserRole} onValueChange={setNewUserRole}>
+                            <SelectTrigger className="border-primary/20">
+                              <SelectValue placeholder="Válassz jogosultságot" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">Felhasználó</SelectItem>
+                              <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
+
+                        {isLocalUser && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Jelszó</Label>
+                              <div className="relative">
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="Jelszó"
+                                  value={newUserPassword}
+                                  onChange={(e) => setNewUserPassword(e.target.value)}
+                                  className="border-primary/20 focus:border-primary/40 pr-10"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                  ) : (
+                                    <Eye className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Jelszó megerősítése</Label>
+                              <Input
+                                type="password"
+                                placeholder="Jelszó újra"
+                                value={newUserConfirmPassword}
+                                onChange={(e) => setNewUserConfirmPassword(e.target.value)}
+                                className="border-primary/20 focus:border-primary/40"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <DialogFooter>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={() => {
                             setCreateUserOpen(false);
                             setNewUserEmail('');
                             setNewUserPassword('');
                             setNewUserConfirmPassword('');
                             setNewUserFullName('');
+                            setIsLocalUser(false);
                           }}
                           className="border-primary/20 hover:bg-primary/10"
                         >
                           Mégse
                         </Button>
-                        <GalaxyButton 
-                          onClick={handleCreateUser} 
-                          disabled={creatingUser || (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword)}
+                        <GalaxyButton
+                          onClick={handleCreateUser}
+                          disabled={creatingUser || (isLocalUser && (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword))}
                         >
-                          {creatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                          Létrehozás
+                          {creatingUser ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {isLocalUser ? 'Létrehozás...' : 'Meghívás...'}
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              {isLocalUser ? 'Létrehozás' : 'Meghívás küldése'}
+                            </>
+                          )}
                         </GalaxyButton>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                  ) : (
-                    <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
-                      Cég és telephely hozzárendelése szükséges a felhasználó létrehozáshoz
-                    </div>
-                  )}
-                </div>
-
-                {users.length === 0 ? (
-                  <AnimatedCard data-tour="users-table">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <div className="relative mb-4">
-                        <Users className="h-16 w-16 text-muted-foreground/30" />
-                        <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-                      </div>
-                      <p className="text-muted-foreground">Még nincsenek tagok</p>
-                    </CardContent>
-                  </AnimatedCard>
                 ) : (
-                  <AnimatedCard data-tour="users-table" className="overflow-hidden">
-                    <div className="rounded-lg overflow-hidden">
-                      <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-card">
-                          <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
-                            <TableHead className="font-semibold">Email</TableHead>
-                            <TableHead className="font-semibold">Név</TableHead>
-                            <TableHead className="font-semibold">Licenc</TableHead>
-                            <TableHead className="font-semibold">Szerep</TableHead>
-                            <TableHead className="text-right font-semibold">Műveletek</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users.map((user) => (
-                            <TableRow 
-                              key={user.id}
-                              className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
-                            >
-                              <TableCell className="font-medium">{user.email}</TableCell>
-                              <TableCell>{user.full_name || '-'}</TableCell>
-                              <TableCell>
-                                <Badge 
-                                  variant={userLicenseMap[user.id] ? 'default' : 'outline'}
-                                  className={cn(
-                                    userLicenseMap[user.id] && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-                                  )}
-                                >
-                                  {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge 
-                                  className={cn(
-                                    user.role === 'admin' && 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700',
-                                    user.role === 'klinika_admin' && 'bg-gradient-to-r from-primary to-accent text-white hover:opacity-90',
-                                    user.role !== 'admin' && user.role !== 'klinika_admin' && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                                  )}
-                                >
-                                  {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {user.role !== 'klinika_admin' && user.role !== 'admin' && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => openEditUser({ id: user.id, email: user.email, full_name: user.full_name })}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => handleDeleteUser(user.id, user.email)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </AnimatedCard>
+                  <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+                    Cég és telephely hozzárendelése szükséges a felhasználó létrehozáshoz
+                  </div>
                 )}
-              </TabsContent>
-
-
-
-              <TabsContent value="kezelesi-szabalyok" className="mt-0">
-                <KezelesiSzabalyokTab 
-                  companyId={companyId} 
-                  telephelyId={telephelyId} 
-                  companyName={companyName}
-                  telephelyName={telephelyName}
-                />
-              </TabsContent>
-
-              <TabsContent value="szotar" className="mt-0">
-                <SzotarTab 
-                  companyId={companyId} 
-                  telephelyId={telephelyId} 
-                  companyName={companyName}
-                  telephelyName={telephelyName}
-                />
-              </TabsContent>
-
-              <TabsContent value="elofizetes" className="mt-0">
-                <ElofizetesTab
-                  companyId={companyId}
-                  companyName={companyName}
-                  users={users}
-                />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-
-        {/* Tour help button - fixed position at bottom right */}
-        {!showTour && <TourHelpButton onClick={handleStartTour} />}
-
-        {/* Onboarding Tour */}
-        <OnboardingTour
-          steps={effectiveTourSteps}
-          isOpen={showTour}
-          onComplete={completeTour}
-          onSkip={skipTour}
-          onStepChange={(step) => {
-            // Switch to the appropriate tab when a step requires it (works for both Next and Previous)
-            if (step.requiredTab) {
-              setActiveTab(step.requiredTab);
-            }
-          }}
-        />
-
-        {/* Edit User Dialog */}
-        <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
-          <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Pencil className="h-5 w-5 text-primary" />
-                Felhasználó szerkesztése
-              </DialogTitle>
-              <DialogDescription>
-                {editingUser?.email}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Teljes név</Label>
-                <Input
-                  placeholder="Teljes név"
-                  value={editUserFullName}
-                  onChange={(e) => setEditUserFullName(e.target.value)}
-                  className="border-primary/20 focus:border-primary/40"
-                />
               </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setEditUserOpen(false);
-                  setEditingUser(null);
-                  setEditUserFullName('');
-                }}
-                className="border-primary/20 hover:bg-primary/10"
-              >
-                Mégse
-              </Button>
-              <GalaxyButton 
-                onClick={handleUpdateUser} 
-                disabled={updatingUser}
-              >
-                {updatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Mentés
-              </GalaxyButton>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
+              {users.length === 0 ? (
+                <AnimatedCard data-tour="users-table">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <div className="relative mb-4">
+                      <Users className="h-16 w-16 text-muted-foreground/30" />
+                      <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
+                    </div>
+                    <p className="text-muted-foreground">Még nincsenek tagok</p>
+                  </CardContent>
+                </AnimatedCard>
+              ) : (
+                <AnimatedCard data-tour="users-table" className="overflow-hidden">
+                  <div className="rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader className="sticky top-0 z-10 bg-card">
+                        <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
+                          <TableHead className="font-semibold">Email</TableHead>
+                          <TableHead className="font-semibold">Név</TableHead>
+                          <TableHead className="font-semibold">Licenc</TableHead>
+                          <TableHead className="font-semibold">Szerep</TableHead>
+                          <TableHead className="text-right font-semibold">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow
+                            key={user.id}
+                            className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
+                          >
+                            <TableCell className="font-medium">{user.email}</TableCell>
+                            <TableCell>{user.full_name || '-'}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={userLicenseMap[user.id] ? 'default' : 'outline'}
+                                className={cn(
+                                  userLicenseMap[user.id] && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+                                )}
+                              >
+                                {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={cn(
+                                  user.role === 'admin' && 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700',
+                                  user.role === 'klinika_admin' && 'bg-gradient-to-r from-primary to-accent text-white hover:opacity-90',
+                                  user.role !== 'admin' && user.role !== 'klinika_admin' && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                )}
+                              >
+                                {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {user.role !== 'klinika_admin' && user.role !== 'admin' && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => openEditUser({ id: user.id, email: user.email, full_name: user.full_name })}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleDeleteUser(user.id, user.email)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </AnimatedCard>
+              )}
+
+              {sentInvitations.length > 0 && (
+                <div className="mt-8 space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Függőben lévő meghívók
+                  </h3>
+                  <div className="rounded-lg overflow-hidden border border-primary/10">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Jogosultság</TableHead>
+                          <TableHead>Meghívva</TableHead>
+                          <TableHead className="text-right">Műveletek</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sentInvitations.map((invitation) => (
+                          <TableRow key={invitation.id}>
+                            <TableCell className="font-medium">{invitation.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn(
+                                "border-primary/20",
+                                invitation.role === 'klinika_admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                              )}>
+                                {invitation.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{new Date(invitation.created_at).toLocaleDateString('hu-HU')}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleCancelInvitation(invitation.id)}
+                                disabled={cancellingInvitationId === invitation.id}
+                              >
+                                {cancellingInvitationId === invitation.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+
+
+            <TabsContent value="kezelesi-szabalyok" className="mt-0">
+              <KezelesiSzabalyokTab
+                companyId={companyId}
+                telephelyId={telephelyId}
+                companyName={companyName}
+                telephelyName={telephelyName}
+              />
+            </TabsContent>
+
+            <TabsContent value="szotar" className="mt-0">
+              <SzotarTab
+                companyId={companyId}
+                telephelyId={telephelyId}
+                companyName={companyName}
+                telephelyName={telephelyName}
+              />
+            </TabsContent>
+
+            <TabsContent value="elofizetes" className="mt-0">
+              <ElofizetesTab
+                companyId={companyId}
+                companyName={companyName}
+                users={users}
+              />
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
+
+      {/* Tour help button - fixed position at bottom right */}
+      {!showTour && <TourHelpButton onClick={handleStartTour} />}
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        steps={effectiveTourSteps}
+        isOpen={showTour}
+        onComplete={completeTour}
+        onSkip={skipTour}
+        onStepChange={(step) => {
+          // Switch to the appropriate tab when a step requires it (works for both Next and Previous)
+          if (step.requiredTab) {
+            setActiveTab(step.requiredTab);
+          }
+        }}
+      />
+
+      {/* Edit User Dialog */}
+      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+        <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Felhasználó szerkesztése
+            </DialogTitle>
+            <DialogDescription>
+              {editingUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Teljes név</Label>
+              <Input
+                placeholder="Teljes név"
+                value={editUserFullName}
+                onChange={(e) => setEditUserFullName(e.target.value)}
+                className="border-primary/20 focus:border-primary/40"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditUserOpen(false);
+                setEditingUser(null);
+                setEditUserFullName('');
+              }}
+              className="border-primary/20 hover:bg-primary/10"
+            >
+              Mégse
+            </Button>
+            <GalaxyButton
+              onClick={handleUpdateUser}
+              disabled={updatingUser}
+            >
+              {updatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Mentés
+            </GalaxyButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

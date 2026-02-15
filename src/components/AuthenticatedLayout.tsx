@@ -11,14 +11,19 @@ interface AuthenticatedLayoutProps {
   children: ReactNode;
 }
 
+import { ContextSwitcher } from '@/components/layout/ContextSwitcher';
+
 // Separate header component that uses sidebar context
 function LayoutHeader() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  
+
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <SidebarTrigger className={collapsed ? "ml-0" : "-ml-1"} />
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex items-center gap-4">
+        <SidebarTrigger className={collapsed ? "ml-0" : "-ml-1"} />
+        <ContextSwitcher />
+      </div>
     </header>
   );
 }
@@ -62,7 +67,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
       <div className="min-h-screen flex w-full relative">
         {/* Background flowing colors */}
         <BackgroundEffects />
-        
+
         <AppSidebar />
         <SidebarInset className="flex-1 relative z-10">
           <LayoutHeader />
