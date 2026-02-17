@@ -17,9 +17,10 @@ const flexiSchema = z.object({
 interface FlexiConnectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onError?: () => void;
 }
 
-const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => {
+const FlexiConnectDialog = ({ open, onOpenChange, onError }: FlexiConnectDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [flexiEmail, setFlexiEmail] = useState('');
   const [flexiPassword, setFlexiPassword] = useState('');
@@ -28,7 +29,7 @@ const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate with zod
     const result = flexiSchema.safeParse({ flexiEmail, flexiPassword });
     if (!result.success) {
@@ -89,6 +90,7 @@ const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => 
           }
         }
         toast.error(errorMessage);
+        onError?.();
         setLoading(false);
         return;
       }
@@ -101,6 +103,7 @@ const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => 
       } else {
         // Non-success response (could be validation error from edge function)
         toast.error(data?.message || 'Flexi-Dent bejelentkezés sikertelen');
+        onError?.();
       }
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -108,7 +111,7 @@ const FlexiConnectDialog = ({ open, onOpenChange }: FlexiConnectDialogProps) => 
         return;
       }
       console.error('Flexi connect error:', error);
-      
+
       toast.error(error.message || 'Nem sikerült a Flexi-Dent hozzácsatolás');
     } finally {
       setLoading(false);

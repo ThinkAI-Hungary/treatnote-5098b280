@@ -10,10 +10,10 @@ const corsHeaders = {
 // AES-256-GCM encryption using Web Crypto API
 async function encryptPassword(password: string, keyBase64: string): Promise<string> {
   const encoder = new TextEncoder();
-  
+
   // Decode the base64 key
   const keyData = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
-  
+
   // Import the key for AES-GCM
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
@@ -22,22 +22,22 @@ async function encryptPassword(password: string, keyBase64: string): Promise<str
     false,
     ['encrypt']
   );
-  
+
   // Generate a random 12-byte IV (recommended for AES-GCM)
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  
+
   // Encrypt the password
   const encryptedData = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     cryptoKey,
     encoder.encode(password)
   );
-  
+
   // Combine IV + encrypted data and encode as base64
   const combined = new Uint8Array(iv.length + encryptedData.byteLength);
   combined.set(iv);
   combined.set(new Uint8Array(encryptedData), iv.length);
-  
+
   return btoa(String.fromCharCode(...combined));
 }
 
@@ -51,7 +51,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const encryptionKey = Deno.env.get('FLEXI_ENCRYPTION_KEY');
-    
+
     if (!webhookUrl) {
       console.error('N8N_FLEXI_WEBHOOK_URL not configured');
       return new Response(
@@ -79,7 +79,7 @@ serve(async (req) => {
 
     // Create Supabase client with service role for database operations
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Create client with user's token to get their info
     const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } }
@@ -104,22 +104,25 @@ serve(async (req) => {
       );
     }
 
-    // Get user's profile to find telephely and flexi_domain
+    // Get user's profile to find active telephely and flexi_domain
     const { data: profileData } = await supabaseAdmin
       .from('profiles')
-      .select('full_name, telephely_id')
+      .select('full_name, telephely_id, current_telephely_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
+    // Prefer current_telephely_id (active) over telephely_id (home)
+    const activeTelephelyId = profileData?.current_telephely_id || profileData?.telephely_id;
+
     let flexiDomain: string | null = null;
-    
-    if (profileData?.telephely_id) {
+
+    if (activeTelephelyId) {
       const { data: telephelyData } = await supabaseAdmin
         .from('telephely')
         .select('flexi_domain')
-        .eq('id', profileData.telephely_id)
+        .eq('id', activeTelephelyId)
         .maybeSingle();
-      
+
       flexiDomain = telephelyData?.flexi_domain || null;
     }
 
@@ -151,15 +154,15 @@ serve(async (req) => {
     // Parse n8n response - expecting 1 or 0
     const responseText = await response.text();
     console.log('n8n response:', responseText);
-    
+
     const n8nResult = parseInt(responseText.trim(), 10);
-    
+
     if (n8nResult !== 1) {
       console.log('Flexi login failed (n8n returned 0)');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Flexi-Dent bejelentkezés sikertelen. Kérjük ellenőrizze az adatokat.' 
+        JSON.stringify({
+          success: false,
+          message: 'Flexi-Dent bejelentkezés sikertelen. Kérjük ellenőrizze az adatokat.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -182,8 +185,8 @@ serve(async (req) => {
     if (existingLink && existingLink.user_id !== user.id) {
       console.log('Flexi account already linked to another user');
       return new Response(
-        JSON.stringify({ 
-          error: 'Flexi account already linked', 
+        JSON.stringify({
+          error: 'Flexi account already linked',
           success: false,
           message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve.'
         }),

@@ -182,27 +182,38 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 /* Galaxy animations */
 @layer utilities {
+  .galaxy-card {
+    @apply bg-card/80 backdrop-blur-xl border border-galaxy-purple/30 shadow-[0_0_15px_-5px_hsl(var(--galaxy-purple)/0.3)];
+  }
+
+  .galaxy-card {
+    @apply bg-card/80 backdrop-blur-xl border border-galaxy-purple/30 shadow-[0_0_15px_-5px_hsl(var(--galaxy-purple)/0.3)];
+  }
+
   /* Smooth fade animations */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
   }
-  
+
   .animate-fade-in-up {
-    animation: fadeInUp 0.4s ease-out forwards;
+    opacity: 0;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    animation: fadeInUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
   }
-  
+
   .animate-fade-in-down {
     animation: fadeInDown 0.4s ease-out forwards;
   }
-  
+
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
   }
-  
+
   .animate-slide-in-right {
     animation: slideInRight 0.4s ease-out forwards;
   }
-  
+
   .animate-slide-in-left {
     animation: slideInLeft 0.4s ease-out forwards;
   }
@@ -211,11 +222,11 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .glow-purple {
     box-shadow: 0 0 20px hsl(270 70% 60% / 0.3), 0 0 40px hsl(270 70% 60% / 0.15);
   }
-  
+
   .glow-blue {
     box-shadow: 0 0 20px hsl(195 85% 55% / 0.3), 0 0 40px hsl(195 85% 55% / 0.15);
   }
-  
+
   .glow-subtle {
     box-shadow: 0 0 30px hsl(270 70% 60% / 0.1), 0 0 60px hsl(195 85% 55% / 0.05);
   }
@@ -224,7 +235,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .sparkle {
     position: relative;
   }
-  
+
   .sparkle::before {
     content: '';
     position: absolute;
@@ -239,44 +250,38 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
   /* Gradient backgrounds */
   .bg-galaxy-gradient {
-    background: linear-gradient(
-      135deg,
-      hsl(260 40% 6%) 0%,
-      hsl(270 50% 12%) 25%,
-      hsl(260 45% 8%) 50%,
-      hsl(195 40% 10%) 75%,
-      hsl(260 40% 6%) 100%
-    );
+    background: linear-gradient(135deg,
+        hsl(260 40% 6%) 0%,
+        hsl(270 50% 12%) 25%,
+        hsl(260 45% 8%) 50%,
+        hsl(195 40% 10%) 75%,
+        hsl(260 40% 6%) 100%);
   }
 
   .bg-galaxy-card {
-    background: linear-gradient(
-      145deg,
-      hsl(260 35% 12% / 0.9) 0%,
-      hsl(270 40% 10% / 0.95) 100%
-    );
+    background: linear-gradient(145deg,
+        hsl(260 35% 12% / 0.9) 0%,
+        hsl(270 40% 10% / 0.95) 100%);
     backdrop-filter: blur(10px);
   }
 
   .bg-galaxy-header {
-    background: linear-gradient(
-      90deg,
-      hsl(270 70% 55% / 0.15) 0%,
-      hsl(195 85% 55% / 0.1) 50%,
-      hsl(270 70% 55% / 0.15) 100%
-    );
+    background: linear-gradient(90deg,
+        hsl(270 70% 55% / 0.15) 0%,
+        hsl(195 85% 55% / 0.1) 50%,
+        hsl(270 70% 55% / 0.15) 100%);
   }
 
   /* Nebula effect for backgrounds */
   .nebula-overlay {
     position: relative;
   }
-  
+
   .nebula-overlay::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: 
+    background:
       radial-gradient(ellipse at 20% 30%, hsl(270 70% 50% / 0.1) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 70%, hsl(195 85% 50% / 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 50%, hsl(300 60% 50% / 0.05) 0%, transparent 60%);
@@ -287,7 +292,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .hover-lift {
     transition: box-shadow 0.3s ease-out;
   }
-  
+
   .hover-lift:hover {
     box-shadow: 0 8px 30px hsl(270 70% 50% / 0.15);
   }
@@ -297,23 +302,21 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     position: relative;
     overflow: hidden;
   }
-  
+
   .menu-fill-effect::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to top,
-      hsl(270 70% 55% / 0.15) 0%,
-      hsl(195 85% 55% / 0.08) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(to top,
+        hsl(270 70% 55% / 0.15) 0%,
+        hsl(195 85% 55% / 0.08) 50%,
+        transparent 100%);
     transform: scaleY(0);
     transform-origin: bottom;
     transition: transform 0.3s ease-out;
     pointer-events: none;
   }
-  
+
   .menu-fill-effect:hover::before {
     transform: scaleY(1);
   }
@@ -324,11 +327,25 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 
   /* Stagger animation delays */
-  .stagger-1 { animation-delay: 50ms; }
-  .stagger-2 { animation-delay: 100ms; }
-  .stagger-3 { animation-delay: 150ms; }
-  .stagger-4 { animation-delay: 200ms; }
-  .stagger-5 { animation-delay: 250ms; }
+  .stagger-1 {
+    animation-delay: 50ms;
+  }
+
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+
+  .stagger-3 {
+    animation-delay: 150ms;
+  }
+
+  .stagger-4 {
+    animation-delay: 200ms;
+  }
+
+  .stagger-5 {
+    animation-delay: 250ms;
+  }
 
   /* No animations mode */
   .no-animations,
@@ -343,23 +360,21 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     overflow: hidden;
     transition: all 0.5s ease-out;
   }
-  
+
   .sidebar-menu-hover::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      135deg,
-      hsl(270 70% 55% / 0.12) 0%,
-      hsl(195 85% 55% / 0.15) 50%,
-      hsl(270 70% 55% / 0.08) 100%
-    );
+    background: linear-gradient(135deg,
+        hsl(270 70% 55% / 0.12) 0%,
+        hsl(195 85% 55% / 0.15) 50%,
+        hsl(270 70% 55% / 0.08) 100%);
     opacity: 0;
     transition: opacity 0.5s ease-out;
     pointer-events: none;
     border-radius: inherit;
   }
-  
+
   .sidebar-menu-hover:hover::before {
     opacity: 1;
   }
@@ -386,14 +401,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     position: absolute;
     inset: -2px;
     border-radius: calc(var(--radius) + 2px);
-    background: linear-gradient(
-      90deg,
-      hsl(270 70% 55%) 0%,
-      hsl(195 85% 55%) 25%,
-      hsl(270 70% 55%) 50%,
-      hsl(195 85% 55%) 75%,
-      hsl(270 70% 55%) 100%
-    );
+    background: linear-gradient(90deg,
+        hsl(270 70% 55%) 0%,
+        hsl(195 85% 55%) 25%,
+        hsl(270 70% 55%) 50%,
+        hsl(195 85% 55%) 75%,
+        hsl(270 70% 55%) 100%);
     background-size: 200% 100%;
     opacity: 0;
     z-index: -1;
@@ -433,14 +446,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     position: absolute;
     inset: -4px;
     border-radius: 50%;
-    background: conic-gradient(
-      from 0deg,
-      hsl(270 70% 55%) 0%,
-      hsl(195 85% 55%) 25%,
-      hsl(270 70% 55%) 50%,
-      hsl(195 85% 55%) 75%,
-      hsl(270 70% 55%) 100%
-    );
+    background: conic-gradient(from 0deg,
+        hsl(270 70% 55%) 0%,
+        hsl(195 85% 55%) 25%,
+        hsl(270 70% 55%) 50%,
+        hsl(195 85% 55%) 75%,
+        hsl(270 70% 55%) 100%);
     opacity: 1;
     z-index: 0;
     animation: checkboxBorderSpin 2s linear infinite, checkboxGlowIn 0.3s ease-out forwards;
@@ -506,20 +517,158 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(400%);
   }
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(28px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ─── Page Transition System ─── */
+
+/* Wrapper: positions shockwave behind content */
+.page-transition-wrapper {
+  position: relative;
+  min-height: 200px;
+}
+
+/* Content sits above the shockwave */
+.page-content-layer {
+  position: relative;
+  z-index: 1;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Content hidden state — BULLETPROOF with !important */
+/* Toggled via direct DOM classList.add/remove in useLayoutEffect */
+.page-content-hidden {
+  opacity: 0 !important;
+  transform: scale(0.98) translateY(8px) !important;
+  filter: blur(2px) !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ─── Shockwave Ring ─── */
+/* Frosted-glass radial ring expanding from center */
+/* Uses backdrop-filter to distort the background through it, */
+/* and soft box-shadow for diffused glowing edges (no hard border). */
+.shockwave-ring {
+  position: fixed;
+  top: 50%;
+  left: calc(50% + 8rem);
+  /* offset for sidebar width */
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  /* No border — soft edges only */
+  border: none;
+  /* Soft radial fill — transparent center, gentle glow at edges */
+  background: radial-gradient(circle,
+      transparent 0%,
+      transparent 55%,
+      hsl(var(--primary) / 0.05) 65%,
+      hsl(var(--primary) / 0.08) 80%,
+      hsl(var(--primary) / 0.04) 95%,
+      transparent 100%);
+  /* Soft glowing edges — large blur radius for diffused look */
+  box-shadow:
+    0 0 60px 20px hsl(var(--primary) / 0.07),
+    0 0 120px 40px hsl(var(--primary) / 0.04),
+    inset 0 0 40px 15px hsl(var(--primary) / 0.04);
+  /* Glass distortion — blurs background behind the ring */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 0;
+  animation: shockwaveExpand 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes shockwaveExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 0.5;
+  }
+
+  35% {
+    opacity: 0.35;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(25);
+    opacity: 0;
+  }
+}
+
+/* ─── Staggered Children Animation ─── */
+/* Apply to a container: children cascade in with incremental delays */
+.stagger-children>* {
+  opacity: 0;
+  animation: pageEnterUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stagger-children>*:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.stagger-children>*:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stagger-children>*:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.stagger-children>*:nth-child(4) {
+  animation-delay: 0.22s;
+}
+
+.stagger-children>*:nth-child(5) {
+  animation-delay: 0.28s;
+}
+
+.stagger-children>*:nth-child(6) {
+  animation-delay: 0.34s;
+}
+
+.stagger-children>*:nth-child(7) {
+  animation-delay: 0.40s;
+}
+
+.stagger-children>*:nth-child(8) {
+  animation-delay: 0.46s;
+}
+
+.stagger-children>*:nth-child(n+9) {
+  animation-delay: 0.50s;
 }
 
 @keyframes fadeInDown {
@@ -527,6 +676,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -538,6 +688,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -549,6 +700,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -560,6 +712,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -567,10 +720,13 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 @keyframes sparkle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.3;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.2);
@@ -578,9 +734,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px hsl(270 70% 60% / 0.2), 0 0 40px hsl(195 85% 55% / 0.1);
   }
+
   50% {
     box-shadow: 0 0 30px hsl(270 70% 60% / 0.4), 0 0 60px hsl(195 85% 55% / 0.2);
   }
@@ -588,9 +747,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 /* Star field background effect */
 @keyframes twinkle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.3;
   }
+
   50% {
     opacity: 1;
   }
@@ -601,6 +763,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateX(-10px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -616,6 +779,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateY(10px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -630,6 +794,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     background-position: 0% 50%;
   }
+
   100% {
     background-position: 200% 50%;
   }
@@ -640,6 +805,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: scale(0.8);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -650,32 +816,41 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
 }
 
 @keyframes pinkPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 10px hsl(300 70% 60% / 0.2);
   }
+
   50% {
     box-shadow: 0 0 20px hsl(300 70% 60% / 0.4), 0 0 30px hsl(300 70% 60% / 0.2);
   }
 }
 
 @keyframes orbFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0;
     transform: translate(0, 0) scale(1);
   }
+
   10% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 0.4;
     transform: translate(50px, 30px) scale(1.1);
   }
+
   90% {
     opacity: 0.6;
   }
@@ -704,6 +879,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -714,22 +890,52 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   animation: tableRowEnter 0.3s ease-out both;
 }
 
-.table-row-animate:nth-child(1) { animation-delay: 0ms; }
-.table-row-animate:nth-child(2) { animation-delay: 30ms; }
-.table-row-animate:nth-child(3) { animation-delay: 60ms; }
-.table-row-animate:nth-child(4) { animation-delay: 90ms; }
-.table-row-animate:nth-child(5) { animation-delay: 120ms; }
-.table-row-animate:nth-child(6) { animation-delay: 150ms; }
-.table-row-animate:nth-child(7) { animation-delay: 180ms; }
-.table-row-animate:nth-child(8) { animation-delay: 210ms; }
-.table-row-animate:nth-child(9) { animation-delay: 240ms; }
-.table-row-animate:nth-child(10) { animation-delay: 270ms; }
+.table-row-animate:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.table-row-animate:nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.table-row-animate:nth-child(3) {
+  animation-delay: 60ms;
+}
+
+.table-row-animate:nth-child(4) {
+  animation-delay: 90ms;
+}
+
+.table-row-animate:nth-child(5) {
+  animation-delay: 120ms;
+}
+
+.table-row-animate:nth-child(6) {
+  animation-delay: 150ms;
+}
+
+.table-row-animate:nth-child(7) {
+  animation-delay: 180ms;
+}
+
+.table-row-animate:nth-child(8) {
+  animation-delay: 210ms;
+}
+
+.table-row-animate:nth-child(9) {
+  animation-delay: 240ms;
+}
+
+.table-row-animate:nth-child(10) {
+  animation-delay: 270ms;
+}
 
 /* Menu item hover fill effect */
 @keyframes menuItemFill {
   from {
     background-position: 0% 100%;
   }
+
   to {
     background-position: 0% 0%;
   }
@@ -738,12 +944,10 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 .menu-item-fill {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    to top,
-    hsl(270 70% 55% / 0.12) 0%,
-    hsl(195 85% 55% / 0.08) 50%,
-    transparent 50%
-  );
+  background: linear-gradient(to top,
+      hsl(270 70% 55% / 0.12) 0%,
+      hsl(195 85% 55% / 0.08) 50%,
+      transparent 50%);
   background-size: 100% 200%;
   background-position: 0% 0%;
   transition: background-position 0.3s ease-out;
@@ -763,12 +967,10 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    hsl(270 70% 55% / 0.1) 0%,
-    hsl(195 85% 55% / 0.15) 50%,
-    hsl(270 70% 55% / 0.1) 100%
-  );
+  background: linear-gradient(90deg,
+      hsl(270 70% 55% / 0.1) 0%,
+      hsl(195 85% 55% / 0.15) 50%,
+      hsl(270 70% 55% / 0.1) 100%);
   opacity: 0;
   transition: opacity 0.2s ease-out;
   pointer-events: none;
@@ -786,7 +988,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 .card-galaxy-hover:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 20px hsl(270 70% 55% / 0.1),
     0 0 40px hsl(195 85% 55% / 0.05);
   border-color: hsl(270 70% 55% / 0.3);
@@ -803,26 +1005,46 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 /* Sidebar menu icon animations */
 @keyframes iconFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-2px);
   }
 }
 
+/* Smooth float that starts from the slightly-scaled active resting position */
+@keyframes iconFloatSmooth {
+
+  0%,
+  100% {
+    transform: scale(1.15) translateY(0);
+  }
+
+  50% {
+    transform: scale(1.15) translateY(-2px);
+  }
+}
+
 .sidebar-icon-hover {
-  transition: transform 0.3s ease-out;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.5s ease;
 }
 
 /* Icon rotates when hovering over the entire menu item (parent) */
 .sidebar-menu-gradient:hover .sidebar-icon-hover {
   transform: scale(1.5) rotate(-20deg);
+  filter: drop-shadow(0 0 4px hsl(300 70% 60% / 0.5));
 }
 
 /* Slow floating animation for active/selected menu icons */
 .sidebar-menu-gradient.active .sidebar-icon-hover {
-  animation: iconFloat 5s ease-in-out infinite;
+  /* Start animation from a slightly scaled-up position to smoothly bridge the hover → active gap */
+  animation: iconFloatSmooth 5s ease-in-out 0.4s infinite;
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 3px hsl(300 70% 60% / 0.3));
 }
 
 /* Sidebar menu item with gradient hover - neon pink fading to top completely */
@@ -839,14 +1061,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   right: 0;
   bottom: 0;
   height: 100%;
-  background: linear-gradient(
-    to top,
-    hsl(300 70% 60% / 0.35) 0%,
-    hsl(300 65% 58% / 0.25) 25%,
-    hsl(300 60% 55% / 0.15) 50%,
-    hsl(300 55% 52% / 0.08) 75%,
-    transparent 100%
-  );
+  background: linear-gradient(to top,
+      hsl(300 70% 60% / 0.35) 0%,
+      hsl(300 65% 58% / 0.25) 25%,
+      hsl(300 60% 55% / 0.15) 50%,
+      hsl(300 55% 52% / 0.08) 75%,
+      transparent 100%);
   opacity: 0;
   transition: opacity 0.5s ease-out;
   pointer-events: none;
@@ -859,9 +1079,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 /* Active menu item - slow pulsing neon pink gradient (6s cycle = 2x slower) */
 @keyframes gradientPulseSlow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.7;
   }
+
   50% {
     opacity: 1;
   }
@@ -877,6 +1100,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     stroke-dashoffset: 1000;
   }
+
   100% {
     stroke-dashoffset: 0;
   }
@@ -886,6 +1110,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     stroke-dashoffset: 0;
   }
+
   100% {
     stroke-dashoffset: -1000;
   }
@@ -901,16 +1126,14 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   inset: -2px;
   border-radius: calc(var(--radius) + 2px);
   padding: 2px;
-  background: linear-gradient(
-    90deg,
-    hsl(300 70% 60%) 0%,
-    hsl(270 70% 55%) 33%,
-    hsl(195 85% 55%) 66%,
-    hsl(300 70% 60%) 100%
-  );
+  background: linear-gradient(90deg,
+      hsl(300 70% 60%) 0%,
+      hsl(270 70% 55%) 33%,
+      hsl(195 85% 55%) 66%,
+      hsl(300 70% 60%) 100%);
   background-size: 300% 100%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -923,6 +1146,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     background-position: 0% 50%;
   }
+
   100% {
     background-position: 300% 50%;
   }
@@ -972,18 +1196,16 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   position: absolute;
   inset: -2px;
   border-radius: calc(var(--radius) + 2px);
-  background: conic-gradient(
-    from 270deg at 50% 0%,
-    transparent 0deg,
-    hsl(300 70% 60%) 60deg,
-    hsl(270 70% 55%) 120deg,
-    hsl(195 85% 55%) 180deg,
-    hsl(270 70% 55%) 240deg,
-    hsl(300 70% 60%) 300deg,
-    transparent 360deg
-  );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  background: conic-gradient(from 270deg at 50% 0%,
+      transparent 0deg,
+      hsl(300 70% 60%) 60deg,
+      hsl(270 70% 55%) 120deg,
+      hsl(195 85% 55%) 180deg,
+      hsl(270 70% 55%) 240deg,
+      hsl(300 70% 60%) 300deg,
+      transparent 360deg);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1002,6 +1224,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -1024,14 +1247,12 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   inset: 0;
   border-radius: var(--radius);
   padding: 2px;
-  background: linear-gradient(
-    90deg,
-    hsl(var(--nebula-pink)) 0%,
-    hsl(var(--sparkle-blue)) 25%,
-    hsl(var(--galaxy-purple)) 50%,
-    hsl(var(--sparkle-blue)) 75%,
-    hsl(var(--nebula-pink)) 100%
-  );
+  background: linear-gradient(90deg,
+      hsl(var(--nebula-pink)) 0%,
+      hsl(var(--sparkle-blue)) 25%,
+      hsl(var(--galaxy-purple)) 50%,
+      hsl(var(--sparkle-blue)) 75%,
+      hsl(var(--nebula-pink)) 100%);
   background-size: 300% 100%;
   animation: dialogNeonFlow 6s linear infinite;
   -webkit-mask:
@@ -1048,6 +1269,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   0% {
     background-position: 0% 50%;
   }
+
   100% {
     background-position: 300% 50%;
   }
@@ -1058,7 +1280,142 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
+}
+
+/* ── Galaxy Particle Menu Item animations ── */
+@keyframes galaxyMenuEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+    filter: brightness(1.8) blur(2px);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-2px);
+    filter: brightness(1.4) blur(0px);
+  }
+
+  70% {
+    transform: scale(0.98) translateY(1px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1) blur(0px);
+  }
+}
+
+@keyframes galaxyMenuExit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1) blur(0px);
+  }
+
+  30% {
+    transform: scale(1.03) translateY(-2px);
+    filter: brightness(1.3) blur(0px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+    filter: brightness(1.8) blur(2px);
+  }
+}
+
+@keyframes galaxyParticlesBurst {
+  0% {
+    opacity: 0;
+    box-shadow:
+      0 0 0 0 rgba(168, 85, 247, 0),
+      8px -6px 0 0 rgba(147, 51, 234, 0),
+      -10px -4px 0 0 rgba(192, 132, 252, 0),
+      12px 8px 0 0 rgba(139, 92, 246, 0),
+      -8px 10px 0 0 rgba(167, 139, 250, 0),
+      16px 0 0 0 rgba(124, 58, 237, 0),
+      -14px -8px 0 0 rgba(196, 181, 253, 0);
+  }
+
+  30% {
+    opacity: 1;
+    box-shadow:
+      -4px -10px 4px 1px rgba(168, 85, 247, 0.9),
+      14px -14px 3px 1px rgba(147, 51, 234, 0.8),
+      -18px -8px 3px 1px rgba(192, 132, 252, 0.7),
+      20px 14px 4px 1px rgba(139, 92, 246, 0.8),
+      -14px 18px 3px 1px rgba(167, 139, 250, 0.7),
+      24px -2px 3px 1px rgba(124, 58, 237, 0.6),
+      -22px -14px 4px 1px rgba(196, 181, 253, 0.5);
+  }
+
+  100% {
+    opacity: 0;
+    box-shadow:
+      -8px -24px 4px 0px rgba(168, 85, 247, 0),
+      28px -28px 3px 0px rgba(147, 51, 234, 0),
+      -34px -16px 3px 0px rgba(192, 132, 252, 0),
+      38px 28px 4px 0px rgba(139, 92, 246, 0),
+      -28px 36px 3px 0px rgba(167, 139, 250, 0),
+      42px -6px 3px 0px rgba(124, 58, 237, 0),
+      -40px -28px 4px 0px rgba(196, 181, 253, 0);
+  }
+}
+
+@keyframes galaxyGlow {
+  0% {
+    box-shadow: 0 0 0px rgba(168, 85, 247, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+  }
+
+  100% {
+    box-shadow: 0 0 0px rgba(168, 85, 247, 0);
+  }
+}
+
+.galaxy-menu-enter {
+  animation: galaxyMenuEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.galaxy-menu-exit {
+  animation: galaxyMenuExit 0.5s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+}
+
+.galaxy-menu-item {
+  position: relative;
+}
+
+.galaxy-menu-item::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.galaxy-menu-enter::before {
+  animation: galaxyParticlesBurst 0.8s ease-out forwards;
+}
+
+.galaxy-menu-enter::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: galaxyGlow 1s ease-in-out forwards;
 }

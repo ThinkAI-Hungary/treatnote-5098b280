@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { toast } from 'sonner';
+import { useNotifications } from '@/hooks/useNotifications';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
@@ -65,6 +66,7 @@ interface SzotarKezelesData {
 export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }: SzotarTabProps) {
   const { user } = useAuth();
   const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection();
+  const { addNotification } = useNotifications();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,9 +155,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         console.error('Error loading szotar:', szotarResult.error);
         toast.error('Hiba a szótár betöltésekor');
       } else if (szotarResult.data) {
-        const content = Array.isArray(szotarResult.data.content) 
+        const content = Array.isArray(szotarResult.data.content)
           ? szotarResult.data.content as string[]
-          : typeof szotarResult.data.content === 'string' 
+          : typeof szotarResult.data.content === 'string'
             ? [szotarResult.data.content]
             : [];
         setSzotar({
@@ -319,7 +321,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
             await loadSzotar();
             notifySzotarDataChanged();
             setGenerating(false);
-            
+            addNotification('szotar', 'Szótár sikeresen generálva');
+
             // Trigger embedding generation in the background
             console.log('SzotarTab: Triggering embedding generation for telephely:', telephelyId);
             supabase.functions.invoke('generate-szotar-embeddings', {
@@ -331,7 +334,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 console.log('Embedding generation triggered successfully');
               }
             });
-            
+
             return;
           }
 
@@ -426,20 +429,20 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const filteredKezelesek = useMemo(() => {
     return szotarKezelesek.filter(kezeles => {
       // Search filter - check name
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         kezeles.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       // Category filter - if no categories selected, show all
-      const matchesCategory = selectedCategories.length === 0 || 
+      const matchesCategory = selectedCategories.length === 0 ||
         (kezeles.category && selectedCategories.includes(kezeles.category));
-      
+
       return matchesSearch && matchesCategory;
     });
   }, [szotarKezelesek, searchQuery, selectedCategories]);
 
   // Toggle category selection
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(category)
         ? prev.filter(c => c !== category)
         : [...prev, category]
@@ -467,7 +470,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     const buttonBaseClass = isInWarningState
       ? "opacity-50 cursor-not-allowed"
       : "";
-    
+
     const szotarButtonContent = (
       <>
         {generating ? (
@@ -518,8 +521,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       ) : buttonState.showFlexiWarning ? (
         <p className="text-sm">
           Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
-          <Link 
-            to="/profile?openFlexi=true" 
+          <Link
+            to="/profile?openFlexi=true"
             className="underline text-primary hover:text-primary/80"
           >
             kérem csatolja hozzá fiókját itt!
@@ -643,8 +646,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                   ) : buttonState.showFlexiWarning ? (
                     <>
                       Jelenleg nincs hozzácsatolva FlexiDent fiók -{' '}
-                      <Link 
-                        to="/profile?openFlexi=true" 
+                      <Link
+                        to="/profile?openFlexi=true"
                         className="underline text-primary hover:text-primary/80"
                       >
                         kérem csatolja hozzá fiókját itt!
@@ -668,8 +671,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 <span className="text-sm text-muted-foreground">FlexiDent domain:</span>
                 <span className="font-medium">{flexiDomain}.flexi-dent.hu</span>
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setDomainDialogOpen(true)}
               >
@@ -690,8 +693,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 <span className="text-sm text-muted-foreground">Próbapáciens:</span>
                 <span className="font-medium">{probaPaciensNeve}</span>
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setProbaPaciensDialogOpen(true)}
               >
@@ -732,14 +735,14 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                   </button>
                 )}
               </div>
-              
+
               {/* Category Filter Dropdown */}
               {uniqueCategories.length > 0 && (
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         className="border-primary/20 hover:bg-primary/10 bg-card h-8"
                       >
@@ -752,7 +755,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                         <ChevronDown className="ml-2 h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent 
+                    <DropdownMenuContent
                       className="w-48 bg-popover border border-border shadow-lg z-50 p-0"
                       align="start"
                     >
@@ -787,7 +790,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  
+
                   {/* Show selected categories as badges */}
                   {selectedCategories.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1">

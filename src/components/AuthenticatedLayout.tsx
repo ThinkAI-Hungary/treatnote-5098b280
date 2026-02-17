@@ -4,14 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { InvitationBanner } from '@/components/InvitationBanner';
+import { NotificationBanner } from '@/components/NotificationBanner';
+import { NotificationProvider } from '@/hooks/useNotifications';
 import { BackgroundEffects } from '@/components/BackgroundEffects';
 import { PageLoader } from '@/components/PageLoader';
+import { PageTransition } from '@/components/PageTransition';
+import { PageLoadingProvider } from '@/contexts/PageLoadingContext';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
 }
 
-import { ContextSwitcher } from '@/components/layout/ContextSwitcher';
+
 
 // Separate header component that uses sidebar context
 function LayoutHeader() {
@@ -22,7 +26,6 @@ function LayoutHeader() {
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-4">
         <SidebarTrigger className={collapsed ? "ml-0" : "-ml-1"} />
-        <ContextSwitcher />
       </div>
     </header>
   );
@@ -39,14 +42,11 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
     }
   }, [user, loading, navigate]);
 
-  // Wait a tick after auth loading is done to ensure everything is ready
+  // Wait a single frame after auth to ensure paint-readiness (≈16ms vs old 100ms)
   useEffect(() => {
     if (!loading && user) {
-      // Small delay to ensure all data is loaded before showing content
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 100);
-      return () => clearTimeout(timer);
+      const id = requestAnimationFrame(() => setIsReady(true));
+      return () => cancelAnimationFrame(id);
     }
   }, [loading, user]);
 
@@ -63,20 +63,30 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full relative">
-        {/* Background flowing colors */}
-        <BackgroundEffects />
+    <NotificationProvider>
+      <PageLoadingProvider>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full relative">
+            {/* Background flowing colors */}
+            <BackgroundEffects />
 
-        <AppSidebar />
-        <SidebarInset className="flex-1 relative z-10">
-          <LayoutHeader />
-          <main className="flex-1 p-6">
-            <InvitationBanner />
-            {children}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+            <AppSidebar />
+            <SidebarInset className="flex-1 relative z-10">
+              <LayoutHeader />
+              <main className="flex-1 p-6">
+                <NotificationBanner />
+                <InvitationBanner />
+                {/* Smooth page transition on every route change */}
+                <PageTransition>
+                  {children}
+                </PageTransition>
+              </main>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </PageLoadingProvider>
+    </NotificationProvider>
   );
 }
+
+

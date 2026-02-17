@@ -1,5 +1,6 @@
 
 import { PageLoader } from '@/components/PageLoader';
+import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,13 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useFlexiConnection } from '@/hooks/useFlexiConnection';
+import { useSzotar } from '@/hooks/useSzotar';
+import { useProfile } from '@/hooks/useProfile';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { normalizeHungarianString } from '@/lib/hungarianNormalizer';
@@ -48,7 +55,19 @@ interface AvailableUser {
   is_local_user: boolean;
 }
 
+const validRoles = [
+  { value: 'user', label: 'Felhasználó' },
+  { value: 'klinika_admin', label: 'Klinika Admin' },
+];
+
 export default function KlinikaAdmin() {
+  const { user: authUser } = useAuth();
+  const currentUserId = authUser?.id;
+  const navigate = useNavigate();
+  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
+  const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
+  const { profile } = useProfile();
+
   // Single unified data hook - no cascading loading states
   const {
     isAdmin,
@@ -63,6 +82,23 @@ export default function KlinikaAdmin() {
     refreshUsers,
     refreshInvitations,
   } = useKlinikaData();
+
+  // Check if treatment rules exist for the onboarding guard
+  const activeTelephelyId = telephelyId || profile?.telephely_id || (profile as any)?.current_telephely_id;
+  const [hasRulesGuard, setHasRulesGuard] = useState(true);
+  const [rulesGuardLoading, setRulesGuardLoading] = useState(true);
+  useEffect(() => {
+    if (!activeTelephelyId) { setHasRulesGuard(false); setRulesGuardLoading(false); return; }
+    supabase
+      .from('treatment_rules')
+      .select('id', { count: 'exact', head: true })
+      .eq('clinic_id', activeTelephelyId)
+      .then(({ count }) => { setHasRulesGuard((count || 0) > 0); setRulesGuardLoading(false); });
+  }, [activeTelephelyId]);
+
+  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
+  const onboardingLoading = szotarLoading || isFlexiLoading || rulesGuardLoading;
+
 
   // Fetch licenses to show per-user license status
   const [userLicenseMap, setUserLicenseMap] = useState<Record<string, boolean>>({});
@@ -193,9 +229,55 @@ export default function KlinikaAdmin() {
 
   // Edit user name state
   const [editUserOpen, setEditUserOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string | null } | null>(null);
+  const [editingUser, setEditingUser] = useState<{ id: string; email: string; full_name: string | null; role: string } | null>(null);
   const [editUserFullName, setEditUserFullName] = useState('');
+  const [editUserRole, setEditUserRole] = useState('user');
   const [updatingUser, setUpdatingUser] = useState(false);
+
+  // Dialog for showing the manual invitation link
+  const ManualInvitationDialog = () => (
+    <Dialog open={!!lastInvitationUrl} onOpenChange={(open) => !open && setLastInvitationUrl(null)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Meghívó elkészült</DialogTitle>
+          <DialogDescription>
+            A rendszer nem küld automatikus emailt.
+            Kérjük másolja ki az alábbi linket és küldje el a felhasználónak:
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center space-x-2">
+          <div className="grid flex-1 gap-2">
+            <Label htmlFor="link" className="sr-only">
+              Link
+            </Label>
+            <Input
+              id="link"
+              defaultValue={lastInvitationUrl || ''}
+              readOnly
+            />
+          </div>
+          <Button size="sm" type="button" className="px-3" onClick={() => {
+            navigator.clipboard.writeText(lastInvitationUrl || '');
+            toast.success('Link másolva');
+          }}>
+            <span className="sr-only">Másolás</span>
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+        <DialogFooter className="sm:justify-start">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setLastInvitationUrl(null)}
+          >
+            Bezárás
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+
 
 
 
@@ -275,7 +357,9 @@ export default function KlinikaAdmin() {
             operation: 'send-invitation-email',
             email: newUserEmail.trim(),
             role: newUserRole,
-            full_name: newUserFullName // Send full name to be stored
+            full_name: newUserFullName, // Send full name to be stored
+            companyId: companyId,
+            telephelyId: telephelyId
           },
         });
 
@@ -369,7 +453,9 @@ export default function KlinikaAdmin() {
         toast.error(data.error);
         return;
       }
-      toast.success('Felhasználó sikeresen törölve');
+      toast.success('A felhasználó sikeresen törölve lett', {
+        className: 'bg-galaxy-card border-primary/20 text-foreground',
+      });
       refreshUsers();
       refreshInvitations();
     } catch (error: any) {
@@ -378,9 +464,10 @@ export default function KlinikaAdmin() {
     }
   }, [refreshUsers, refreshInvitations]);
 
-  const openEditUser = useCallback((user: { id: string; email: string; full_name: string | null }) => {
+  const openEditUser = useCallback((user: { id: string; email: string; full_name: string | null; role: string }) => {
     setEditingUser(user);
     setEditUserFullName(user.full_name || '');
+    setEditUserRole(user.role === 'klinika_admin' ? 'klinika_admin' : 'user');
     setEditUserOpen(true);
   }, []);
 
@@ -393,6 +480,7 @@ export default function KlinikaAdmin() {
         operation: 'update-user',
         userId: editingUser.id,
         fullName: editUserFullName.trim(),
+        role: editUserRole,
       });
 
       if (error) throw error;
@@ -401,10 +489,11 @@ export default function KlinikaAdmin() {
         return;
       }
 
-      toast.success('Felhasználó neve sikeresen frissítve');
+      toast.success('Felhasználó frissítve');
       setEditUserOpen(false);
       setEditingUser(null);
       setEditUserFullName('');
+      setEditUserRole('user');
       refreshUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
@@ -412,13 +501,45 @@ export default function KlinikaAdmin() {
     } finally {
       setUpdatingUser(false);
     }
-  }, [editingUser, editUserFullName, refreshUsers]);
+  }, [editingUser, editUserFullName, editUserRole, refreshUsers]);
 
 
+
+  // Signal loading to sidebar indicator
+  usePageLoadingSignal(isLoading);
 
   // Single loading gate - loader stays until ALL data is ready
   if (isLoading) {
-    return <PageLoader />;
+    return null;
+  }
+
+  // Guard: if onboarding is incomplete, show info message
+  if (!onboardingLoading && !allOnboardingComplete) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Klinika Admin</h1>
+          <p className="text-muted-foreground mt-1">
+            A klinika beállításai és kezelése
+          </p>
+        </div>
+
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Beállítás szükséges</AlertTitle>
+          <AlertDescription>
+            A Klinika Admin felület eléréséhez először végezze el az összes beállítási lépést a{' '}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="underline font-medium hover:text-destructive-foreground/80"
+            >
+              Főoldalon
+            </button>
+            .
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   // Access denied view
@@ -558,304 +679,336 @@ export default function KlinikaAdmin() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">
-                  Szervezeti tagok
-                </h2>
-                {companyId && telephelyId ? (
-                  <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                    <DialogTrigger asChild>
-                      <GalaxyButton data-tour="new-user-button">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Új felhasználó
-                      </GalaxyButton>
-                    </DialogTrigger>
-                    <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <UserPlus className="h-5 w-5 text-primary" />
-                          Új felhasználó hozzáadása
-                        </DialogTitle>
-                        <DialogDescription>
-                          Hozzon létre új felhasználót vagy küldjön meghívót.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="flex items-center space-x-2 pb-2 border-b border-primary/10">
-                          <Switch
-                            id="local-user-mode"
-                            checked={isLocalUser}
-                            onCheckedChange={setIsLocalUser}
-                          />
-                          <Label htmlFor="local-user-mode">Helyi felhasználó létrehozása (email nélkül)</Label>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Teljes név</Label>
-                          <Input
-                            placeholder="Teljes név"
-                            value={newUserFullName}
-                            onChange={(e) => setNewUserFullName(e.target.value)}
-                            className="border-primary/20 focus:border-primary/40"
-                          />
-                        </div>
-
-                        {!isLocalUser ? (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Email cím</Label>
-                            <Input
-                              type="email"
-                              placeholder="email@example.com"
-                              value={newUserEmail}
-                              onChange={(e) => setNewUserEmail(e.target.value)}
-                              className="border-primary/20 focus:border-primary/40"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              A felhasználó kapni fog egy email meghívót a jelszó beállításához.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Felhasználónév</Label>
-                            <Input
-                              placeholder="felhasználónév"
-                              value={newUserEmail}
-                              onChange={(e) => setNewUserEmail(e.target.value)}
-                              className="border-primary/20 focus:border-primary/40"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Jogosultság</Label>
-                          <Select value={newUserRole} onValueChange={setNewUserRole}>
-                            <SelectTrigger className="border-primary/20">
-                              <SelectValue placeholder="Válassz jogosultságot" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="user">Felhasználó</SelectItem>
-                              <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {isLocalUser && (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Jelszó</Label>
-                              <div className="relative">
-                                <Input
-                                  type={showPassword ? "text" : "password"}
-                                  placeholder="Jelszó"
-                                  value={newUserPassword}
-                                  onChange={(e) => setNewUserPassword(e.target.value)}
-                                  className="border-primary/20 focus:border-primary/40 pr-10"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                >
-                                  {showPassword ? (
-                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                  ) : (
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Jelszó megerősítése</Label>
-                              <Input
-                                type="password"
-                                placeholder="Jelszó újra"
-                                value={newUserConfirmPassword}
-                                onChange={(e) => setNewUserConfirmPassword(e.target.value)}
-                                className="border-primary/20 focus:border-primary/40"
-                              />
-                            </div>
-                          </div>
-                        )}
+              <AnimatedCard data-tour="users-table">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary-foreground" />
                       </div>
-                      <DialogFooter>
+                      <div>
+                        <CardTitle>Szervezeti tagok</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {users.length} tag • {telephelyName || 'Telephely'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {companyId && telephelyId && (
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => {
-                            setCreateUserOpen(false);
-                            setNewUserEmail('');
-                            setNewUserPassword('');
-                            setNewUserConfirmPassword('');
-                            setNewUserFullName('');
-                            setIsLocalUser(false);
-                          }}
-                          className="border-primary/20 hover:bg-primary/10"
+                          size="icon"
+                          onClick={refreshUsers}
+                          title="Frissítés"
                         >
-                          Mégse
+                          <RefreshCw className="h-4 w-4" />
                         </Button>
-                        <GalaxyButton
-                          onClick={handleCreateUser}
-                          disabled={creatingUser || (isLocalUser && (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword))}
-                        >
-                          {creatingUser ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {isLocalUser ? 'Létrehozás...' : 'Meghívás...'}
-                            </>
-                          ) : (
-                            <>
+                        <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+                          <DialogTrigger asChild>
+                            <GalaxyButton data-tour="new-user-button">
                               <Plus className="mr-2 h-4 w-4" />
-                              {isLocalUser ? 'Létrehozás' : 'Meghívás küldése'}
-                            </>
-                          )}
-                        </GalaxyButton>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
-                    Cég és telephely hozzárendelése szükséges a felhasználó létrehozáshoz
-                  </div>
-                )}
-              </div>
-
-              {users.length === 0 ? (
-                <AnimatedCard data-tour="users-table">
-                  <CardContent className="flex flex-col items-center justify-center py-16">
-                    <div className="relative mb-4">
-                      <Users className="h-16 w-16 text-muted-foreground/30" />
-                      <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-                    </div>
-                    <p className="text-muted-foreground">Még nincsenek tagok</p>
-                  </CardContent>
-                </AnimatedCard>
-              ) : (
-                <AnimatedCard data-tour="users-table" className="overflow-hidden">
-                  <div className="rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader className="sticky top-0 z-10 bg-card">
-                        <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
-                          <TableHead className="font-semibold">Email</TableHead>
-                          <TableHead className="font-semibold">Név</TableHead>
-                          <TableHead className="font-semibold">Licenc</TableHead>
-                          <TableHead className="font-semibold">Szerep</TableHead>
-                          <TableHead className="text-right font-semibold">Műveletek</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow
-                            key={user.id}
-                            className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
-                          >
-                            <TableCell className="font-medium">{user.email}</TableCell>
-                            <TableCell>{user.full_name || '-'}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={userLicenseMap[user.id] ? 'default' : 'outline'}
-                                className={cn(
-                                  userLicenseMap[user.id] && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-                                )}
-                              >
-                                {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={cn(
-                                  user.role === 'admin' && 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700',
-                                  user.role === 'klinika_admin' && 'bg-gradient-to-r from-primary to-accent text-white hover:opacity-90',
-                                  user.role !== 'admin' && user.role !== 'klinika_admin' && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                                )}
-                              >
-                                {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {user.role !== 'klinika_admin' && user.role !== 'admin' && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => openEditUser({ id: user.id, email: user.email, full_name: user.full_name })}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleDeleteUser(user.id, user.email)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
+                              Új felhasználó
+                            </GalaxyButton>
+                          </DialogTrigger>
+                          <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <UserPlus className="h-5 w-5 text-primary" />
+                                Új felhasználó hozzáadása
+                              </DialogTitle>
+                              <DialogDescription>
+                                Hozzon létre új felhasználót vagy küldjön meghívót.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              {isAdmin && (
+                                <div className="flex items-center space-x-2 pb-2 border-b border-primary/10">
+                                  <Switch
+                                    id="local-user-mode"
+                                    checked={isLocalUser}
+                                    onCheckedChange={setIsLocalUser}
+                                  />
+                                  <Label htmlFor="local-user-mode">Helyi felhasználó létrehozása (email nélkül)</Label>
+                                </div>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </AnimatedCard>
-              )}
 
-              {sentInvitations.length > 0 && (
-                <div className="mt-8 space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
-                    Függőben lévő meghívók
-                  </h3>
-                  <div className="rounded-lg overflow-hidden border border-primary/10">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
-                        <TableRow>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Jogosultság</TableHead>
-                          <TableHead>Meghívva</TableHead>
-                          <TableHead className="text-right">Műveletek</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sentInvitations.map((invitation) => (
-                          <TableRow key={invitation.id}>
-                            <TableCell className="font-medium">{invitation.email}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn(
-                                "border-primary/20",
-                                invitation.role === 'klinika_admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                              )}>
-                                {invitation.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{new Date(invitation.created_at).toLocaleDateString('hu-HU')}</TableCell>
-                            <TableCell className="text-right">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Teljes név</Label>
+                                <Input
+                                  placeholder="Teljes név"
+                                  value={newUserFullName}
+                                  onChange={(e) => setNewUserFullName(e.target.value)}
+                                  className="border-primary/20 focus:border-primary/40"
+                                />
+                              </div>
+
+                              {!isLocalUser ? (
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium">Email cím</Label>
+                                  <Input
+                                    type="email"
+                                    placeholder="email@example.com"
+                                    value={newUserEmail}
+                                    onChange={(e) => setNewUserEmail(e.target.value)}
+                                    className="border-primary/20 focus:border-primary/40"
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    A felhasználó kapni fog egy email meghívót a jelszó beállításához.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium">Felhasználónév</Label>
+                                  <Input
+                                    placeholder="felhasználónév"
+                                    value={newUserEmail}
+                                    onChange={(e) => setNewUserEmail(e.target.value)}
+                                    className="border-primary/20 focus:border-primary/40"
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
+                                  </p>
+                                </div>
+                              )}
+
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Jogosultság</Label>
+                                <Select value={newUserRole} onValueChange={setNewUserRole}>
+                                  <SelectTrigger className="border-primary/20">
+                                    <SelectValue placeholder="Válassz jogosultságot" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="user">Felhasználó</SelectItem>
+                                    <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {isLocalUser && (
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Jelszó</Label>
+                                    <div className="relative">
+                                      <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Jelszó"
+                                        value={newUserPassword}
+                                        onChange={(e) => setNewUserPassword(e.target.value)}
+                                        className="border-primary/20 focus:border-primary/40 pr-10"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                      >
+                                        {showPassword ? (
+                                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                          <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Jelszó megerősítése</Label>
+                                    <Input
+                                      type="password"
+                                      placeholder="Jelszó újra"
+                                      value={newUserConfirmPassword}
+                                      onChange={(e) => setNewUserConfirmPassword(e.target.value)}
+                                      className="border-primary/20 focus:border-primary/40"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <DialogFooter>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => handleCancelInvitation(invitation.id)}
-                                disabled={cancellingInvitationId === invitation.id}
+                                variant="outline"
+                                onClick={() => {
+                                  setCreateUserOpen(false);
+                                  setNewUserEmail('');
+                                  setNewUserPassword('');
+                                  setNewUserConfirmPassword('');
+                                  setNewUserFullName('');
+                                  setIsLocalUser(false);
+                                }}
+                                className="border-primary/20 hover:bg-primary/10"
                               >
-                                {cancellingInvitationId === invitation.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
+                                Mégse
                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                              <GalaxyButton
+                                onClick={handleCreateUser}
+                                disabled={creatingUser || (isLocalUser && (newUserConfirmPassword !== '' && newUserPassword !== newUserConfirmPassword))}
+                              >
+                                {creatingUser ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {isLocalUser ? 'Létrehozás...' : 'Meghívás...'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    {isLocalUser ? 'Létrehozás' : 'Meghívás küldése'}
+                                  </>
+                                )}
+                              </GalaxyButton>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                </CardHeader>
+
+                <CardContent>
+                  {!companyId || !telephelyId ? (
+                    <div className="text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-lg">
+                      Cég és telephely hozzárendelése szükséges a felhasználó létrehozáshoz
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <div className="relative mb-4">
+                        <Users className="h-16 w-16 text-muted-foreground/30" />
+                        <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
+                      </div>
+                      <p className="text-muted-foreground">Még nincsenek tagok</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader className="sticky top-0 z-10 bg-card">
+                          <TableRow className="bg-gradient-to-r from-primary/5 to-accent/5 border-b border-primary/10">
+                            <TableHead className="font-semibold">Email</TableHead>
+                            <TableHead className="font-semibold">Név</TableHead>
+                            <TableHead className="font-semibold">Licenc</TableHead>
+                            <TableHead className="font-semibold">Szerep</TableHead>
+                            <TableHead className="text-right font-semibold">Műveletek</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users.map((user) => (
+                            <TableRow
+                              key={user.id}
+                              className="group hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5"
+                            >
+                              <TableCell className="font-medium">{user.email}</TableCell>
+                              <TableCell>{user.full_name || '-'}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={userLicenseMap[user.id] ? 'default' : 'outline'}
+                                  className={cn(
+                                    userLicenseMap[user.id] && "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
+                                  )}
+                                >
+                                  {userLicenseMap[user.id] ? 'Aktív' : 'Inaktív'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={cn(
+                                    user.role === 'admin' && 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700',
+                                    user.role === 'klinika_admin' && 'bg-gradient-to-r from-primary to-accent text-white hover:opacity-90',
+                                    user.role !== 'admin' && user.role !== 'klinika_admin' && 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                  )}
+                                >
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {/* Allow editing/deleting if target role is NOT admin (allows editing klinika_admin and user) */}
+                                {user.role !== 'admin' && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-primary hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => openEditUser({
+                                        id: user.id,
+                                        email: user.email,
+                                        full_name: user.full_name,
+                                        role: user.role
+                                      })}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    {/* Hide delete button for current user to prevent self-lockout */}
+                                    {user.id !== currentUserId && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleDeleteUser(user.id, user.email)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+
+                  {sentInvitations.filter(i => i.status === 'pending').length > 0 && (
+                    <div className="mt-8 space-y-4">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Függőben lévő meghívók
+                      </h3>
+                      <div className="rounded-lg overflow-hidden border border-primary/10">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Jogosultság</TableHead>
+                              <TableHead>Meghívva</TableHead>
+                              <TableHead className="text-right">Műveletek</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sentInvitations.filter(i => i.status === 'pending').map((invitation) => (
+                              <TableRow key={invitation.id}>
+                                <TableCell className="font-medium">{invitation.email}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={cn(
+                                    "border-primary/20",
+                                    invitation.role === 'klinika_admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                  )}>
+                                    {invitation.role === 'klinika_admin' ? 'Klinika Admin' : 'Felhasználó'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{new Date(invitation.created_at).toLocaleDateString('hu-HU')}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleCancelInvitation(invitation.id)}
+                                    disabled={cancellingInvitationId === invitation.id}
+                                  >
+                                    {cancellingInvitationId === invitation.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </AnimatedCard>
             </TabsContent>
 
 
@@ -928,6 +1081,32 @@ export default function KlinikaAdmin() {
                 className="border-primary/20 focus:border-primary/40"
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Szerepkör</Label>
+              {editingUser?.id === currentUserId ? (
+                <>
+                  <Input
+                    value={editUserRole === 'klinika_admin' ? 'Klinika Admin' : editUserRole === 'admin' ? 'Admin' : 'Felhasználó'}
+                    disabled
+                    className="bg-muted border-primary/20"
+                  />
+                  <p className="text-xs text-muted-foreground">Saját szerepkör nem módosítható</p>
+                </>
+              ) : (
+                <Select value={editUserRole} onValueChange={setEditUserRole}>
+                  <SelectTrigger className="border-primary/20 focus:border-primary/40">
+                    <SelectValue placeholder="Válassz szerepkört" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {validRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -951,6 +1130,7 @@ export default function KlinikaAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ManualInvitationDialog />
     </div>
   );
 }

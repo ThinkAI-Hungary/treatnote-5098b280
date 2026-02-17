@@ -90,7 +90,7 @@ export function useCachedRoles(): CachedRolesData {
 
         const profileData = profileResult.data;
         // Determine effective telephely ID (current > legacy > null)
-        const effectiveTelephelyId = profileData?.current_telephely_id || profileData?.telephely_id || null;
+        let effectiveTelephelyId = profileData?.current_telephely_id || profileData?.telephely_id || null;
 
         // Fetch telephely details
         let telephelyName: string | null = null;
@@ -112,10 +112,33 @@ export function useCachedRoles(): CachedRolesData {
           isKlinikaAdmin = membershipRes.data?.role === 'klinika_admin';
 
           // Fallback for legacy compatibility if no membership record exists yet (during migration phase)
-          // strict check: if membershipRes.data is null, they might use legacy rights?
-          // For safety, if no membership found, assume NO access or check legacy has_role?
-          // Let's assume migration has populated memberships or we fallback to legacy has_role if membership missing.
           if (!membershipRes.data) {
+            const legacyRoleCheck = await supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' });
+            if (legacyRoleCheck.data) isKlinikaAdmin = true;
+          }
+        } else {
+          // No telephely in profile - still check if user has ANY klinika_admin membership
+          const { data: anyMembership } = await supabase
+            .from('telephely_memberships')
+            .select('role, telephely_id')
+            .eq('user_id', user.id)
+            .eq('role', 'klinika_admin')
+            .limit(1)
+            .maybeSingle();
+
+          if (anyMembership) {
+            isKlinikaAdmin = true;
+            // Also resolve the telephely name for this membership
+            const { data: tData } = await supabase
+              .from('telephely')
+              .select('name')
+              .eq('id', anyMembership.telephely_id)
+              .single();
+            telephelyName = tData?.name || null;
+            // Update effectiveTelephelyId so it can be used downstream
+            effectiveTelephelyId = anyMembership.telephely_id;
+          } else {
+            // Last resort: check legacy has_role
             const legacyRoleCheck = await supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' });
             if (legacyRoleCheck.data) isKlinikaAdmin = true;
           }

@@ -1,3 +1,4 @@
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,74 +8,102 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
+import { PageLoader } from "@/components/PageLoader";
+import { preloadCommonRoutes } from "@/lib/routePrefetch";
+
+// Eager-loaded (always needed on first visit)
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import PatientManagement from "./pages/PatientManagement";
-import Appointments from "./pages/Appointments";
-import ExaminationsList from "./pages/ExaminationsList";
-import DentalCharting from "./pages/DentalCharting";
-import VoiceRecording from "./pages/VoiceRecording";
-import Analytics from "./pages/Analytics";
-import Downloads from "./pages/Downloads";
 
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import Admin from "./pages/Admin";
-import KlinikaAdmin from "./pages/KlinikaAdmin";
-import AcceptInvitation from "./pages/AcceptInvitation";
-import NotFound from "./pages/NotFound";
+// Lazy-loaded: code-split so each page JS only loads when needed
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const PatientManagement = lazy(() => import("./pages/PatientManagement"));
+const Appointments = lazy(() => import("./pages/Appointments"));
+const ExaminationsList = lazy(() => import("./pages/ExaminationsList"));
+const DentalCharting = lazy(() => import("./pages/DentalCharting"));
+const VoiceRecording = lazy(() => import("./pages/VoiceRecording"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Downloads = lazy(() => import("./pages/Downloads"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Admin = lazy(() => import("./pages/Admin"));
+const KlinikaAdmin = lazy(() => import("./pages/KlinikaAdmin"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
+const Register = lazy(() => import("./pages/Register"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Keep data fresh for 5 min — navigating back won't refetch
+      staleTime: 5 * 60 * 1000,
+      // Keep unused data in cache for 10 min before garbage collection
+      gcTime: 10 * 60 * 1000,
+      // Don't refetch when window regains focus (reduces flicker)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Wrapper component for authenticated routes - Layout stays mounted
 function AuthenticatedRoutes() {
   return (
     <AuthenticatedLayout>
-      <Outlet />
+      <Suspense fallback={null}>
+        <Outlet />
+      </Suspense>
     </AuthenticatedLayout>
   );
 }
 
-const App = () => (
-  <ThemeProvider defaultTheme="system" storageKey="klinika-theme">
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/accept-invitation" element={<AcceptInvitation />} />
-              
-              {/* Authenticated routes - Layout wrapper stays mounted */}
-              <Route element={<AuthenticatedRoutes />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/patients" element={<PatientManagement />} />
-                <Route path="/appointments" element={<Appointments />} />
-                <Route path="/examinations" element={<ExaminationsList />} />
-                <Route path="/dental-charting" element={<DentalCharting />} />
-                <Route path="/voice-recording" element={<VoiceRecording />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/downloads" element={<Downloads />} />
-                
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/klinika-admin" element={<KlinikaAdmin />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          <ThemeToggle />
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
-);
+const App = () => {
+  // Eagerly preload commonly visited routes during idle time
+  useEffect(() => {
+    preloadCommonRoutes();
+  }, []);
+
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="klinika-theme">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/accept-invitation" element={<Suspense fallback={<PageLoader />}><AcceptInvitation /></Suspense>} />
+                <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
+
+
+                {/* Authenticated routes - Layout wrapper stays mounted */}
+                <Route element={<AuthenticatedRoutes />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/patients" element={<PatientManagement />} />
+                  <Route path="/appointments" element={<Appointments />} />
+                  <Route path="/examinations" element={<ExaminationsList />} />
+                  <Route path="/dental-charting" element={<DentalCharting />} />
+                  <Route path="/voice-recording" element={<VoiceRecording />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/downloads" element={<Downloads />} />
+
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/klinika-admin" element={<KlinikaAdmin />} />
+                </Route>
+
+                <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+              </Routes>
+            </BrowserRouter>
+            <ThemeToggle />
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+};
 
 export default App;

@@ -5,10 +5,21 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type Profile = Tables<'profiles'>;
 
+// Module-level cache so data persists across component mounts
+let cachedProfile: Profile | null = null;
+let cachedUserId: string | null = null;
+
 export function useProfile() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // If user changed, invalidate cache
+  if (user?.id !== cachedUserId) {
+    cachedProfile = null;
+    cachedUserId = user?.id ?? null;
+  }
+
+  const [profile, setProfile] = useState<Profile | null>(cachedProfile);
+  const [loading, setLoading] = useState(!cachedProfile && !!user);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -16,6 +27,7 @@ export function useProfile() {
       if (!user) {
         setProfile(null);
         setLoading(false);
+        cachedProfile = null;
         return;
       }
 
@@ -30,6 +42,8 @@ export function useProfile() {
           throw error;
         }
 
+        cachedProfile = data;
+        cachedUserId = user.id;
         setProfile(data);
       } catch (err) {
         console.error('Error fetching profile:', err);

@@ -58,12 +58,14 @@ export function ProbaPaciensDialog({
     setSaving(true);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('telephely')
         .update({ probapaciens_neve: name.trim() })
-        .eq('id', telephelyId);
+        .eq('id', telephelyId)
+        .select('id');
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Nincs jogosultsága a módosításhoz');
 
       toast.success('Próbapáciens neve sikeresen mentve');
       onSaved(name.trim());
@@ -90,8 +92,8 @@ export function ProbaPaciensDialog({
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
                   <p>
-                    A létrehozott próbapáciensen fog a rendszer különböző kezelési adatokhoz jutni, 
-                    illetve próbafutásokat végezni. Kérem hozzon létre egy olyan felhasználót, 
+                    A létrehozott próbapáciensen fog a rendszer különböző kezelési adatokhoz jutni,
+                    illetve próbafutásokat végezni. Kérem hozzon létre egy olyan felhasználót,
                     amely neve egyértelműen jelzi a teszt jelleget, és annak ID-ját illessze be a lenti mezőbe
                   </p>
                 </TooltipContent>

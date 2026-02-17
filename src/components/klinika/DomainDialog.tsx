@@ -58,12 +58,14 @@ export function DomainDialog({
     setSaving(true);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('telephely')
         .update({ flexi_domain: domain.trim() })
-        .eq('id', telephelyId);
+        .eq('id', telephelyId)
+        .select('id');
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error('Nincs jogosultsága a módosításhoz');
 
       toast.success('Domain sikeresen mentve');
       onSaved(domain.trim());
@@ -90,7 +92,7 @@ export function DomainDialog({
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
                   <p>
-                    Kérem adja meg azt az URL-t, amelyen Ön és a klinika többi felhasználója 
+                    Kérem adja meg azt az URL-t, amelyen Ön és a klinika többi felhasználója
                     bejelentkezik a Flexi-Dent fiókjába. Az URL kinézete:{' '}
                     <span className="inline-block">
                       "https://

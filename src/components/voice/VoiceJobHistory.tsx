@@ -28,8 +28,8 @@ function formatDuration(seconds: number | null): string {
 
 function getModeLabel(mode: string): string {
   switch (mode) {
-    case 'treatnote': return 'TreatNote';
-    case 'voxis': return 'Voxis';
+    case 'treatnote': return 'Kezelési terv';
+    case 'voxis': return 'Státuszfelvétel';
     case 'ambulans': return 'Ambuláns';
     default: return mode;
   }
@@ -133,9 +133,9 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, o
                         <span>{formatDuration(job.duration_seconds)}</span>
                         <span>•</span>
                         <span className="truncate">
-                          {formatDistanceToNow(new Date(job.created_at), { 
+                          {formatDistanceToNow(new Date(job.created_at), {
                             addSuffix: true,
-                            locale: hu 
+                            locale: hu
                           })}
                         </span>
                       </div>
@@ -161,10 +161,10 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, o
                         )}
                       </Button>
                     ) : (
-                    <ChevronRight className={cn(
-                      "h-4 w-4 text-muted-foreground/50 flex-shrink-0 transition-transform",
-                      selectedJobId === job.id && "text-sparkle-blue"
-                    )} />
+                      <ChevronRight className={cn(
+                        "h-4 w-4 text-muted-foreground/50 flex-shrink-0 transition-transform",
+                        selectedJobId === job.id && "text-sparkle-blue"
+                      )} />
                     )}
                   </div>
                 </button>

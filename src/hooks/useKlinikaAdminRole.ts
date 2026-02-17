@@ -53,7 +53,8 @@ export function useKlinikaAdminRole(): KlinikaAdminData {
             .select(`
               company_id,
               company_name,
-              telephely_id
+              telephely_id,
+              current_telephely_id
             `)
             .eq('user_id', user.id)
             .single();
@@ -61,22 +62,51 @@ export function useKlinikaAdminRole(): KlinikaAdminData {
           if (profileError) {
             console.error('Error fetching profile:', profileError);
           } else if (profile) {
-            setCompanyId(profile.company_id);
-            setCompanyName(profile.company_name);
-            setTelephelyId(profile.telephely_id);
+            let resolvedTelephelyId = profile.current_telephely_id || profile.telephely_id;
+            let resolvedCompanyId = profile.company_id;
+            let resolvedCompanyName = profile.company_name;
 
-            // Get telephely name if we have telephely_id
-            if (profile.telephely_id) {
-              const { data: telephely } = await supabase
-                .from('telephely')
-                .select('name')
-                .eq('id', profile.telephely_id)
-                .single();
-              
-              if (telephely) {
-                setTelephelyName(telephely.name);
+            // Fallback: check telephely_memberships if profile lacks telephely
+            if (!resolvedTelephelyId) {
+              const { data: membership } = await supabase
+                .from('telephely_memberships')
+                .select('telephely_id')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle();
+              if (membership) {
+                resolvedTelephelyId = membership.telephely_id;
               }
             }
+
+            setTelephelyId(resolvedTelephelyId);
+
+            // Get telephely name and resolve company from telephely if needed
+            if (resolvedTelephelyId) {
+              const { data: telephely } = await supabase
+                .from('telephely')
+                .select('name, company_id')
+                .eq('id', resolvedTelephelyId)
+                .single();
+
+              if (telephely) {
+                setTelephelyName(telephely.name);
+
+                // Resolve company from telephely if not in profile
+                if (!resolvedCompanyId && telephely.company_id) {
+                  resolvedCompanyId = telephely.company_id;
+                  const { data: company } = await supabase
+                    .from('companies')
+                    .select('name')
+                    .eq('id', telephely.company_id)
+                    .single();
+                  resolvedCompanyName = company?.name || null;
+                }
+              }
+            }
+
+            setCompanyId(resolvedCompanyId);
+            setCompanyName(resolvedCompanyName);
           }
         }
       } catch (err) {

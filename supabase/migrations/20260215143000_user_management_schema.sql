@@ -107,9 +107,9 @@ begin
       -- If there IS, we let it run, but we also add membership.
       
       -- Let's check duplicate key violation just in case.
-      insert into public.profiles (user_id, full_name, email, role)
-      values (new.id, new.raw_user_meta_data->>'full_name', new.email, 'user')
-      on conflict (user_id) do nothing; -- Update?
+      insert into public.profiles (user_id, full_name)
+      values (new.id, new.raw_user_meta_data->>'full_name')
+      on conflict (user_id) do nothing;
 
       -- 2. Create Membership
       insert into public.telephely_memberships (user_id, telephely_id, role)

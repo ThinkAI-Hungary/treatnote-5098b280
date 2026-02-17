@@ -7,12 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  GripVertical, 
-  Plus, 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
+import {
+  GripVertical,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
   ArrowRight,
   Save,
   Loader2,
@@ -24,14 +24,14 @@ import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  TreatmentRule, 
-  RuleVisit, 
+import {
+  TreatmentRule,
+  RuleVisit,
   RuleItem,
   ScalingType,
   TargetToothType,
-  SCALING_OPTIONS, 
-  TARGET_TOOTH_OPTIONS, 
+  SCALING_OPTIONS,
+  TARGET_TOOTH_OPTIONS,
   CATEGORY_OPTIONS,
   DEFAULT_RULE_ITEM,
   DEFAULT_RULE_VISIT,
@@ -48,7 +48,8 @@ interface TreatmentRuleEditorProps {
   onOpenChange: (open: boolean) => void;
   clinicId: string;
   rule?: TreatmentRule | null;
-  onSave: () => void;
+  originalRuleIdToDeactivate?: string | null;
+  onSave: (rule?: TreatmentRule) => void;
 }
 
 export function TreatmentRuleEditor({
@@ -56,10 +57,11 @@ export function TreatmentRuleEditor({
   onOpenChange,
   clinicId,
   rule,
+  originalRuleIdToDeactivate,
   onSave,
 }: TreatmentRuleEditorProps) {
   const isEditing = !!rule?.id;
-  
+
   // Form state
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string>('');
@@ -67,7 +69,7 @@ export function TreatmentRuleEditor({
   const [visits, setVisits] = useState<RuleVisit[]>([]);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
-  
+
   // Szotar kezelesek for autocomplete
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesOption[]>([]);
   const [activeAutocomplete, setActiveAutocomplete] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
@@ -81,7 +83,7 @@ export function TreatmentRuleEditor({
           .select('id, name, category')
           .eq('telephely_id', clinicId)
           .order('name', { ascending: true });
-        
+
         if (!error && data) {
           setSzotarKezelesek(data);
         }
@@ -108,22 +110,22 @@ export function TreatmentRuleEditor({
 
   // Renumber visits
   const renumberVisits = useCallback((visitsToRenumber: RuleVisit[]): RuleVisit[] => {
-    return visitsToRenumber.map((v, i) => ({ 
-      ...v, 
+    return visitsToRenumber.map((v, i) => ({
+      ...v,
       visit_number: i + 1,
-      display_order: i 
+      display_order: i
     }));
   }, []);
 
   // Add new visit
   const addVisit = () => {
     setVisits(prev => renumberVisits([
-      ...prev, 
-      { 
+      ...prev,
+      {
         ...DEFAULT_RULE_VISIT,
-        visit_number: prev.length + 1, 
+        visit_number: prev.length + 1,
         display_order: prev.length,
-        items: [] 
+        items: []
       }
     ]));
   };
@@ -146,7 +148,7 @@ export function TreatmentRuleEditor({
 
   // Update visit properties
   const updateVisit = (visitIndex: number, field: 'duration_days' | 'healing_months', value: number) => {
-    setVisits(prev => prev.map((v, i) => 
+    setVisits(prev => prev.map((v, i) =>
       i === visitIndex ? { ...v, [field]: value } : v
     ));
   };
@@ -186,7 +188,7 @@ export function TreatmentRuleEditor({
       if (vi !== visitIndex) return visit;
       return {
         ...visit,
-        items: visit.items.map((item, ii) => 
+        items: visit.items.map((item, ii) =>
           ii === itemIndex ? { ...item, [field]: value } : item
         )
       };
@@ -197,8 +199,8 @@ export function TreatmentRuleEditor({
   const removeItem = (visitIndex: number, itemIndex: number) => {
     setVisits(prev => prev.map((visit, vi) => {
       if (vi !== visitIndex) return visit;
-      return { 
-        ...visit, 
+      return {
+        ...visit,
         items: visit.items.filter((_, i) => i !== itemIndex).map((it, i) => ({ ...it, display_order: i }))
       };
     }));
@@ -208,9 +210,9 @@ export function TreatmentRuleEditor({
   const addItem = (visitIndex: number) => {
     setVisits(prev => prev.map((visit, vi) => {
       if (vi !== visitIndex) return visit;
-      return { 
-        ...visit, 
-        items: [...visit.items, { ...DEFAULT_RULE_ITEM, display_order: visit.items.length }] 
+      return {
+        ...visit,
+        items: [...visit.items, { ...DEFAULT_RULE_ITEM, display_order: visit.items.length }]
       };
     }));
   };
@@ -226,9 +228,9 @@ export function TreatmentRuleEditor({
 
   const handleDrop = (targetVisitIndex: number, targetItemIndex?: number) => {
     if (!draggedItem) return;
-    
+
     const { visitIndex: fromVisitIndex, itemIndex: fromItemIndex } = draggedItem;
-    
+
     if (fromVisitIndex === targetVisitIndex) {
       if (targetItemIndex !== undefined && targetItemIndex !== fromItemIndex) {
         setVisits(prev => prev.map((visit, vi) => {
@@ -242,7 +244,7 @@ export function TreatmentRuleEditor({
     } else {
       moveItemToVisit(fromVisitIndex, fromItemIndex, targetVisitIndex);
     }
-    
+
     setDraggedItem(null);
   };
 
@@ -283,7 +285,7 @@ export function TreatmentRuleEditor({
 
       if (isEditing && rule?.id) {
         savedRuleId = rule.id;
-        
+
         // Update existing rule
         const { error: ruleError } = await supabase
           .from('treatment_rules')
@@ -353,6 +355,22 @@ export function TreatmentRuleEditor({
 
         savedRuleId = ruleData.id;
 
+        // If this was an edit of an alapszabaly, deactivate the original
+        if (originalRuleIdToDeactivate) {
+          const { error: deactivateError } = await supabase
+            .from('treatment_rules')
+            .update({ aktiv: false })
+            .eq('id', originalRuleIdToDeactivate);
+
+          if (deactivateError) {
+            console.error('Error deactivating original rule:', deactivateError);
+            toast.error('Az eredeti szabály inaktiválása sikertelen');
+          } else {
+            // Optional: notify success, or just let it happen silently
+            // toast.success('Eredeti szabály inaktiválva');
+          }
+        }
+
         // Insert visits and items
         for (const visit of renumberVisits(visits)) {
           const { data: visitData, error: visitError } = await supabase
@@ -391,12 +409,44 @@ export function TreatmentRuleEditor({
         toast.success('Szabály sikeresen létrehozva');
       }
 
-      // Regenerate embedding after save
+      // Fetch the complete rule to update parent state without reload
       if (savedRuleId) {
+        const { data: completeRule, error: fetchError } = await supabase
+          .from('treatment_rules')
+          .select(`
+            *,
+            visits:rule_visits(
+              *,
+              items:rule_items(*)
+            )
+          `)
+          .eq('id', savedRuleId)
+          .single();
+
+        if (!fetchError && completeRule) {
+          // Sort visits and items locally to ensure order
+          const formattedRule = {
+            ...completeRule,
+            visits: (completeRule.visits || [])
+              .sort((a: any, b: any) => a.display_order - b.display_order)
+              .map((visit: any) => ({
+                ...visit,
+                items: (visit.items || [])
+                  .sort((a: any, b: any) => a.display_order - b.display_order)
+              }))
+          } as TreatmentRule;
+
+          onSave(formattedRule);
+        } else {
+          onSave(); // Fallback to reload
+        }
+
+        // Regenerate embedding in background
         regenerateEmbedding(savedRuleId);
+      } else {
+        onSave();
       }
 
-      onSave();
       onOpenChange(false);
     } catch (err: any) {
       console.error('Error saving rule:', err);
@@ -451,7 +501,7 @@ export function TreatmentRuleEditor({
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Szemantikus leírás</Label>
                   <Textarea
@@ -471,9 +521,9 @@ export function TreatmentRuleEditor({
             {/* Visits section */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">Vizitek</h3>
-              
+
               {visits.map((visit, visitIndex) => (
-                <Card 
+                <Card
                   key={visitIndex}
                   className={cn(
                     "transition-all duration-200",
@@ -509,7 +559,7 @@ export function TreatmentRuleEditor({
                           </Button>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -522,7 +572,7 @@ export function TreatmentRuleEditor({
                           />
                           <span className="text-sm text-muted-foreground">nap</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <Input
@@ -534,7 +584,7 @@ export function TreatmentRuleEditor({
                           />
                           <span className="text-sm text-muted-foreground">hó gyógyulás</span>
                         </div>
-                        
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -546,7 +596,7 @@ export function TreatmentRuleEditor({
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pt-2">
                     <div className="space-y-2">
                       {/* Table header for items */}
@@ -561,7 +611,7 @@ export function TreatmentRuleEditor({
                           <div className="w-24" /> {/* Actions space */}
                         </div>
                       )}
-                      
+
                       {visit.items.map((item, itemIndex) => (
                         <div
                           key={itemIndex}
@@ -580,7 +630,7 @@ export function TreatmentRuleEditor({
                           )}
                         >
                           <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
-                          
+
                           {/* Tétel neve with autocomplete */}
                           <div className="flex-1 relative">
                             <Input
@@ -598,38 +648,38 @@ export function TreatmentRuleEditor({
                               className="h-8"
                             />
                             {/* Autocomplete dropdown */}
-                            {activeAutocomplete?.visitIndex === visitIndex && 
-                             activeAutocomplete?.itemIndex === itemIndex && 
-                             item.name.length > 0 && (
-                              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
-                                {szotarKezelesek
-                                  .filter(k => k.name.toLowerCase().includes(item.name.toLowerCase()))
-                                  .slice(0, 10)
-                                  .map((kezeles) => (
-                                    <div
-                                      key={kezeles.id}
-                                      className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center"
-                                      onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        updateItem(visitIndex, itemIndex, 'name', kezeles.name);
-                                        setActiveAutocomplete(null);
-                                      }}
-                                    >
-                                      <span>{kezeles.name}</span>
-                                      {kezeles.category && (
-                                        <span className="text-xs text-muted-foreground ml-2">{kezeles.category}</span>
-                                      )}
+                            {activeAutocomplete?.visitIndex === visitIndex &&
+                              activeAutocomplete?.itemIndex === itemIndex &&
+                              item.name.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                                  {szotarKezelesek
+                                    .filter(k => k.name.toLowerCase().includes(item.name.toLowerCase()))
+                                    .slice(0, 10)
+                                    .map((kezeles) => (
+                                      <div
+                                        key={kezeles.id}
+                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          updateItem(visitIndex, itemIndex, 'name', kezeles.name);
+                                          setActiveAutocomplete(null);
+                                        }}
+                                      >
+                                        <span>{kezeles.name}</span>
+                                        {kezeles.category && (
+                                          <span className="text-xs text-muted-foreground ml-2">{kezeles.category}</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  {szotarKezelesek.filter(k => k.name.toLowerCase().includes(item.name.toLowerCase())).length === 0 && (
+                                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                                      Nincs találat
                                     </div>
-                                  ))}
-                                {szotarKezelesek.filter(k => k.name.toLowerCase().includes(item.name.toLowerCase())).length === 0 && (
-                                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                                    Nincs találat
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                  )}
+                                </div>
+                              )}
                           </div>
-                          
+
                           {item.scaling === 'per_case' && (
                             <Input
                               type="number"
@@ -639,9 +689,9 @@ export function TreatmentRuleEditor({
                               min={1}
                             />
                           )}
-                          
-                          <Select 
-                            value={item.scaling} 
+
+                          <Select
+                            value={item.scaling}
                             onValueChange={(v) => updateItem(visitIndex, itemIndex, 'scaling', v as ScalingType)}
                           >
                             <SelectTrigger className="w-28 h-8">
@@ -653,9 +703,9 @@ export function TreatmentRuleEditor({
                               ))}
                             </SelectContent>
                           </Select>
-                          
-                          <Select 
-                            value={item.target_tooth_type} 
+
+                          <Select
+                            value={item.target_tooth_type}
                             onValueChange={(v) => updateItem(visitIndex, itemIndex, 'target_tooth_type', v as TargetToothType)}
                           >
                             <SelectTrigger className="w-28 h-8">
@@ -667,7 +717,7 @@ export function TreatmentRuleEditor({
                               ))}
                             </SelectContent>
                           </Select>
-                          
+
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
@@ -687,7 +737,7 @@ export function TreatmentRuleEditor({
                             >
                               <ArrowDown className="h-3 w-3" />
                             </Button>
-                            
+
                             {visits.length > 1 && (
                               <div className="relative group">
                                 <Button
@@ -713,7 +763,7 @@ export function TreatmentRuleEditor({
                                 </div>
                               </div>
                             )}
-                            
+
                             <Button
                               variant="ghost"
                               size="icon"
@@ -725,7 +775,7 @@ export function TreatmentRuleEditor({
                           </div>
                         </div>
                       ))}
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -739,7 +789,7 @@ export function TreatmentRuleEditor({
                   </CardContent>
                 </Card>
               ))}
-              
+
               <Button
                 variant="outline"
                 className="w-full"

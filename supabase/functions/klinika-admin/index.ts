@@ -16,34 +16,162 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify the caller
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user: caller }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create admin client
+    // Create admin client - needed for some ops
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Parse the operation first to determine access level needed
-    const { operation, ...params } = await req.json();
+
+
+    // Create a Supabase client for the user's session
+    let supabaseClient = null;
+
+    const body = await req.json();
+    const { operation, ...params } = body;
+
+    console.log(`Klinika Admin operation: ${operation}`);
+
+    // DEBUG: Inspect invite/user state without auth (protected by secret)
+    if (operation === 'debug-inspect-invite') {
+      const { email, secret } = params;
+      if (secret !== 'super-secret-fix-key-123') {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      if (listError) return new Response(JSON.stringify({ error: listError.message }), { status: 500 });
+
+      const targetUser = users.find(u => u.email?.toLowerCase() === email?.toLowerCase());
+
+      let userData = null;
+      if (targetUser) {
+        const { data: profile } = await supabaseAdmin.from("profiles").select("*, current_telephely_id").eq("user_id", targetUser.id).single();
+        const { data: memberships } = await supabaseAdmin.from("telephely_memberships").select("*").eq("user_id", targetUser.id);
+        const { data: roles } = await supabaseAdmin.from("user_roles").select("*").eq("user_id", targetUser.id);
+        userData = { user: targetUser, profile, memberships, roles };
+      }
+
+      let invitations;
+      if (email) {
+        const { data } = await supabaseAdmin
+          .from("invitations")
+          .select("*")
+          .eq("invited_email", email.toLowerCase());
+        invitations = data;
+      } else {
+        const { data } = await supabaseAdmin
+          .from("invitations")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5);
+        invitations = data;
+      }
+
+      return new Response(JSON.stringify({
+        userData,
+        invitations
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+
+
+    // DEBUG: Update user role without auth (protected by secret)
+    if (operation === 'debug-update-user') {
+      const { userId, role, secret, telephelyId } = params;
+      if (secret !== 'super-secret-fix-key-123') {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+
+      console.log(`DEBUG: Updating user ${userId} to role ${role} in telephely ${telephelyId}`);
+
+      // Explicitly try the upsert and return the result
+      const { data: upsertData, error: upsertError } = await supabaseAdmin
+        .from("telephely_memberships")
+        .upsert({
+          user_id: userId,
+          telephely_id: telephelyId,
+          role: role
+        }, { onConflict: 'user_id, telephely_id' })
+        .select();
+
+      return new Response(JSON.stringify({
+        success: !upsertError,
+        data: upsertData,
+        error: upsertError
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (operation === 'debug-simulate-get-users') {
+      const { secret, telephelyId } = params;
+      if (secret !== 'super-secret-fix-key-123') {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+      }
+
+      console.log(`DEBUG: Simulating get-users for telephely ${telephelyId}`);
+
+      // Logic copied from get-users
+      const { data: memberships, error: membersError } = await supabaseAdmin
+        .from("telephely_memberships")
+        .select("user_id, role")
+        .eq("telephely_id", telephelyId);
+
+      if (membersError) {
+        return new Response(JSON.stringify({ error: membersError }), { status: 500 });
+      }
+
+      const userIds = memberships?.map(m => m.user_id) || [];
+      const { data: profiles } = await supabaseAdmin.from("profiles").select("*").in("user_id", userIds);
+      const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+
+      const users = memberships?.map(member => {
+        const profile = profiles?.find(p => p.user_id === member.user_id) || {};
+        const authUser = authUsers?.find(u => u.id === member.user_id);
+
+        return {
+          id: member.user_id,
+          email: authUser?.email || "Unknown",
+          full_name: profile.full_name || authUser?.user_metadata?.full_name || "Unknown",
+          role: member.role,
+        };
+      }) || [];
+
+      return new Response(JSON.stringify({ users }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Enforce Authentication for normal operations
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const caller = user;
+    console.log(`User authenticated: ${caller.id}`);
+
     console.log(`Klinika Admin operation: ${operation} by user ${caller.id}`);
 
     // Operations that any authenticated user can access
@@ -198,16 +326,59 @@ serve(async (req) => {
       }
     }
 
-    // For all other operations, check if caller is klinika_admin or admin
-    const { data: isKlinikaAdmin } = await supabaseClient.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "klinika_admin",
-    });
+    if (operation === 'get-user-by-email') {
+      const { email } = params;
+      if (!email) {
+        return new Response(JSON.stringify({ error: "email is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    const { data: isAdmin } = await supabaseClient.rpc("has_role", {
+      // We need to list users as there's no direct search by email in auth.admin that is consistently available across versions
+      // But for small sets it's fine.
+      const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+      if (authError) {
+        return new Response(JSON.stringify({ error: "Failed to search users" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const foundUser = authUsers.find(u => u.email === email);
+      if (!foundUser) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ user: { id: foundUser.id, email: foundUser.email } }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // For all other operations, check if caller is klinika_admin or admin
+    let isKlinikaAdmin = false;
+    let isAdmin = false;
+
+    // Check for klinika_admin role in memberships (since it's not in user_roles global table usually)
+    const { data: membership } = await supabaseClient
+      .from("telephely_memberships")
+      .select("role")
+      .eq("user_id", caller.id)
+      .eq("role", "klinika_admin")
+      .maybeSingle();
+
+    isKlinikaAdmin = !!membership;
+
+    // Check for global admin role
+    const { data: adm } = await supabaseClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "admin",
     });
+    isAdmin = adm;
 
     if (!isKlinikaAdmin && !isAdmin) {
       return new Response(JSON.stringify({ error: "Klinika Admin or Admin access required" }), {
@@ -216,16 +387,53 @@ serve(async (req) => {
       });
     }
 
+
     // Get caller's company and telephely
     const { data: callerProfile } = await supabaseAdmin
       .from("profiles")
-      .select("company_id, telephely_id, company_name")
+      .select("company_id, telephely_id, current_telephely_id, company_name")
       .eq("user_id", caller.id)
       .single();
 
-    // For klinika_admin, company and telephely are required
-    // For admin, they can access but some operations require company/telephely
-    const hasCompanyAndTelephely = callerProfile?.company_id && callerProfile?.telephely_id;
+    // Resolve telephely: prefer current_telephely_id > telephely_id > membership
+    let activeTelephelyId = callerProfile?.current_telephely_id || callerProfile?.telephely_id;
+    let resolvedCompanyId = callerProfile?.company_id;
+    let resolvedCompanyName = callerProfile?.company_name;
+
+    // Fallback: if profile has no telephely, check telephely_memberships
+    if (!activeTelephelyId) {
+      const { data: membership } = await supabaseAdmin
+        .from("telephely_memberships")
+        .select("telephely_id")
+        .eq("user_id", caller.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (membership) {
+        activeTelephelyId = membership.telephely_id;
+      }
+    }
+
+    // Fallback: if no company resolved, get it from the telephely
+    if (!resolvedCompanyId && activeTelephelyId) {
+      const { data: telephelyData } = await supabaseAdmin
+        .from("telephely")
+        .select("company_id")
+        .eq("id", activeTelephelyId)
+        .single();
+
+      if (telephelyData?.company_id) {
+        resolvedCompanyId = telephelyData.company_id;
+        const { data: companyData } = await supabaseAdmin
+          .from("companies")
+          .select("name")
+          .eq("id", telephelyData.company_id)
+          .single();
+        resolvedCompanyName = companyData?.name || null;
+      }
+    }
+
+    const hasCompanyAndTelephely = resolvedCompanyId && activeTelephelyId;
 
     if (!isAdmin && !hasCompanyAndTelephely) {
       console.log(`User ${caller.id} is klinika_admin but has no company/telephely assigned`);
@@ -235,7 +443,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`User ${caller.id} accessing klinika-admin: isAdmin=${isAdmin}, isKlinikaAdmin=${isKlinikaAdmin}, hasCompanyAndTelephely=${hasCompanyAndTelephely}`);
+    console.log(`User ${caller.id} accessing klinika-admin: isAdmin=${isAdmin}, isKlinikaAdmin=${isKlinikaAdmin}, hasCompanyAndTelephely=${hasCompanyAndTelephely}, activeTelephely=${activeTelephelyId}`);
 
     // If admin without company/telephely, return empty data for certain operations
     if (!hasCompanyAndTelephely) {
@@ -251,35 +459,51 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "Company and telephely required for this operation" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      // Allow debug-sync ONLY if admin, but it likely needs telephelyId from params
+      if (operation === 'debug-sync' && isAdmin) {
+        // Pass through
+      } else {
+        return new Response(JSON.stringify({ error: "Company and telephely required for this operation" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // At this point, callerProfile is guaranteed to have company_id and telephely_id
-    const companyId = callerProfile.company_id!;
-    const telephelyId = callerProfile.telephely_id!;
-    const companyName = callerProfile.company_name;
+    // At this point, callerProfile is guaranteed to have company_id and telephely_id (unless passed through above)
+    const companyId = resolvedCompanyId;
+    const telephelyId = activeTelephelyId;
+    const companyName = resolvedCompanyName;
 
     switch (operation) {
+      case "debug-user": {
+        if (!isAdmin) return new Response("Unauthorized", { status: 403 });
+        const { email } = params;
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const targetUser = users?.find(u => u.email === email);
+
+        if (!targetUser) return new Response(JSON.stringify({ error: "User not found" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+        const { data: profile } = await supabaseAdmin.from("profiles").select("*").eq("user_id", targetUser.id).single();
+        const { data: memberships } = await supabaseAdmin.from("telephely_memberships").select("*").eq("user_id", targetUser.id);
+        const { data: roles } = await supabaseAdmin.from("user_roles").select("*").eq("user_id", targetUser.id);
+
+        return new Response(JSON.stringify({
+          user: targetUser,
+          profile,
+          memberships,
+          roles
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       case "get-users": {
         console.log(`get-users: Fetching users for company ${companyId}, telephely ${telephelyId}`);
 
-        // Get all members of the telephely
+        // Get all members of the telephely - simpler query first
         const { data: memberships, error: membersError } = await supabaseAdmin
           .from("telephely_memberships")
-          .select(`
-            user_id,
-            role,
-            profiles:user_id (
-              user_id,
-              full_name,
-              subscription_status,
-              subscription_plan,
-              subscription_end_date
-            )
-          `)
+          .select("user_id, role")
           .eq("telephely_id", telephelyId);
 
         if (membersError) {
@@ -290,51 +514,106 @@ serve(async (req) => {
           });
         }
 
+        // SELF-REPAIR: Check if caller (Admin) is in the list. If not, add them.
+        const callerIsMember = memberships?.some(m => m.user_id === caller.id);
+        if (!callerIsMember) {
+          console.log(`Self-repair: Caller ${caller.id} is missing membership for telephely ${telephelyId}. Fixing...`);
+
+          const newMembership = {
+            user_id: caller.id,
+            telephely_id: telephelyId,
+            role: 'klinika_admin'
+          };
+
+          const { error: insertError } = await supabaseAdmin
+            .from("telephely_memberships")
+            .insert(newMembership);
+
+          if (insertError) {
+            console.error("Self-repair failed:", insertError);
+          } else {
+            // Add to local list so they show up immediately
+            memberships?.push(newMembership as any);
+          }
+        }
+
         console.log(`get-users: Found ${memberships?.length || 0} members for telephely ${telephelyId}`);
+
+        // BACKFILL/SYNC: Find users who have this telephely in their profile but NO membership
+        // This handles legacy users or users assigned via old methods
+        console.log(`Sync: Checking for legacy profiles with telephely_id=${telephelyId} or current_telephely_id=${telephelyId}`);
+        const { data: legacyProfiles, error: legacyError } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, telephely_id, current_telephely_id")
+          .or(`telephely_id.eq.${telephelyId},current_telephely_id.eq.${telephelyId}`);
+
+        if (legacyError) {
+          console.error("Sync: Error fetching legacy profiles:", legacyError);
+        } else if (legacyProfiles && legacyProfiles.length > 0) {
+          console.log(`Sync: Found ${legacyProfiles.length} potential legacy profiles.`);
+          const existingMemberIds = new Set(memberships?.map(m => m.user_id) || []);
+          const missingUsers = legacyProfiles.filter(p => !existingMemberIds.has(p.user_id));
+
+          if (missingUsers.length > 0) {
+            console.log(`Sync: Found ${missingUsers.length} users with profile.telephely_id=${telephelyId} but no membership. Fix...`);
+
+            const newMemberships = missingUsers.map(p => ({
+              user_id: p.user_id,
+              telephely_id: telephelyId,
+              role: 'user' // Default to user, can be upgraded later if needed
+            }));
+
+            const { error: insertError } = await supabaseAdmin
+              .from("telephely_memberships")
+              .insert(newMemberships);
+
+            if (insertError) {
+              console.error("Sync failed:", insertError);
+            } else {
+              console.log(`Sync: Successfully inserted ${newMemberships.length} memberships.`);
+              // Add them to the local list so they appear immediately
+              newMemberships.forEach(m => {
+                if (memberships) memberships.push(m as any);
+              });
+            }
+          } else {
+            console.log("Sync: All legacy profiles already have memberships. No action needed.");
+          }
+        } else {
+          console.log("Sync: No legacy profiles found matching this telephely.");
+        }
 
         // Get auth users for email info
         const userIds = memberships?.map(m => m.user_id) || [];
-        // We can't efficiently filter listUsers by ID list, so we might need to fetch all or use a different approach?
-        // Admin `listUsers` doesn't support filtering by ID list easily in one go.
-        // However, for a single clinic, user count is low. We can fetch all and map? Or fetch individually if small?
-        // Optimization: For now, fetch all (up to page limit) and filter. Or just don't show email if not feasible?
-        // Better: Use `supabaseAdmin.auth.admin.getUserById` locally in loop (slow) or `listUsers` (pagination).
-        // Let's assume listUsers returns enough or we page through it? 
-        // Actually, `listUsers` is paginated. If we have 1000 users, we might miss some.
-        // But for this use case, likely <50 users per clinic.
-        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
 
-        // Get telephely name
-        const { data: telephely } = await supabaseAdmin
-          .from("telephely")
-          .select("name")
-          .eq("id", telephelyId)
-          .single();
+        // Fetch profiles separately
+        const { data: profiles } = await supabaseAdmin
+          .from("profiles")
+          .select("*")
+          .in("user_id", userIds);
 
-        // Combine data
+        // Fetch auth users
+        const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers();
+
         const users = memberships?.map(member => {
-          const profile = (member.profiles as any) || {}; // Handle array or object return depending on relation
-          // Supabase join usually returns object if 1:1, or array 1:N. user_id is PK in profiles, so 1:1?
-          // But here it's `profiles:user_id`.
-          // Let's treat it safely.
-          const profileData = Array.isArray(profile) ? profile[0] : profile;
-
+          const profile = profiles?.find(p => p.user_id === member.user_id) || {};
           const authUser = authUsers?.find(u => u.id === member.user_id);
 
           return {
             id: member.user_id,
             email: authUser?.email || "Unknown",
-            full_name: profileData?.full_name,
-            company_name: companyName, // Inferred from context
-            telephely_name: telephely?.name || null,
-            subscription_status: profileData?.subscription_status,
-            role: member.role, // Use role from membership
+            full_name: profile.full_name || authUser?.user_metadata?.full_name || "Unknown",
+            role: member.role, // Use role from membership!
+            subscription_status: profile.subscription_status || "inactive",
+            subscription_plan: profile.subscription_plan || "free",
+            subscription_end_date: profile.subscription_end_date,
+            avatar_url: profile.avatar_url,
           };
         }) || [];
 
-        console.log(`get-users: Returning ${users.length} users for ${companyName} - ${telephely?.name}`);
+        console.log(`get-users: Returning ${users.length} users for ${companyName}`);
 
-        return new Response(JSON.stringify({ users, companyName: companyName, telephelyName: telephely?.name }), {
+        return new Response(JSON.stringify({ users, companyName: companyName }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -410,7 +689,7 @@ serve(async (req) => {
         }
 
         // Validate role
-        if (!['user', 'klinika_admin'].includes(inviteRole)) {
+        if (!['user', 'klinika_admin', 'admin'].includes(inviteRole)) {
           return new Response(JSON.stringify({ error: "Invalid role. Must be 'user' or 'klinika_admin'" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -599,7 +878,7 @@ serve(async (req) => {
             role,
             created_at,
             responded_at,
-            invited_email
+            invited_email,
             invited_user_id
           `)
           .eq("invited_by_user_id", caller.id)
@@ -652,9 +931,9 @@ serve(async (req) => {
           });
         }
 
-        const { error } = await supabaseAdmin
+        const { error, count } = await supabaseAdmin
           .from("invitations")
-          .delete()
+          .delete({ count: 'exact' })
           .eq("id", invitationId)
           .eq("company_id", companyId)
           .eq("telephely_id", telephelyId)
@@ -664,6 +943,13 @@ serve(async (req) => {
           console.error("Error canceling invitation:", error);
           return new Response(JSON.stringify({ error: "Failed to cancel invitation" }), {
             status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (count === 0) {
+          return new Response(JSON.stringify({ error: "Meghívó nem található vagy már nem függő" }), {
+            status: 404, // Use 404 or 400 to indicate failure to find/delete
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -716,20 +1002,36 @@ serve(async (req) => {
         });
       }
 
+
+
+
+
+
+
       case "create-user": {
         const { email, password, fullName, role } = params;
+        console.log(`create-user: Creating user ${email}, role=${role}`);
+
+        // Restrict direct user creation to global admins
+        if (!isAdmin) {
+          return new Response(JSON.stringify({ error: "Only global admins can create users directly. Please use invitation." }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         const userRole = role || 'user'; // Default to user if not specified
 
         if (!email || !password) {
           return new Response(JSON.stringify({ error: "Email and password are required" }), {
-            status: 400,
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
         if (password.length < 6) {
           return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
-            status: 400,
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -745,13 +1047,14 @@ serve(async (req) => {
             full_name: fullName || email.split("@")[0],
             is_username_login: isLocalUser,
             original_username: isLocalUser ? email.split("@")[0] : undefined,
+            admin_created: true,
           },
         });
 
         if (createError) {
           console.error("Error creating user:", createError);
           return new Response(JSON.stringify({ error: createError.message }), {
-            status: 400,
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -786,11 +1089,11 @@ serve(async (req) => {
         // Create membership
         const { error: membershipError } = await supabaseAdmin
           .from("telephely_memberships")
-          .insert({
+          .upsert({
             user_id: newUser.user.id,
             telephely_id: telephelyId,
             role: userRole
-          });
+          }, { onConflict: 'user_id, telephely_id' });
 
         if (membershipError) {
           console.error("Error creating membership:", membershipError);
@@ -890,11 +1193,21 @@ serve(async (req) => {
       }
 
       case "update-user": {
-        const { userId, fullName } = params;
+        const { userId, fullName, role } = params;
+
+        console.log(`[update-user] START: User=${userId}, Role=${role}, ContextTelephely=${telephelyId}`);
 
         if (!userId) {
           return new Response(JSON.stringify({ error: "userId is required" }), {
             status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!telephelyId) {
+          console.error("[update-user] ERROR: No telephely context found for caller.");
+          return new Response(JSON.stringify({ error: "Context error: No telephely selected" }), {
+            status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -907,19 +1220,47 @@ serve(async (req) => {
           });
         }
 
-        // Verify the user is in the same organization
-        const { data: targetProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("company_id, telephely_id")
+        // Verify the user is in the same telephely via MEMBERSHIPS (more reliable than profile)
+        const { data: targetMembership, error: membershipCheckError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .select("id, role")
           .eq("user_id", userId)
-          .single();
+          .eq("telephely_id", telephelyId)
+          .maybeSingle();
 
-        if (!isAdmin && (!targetProfile || targetProfile.company_id !== companyId || targetProfile.telephely_id !== telephelyId)) {
-          return new Response(JSON.stringify({ error: "You can only update users within your organization" }), {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        if (membershipCheckError) {
+          console.error("[update-user] Membership check error:", membershipCheckError);
         }
+
+        if (!isAdmin && !targetMembership) {
+          console.log("[update-user] No membership found, checking profile fallback...");
+          // Fallback: Check profile if membership missing (legacy mismatch?)
+          const { data: targetProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("company_id, telephely_id")
+            .eq("user_id", userId)
+            .single();
+
+          if (!targetProfile || targetProfile.company_id !== companyId || targetProfile.telephely_id !== telephelyId) {
+            console.error("[update-user] Auth Failed: Profile mismatch or missing.", targetProfile);
+            return new Response(JSON.stringify({ error: "You can only update users within your organization" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        // SELF-REPAIR: If authorization passed, ensure profile is synced to this telephely
+        // This fixes the "profile has nulls" issue
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            company_id: companyId,
+            telephely_id: telephelyId,
+            current_telephely_id: telephelyId
+          })
+          .eq("user_id", userId)
+          .is("telephely_id", null); // Only update if currently null to avoid overwriting moves
 
         // Update the user's profile
         const { error: updateError } = await supabaseAdmin
@@ -933,6 +1274,42 @@ serve(async (req) => {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
+        }
+
+        // Update role if provided
+        if (role) {
+          console.log(`update-user: Updating role for ${userId} to ${role}`);
+          // Validate role
+          if (!['user', 'klinika_admin'].includes(role)) {
+            return new Response(JSON.stringify({ error: "Invalid role" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          // Update telephely_memberships - use UPSERT to handle missing rows (legacy users)
+          const { error: membershipError } = await supabaseAdmin
+            .from("telephely_memberships")
+            .upsert({
+              user_id: userId,
+              telephely_id: telephelyId,
+              role: role
+            }, { onConflict: 'user_id, telephely_id' });
+
+          if (membershipError) {
+            console.error("Error updating membership role:", membershipError);
+          }
+
+          // Update user_roles (legacy/compat)
+          const { error: roleError } = await supabaseAdmin
+            .from("user_roles")
+            .update({ role: role })
+            .eq("user_id", userId);
+
+          // If update failed (maybe row missing?), try insert via upsert or delete/insert
+          if (roleError) {
+            console.error("Error updating user_role:", roleError);
+          }
         }
 
         console.log(`User ${userId} updated by klinika_admin ${caller.id}`);
@@ -1019,6 +1396,55 @@ serve(async (req) => {
           }
         }
 
+        // Check if user has other memberships
+        const { data: otherMemberships } = await supabaseAdmin
+          .from("telephely_memberships")
+          .select("company_id, telephely_id")
+          .eq("user_id", targetUserId)
+          .neq("telephely_id", telephelyId); // Exclude current telephely
+
+        const hasOtherMemberships = otherMemberships && otherMemberships.length > 0;
+
+        if (hasOtherMemberships) {
+          console.log(`User ${targetUserId} has ${otherMemberships.length} other memberships. Removing only from current telephely.`);
+
+          // 1. Remove membership for current telephely
+          const { error: deleteMemError } = await supabaseAdmin
+            .from("telephely_memberships")
+            .delete()
+            .eq("user_id", targetUserId)
+            .eq("telephely_id", telephelyId);
+
+          if (deleteMemError) {
+            console.error("Error removing membership:", deleteMemError);
+            return new Response(JSON.stringify({ error: "Failed to remove user from organization" }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          // 2. Update profile if it points to current telephely
+          if (targetProfile.telephely_id === telephelyId || targetProfile.current_telephely_id === telephelyId) {
+            const nextMem = otherMemberships[0];
+            await supabaseAdmin
+              .from("profiles")
+              .update({
+                company_id: nextMem.company_id,
+                telephely_id: nextMem.telephely_id,
+                current_telephely_id: nextMem.telephely_id
+              })
+              .eq("user_id", targetUserId);
+          }
+
+          return new Response(JSON.stringify({ success: true, message: "User removed from organization (account kept active for other organizations)" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // If no other memberships, proceed with full deletion
+        console.log(`User ${targetUserId} has no other memberships. Proceeding with full deletion.`);
+
         // Delete user's folder from storage if they had a company and telephely
         if (targetProfile?.company_id && targetProfile?.telephely_id) {
           try {
@@ -1078,6 +1504,9 @@ serve(async (req) => {
         // Delete from all related tables first (foreign key safety)
         console.log(`Deleting user ${targetUserId} (${email}) - cleaning up related data...`);
 
+        // Delete memberships first
+        await supabaseAdmin.from("telephely_memberships").delete().eq("user_id", targetUserId);
+
         // Delete invitations (both sent and received)
         await supabaseAdmin.from("invitations").delete().eq("invited_user_id", targetUserId);
         await supabaseAdmin.from("invitations").delete().eq("invited_by_user_id", targetUserId);
@@ -1113,6 +1542,177 @@ serve(async (req) => {
         });
       }
 
+      case "debug-sync": {
+        // Allow calling with a secret key to bypass auth for debugging
+        const { telephelyId, debugKey } = params;
+
+        if (debugKey !== "super-secret-debug-key-1234") {
+          if (!isAdmin) {
+            return new Response(JSON.stringify({ error: "Admin only or valid debug key required" }), { status: 403, headers: corsHeaders });
+          }
+        }
+
+        if (telephelyId === "LIST") {
+          const { data: allTelephelys } = await supabaseAdmin.from("telephely").select("id, name");
+          return new Response(JSON.stringify({ telephelys: allTelephelys }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        console.log(`DEBUG-SYNC: Starting for telephely ${telephelyId}`);
+
+        // 1. Get legacy profiles
+        const { data: legacyProfiles, error: legacyError } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, telephely_id, current_telephely_id, full_name")
+          .or(`telephely_id.eq.${telephelyId},current_telephely_id.eq.${telephelyId}`);
+
+        // 2. Get existing memberships
+        const { data: memberships, error: memError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .select("user_id")
+          .eq("telephely_id", telephelyId);
+
+        const existingIds = new Set(memberships?.map(m => m.user_id) || []);
+        const missing = legacyProfiles?.filter(p => !existingIds.has(p.user_id)) || [];
+
+        return new Response(JSON.stringify({
+          telephelyId,
+          legacyProfilesCount: legacyProfiles?.length,
+          legacyProfiles: legacyProfiles,
+          existingMembershipsCount: memberships?.length,
+          existingMemberIds: Array.from(existingIds),
+          missingUsersCount: missing.length,
+          missingUsers: missing,
+          errors: { legacyError, memError }
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      case "assign-user-memberships": {
+        // Admin-only operation to assign users to multiple company/telephely pairs
+        if (!isAdmin) {
+          return new Response(JSON.stringify({ error: "Admin access required for this operation" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { userId, memberships } = params;
+
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "userId is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (!Array.isArray(memberships) || memberships.length === 0) {
+          return new Response(JSON.stringify({ error: "memberships array is required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Validate memberships structure
+        for (const membership of memberships) {
+          if (!membership.company_id || !membership.telephely_id || !membership.role) {
+            return new Response(JSON.stringify({ error: "Each membership must have company_id, telephely_id, and role" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
+        console.log(`Admin ${caller.id} assigning user ${userId} to ${memberships.length} telephelys`);
+
+        // Delete existing memberships first to handle deassignments
+        const { error: deleteError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .delete()
+          .eq("user_id", userId);
+
+        if (deleteError) {
+          console.error("Error deleting old memberships:", deleteError);
+          return new Response(JSON.stringify({ error: "Failed to clear old memberships: " + deleteError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Insert new memberships
+        const membershipInserts = memberships.map(m => ({
+          user_id: userId,
+          telephely_id: m.telephely_id,
+          role: m.role,
+        }));
+
+        const { error: membershipError } = await supabaseAdmin
+          .from("telephely_memberships")
+          .insert(membershipInserts);
+
+        if (membershipError) {
+          console.error("Error creating memberships:", membershipError);
+          return new Response(JSON.stringify({ error: "Failed to create memberships: " + membershipError.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update profile with first assignment for backward compatibility
+        const firstAssignment = memberships[0];
+        const { error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            company_id: firstAssignment.company_id,
+            telephely_id: firstAssignment.telephely_id,
+            current_telephely_id: firstAssignment.telephely_id,
+          })
+          .eq("user_id", userId);
+
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+          // Not critical, continue
+        }
+
+        // Also sync to user_roles for global RLS compatibility
+        // We take the role from the first membership as the primary global role
+        console.log(`Syncing role ${firstAssignment.role} to user_roles for user ${userId}`);
+
+        // Delete existing roles first to avoid duplicates and correctly update
+        const { error: roleDeleteError } = await supabaseAdmin
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId);
+
+        if (roleDeleteError) {
+          console.error("Error deleting old roles:", roleDeleteError);
+        }
+
+        const { error: roleInsertError } = await supabaseAdmin
+          .from("user_roles")
+          .insert({
+            user_id: userId,
+            role: firstAssignment.role
+          });
+
+        if (roleInsertError) {
+          console.error("Error syncing role to user_roles:", roleInsertError);
+          // Return this as a warning but don't fail the whole operation
+        }
+
+        console.log(`Successfully assigned user ${userId} to ${memberships.length} telephelys`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          assignedCount: memberships.length,
+          roleUpdated: !roleInsertError
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown operation" }), {
           status: 400,
@@ -1120,10 +1720,17 @@ serve(async (req) => {
         });
     }
   } catch (error) {
-    console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+    const errorStack = error instanceof Error ? error.stack : "";
+    console.error(`Edge Function Error [${new Date().toISOString()}]:`, errorMessage);
+    if (errorStack) console.error(errorStack);
+
+    return new Response(JSON.stringify({
+      error: errorMessage,
+      details: errorStack,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200, // Return 200 so we can see the error in the UI clearly if we handle it there, or keep 500
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -62,6 +62,7 @@ export function useKlinikaData() {
   const mountedRef = useRef(true);
 
   // Parallel data fetch - no artificial delays
+  // Parallel data fetch - no artificial delays
   const loadAllData = useCallback(async () => {
     if (!user) {
       setState({ ...initialState, isLoading: false });
@@ -69,26 +70,80 @@ export function useKlinikaData() {
     }
 
     try {
-      // Step 1: Fetch roles first (we need them to determine access)
-      const [adminResult, klinikaResult, profileResult] = await Promise.all([
-        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
-        supabase.rpc('has_role', { _user_id: user.id, _role: 'klinika_admin' }),
-        supabase.from('profiles').select('company_id, company_name, telephely_id').eq('user_id', user.id).single(),
-      ]);
+      // Step 1: Fetch profile to identify the ACTIVE telephely context
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id, company_name, telephely_id, current_telephely_id')
+        .eq('user_id', user.id)
+        .single();
 
-      const isAdmin = !!adminResult.data;
-      const isKlinikaAdmin = !!klinikaResult.data;
+      if (profileError) throw profileError;
+
+      // Determine active telephely - Prefer current_telephely_id, fallback to telephely_id
+      let activeTelephelyId = profileData?.current_telephely_id || profileData?.telephely_id;
+
+      console.log('useKlinikaData: Resolved activeTelephelyId:', activeTelephelyId);
+
+      // Step 2: Determine permissions based on the ACTIVE telephely
+      let isKlinikaAdmin = false;
+      let isAdmin = false;
+
+      // Always check admin role
+      const adminResult = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      isAdmin = !!adminResult.data;
+
+      if (activeTelephelyId) {
+        // Check klinika membership for the active telephely
+        const { data: membershipData } = await supabase
+          .from('telephely_memberships')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('telephely_id', activeTelephelyId)
+          .eq('role', 'klinika_admin')
+          .maybeSingle();
+
+        isKlinikaAdmin = !!membershipData;
+      } else {
+        // No telephely in profile — check if user has ANY klinika_admin membership
+        const { data: anyMembership } = await supabase
+          .from('telephely_memberships')
+          .select('role, telephely_id')
+          .eq('user_id', user.id)
+          .eq('role', 'klinika_admin')
+          .limit(1)
+          .maybeSingle();
+
+        if (anyMembership) {
+          isKlinikaAdmin = true;
+          activeTelephelyId = anyMembership.telephely_id;
+        }
+      }
+
       const hasAccess = isAdmin || isKlinikaAdmin;
 
-      // Get telephely name if available
+      // Get telephely name and resolve company
       let telephelyName: string | null = null;
-      if (profileResult.data?.telephely_id) {
+      let resolvedCompanyId = profileData?.company_id || null;
+      let resolvedCompanyName = profileData?.company_name || null;
+
+      if (activeTelephelyId) {
         const { data: telephely } = await supabase
           .from('telephely')
-          .select('name')
-          .eq('id', profileResult.data.telephely_id)
+          .select('name, company_id')
+          .eq('id', activeTelephelyId)
           .single();
         telephelyName = telephely?.name || null;
+
+        // Resolve company from telephely if profile doesn't have it
+        if (!resolvedCompanyId && telephely?.company_id) {
+          resolvedCompanyId = telephely.company_id;
+          const { data: company } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', telephely.company_id)
+            .single();
+          resolvedCompanyName = company?.name || null;
+        }
       }
 
       // If no access, return early with role data only
@@ -98,9 +153,9 @@ export function useKlinikaData() {
             ...initialState,
             isAdmin,
             isKlinikaAdmin,
-            companyId: profileResult.data?.company_id || null,
-            companyName: profileResult.data?.company_name || null,
-            telephelyId: profileResult.data?.telephely_id || null,
+            companyId: resolvedCompanyId,
+            companyName: resolvedCompanyName,
+            telephelyId: activeTelephelyId || null,
             telephelyName,
             isLoading: false,
           });
@@ -108,7 +163,8 @@ export function useKlinikaData() {
         return;
       }
 
-      // Step 2: Fetch users and invitations in parallel with retry
+      // Step 3: Fetch users and invitations
+      // Note: The edge function should respect the user's current_telephely_id context implicitly
       const [usersResponse, invitationsResponse] = await Promise.all([
         invokeWithRetry<{ users: KlinikaUser[] }>('klinika-admin', { operation: 'get-users' }),
         invokeWithRetry<{ invitations: SentInvitation[] }>('klinika-admin', { operation: 'get-sent-invitations' }),
@@ -118,9 +174,9 @@ export function useKlinikaData() {
         setState({
           isAdmin,
           isKlinikaAdmin,
-          companyId: profileResult.data?.company_id || null,
-          companyName: profileResult.data?.company_name || null,
-          telephelyId: profileResult.data?.telephely_id || null,
+          companyId: resolvedCompanyId,
+          companyName: resolvedCompanyName,
+          telephelyId: activeTelephelyId || null,
           telephelyName,
           users: usersResponse.data?.users || [],
           sentInvitations: invitationsResponse.data?.invitations || [],

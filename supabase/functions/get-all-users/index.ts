@@ -41,7 +41,7 @@ serve(async (req) => {
 
     // Get the authenticated user by explicitly passing the token
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
+
     if (userError || !user) {
       console.error('Authentication error:', userError);
       return new Response(
@@ -122,6 +122,15 @@ serve(async (req) => {
       console.error('Error fetching flexi connections:', flexiError);
     }
 
+    // Get telephely memberships (for klinika_admin and user roles)
+    const { data: memberships, error: membershipsError } = await supabaseAdmin
+      .from('telephely_memberships')
+      .select('user_id, telephely_id, role');
+
+    if (membershipsError) {
+      console.error('Error fetching memberships:', membershipsError);
+    }
+
     // Combine all data and filter only confirmed users
     const combinedUsers = authUsers.users
       .filter(authUser => authUser.email_confirmed_at !== null)
@@ -129,8 +138,19 @@ serve(async (req) => {
         const profile = profiles?.find(p => p.user_id === authUser.id);
         const roleData = userRoles?.find(r => r.user_id === authUser.id);
         const flexiData = flexiConnections?.find(f => f.user_id === authUser.id);
+        const membership = memberships?.find(m => m.user_id === authUser.id);
 
-        const userTelephely = telephelyek?.find(t => t.id === profile?.telephely_id);
+        // Resolve telephely: prefer profile.telephely_id, fall back to membership
+        const resolvedTelephelyId = profile?.telephely_id || membership?.telephely_id || null;
+        const userTelephely = telephelyek?.find(t => t.id === resolvedTelephelyId);
+
+        // Resolve company: prefer profile.company_id, fall back to telephely's company
+        const resolvedCompanyId = profile?.company_id || userTelephely?.company_id || null;
+        const userCompany = companies?.find(c => c.id === resolvedCompanyId);
+
+        // Resolve role: user_roles 'admin' takes priority > telephely_memberships role > default 'user'
+        // Note: user_roles may contain 'user' entries from triggers - these should NOT shadow membership roles
+        const resolvedRole = roleData?.role === 'admin' ? 'admin' : membership?.role || roleData?.role || 'user';
 
         return {
           user_id: authUser.id,
@@ -139,11 +159,11 @@ serve(async (req) => {
           last_sign_in_at: authUser.last_sign_in_at,
           created_at: authUser.created_at,
           full_name: profile?.full_name || null,
-          company_name: profile?.company_name || null,
-          company_id: profile?.company_id || null,
-          telephely_id: profile?.telephely_id || null,
+          company_name: profile?.company_name || userCompany?.name || null,
+          company_id: resolvedCompanyId,
+          telephely_id: resolvedTelephelyId,
           telephely_name: userTelephely?.name || null,
-          role: roleData?.role || 'user',
+          role: resolvedRole,
           subscription_status: profile?.subscription_status || 'inactive',
           subscription_plan: profile?.subscription_plan || null,
           subscription_amount: profile?.subscription_amount || null,
@@ -157,9 +177,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ users: combinedUsers, companies: companies || [], telephelyek: telephelyek || [] }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 

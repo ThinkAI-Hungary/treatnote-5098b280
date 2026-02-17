@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AnimatedTable, AnimatedTableRow } from '@/components/ui/animated-table';
-import { Edit, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown, X, Users } from 'lucide-react';
+import { Edit, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown, X, Users, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AdminUser {
@@ -44,11 +44,12 @@ interface UsersTableProps {
   companies: Company[];
   telephelyek: Telephely[];
   loading?: boolean;
-  onEdit: (user: AdminUser) => void;
+  onEdit?: (user: AdminUser) => void;
   onDelete: (userId: string) => void;
+  onAssign?: (userId: string) => void;  // Admin assignment action
 }
 
-export function UsersTable({ users, companies, telephelyek, loading = false, onEdit, onDelete }: UsersTableProps) {
+export function UsersTable({ users, companies, telephelyek, loading = false, onEdit, onDelete, onAssign }: UsersTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCompany, setFilterCompany] = useState<string>('all');
   const [filterTelephely, setFilterTelephely] = useState<string>('all');
@@ -124,7 +125,7 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
       result.sort((a, b) => {
         let aVal = a[sortField] || '';
         let bVal = b[sortField] || '';
-        
+
         if (typeof aVal === 'string') aVal = aVal.toLowerCase();
         if (typeof bVal === 'string') bVal = bVal.toLowerCase();
 
@@ -152,7 +153,7 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
     const isActive = sortField === field;
     return (
-      <TableHead 
+      <TableHead
         className="cursor-pointer select-none hover:bg-muted/50 transition-colors font-semibold"
         onClick={() => handleSort(field)}
       >
@@ -288,13 +289,25 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
             </TableCell>
             <TableCell className="text-right">
               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit(userData)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                {onAssign && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onAssign(userData.id)}
+                    title="Felhasználó kezelése és hozzárendelése"
+                  >
+                    <Edit className="h-4 w-4 text-primary" />
+                  </Button>
+                )}
+                {onEdit && !onAssign && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(userData)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"

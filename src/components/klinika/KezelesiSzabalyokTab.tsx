@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Plus, 
-  Search, 
-  Pencil, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
   Loader2,
   FileText,
   Tag,
@@ -71,31 +72,47 @@ function findLinkedRule(rule: TreatmentRule, allRules: TreatmentRule[]): Treatme
   return undefined;
 }
 
-export function KezelesiSzabalyokTab({ 
-  companyId, 
-  telephelyId, 
-  companyName, 
-  telephelyName 
+// Module-level cache for treatment rules
+let rulesCache: {
+  telephelyId: string | null;
+  rules: TreatmentRule[];
+  loaded: boolean;
+} = { telephelyId: null, rules: [], loaded: false };
+
+export function KezelesiSzabalyokTab({
+  companyId,
+  telephelyId,
+  companyName,
+  telephelyName
 }: KezelesiSzabalyokTabProps) {
   const { user } = useAuth();
   const { isAdmin } = useCachedRoles();
-  const [rules, setRules] = useState<TreatmentRule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotifications();
+
+  // Invalidate cache if telephely changed
+  if (telephelyId !== rulesCache.telephelyId) {
+    rulesCache = { telephelyId, rules: [], loaded: false };
+  }
+
+  const hasCachedRules = rulesCache.loaded && rulesCache.telephelyId === telephelyId;
+  const [rules, setRules] = useState<TreatmentRule[]>(hasCachedRules ? rulesCache.rules : []);
+  const [loading, setLoading] = useState(!hasCachedRules);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload'>('list');
-  
+
   // Sort state
   const [sortColumn, setSortColumn] = useState<SortColumn>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  
+
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
+
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TreatmentRule | null>(null);
-  
+  const [originalRuleIdToDeactivate, setOriginalRuleIdToDeactivate] = useState<string | null>(null);
+
   // Delete confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -113,7 +130,7 @@ export function KezelesiSzabalyokTab({
 
   // Upload state
   const [uploading, setUploading] = useState(false);
-  
+
   // Generate from dictionary state
   const [generating, setGenerating] = useState(false);
   const [backgroundProcessing, setBackgroundProcessing] = useState(false);
@@ -124,11 +141,23 @@ export function KezelesiSzabalyokTab({
     return rule.visits?.reduce((sum, visit) => sum + (visit.items?.length || 0), 0) || 0;
   };
 
+  // Helper: update rules state + cache in one shot (for optimistic updates)
+  const updateRulesState = useCallback((updater: (prev: TreatmentRule[]) => TreatmentRule[]) => {
+    setRules(prev => {
+      const next = updater(prev);
+      rulesCache = { telephelyId: telephelyId!, rules: next, loaded: true };
+      return next;
+    });
+  }, [telephelyId]);
+
   // Load rules with visits and items
   const loadRules = useCallback(async () => {
     if (!telephelyId) return;
-    
-    setLoading(true);
+
+    // Only show loading spinner if we don't already have cached data
+    if (!rulesCache.loaded || rulesCache.telephelyId !== telephelyId) {
+      setLoading(true);
+    }
     try {
       const { data: rulesData, error: rulesError } = await supabase
         .from('treatment_rules')
@@ -139,7 +168,7 @@ export function KezelesiSzabalyokTab({
       if (rulesError) throw rulesError;
 
       const rulesWithDetails: TreatmentRule[] = [];
-      
+
       for (const rule of rulesData || []) {
         const { data: visitsData, error: visitsError } = await supabase
           .from('rule_visits')
@@ -150,7 +179,7 @@ export function KezelesiSzabalyokTab({
         if (visitsError) throw visitsError;
 
         const visitsWithItems: RuleVisit[] = [];
-        
+
         for (const visit of visitsData || []) {
           const { data: itemsData, error: itemsError } = await supabase
             .from('rule_items')
@@ -173,6 +202,8 @@ export function KezelesiSzabalyokTab({
       }
 
       setRules(rulesWithDetails);
+      // Update cache
+      rulesCache = { telephelyId: telephelyId!, rules: rulesWithDetails, loaded: true };
     } catch (err: any) {
       console.error('Error loading rules:', err);
       toast.error('Hiba a szabályok betöltésekor');
@@ -182,8 +213,68 @@ export function KezelesiSzabalyokTab({
   }, [telephelyId]);
 
   useEffect(() => {
-    loadRules();
-  }, [loadRules]);
+    // Only fetch if cache is empty or for a different telephely
+    // When cached, data is already in state from the useState initializer
+    if (!rulesCache.loaded || rulesCache.telephelyId !== telephelyId) {
+      loadRules();
+    }
+  }, [loadRules, telephelyId]);
+
+  // --- Supabase Realtime: subscribe to treatment_rules INSERT events ---
+  useEffect(() => {
+    if (!telephelyId) return;
+
+    const channel = supabase
+      .channel(`treatment_rules_realtime_${telephelyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'treatment_rules',
+          filter: `clinic_id=eq.${telephelyId}`,
+        },
+        async (payload: { new: { id: string } }) => {
+          const { data: newRule, error } = await supabase
+            .from('treatment_rules')
+            .select(`
+              *,
+              visits:rule_visits(
+                *,
+                items:rule_items(*)
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error || !newRule) {
+            console.error('Error fetching new rule via Realtime:', error);
+            return;
+          }
+
+          const ruleWithDetails = {
+            ...newRule,
+            visits: (newRule.visits || [])
+              .sort((a: any, b: any) => a.display_order - b.display_order)
+              .map((visit: any) => ({
+                ...visit,
+                items: (visit.items || [])
+                  .sort((a: any, b: any) => a.display_order - b.display_order),
+              })),
+          } as TreatmentRule;
+
+          setRules((prev) => {
+            if (prev.some((r) => r.id === ruleWithDetails.id)) return prev;
+            return [ruleWithDetails, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [telephelyId]);
 
   // --- Sorting & grouping ---
   const getSortValue = (rule: TreatmentRule): string | number => {
@@ -216,7 +307,7 @@ export function KezelesiSzabalyokTab({
       const lowerSearch = searchTerm.toLowerCase();
       const matchesName = rule.name.toLowerCase().includes(lowerSearch);
       const matchesDescription = rule.semantic_description?.toLowerCase().includes(lowerSearch) ?? false;
-      const matchesItem = rule.visits?.some(visit => 
+      const matchesItem = rule.visits?.some(visit =>
         visit.items?.some(item => item.name.toLowerCase().includes(lowerSearch))
       ) || false;
       const matchesSearch = !searchTerm || matchesName || matchesDescription || matchesItem;
@@ -251,7 +342,7 @@ export function KezelesiSzabalyokTab({
   // Selection derived state (after filteredRules is defined)
   const filteredRuleIds = new Set(filteredRules.map(r => r.id!));
   const visibleSelectedIds = new Set([...selectedIds].filter(id => filteredRuleIds.has(id)));
-  
+
   const isAllSelected = filteredRules.length > 0 && visibleSelectedIds.size === filteredRules.length;
   const isSomeSelected = visibleSelectedIds.size > 0 && visibleSelectedIds.size < filteredRules.length;
 
@@ -286,8 +377,8 @@ export function KezelesiSzabalyokTab({
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return null;
-    return sortDir === 'asc' 
-      ? <ArrowUp className="h-3 w-3 ml-1 inline" /> 
+    return sortDir === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1 inline" />
       : <ArrowDown className="h-3 w-3 ml-1 inline" />;
   };
 
@@ -314,12 +405,15 @@ export function KezelesiSzabalyokTab({
   // Open new rule editor
   const handleNewRule = () => {
     setEditingRule(null);
+    setOriginalRuleIdToDeactivate(null);
     setEditorOpen(true);
   };
 
   // Open edit rule editor — for alapszabály, clone into a new "(SZERKESZTETT)" rule
   const handleEditRule = (rule: TreatmentRule) => {
     if (rule.alapszabaly) {
+      // Track the original ID so the editor can deactivate it on save
+      setOriginalRuleIdToDeactivate(rule.id || null);
       // Clone the rule as a new editable copy
       const clonedRule: TreatmentRule = {
         ...rule,
@@ -338,6 +432,7 @@ export function KezelesiSzabalyokTab({
       };
       setEditingRule(clonedRule);
     } else {
+      setOriginalRuleIdToDeactivate(null);
       setEditingRule(rule);
     }
     setEditorOpen(true);
@@ -353,23 +448,25 @@ export function KezelesiSzabalyokTab({
   // Handle delete
   const handleDelete = async () => {
     if (!pendingDeleteId) return;
-    
+    const idToDelete = pendingDeleteId;
+    setDeleteConfirmOpen(false);
+    setPendingDeleteId(null);
+
+    // Optimistic: remove from UI immediately
+    updateRulesState(prev => prev.filter(r => r.id !== idToDelete));
+    toast.success('Szabály sikeresen törölve');
+
     try {
       const { error } = await supabase
         .from('treatment_rules')
         .delete()
-        .eq('id', pendingDeleteId);
+        .eq('id', idToDelete);
 
       if (error) throw error;
-
-      toast.success('Szabály sikeresen törölve');
-      loadRules();
     } catch (err: any) {
       console.error('Error deleting rule:', err);
       toast.error('Hiba a törléskor');
-    } finally {
-      setDeleteConfirmOpen(false);
-      setPendingDeleteId(null);
+      loadRules(); // Revert on error
     }
   };
 
@@ -390,8 +487,16 @@ export function KezelesiSzabalyokTab({
       setBulkDeleteConfirmOpen(false);
       return;
     }
-    
-    setBulkDeleting(true);
+
+    setBulkDeleting(false);
+    setBulkDeleteConfirmOpen(false);
+
+    // Optimistic: remove from UI immediately
+    const deletableSet = new Set(deletableIds);
+    updateRulesState(prev => prev.filter(r => !deletableSet.has(r.id!)));
+    setSelectedIds(new Set());
+    toast.success(`${deletableIds.length} szabály sikeresen törölve`);
+
     try {
       const { error } = await supabase
         .from('treatment_rules')
@@ -399,25 +504,19 @@ export function KezelesiSzabalyokTab({
         .in('id', deletableIds);
 
       if (error) throw error;
-
-      toast.success(`${deletableIds.length} szabály sikeresen törölve`);
-      setSelectedIds(new Set());
-      loadRules();
     } catch (err: any) {
       console.error('Error bulk deleting rules:', err);
       toast.error('Hiba a törléskor');
-    } finally {
-      setBulkDeleting(false);
-      setBulkDeleteConfirmOpen(false);
+      loadRules(); // Revert on error
     }
   };
 
   // Toggle aktiv status with linked-pair mutual exclusion
   const handleToggleAktiv = async (rule: TreatmentRule) => {
     if (!rule.id) return;
-    
+
     const newValue = !rule.aktiv;
-    
+
     // If activating, check for a linked counterpart that's currently active
     if (newValue === true) {
       const linked = findLinkedRule(rule, rules);
@@ -434,52 +533,64 @@ export function KezelesiSzabalyokTab({
     const idsToToggle = selectedIds.has(rule.id) && selectedIds.size > 1
       ? Array.from(selectedIds)
       : [rule.id];
-    
+
+    // Optimistic: update UI immediately
+    const toggleSet = new Set(idsToToggle);
+    updateRulesState(prev => prev.map(r =>
+      toggleSet.has(r.id!) ? { ...r, aktiv: newValue } : r
+    ));
+    toast.success(
+      idsToToggle.length > 1
+        ? `${idsToToggle.length} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`
+        : (newValue ? 'Szabály aktiválva' : 'Szabály inaktiválva')
+    );
+
     try {
       const { error } = await supabase
         .from('treatment_rules')
         .update({ aktiv: newValue })
         .in('id', idsToToggle);
       if (error) throw error;
-      toast.success(
-        idsToToggle.length > 1
-          ? `${idsToToggle.length} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`
-          : (newValue ? 'Szabály aktiválva' : 'Szabály inaktiválva')
-      );
-      loadRules();
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
       toast.error('Hiba a státusz módosításakor');
+      loadRules(); // Revert on error
     }
   };
 
   // Confirm linked toggle: activate the target, deactivate the linked one
   const handleConfirmLinkedToggle = async () => {
     if (!pendingToggleRule?.id || !pendingToggleLinked?.id) return;
+    const targetId = pendingToggleRule.id;
+    const linkedId = pendingToggleLinked.id;
+    setLinkedToggleConfirmOpen(false);
+    setPendingToggleRule(null);
+    setPendingToggleLinked(null);
+
+    // Optimistic: update UI immediately
+    updateRulesState(prev => prev.map(r => {
+      if (r.id === targetId) return { ...r, aktiv: true };
+      if (r.id === linkedId) return { ...r, aktiv: false };
+      return r;
+    }));
+    toast.success('Szabály aktiválva, a párja inaktiválva');
+
     try {
-      // Deactivate the linked rule
       const { error: err1 } = await supabase
         .from('treatment_rules')
         .update({ aktiv: false })
-        .eq('id', pendingToggleLinked.id);
+        .eq('id', linkedId);
       if (err1) throw err1;
 
-      // Activate the target rule
       const { error: err2 } = await supabase
         .from('treatment_rules')
         .update({ aktiv: true })
-        .eq('id', pendingToggleRule.id);
+        .eq('id', targetId);
       if (err2) throw err2;
-
-      toast.success('Szabály aktiválva, a párja inaktiválva');
-      loadRules();
     } catch (err: any) {
       console.error('Error linked toggle:', err);
       toast.error('Hiba a státusz módosításakor');
-    } finally {
-      setLinkedToggleConfirmOpen(false);
-      setPendingToggleRule(null);
-      setPendingToggleLinked(null);
+      loadRules(); // Revert on error
     }
   };
 
@@ -492,17 +603,25 @@ export function KezelesiSzabalyokTab({
       return r?.aktiv !== false;
     });
     const newValue = !anyActive;
+    const ids = Array.from(selectedIds);
+
+    // Optimistic: update UI immediately
+    const idSet = new Set(ids);
+    updateRulesState(prev => prev.map(r =>
+      idSet.has(r.id!) ? { ...r, aktiv: newValue } : r
+    ));
+    toast.success(`${selectedIds.size} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`);
+
     try {
       const { error } = await supabase
         .from('treatment_rules')
         .update({ aktiv: newValue })
-        .in('id', Array.from(selectedIds));
+        .in('id', ids);
       if (error) throw error;
-      toast.success(`${selectedIds.size} szabály ${newValue ? 'aktiválva' : 'inaktiválva'}`);
-      loadRules();
     } catch (err: any) {
       console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
+      loadRules(); // Revert on error
     }
   };
 
@@ -531,11 +650,13 @@ export function KezelesiSzabalyokTab({
       }
 
       if (data?.ok) {
-        if (data.status === 'processed') {
-          return { success: true, inserted: data.inserted || 0, duplicates: data.duplicates || 0 };
-        } else {
+        if (data.status === 'started') {
           return { success: true, inserted: 0, duplicates: 0 };
         }
+        if (data.status === 'processed') {
+          return { success: true, inserted: data.inserted || 0, duplicates: data.duplicates || 0 };
+        }
+        return { success: true, inserted: 0, duplicates: 0 };
       } else {
         const errorMessage = data?.message || 'Webhook küldése sikertelen';
         return { success: false, inserted: 0, duplicates: 0, error: errorMessage };
@@ -559,22 +680,32 @@ export function KezelesiSzabalyokTab({
 
     setUploading(true);
     try {
-      const result = await processSinglePdf(file);
-      
-      if (result.success) {
-        if (result.inserted > 0) {
-          toast.success(`${result.inserted} szabály sikeresen hozzáadva!`);
-          if (result.duplicates > 0) {
-            toast.info(`${result.duplicates} duplikált szabály kihagyva`);
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY_MS = 30000;
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const result = await processSinglePdf(file);
+
+        if (result.success) {
+          if (result.inserted > 0) {
+            toast.success(`${result.inserted} szabály sikeresen hozzáadva!`);
+            addNotification('szabalyok', `${result.inserted} szabály sikeresen hozzáadva`);
+            if (result.duplicates > 0) {
+              toast.info(`${result.duplicates} duplikált szabály kihagyva`);
+            }
+          } else {
+            toast.success('PDF elküldve feldolgozásra — az új szabályok automatikusan megjelennek');
           }
-          loadRules();
           setActiveSubTab('list');
-        } else {
-          toast.success('PDF elküldve feldolgozásra');
-          setTimeout(() => loadRules(), 5000);
+          return;
         }
-      } else {
-        toast.error(result.error || 'Hiba a fájl feltöltésekor');
+
+        if (attempt < MAX_RETRIES) {
+          toast.warning(`${file.name} hiba (${attempt}/${MAX_RETRIES}), újrapróbálás ${RETRY_DELAY_MS / 1000}mp múlva...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        } else {
+          toast.error(`${file.name}: ${result.error || 'Hiba a fájl feltöltésekor'} (${MAX_RETRIES} próba után)`);
+        }
       }
     } finally {
       setUploading(false);
@@ -583,12 +714,12 @@ export function KezelesiSzabalyokTab({
 
   const handleMultipleFiles = async (fileList: FileList) => {
     const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
-    
+
     if (pdfFiles.length === 0) {
       toast.error('Csak PDF fájlok tölthetők fel!');
       return;
     }
-    
+
     if (pdfFiles.length < fileList.length) {
       toast.warning(`${fileList.length - pdfFiles.length} fájl kihagyva (nem PDF)`);
     }
@@ -597,34 +728,73 @@ export function KezelesiSzabalyokTab({
       toast.error('Hiányzó cég vagy telephely azonosító');
       return;
     }
-    
+
     setUploading(true);
     toast.info(`${pdfFiles.length} PDF feldolgozása...`);
-    
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 30000;
+
     try {
-      const results = await Promise.all(pdfFiles.map(file => processSinglePdf(file)));
-      
-      const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
-      const totalDuplicates = results.reduce((sum, r) => sum + r.duplicates, 0);
-      const successCount = results.filter(r => r.success).length;
-      const failedCount = results.filter(r => !r.success).length;
-      
+      let pendingFiles = [...pdfFiles];
+      let totalInserted = 0;
+      let totalDuplicates = 0;
+      let totalSuccessCount = 0;
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        if (pendingFiles.length === 0) break;
+
+        if (attempt > 1) {
+          toast.info(`Újrapróbálás: ${pendingFiles.length} PDF (${attempt}/${MAX_RETRIES})...`);
+        }
+
+        const results = await Promise.all(
+          pendingFiles.map(async (file) => ({
+            file,
+            result: await processSinglePdf(file),
+          }))
+        );
+
+        const failedThisRound: File[] = [];
+
+        for (const { file, result } of results) {
+          if (result.success) {
+            totalSuccessCount++;
+            totalInserted += result.inserted;
+            totalDuplicates += result.duplicates;
+          } else {
+            failedThisRound.push(file);
+          }
+        }
+
+        const successThisRound = results.length - failedThisRound.length;
+        if (attempt > 1 && successThisRound > 0) {
+          toast.success(`Újrapróbálás: ${successThisRound} PDF sikerült!`);
+        }
+
+        pendingFiles = failedThisRound;
+
+        if (pendingFiles.length > 0 && attempt < MAX_RETRIES) {
+          toast.warning(`${pendingFiles.length} PDF hiba, újrapróbálás ${RETRY_DELAY_MS / 1000}mp múlva...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      }
+
       if (totalInserted > 0) {
-        toast.success(`${totalInserted} szabály sikeresen hozzáadva ${successCount} fájlból!`);
+        toast.success(`${totalInserted} szabály sikeresen hozzáadva ${totalSuccessCount} fájlból!`);
+        addNotification('szabalyok', `${totalInserted} szabály hozzáadva ${totalSuccessCount} fájlból`);
       }
       if (totalDuplicates > 0) {
         toast.info(`${totalDuplicates} duplikált szabály kihagyva`);
       }
-      if (failedCount > 0) {
-        toast.error(`${failedCount} fájl feldolgozása sikertelen`);
+      if (pendingFiles.length > 0) {
+        toast.error(`${pendingFiles.length} PDF sikertelen ${MAX_RETRIES} próba után: ${pendingFiles.map(f => f.name).join(', ')}`);
       }
-      if (successCount > 0 && totalInserted === 0) {
-        toast.success(`${successCount} PDF elküldve feldolgozásra`);
+      if (totalSuccessCount > 0 && totalInserted === 0) {
+        toast.success(`${totalSuccessCount} PDF elküldve feldolgozásra — az új szabályok automatikusan megjelennek`);
       }
-      
-      loadRules();
+
       setActiveSubTab('list');
-      setTimeout(() => loadRules(), 5000);
     } finally {
       setUploading(false);
     }
@@ -633,7 +803,7 @@ export function KezelesiSzabalyokTab({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleMultipleFiles(files);
@@ -664,12 +834,14 @@ export function KezelesiSzabalyokTab({
       return;
     }
 
+    const isRegenerate = rules.length > 0;
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('szotar-rules-webhook', {
         body: {
           telephely_id: telephelyId,
           user_id: user.id,
+          regenerate: isRegenerate,
         },
       });
 
@@ -678,37 +850,57 @@ export function KezelesiSzabalyokTab({
       }
 
       if (data?.ok) {
-        if (data.status === 'started') {
-          toast.success('Szabályok generálása elindult! A háttérben fut...');
+        if (data.status === 'started' && data.batch_id) {
+          toast.success(isRegenerate ? 'Szabályok újragenerálása elindult!' : 'Szabályok generálása elindult!');
           setGenerating(false);
           setBackgroundProcessing(true);
-          
-          const initialRuleCount = rules.length;
+
+          if (isRegenerate) {
+            setRules([]);
+          }
+
           let pollCount = 0;
-          const maxPolls = 40;
-          
+          const maxPolls = 100;
+
           const pollInterval = setInterval(async () => {
             pollCount++;
-            await loadRules();
-            
-            const currentRuleCount = rules.length;
-            if (currentRuleCount > initialRuleCount) {
-              clearInterval(pollInterval);
-              setBackgroundProcessing(false);
-              toast.success(`Új szabályok érkeztek! (${currentRuleCount - initialRuleCount} új)`);
-            }
-            
+            try {
+              const { data: jobs } = await supabase
+                .from('rule_generation_jobs')
+                .select('status')
+                .eq('batch_id', data.batch_id);
+
+              if (jobs && jobs.length > 0) {
+                const completed = jobs.filter((j: { status: string }) => j.status === 'completed').length;
+                const errors = jobs.filter((j: { status: string }) => j.status === 'error').length;
+                const total = jobs.length;
+                const done = completed + errors;
+
+                if (done >= total) {
+                  clearInterval(pollInterval);
+                  setBackgroundProcessing(false);
+                  if (completed > 0) {
+                    toast.success(`Szabályok generálva! ${completed}/${total} sikeres${errors > 0 ? `, ${errors} hibás` : ''}`);
+                  } else {
+                    toast.error(`Minden protokoll hibás (${errors}/${total})`);
+                  }
+                  return;
+                }
+              }
+            } catch { /* ignore */ }
+
             if (pollCount >= maxPolls) {
               clearInterval(pollInterval);
               setBackgroundProcessing(false);
-              toast.info('Szabályok frissítve');
+              toast.info('Generálás időtúllépés — ellenőrizze az eredményt');
             }
           }, 3000);
-          
+
           return;
-          
+
         } else if (data.status === 'processed') {
           toast.success(`${data.inserted || 0} szabály sikeresen hozzáadva!`);
+          addNotification('szabalyok', `${data.inserted || 0} szabály hozzáadva szótárból`);
           if (data.duplicates > 0) {
             toast.info(`${data.duplicates} duplikált szabály kihagyva`);
           }
@@ -753,8 +945,8 @@ export function KezelesiSzabalyokTab({
                   {rules.length} szabály • {telephelyName}
                 </p>
                 {backgroundProcessing && (
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className="animate-pulse bg-primary/20 text-primary border-primary/30"
                   >
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
@@ -764,19 +956,19 @@ export function KezelesiSzabalyokTab({
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <GalaxyButton 
+            <GalaxyButton
               onClick={handleGenerateFromDictionary}
-              disabled={generating}
+              disabled={generating || loading}
               className="relative"
             >
-              {generating ? (
+              {generating || loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              {generating ? 'Generálás...' : 'Generálás szótárból'}
+              {loading ? 'Szabályok betöltése...' : generating ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
             </GalaxyButton>
             <Button
               variant="outline"
@@ -794,7 +986,7 @@ export function KezelesiSzabalyokTab({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Sub-tabs for List / Upload */}
         <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as any)}>
@@ -822,7 +1014,7 @@ export function KezelesiSzabalyokTab({
                   className="pl-9"
                 />
               </div>
-              
+
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-48">
                   <Filter className="h-4 w-4 mr-2" />
@@ -879,7 +1071,7 @@ export function KezelesiSzabalyokTab({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                     <TableHead className="w-[50px]">
+                    <TableHead className="w-[50px]">
                       <Checkbox
                         checked={isAllSelected}
                         onCheckedChange={toggleSelectAll}
@@ -889,32 +1081,32 @@ export function KezelesiSzabalyokTab({
                       />
                     </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[250px] cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('name')}
                     >
                       Név <SortIcon column="name" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[150px] cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('category')}
                     >
                       Kategória <SortIcon column="category" />
                     </TableHead>
                     <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('visits')}
                     >
                       Vizitek <SortIcon column="visits" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('items')}
                     >
                       Tételek <SortIcon column="items" />
                     </TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[150px] cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('created_at')}
                     >
@@ -926,7 +1118,7 @@ export function KezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                       <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={9} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -940,15 +1132,15 @@ export function KezelesiSzabalyokTab({
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
                           {!searchTerm && categoryFilter === 'all' && (
                             <div className="flex gap-2 mt-2">
-                              <Button 
-                                variant="link" 
+                              <Button
+                                variant="link"
                                 onClick={handleNewRule}
                               >
                                 Hozza létre kézzel
                               </Button>
                               <span className="text-muted-foreground">vagy</span>
-                              <Button 
-                                variant="link" 
+                              <Button
+                                variant="link"
                                 onClick={() => setActiveSubTab('upload')}
                               >
                                 Töltsön fel PDF-et
@@ -964,14 +1156,14 @@ export function KezelesiSzabalyokTab({
                       const linkedId = linkedMap.get(rule.id!);
                       // Determine if this rule is the "first" of a linked pair (base rule comes first)
                       const isFirstOfPair = hasLinked && (
-                        rule.alapszabaly || 
+                        rule.alapszabaly ||
                         (!rule.name.includes('(SZERKESZTETT)') && index < filteredRules.findIndex(r => r.id === linkedId))
                       );
                       // Is this rule the "second" of a linked pair?
                       const isSecondOfPair = hasLinked && !isFirstOfPair;
 
                       return (
-                        <TableRow 
+                        <TableRow
                           key={rule.id}
                           className={cn(
                             "animate-fade-in",
@@ -1079,7 +1271,6 @@ export function KezelesiSzabalyokTab({
                                       size="icon"
                                       className={cn("h-8 w-8", rule.aktiv === false && "text-muted-foreground")}
                                       onClick={() => handleToggleAktiv(rule)}
-                                      title={rule.aktiv ? 'Kikapcsolás' : 'Bekapcsolás'}
                                     >
                                       <Power className={cn("h-4 w-4", rule.aktiv !== false && "text-green-500")} />
                                     </Button>
@@ -1123,8 +1314,8 @@ export function KezelesiSzabalyokTab({
             <Card
               className={cn(
                 "border-2 border-dashed transition-all duration-300 cursor-pointer",
-                dragActive 
-                  ? "border-primary bg-primary/5 scale-[1.02]" 
+                dragActive
+                  ? "border-primary bg-primary/5 scale-[1.02]"
                   : "border-border hover:border-primary/50 hover:bg-muted/30",
                 uploading && "pointer-events-none opacity-70"
               )}
@@ -1135,8 +1326,8 @@ export function KezelesiSzabalyokTab({
               <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
                 <div className={cn(
                   "h-16 w-16 rounded-full flex items-center justify-center transition-all",
-                  dragActive 
-                    ? "bg-primary text-primary-foreground scale-110" 
+                  dragActive
+                    ? "bg-primary text-primary-foreground scale-110"
                     : "bg-muted text-muted-foreground"
                 )}>
                   {uploading ? (
@@ -1163,7 +1354,7 @@ export function KezelesiSzabalyokTab({
                       className="hidden"
                       disabled={uploading}
                     />
-                    <GalaxyButton 
+                    <GalaxyButton
                       disabled={uploading}
                       className="cursor-pointer"
                       onClick={(e) => {
@@ -1178,7 +1369,7 @@ export function KezelesiSzabalyokTab({
                   </label>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2 text-center max-w-md">
-                  A feltöltött PDF-eket az n8n automatikusan feldolgozza és a kinyert szabályok 
+                  A feltöltött PDF-eket az n8n automatikusan feldolgozza és a kinyert szabályok
                   közvetlenül megjelennek a Szabályok listában. A kategória és trigger szavak is automatikusan kerülnek hozzáadásra.
                 </p>
               </CardContent>
@@ -1193,7 +1384,28 @@ export function KezelesiSzabalyokTab({
         onOpenChange={setEditorOpen}
         clinicId={telephelyId}
         rule={editingRule}
-        onSave={loadRules}
+        originalRuleIdToDeactivate={originalRuleIdToDeactivate}
+        onSave={(savedRule) => {
+          if (savedRule) {
+            // Optimistic: add or update the rule in local state
+            updateRulesState(prev => {
+              const exists = prev.some(r => r.id === savedRule.id);
+              let next = exists
+                ? prev.map(r => r.id === savedRule.id ? savedRule : r)
+                : [savedRule, ...prev];
+              // If cloning an alapszabály, deactivate the original
+              if (originalRuleIdToDeactivate) {
+                next = next.map(r =>
+                  r.id === originalRuleIdToDeactivate ? { ...r, aktiv: false } : r
+                );
+              }
+              return next;
+            });
+          } else {
+            loadRules(); // Fallback
+          }
+          setOriginalRuleIdToDeactivate(null);
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

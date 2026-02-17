@@ -34,7 +34,7 @@ serve(async (req) => {
       .select('probapaciens_neve, flexi_domain')
       .eq('id', telephely_id)
       .maybeSingle();
-    
+
     if (telephelyError) {
       console.error('Error fetching telephely:', telephelyError);
     }
@@ -48,7 +48,7 @@ serve(async (req) => {
       .select('id')
       .eq('telephely_id', telephely_id)
       .maybeSingle();
-    
+
     const szotar_exists = !!existingSzotar;
 
     // Fetch flexi credentials for the user
@@ -68,14 +68,14 @@ serve(async (req) => {
       try {
         // Decode the base64 encrypted data (IV + ciphertext + auth tag)
         const combined = Uint8Array.from(atob(flexiAuth.flexi_pw), c => c.charCodeAt(0));
-        
+
         // First 12 bytes are IV (as used in AES-GCM encryption)
         const iv = combined.slice(0, 12);
         const encryptedData = combined.slice(12);
-        
+
         // Decode the base64 key
         const keyData = Uint8Array.from(atob(encryptionKey), c => c.charCodeAt(0));
-        
+
         // Import the key for AES-GCM decryption
         const cryptoKey = await crypto.subtle.importKey(
           'raw',
@@ -84,14 +84,14 @@ serve(async (req) => {
           false,
           ['decrypt']
         );
-        
+
         // Decrypt
         const decrypted = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv },
           cryptoKey,
           encryptedData
         );
-        
+
         decryptedPassword = new TextDecoder().decode(decrypted);
         console.log('Password decrypted successfully');
       } catch (decryptError) {
@@ -177,12 +177,20 @@ serve(async (req) => {
       throw new Error(`Webhook failed: ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('Webhook response:', data);
+    const responseText = await response.text();
+    console.log('Webhook response text:', responseText);
+
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch (e) {
+      console.warn('Could not parse webhook response as JSON:', e);
+      data = { raw: responseText };
+    }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Webhook triggered successfully',
         data
       }),
@@ -192,8 +200,8 @@ serve(async (req) => {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      JSON.stringify({ success: false, error: `Edge Function Error: ${message}` }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   }
 });

@@ -18,15 +18,8 @@ BEGIN
   IF invite_record IS NOT NULL THEN
       -- Valid invite found.
       
-      -- 1. Create Profile
-      -- Use name from Auth metadata if present, otherwise fallback to invitation name
-      INSERT INTO public.profiles (user_id, full_name, email, role)
-      VALUES (
-        new.id, 
-        COALESCE(new.raw_user_meta_data->>'full_name', invite_record.full_name), 
-        new.email, 
-        'user'
-      )
+      INSERT INTO public.profiles (user_id, full_name)
+      VALUES (new.id, COALESCE(new.raw_user_meta_data->>'full_name', invite_record.full_name))
       ON CONFLICT (user_id) DO NOTHING;
 
       -- 2. Create Membership

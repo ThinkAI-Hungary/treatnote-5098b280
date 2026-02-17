@@ -1,0 +1,22 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+// Mock the request body
+const payload = {
+  operation: 'send-invitation-email',
+  email: 'zombori.mark@gmail.com',
+  role: 'user',
+  companyId: 'PLACEHOLDER_COMPANY_ID', // Need to fill these
+  telephelyId: 'PLACEHOLDER_TELEPHELY_ID'
+}
+
+// We need a valid token to invoke as a user, or we can just mock the invocation locally if we run it with Deno?
+// The user is running `npm run dev` in the frontend.
+// I can try to use the `supbase-js` client to invoke the function if I have the anon key.
+// But I need to be authenticated as an Admin to call `send-invitation-email`.
+
+console.log("To debug this, we need to know the error details.")
+console.log("Please check the browser console network tab for the response body of the failed request.")

@@ -9,15 +9,32 @@ export function notifyFlexiConnectionChanged() {
   window.dispatchEvent(new CustomEvent(FLEXI_CONNECTION_CHANGED));
 }
 
+// Module-level cache so data persists across component mounts
+let cachedIsConnected: boolean | null = null;
+let cachedFlexiUsername: string | null = null;
+let cachedFlexiUserId: string | null = null;
+
 export function useFlexiConnection() {
   const { user } = useAuth();
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // If user changed, invalidate cache
+  if (user?.id !== cachedFlexiUserId) {
+    cachedIsConnected = null;
+    cachedFlexiUsername = null;
+    cachedFlexiUserId = user?.id ?? null;
+  }
+
+  const [isConnected, setIsConnected] = useState<boolean | null>(cachedIsConnected);
+  const [flexiUsername, setFlexiUsername] = useState<string | null>(cachedFlexiUsername);
+  const [isLoading, setIsLoading] = useState(cachedIsConnected === null && !!user);
 
   const checkFlexiConnection = useCallback(async () => {
     if (!user) {
       setIsConnected(false);
+      setFlexiUsername(null);
       setIsLoading(false);
+      cachedIsConnected = false;
+      cachedFlexiUsername = null;
       return;
     }
 
@@ -31,12 +48,24 @@ export function useFlexiConnection() {
       if (error) {
         console.error('Error checking flexi connection:', error);
         setIsConnected(false);
+        setFlexiUsername(null);
+        cachedIsConnected = false;
+        cachedFlexiUsername = null;
       } else {
-        setIsConnected(!!data?.flexi_username);
+        const connected = !!data?.flexi_username;
+        const username = data?.flexi_username || null;
+        setIsConnected(connected);
+        setFlexiUsername(username);
+        cachedIsConnected = connected;
+        cachedFlexiUsername = username;
+        cachedFlexiUserId = user.id;
       }
     } catch (error) {
       console.error('Error checking flexi connection:', error);
       setIsConnected(false);
+      setFlexiUsername(null);
+      cachedIsConnected = false;
+      cachedFlexiUsername = null;
     } finally {
       setIsLoading(false);
     }
@@ -45,6 +74,7 @@ export function useFlexiConnection() {
   useEffect(() => {
     if (!user) {
       setIsConnected(false);
+      setFlexiUsername(null);
       setIsLoading(false);
       return;
     }
@@ -72,9 +102,17 @@ export function useFlexiConnection() {
           console.log('Flexi auth realtime update:', payload);
           if (payload.eventType === 'DELETE') {
             setIsConnected(false);
+            setFlexiUsername(null);
+            cachedIsConnected = false;
+            cachedFlexiUsername = null;
           } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const newData = payload.new as { flexi_username?: string };
-            setIsConnected(!!newData?.flexi_username);
+            const connected = !!newData?.flexi_username;
+            const username = newData?.flexi_username || null;
+            setIsConnected(connected);
+            setFlexiUsername(username);
+            cachedIsConnected = connected;
+            cachedFlexiUsername = username;
           }
         }
       )
@@ -88,5 +126,6 @@ export function useFlexiConnection() {
     };
   }, [user, checkFlexiConnection]);
 
-  return { isConnected, isLoading, refetch: checkFlexiConnection };
+  return { isConnected, flexiUsername, isLoading, refetch: checkFlexiConnection };
 }
+

@@ -34,6 +34,8 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { PageLoader } from '@/components/PageLoader';
+import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
 
 const profileTourSteps: TourStep[] = [
   {
@@ -114,7 +116,7 @@ const Profile = () => {
         setDataReady(true);
         return;
       }
-      
+
       setDataReady(false);
       try {
         await Promise.all([loadProfile(), loadFlexiAuth()]);
@@ -157,34 +159,61 @@ const Profile = () => {
       let companyName: string | null = null;
       let telephelyName: string | null = null;
       let flexiDomain: string | null = null;
+      let resolvedCompanyId = data.company_id;
+      let resolvedTelephelyId = data.telephely_id;
+
+      // Fallback: if profile has no telephely_id, check telephely_memberships
+      if (!resolvedTelephelyId) {
+        const { data: membership } = await supabase
+          .from('telephely_memberships')
+          .select('telephely_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (membership) {
+          resolvedTelephelyId = membership.telephely_id;
+        }
+      }
 
       // Fetch company name if company_id exists
-      if (data.company_id) {
+      if (resolvedCompanyId) {
         const { data: companyData } = await supabase
           .from('companies')
           .select('name')
-          .eq('id', data.company_id)
+          .eq('id', resolvedCompanyId)
           .single();
         companyName = companyData?.name || null;
       }
 
       // Fetch telephely name and flexi_domain if telephely_id exists
-      if (data.telephely_id) {
+      if (resolvedTelephelyId) {
         const { data: telephelyData } = await supabase
           .from('telephely')
-          .select('name, flexi_domain')
-          .eq('id', data.telephely_id)
+          .select('name, flexi_domain, company_id')
+          .eq('id', resolvedTelephelyId)
           .single();
         telephelyName = telephelyData?.name || null;
         flexiDomain = telephelyData?.flexi_domain || null;
+
+        // If no company resolved yet, get it from the telephely
+        if (!resolvedCompanyId && telephelyData?.company_id) {
+          resolvedCompanyId = telephelyData.company_id;
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', resolvedCompanyId)
+            .single();
+          companyName = companyData?.name || null;
+        }
       }
 
       setProfile({
         full_name: data.full_name || '',
         phone: data.phone || '',
-        company_id: data.company_id,
+        company_id: resolvedCompanyId,
         company_name: companyName,
-        telephely_id: data.telephely_id,
+        telephely_id: resolvedTelephelyId,
         telephely_name: telephelyName,
         flexi_domain: flexiDomain,
       });
@@ -266,13 +295,12 @@ const Profile = () => {
     newUserDays: 7,
   });
 
+  // Signal loading to sidebar indicator
+  usePageLoadingSignal(authLoading || !dataReady);
+
   // Show loading spinner until all data is loaded
   if (authLoading || !dataReady) {
-    return (
-      <div className="max-w-2xl mx-auto flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -310,7 +338,7 @@ const Profile = () => {
                 onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
               />
             </div>
-            
+
             {/* Company - Read Only */}
             <div className="space-y-2">
               <Label htmlFor="company" className="flex items-center gap-2">
@@ -407,7 +435,7 @@ const Profile = () => {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Flexi-Dent leválasztása</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Biztosan le szeretné választani a Flexi-Dent fiókját ({flexiAuth.flexi_username})? 
+                      Biztosan le szeretné választani a Flexi-Dent fiókját ({flexiAuth.flexi_username})?
                       A művelet nem vonható vissza, és újra be kell jelentkeznie a csatlakoztatáshoz.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -427,8 +455,8 @@ const Profile = () => {
                 <TooltipTrigger asChild>
                   <div className="inline-block">
                     {isKlinikaAdmin ? (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="opacity-50 cursor-pointer"
                         onClick={() => navigate('/klinika-admin?tab=szotar&openDomain=true')}
                       >
@@ -476,9 +504,9 @@ const Profile = () => {
         </CardContent>
       </Card>
 
-      <FlexiConnectDialog 
-        open={flexiDialogOpen} 
-        onOpenChange={handleFlexiDialogClose} 
+      <FlexiConnectDialog
+        open={flexiDialogOpen}
+        onOpenChange={handleFlexiDialogClose}
       />
 
       <OnboardingTour

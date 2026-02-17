@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, fullName, role, telephely } = await req.json();
+    const { email, password, fullName, role, telephely, companyId, telephelyId } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email/username and password are required" }), {
@@ -104,38 +104,70 @@ serve(async (req) => {
       });
     }
 
-    // Create profile for the new user with telephely
-    const profileData: Record<string, any> = {
-      user_id: newUser.user.id,
+    // Resolve the effective telephely ID and company ID
+    const effectiveTelephelyId = telephelyId || null;
+    const effectiveCompanyId = companyId || null;
+
+    // Build the profile update data
+    const profileUpdate: Record<string, any> = {
       full_name: fullName || email.split("@")[0],
-      role: userRole === 'admin' ? 'admin' : 'user', // Profile role is less important now
     };
 
-    if (telephely) {
-      profileData.telephely = telephely; // Legacy
-      // We need telephely_id. But 'telephely' param here seems to be the ID based on usage?
-      // existing code: profileData.telephely = telephely;
-      // It assumes 'telephely' is the column name match? 
-      // The profile table has 'telephely' (string?) and 'telephely_id' (uuid).
-      // Let's assume input 'telephely' is the ID.
-      // But verify if it's stored in 'telephely' column or 'telephely_id'.
-      // existing code inserts into 'telephely'.
-      // I should update it to set telephely_id and current_telephely_id.
-      profileData.telephely_id = telephely;
-      profileData.current_telephely_id = telephely;
+    if (effectiveTelephelyId) {
+      profileUpdate.telephely_id = effectiveTelephelyId;
+      profileUpdate.current_telephely_id = effectiveTelephelyId;
     }
 
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert(profileData);
+    if (effectiveCompanyId) {
+      profileUpdate.company_id = effectiveCompanyId;
+    }
 
-    if (profileError) {
-      console.error("Error creating profile:", profileError);
+    // The handle_email_confirmation trigger creates a basic profile on user creation.
+    // We need to UPDATE that profile with the additional data.
+    // Use retry logic since the trigger runs asynchronously and may not have completed yet.
+    let profileUpdated = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: updatedProfile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("user_id", newUser.user.id)
+        .select("user_id")
+        .maybeSingle();
+
+      if (updatedProfile) {
+        profileUpdated = true;
+        console.log(`Profile updated on attempt ${attempt + 1}`);
+        break;
+      }
+
+      if (profileError) {
+        console.error(`Profile update attempt ${attempt + 1} error:`, profileError);
+      }
+
+      // Profile doesn't exist yet (trigger hasn't run), wait and retry
+      console.log(`Profile not found on attempt ${attempt + 1}, waiting...`);
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    // If update failed after retries, try inserting as fallback
+    if (!profileUpdated) {
+      console.log("Profile update failed after retries, attempting insert...");
+      const { error: insertError } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          user_id: newUser.user.id,
+          ...profileUpdate,
+        });
+      if (insertError) {
+        console.error("Profile insert fallback error:", insertError);
+      }
     }
 
     // Handle Roles
+    // The handle_email_confirmation trigger inserts user_roles(role='user') by default.
+    // We need to clean this up and set the correct role.
     if (userRole === 'admin') {
-      // Global Admin -> user_roles
+      // Global Admin -> replace user_roles entry with 'admin'
       await supabaseAdmin.from("user_roles").delete().eq("user_id", newUser.user.id);
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
@@ -145,13 +177,25 @@ serve(async (req) => {
         });
       if (roleError) console.error("Error creating admin role:", roleError);
     } else {
-      // Klinika Admin or User -> telephely_memberships
-      if (telephely) {
+      // Klinika Admin or regular User -> telephely_memberships
+      // Remove the default 'user' entry from user_roles since role is determined by membership
+      if (userRole === 'klinika_admin') {
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", newUser.user.id);
+      }
+
+      if (effectiveTelephelyId) {
+        // Delete any existing membership for this user+telephely first
+        await supabaseAdmin
+          .from("telephely_memberships")
+          .delete()
+          .eq("user_id", newUser.user.id)
+          .eq("telephely_id", effectiveTelephelyId);
+
         const { error: membershipError } = await supabaseAdmin
           .from("telephely_memberships")
           .insert({
             user_id: newUser.user.id,
-            telephely_id: telephely,
+            telephely_id: effectiveTelephelyId,
             role: userRole,
           });
 
@@ -159,7 +203,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`User created with role: ${userRole}, telephely: ${telephely || 'none'}`);
+    console.log(`User created with role: ${userRole}, telephelyId: ${effectiveTelephelyId || 'none'}, companyId: ${companyId || 'none'}`);
 
     return new Response(
       JSON.stringify({

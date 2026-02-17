@@ -144,7 +144,7 @@ async function processBatches<T, R>(
     console.log(`Processing batch ${batchNum}/${totalBatches}: protocols ${i + 1}-${Math.min(i + batchSize, items.length)}`);
     const batchResults = await Promise.all(batch.map(processor));
     results.push(...batchResults);
-    
+
     // Small delay between batches to prevent resource exhaustion
     if (delayBetweenBatches > 0 && i + batchSize < items.length) {
       await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
@@ -177,13 +177,13 @@ function mapScaling(value?: string): 'per_tooth' | 'per_case' | 'fix' {
 // ==========================================================
 async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (!texts || texts.length === 0) return [];
-  
+
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     console.error('Missing OPENAI_API_KEY secret');
     return [];
   }
-  
+
   try {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -196,13 +196,13 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
         input: texts,
       }),
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       console.error(`OpenAI API error: ${response.status} - ${error}`);
       return [];
     }
-    
+
     const data = await response.json();
     return data.data.map((d: { embedding: number[] }) => d.embedding);
   } catch (error) {
@@ -222,10 +222,10 @@ async function saveEmbeddings(
   items: { name: string }[]
 ): Promise<{ success: number; failed: number }> {
   const stats = { success: 0, failed: 0 };
-  
+
   // Összegyűjtjük a szövegeket
   const textsToEmbed: { text: string; type: 'semantic_description' | 'item_name' }[] = [];
-  
+
   // 1. Semantic description (fő forrás)
   if (semanticDescription && semanticDescription.trim()) {
     textsToEmbed.push({
@@ -233,7 +233,7 @@ async function saveEmbeddings(
       type: 'semantic_description',
     });
   }
-  
+
   // 2. Item names (másodlagos)
   for (const item of items) {
     if (item.name && item.name.trim()) {
@@ -243,7 +243,7 @@ async function saveEmbeddings(
       });
     }
   }
-  
+
   // Deduplikálás
   const seen = new Set<string>();
   const uniqueTexts = textsToEmbed.filter(t => {
@@ -252,31 +252,31 @@ async function saveEmbeddings(
     seen.add(key);
     return true;
   });
-  
+
   if (uniqueTexts.length === 0) {
     console.log(`No texts to embed for rule ${ruleId}`);
     return stats;
   }
-  
+
   console.log(`Generating ${uniqueTexts.length} embeddings for rule ${ruleId}`);
-  
+
   // Embedding generálás
   const texts = uniqueTexts.map(t => t.text);
   const embeddings = await generateEmbeddings(texts);
-  
+
   if (embeddings.length === 0) {
     console.error(`Failed to generate embeddings for rule ${ruleId}`);
     stats.failed = uniqueTexts.length;
     return stats;
   }
-  
+
   // Mentés Supabase-be
   for (let i = 0; i < uniqueTexts.length; i++) {
     if (!embeddings[i]) {
       stats.failed++;
       continue;
     }
-    
+
     // Direct insert/upsert to treatment_embeddings table
     const embeddingVector = `[${embeddings[i].join(',')}]`;
     const { error } = await supabase
@@ -290,7 +290,7 @@ async function saveEmbeddings(
       }, {
         onConflict: 'treatment_rule_id,text_source,source_type',
       });
-    
+
     if (error) {
       console.error(`Failed to save embedding: ${error.message}`);
       stats.failed++;
@@ -298,7 +298,7 @@ async function saveEmbeddings(
       stats.success++;
     }
   }
-  
+
   console.log(`Embeddings for rule ${ruleId}: ${stats.success} success, ${stats.failed} failed`);
   return stats;
 }
@@ -358,14 +358,14 @@ interface WebhookResult {
 
 // Call a single webhook for one protocol (with shorter timeout since payload is smaller)
 async function callProtocolWebhook(
-  url: string, 
-  payload: ProtocolPayload, 
+  url: string,
+  payload: ProtocolPayload,
   protocolId: number,
   protocolName: string
 ): Promise<WebhookResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 100000); // 100s timeout per protocol
-  
+
   try {
     console.log(`[Protocol ${protocolId}] Calling webhook for: ${protocolName}`);
     const response = await fetch(url, {
@@ -420,24 +420,171 @@ async function callProtocolWebhook(
   }
 }
 
-// Background processing function - runs after HTTP response is sent
+// Retry delays in milliseconds: 30s, 60s, 90s
+const RETRY_DELAYS = [30000, 60000, 90000];
+const MAX_ATTEMPTS = 4; // 1 initial + 3 retries
+
+// Helper to update job status in rule_generation_jobs
+async function updateJobStatus(
+  supabase: SupabaseClient,
+  jobId: string,
+  status: string,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  const update: Record<string, unknown> = { status, updated_at: new Date().toISOString(), ...extra };
+  if (status === 'completed' || status === 'error') {
+    update.completed_at = new Date().toISOString();
+  }
+  const { error } = await supabase
+    .from('rule_generation_jobs')
+    .update(update)
+    .eq('id', jobId);
+  if (error) {
+    console.error(`Failed to update job ${jobId}:`, error.message);
+  }
+}
+
+// Process a single successful webhook result — insert rules, visits, items, embeddings
+async function processWebhookResult(
+  result: WebhookResult,
+  telephely_id: string,
+  supabase: SupabaseClient
+): Promise<{ inserted: number; duplicates: number; errors: number; embeddingStats: { success: number; failed: number } }> {
+  const stats = { inserted: 0, duplicates: 0, errors: 0, embeddingStats: { success: 0, failed: 0 } };
+
+  if (!result.success || !result.response?.extractions) {
+    return stats;
+  }
+
+  for (const extraction of result.response.extractions) {
+    if (!extraction.fogalom) {
+      console.log(`[Protocol ${result.protocolId}] Skipping extraction without fogalom`);
+      stats.errors++;
+      continue;
+    }
+
+    console.log(`[Protocol ${result.protocolId}] Inserting: ${extraction.fogalom}`);
+
+    const { data: ruleData, error: ruleError } = await supabase
+      .from('treatment_rules')
+      .insert({
+        clinic_id: telephely_id,
+        name: extraction.fogalom,
+        category: extraction.kategoria || result.response.extractions[0]?.kategoria || null,
+        semantic_description: extraction.semantic_description || null,
+        alapszabaly: true,
+      })
+      .select('id')
+      .single();
+
+    if (ruleError) {
+      if (ruleError.code === '23505') {
+        console.log(`[Protocol ${result.protocolId}] Duplicate: ${extraction.fogalom}`);
+        stats.duplicates++;
+        continue;
+      } else {
+        console.error(`[Protocol ${result.protocolId}] Rule insert error:`, ruleError);
+        stats.errors++;
+        continue;
+      }
+    }
+
+    const allItems: { name: string }[] = [];
+    const visits = extraction.parsed?.visits || [];
+    for (let vi = 0; vi < visits.length; vi++) {
+      const visit = visits[vi];
+      const { data: visitData, error: visitError } = await supabase
+        .from('rule_visits')
+        .insert({
+          rule_id: ruleData.id,
+          visit_number: visit.visit_no || vi + 1,
+          duration_days: visit.duration_days || 0,
+          healing_months: visit.healing_time_months || 0,
+          display_order: vi,
+        })
+        .select('id')
+        .single();
+
+      if (visitError) {
+        console.error(`[Protocol ${result.protocolId}] Visit insert error:`, visitError);
+        continue;
+      }
+
+      if (visit.items && visit.items.length > 0) {
+        const itemsToInsert = visit.items.map((item, ii) => ({
+          visit_id: visitData.id,
+          name: item.name || '',
+          quantity: item.qty || 1,
+          unit: item.unit || 'db',
+          scaling: mapScaling(item.scaling),
+          target_tooth_type: mapTargetToothType(item.target_tooth_type),
+          display_order: ii,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('rule_items')
+          .insert(itemsToInsert);
+
+        if (itemsError) {
+          console.error(`[Protocol ${result.protocolId}] Items insert error:`, itemsError);
+        }
+        allItems.push(...visit.items.filter(item => item.name));
+      }
+    }
+
+    // Embedding generation
+    console.log(`[Protocol ${result.protocolId}] Generating embeddings for: ${extraction.fogalom}`);
+    const ruleEmbeddingStats = await saveEmbeddings(
+      supabase,
+      ruleData.id,
+      extraction.semantic_description || null,
+      allItems
+    );
+    stats.embeddingStats.success += ruleEmbeddingStats.success;
+    stats.embeddingStats.failed += ruleEmbeddingStats.failed;
+    stats.inserted++;
+  }
+
+  return stats;
+}
+
+// Background processing function with job tracking and auto-retry
 async function processWebhooksAndImport(
+  batchId: string,
   eventId: string,
   telephely_id: string,
   user_id: string,
   telephelyData: { name: string; flexi_domain: string | null },
   kezelesek: Array<{ id: string; name: string; category: string }>,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  // deno-lint-ignore no-explicit-any
+  jobMap: Map<number, any>, // protocolId -> job row
+  regenerate: boolean
 ): Promise<void> {
   const timestamp = new Date().toISOString();
-  
-  console.log(`[Background ${eventId}] Starting webhook processing...`);
-  console.log(`[Background ${eventId}] Will process ALL ${TREATMENT_PROTOCOLS.length} protocols in PARALLEL`);
+
+  console.log(`[Background ${eventId}] Starting webhook processing (batch: ${batchId})...`);
 
   try {
-    // Process ALL protocols in parallel - n8n can handle it
-    const results = await Promise.all(TREATMENT_PROTOCOLS.map(async (protocol) => {
-      const payload: ProtocolPayload = {
+    // If regenerating, wipe only dictionary-generated base rules (alapszabaly=true), preserving PDF-uploaded/edited rules
+    if (regenerate) {
+      console.log(`[Background ${eventId}] REGENERATE mode — deleting alapszabaly rules for telephely ${telephely_id}`);
+      const { error: deleteError, count } = await supabase
+        .from('treatment_rules')
+        .delete({ count: 'exact' })
+        .eq('clinic_id', telephely_id)
+        .eq('alapszabaly', true);
+      if (deleteError) {
+        console.error(`[Background ${eventId}] Error deleting rules:`, deleteError);
+      } else {
+        console.log(`[Background ${eventId}] Deleted ${count} existing rules`);
+      }
+    }
+
+    // Build protocol payloads
+    const protocolPayloads = TREATMENT_PROTOCOLS.map((protocol) => ({
+      protocol,
+      payload: {
         version: '2.0',
         event_id: eventId,
         protocol_id: protocol.id,
@@ -450,132 +597,89 @@ async function processWebhooksAndImport(
         protocol: protocol.protocol,
         timestamp,
         kezelesek,
-      };
-
-      // Try primary webhook first, fall back to secondary
-      const result = await callProtocolWebhook(PRIMARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
-      if (!result.success) {
-        console.log(`[Protocol ${protocol.id}] Primary failed, trying secondary...`);
-        return callProtocolWebhook(SECONDARY_WEBHOOK_URL, payload, protocol.id, protocol.name);
-      }
-      return result;
+      } as ProtocolPayload,
     }));
 
-    // Log summary
-    const successCount = results.filter(r => r.success).length;
-    const failedCount = results.filter(r => !r.success).length;
-    console.log(`[Background ${eventId}] Webhooks done: ${successCount} success, ${failedCount} failed`);
-
-    // Process all successful responses and insert into database
+    // Track which protocols still need processing
+    let pendingProtocols = [...protocolPayloads];
     let totalInserted = 0;
     let totalDuplicates = 0;
     let totalErrors = 0;
-    
-    // Embedding statisztika
     const embeddingStats = { success: 0, failed: 0 };
 
-    for (const result of results) {
-      if (!result.success || !result.response?.extractions) {
-        continue;
+    // Process with auto-retry: attempt 1 + 3 retries
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (pendingProtocols.length === 0) break;
+
+      console.log(`[Background ${eventId}] Attempt ${attempt}/${MAX_ATTEMPTS}: processing ${pendingProtocols.length} protocols`);
+
+      // Update all pending jobs to 'processing'
+      for (const pp of pendingProtocols) {
+        const job = jobMap.get(pp.protocol.id);
+        if (job) {
+          await updateJobStatus(supabase, job.id, 'processing', { attempt });
+        }
       }
 
-      const extractions = result.response.extractions;
-      
-      for (const extraction of extractions) {
-        if (!extraction.fogalom) {
-          console.log(`[Protocol ${result.protocolId}] Skipping extraction without fogalom`);
-          totalErrors++;
-          continue;
+      // Fire all pending protocols in parallel
+      const results = await Promise.all(pendingProtocols.map(async (pp) => {
+        // Try primary webhook first, fall back to secondary
+        const result = await callProtocolWebhook(PRIMARY_WEBHOOK_URL, pp.payload, pp.protocol.id, pp.protocol.name);
+        if (!result.success) {
+          console.log(`[Protocol ${pp.protocol.id}] Primary failed, trying secondary...`);
+          return { pp, result: await callProtocolWebhook(SECONDARY_WEBHOOK_URL, pp.payload, pp.protocol.id, pp.protocol.name) };
         }
+        return { pp, result };
+      }));
 
-        console.log(`[Protocol ${result.protocolId}] Inserting: ${extraction.fogalom}`);
+      // Process results: separate successes from failures
+      const failedThisRound: typeof pendingProtocols = [];
 
-        // Insert into treatment_rules
-        const { data: ruleData, error: ruleError } = await supabase
-          .from('treatment_rules')
-          .insert({
-            clinic_id: telephely_id,
-            name: extraction.fogalom,
-            category: extraction.kategoria || result.response.extractions[0]?.kategoria || null,
-            semantic_description: extraction.semantic_description || null,
-            alapszabaly: true,
-          })
-          .select('id')
-          .single();
+      for (const { pp, result } of results) {
+        const job = jobMap.get(pp.protocol.id);
 
-        if (ruleError) {
-          if (ruleError.code === '23505') {
-            console.log(`[Protocol ${result.protocolId}] Duplicate: ${extraction.fogalom}`);
-            totalDuplicates++;
-            continue;
-          } else {
-            console.error(`[Protocol ${result.protocolId}] Rule insert error:`, ruleError);
-            totalErrors++;
-            continue;
+        if (result.success) {
+          // Process and insert rules
+          const stats = await processWebhookResult(result, telephely_id, supabase);
+          totalInserted += stats.inserted;
+          totalDuplicates += stats.duplicates;
+          totalErrors += stats.errors;
+          embeddingStats.success += stats.embeddingStats.success;
+          embeddingStats.failed += stats.embeddingStats.failed;
+
+          // Mark job as completed
+          if (job) {
+            await updateJobStatus(supabase, job.id, 'completed', {
+              extractions_count: stats.inserted,
+            });
+          }
+        } else {
+          // Mark as error
+          if (job) {
+            await updateJobStatus(supabase, job.id, 'error', {
+              error_message: result.error || 'Unknown error',
+              attempt,
+            });
+          }
+          // Add to retry queue if we have more attempts
+          if (attempt < MAX_ATTEMPTS) {
+            failedThisRound.push(pp);
           }
         }
+      }
 
-        // Gyűjtsük össze az összes item-et az embedding generáláshoz
-        const allItems: { name: string }[] = [];
+      // Log round summary
+      const successThisRound = results.filter(r => r.result.success).length;
+      console.log(`[Background ${eventId}] Attempt ${attempt} done: ${successThisRound} success, ${failedThisRound.length} failed`);
 
-        // Insert visits and items
-        const visits = extraction.parsed?.visits || [];
-        for (let vi = 0; vi < visits.length; vi++) {
-          const visit = visits[vi];
+      // Update pending list for next round
+      pendingProtocols = failedThisRound;
 
-          const { data: visitData, error: visitError } = await supabase
-            .from('rule_visits')
-            .insert({
-              rule_id: ruleData.id,
-              visit_number: visit.visit_no || vi + 1,
-              duration_days: visit.duration_days || 0,
-              healing_months: visit.healing_time_months || 0,
-              display_order: vi,
-            })
-            .select('id')
-            .single();
-
-          if (visitError) {
-            console.error(`[Protocol ${result.protocolId}] Visit insert error:`, visitError);
-            continue;
-          }
-
-          if (visit.items && visit.items.length > 0) {
-            const itemsToInsert = visit.items.map((item, ii) => ({
-              visit_id: visitData.id,
-              name: item.name || '',
-              quantity: item.qty || 1,
-              unit: item.unit || 'db',
-              scaling: mapScaling(item.scaling),
-              target_tooth_type: mapTargetToothType(item.target_tooth_type),
-              display_order: ii,
-            }));
-
-            const { error: itemsError } = await supabase
-              .from('rule_items')
-              .insert(itemsToInsert);
-
-            if (itemsError) {
-              console.error(`[Protocol ${result.protocolId}] Items insert error:`, itemsError);
-            }
-            
-            // Gyűjtsük össze az item neveket
-            allItems.push(...visit.items.filter(item => item.name));
-          }
-        }
-
-        // EMBEDDING GENERÁLÁS ÉS MENTÉS
-        console.log(`[Protocol ${result.protocolId}] Generating embeddings for: ${extraction.fogalom}`);
-        const ruleEmbeddingStats = await saveEmbeddings(
-          supabase,
-          ruleData.id,
-          extraction.semantic_description || null,
-          allItems
-        );
-        embeddingStats.success += ruleEmbeddingStats.success;
-        embeddingStats.failed += ruleEmbeddingStats.failed;
-
-        totalInserted++;
+      // Wait before retrying (30s, 60s, 90s)
+      if (pendingProtocols.length > 0 && attempt < MAX_ATTEMPTS) {
+        const delay = RETRY_DELAYS[attempt - 1];
+        console.log(`[Background ${eventId}] Waiting ${delay / 1000}s before retry ${attempt + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
@@ -584,6 +688,14 @@ async function processWebhooksAndImport(
 
   } catch (error) {
     console.error(`[Background ${eventId}] Fatal error:`, error);
+    // Mark all pending jobs as error on fatal crash
+    for (const [, job] of jobMap) {
+      if (job.status !== 'completed') {
+        await updateJobStatus(supabase, job.id, 'error', {
+          error_message: `Fatal: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
+    }
   }
 }
 
@@ -599,12 +711,13 @@ serve(async (req) => {
   }
 
   const eventId = generateUUID();
-  console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}`);
+  const batchId = generateUUID();
+  console.log(`[szotar-rules-webhook] Starting with event_id: ${eventId}, batch_id: ${batchId}`);
 
   try {
     // Parse request body
     const body = await req.json();
-    const { telephely_id, user_id } = body;
+    const { telephely_id, user_id, regenerate } = body;
 
     if (!telephely_id) {
       return new Response(
@@ -657,27 +770,63 @@ serve(async (req) => {
     const kezelesek = kezelesekData || [];
     console.log(`Found ${kezelesek.length} kezelesek entries`);
 
+    // Insert job rows for all 19 protocols
+    const jobRows = TREATMENT_PROTOCOLS.map((protocol) => ({
+      batch_id: batchId,
+      telephely_id,
+      user_id: user_id || '',
+      source: 'protocol',
+      protocol_id: protocol.id,
+      protocol_name: protocol.name,
+      status: 'pending',
+      attempt: 1,
+      max_attempts: MAX_ATTEMPTS,
+    }));
+
+    const { data: insertedJobs, error: jobsError } = await supabase
+      .from('rule_generation_jobs')
+      .insert(jobRows)
+      .select('id, protocol_id, status');
+
+    if (jobsError) {
+      console.error('Error inserting jobs:', jobsError);
+      return new Response(
+        JSON.stringify({ ok: false, status: 'error', code: 'JOB_INSERT_ERROR', message: 'Failed to create job records' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Build a map of protocolId -> job row for easy lookup
+    // deno-lint-ignore no-explicit-any
+    const jobMap = new Map<number, any>();
+    for (const job of (insertedJobs || [])) {
+      jobMap.set(job.protocol_id, job);
+    }
+
     // 🚀 Start background processing with EdgeRuntime.waitUntil
-    // This allows the function to return immediately while processing continues
     EdgeRuntime.waitUntil(
       processWebhooksAndImport(
+        batchId,
         eventId,
         telephely_id,
         user_id || '',
         telephelyData,
         kezelesek,
-        supabase
+        supabase,
+        jobMap,
+        regenerate === true
       )
     );
 
-    // 🚀 Return immediately with "started" status
+    // 🚀 Return immediately with "started" status + batch_id for polling
     console.log(`[szotar-rules-webhook] Returning immediately, processing continues in background`);
     return new Response(
       JSON.stringify({
         ok: true,
         status: 'started',
         event_id: eventId,
-        message: 'A feldolgozás elindult háttérben',
+        batch_id: batchId,
+        message: regenerate ? 'Újragenerálás elindult háttérben' : 'A feldolgozás elindult háttérben',
         total_protocols: TREATMENT_PROTOCOLS.length,
       }),
       { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
