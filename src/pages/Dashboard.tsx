@@ -401,7 +401,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-muted-foreground mt-1">
               {allComplete
-                ? 'Minden beállítás kész — használja az alkalmazást teljes mértékben!'
+                ? 'Minden beállítás kész :) — használja az alkalmazást teljes mértékben!'
                 : 'Kövesse az alábbi lépéseket a rendszer beállításához.'}
             </p>
           </div>
