@@ -186,7 +186,7 @@ export default function VoiceRecording() {
       formData.append('filename', filename);
       formData.append('user_id', user.id);
       formData.append('company_id', profile?.company_id || '');
-      formData.append('telephely_id', profile?.telephely_id || '');
+      formData.append('telephely_id', (profile as any)?.current_telephely_id || profile?.telephely_id || '');
       formData.append('PaciensID', paciensId);
 
       // Call edge function
@@ -233,7 +233,7 @@ export default function VoiceRecording() {
   // Check if treatment rules exist
   const [hasRules, setHasRules] = useState(true);
   const [rulesLoading, setRulesLoading] = useState(true);
-  const activeTelephelyId = profile?.telephely_id || (profile as any)?.current_telephely_id;
+  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
   useEffect(() => {
     // Wait for profile to load before checking rules
     if (profileLoading) return;

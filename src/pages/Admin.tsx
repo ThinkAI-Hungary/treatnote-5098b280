@@ -518,8 +518,7 @@ export default function Admin() {
 
       {/* Content layer */}
       <div
-        className="relative z-10 space-y-8 pb-8 animate-fade-in-up p-6"
-        style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
+        className="relative z-10 space-y-8 pb-8"
       >
         {/* Header */}
         <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
@@ -848,16 +847,21 @@ export default function Admin() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Jelszó</Label>
-                <Input
-                  type="password"
-                  value={reAuthPassword}
-                  onChange={(e) => setReAuthPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleReAuthenticate()}
-                  className="border-primary/20 focus:border-primary/40"
-                />
-              </div>
+              <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
+                <div className="space-y-2">
+                  <Label>Jelszó</Label>
+                  <Input
+                    type="password"
+                    autoComplete="one-time-code"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    value={reAuthPassword}
+                    onChange={(e) => setReAuthPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleReAuthenticate()}
+                    className="border-primary/20 focus:border-primary/40"
+                  />
+                </div>
+              </form>
             </div>
             <DialogFooter>
               <Button

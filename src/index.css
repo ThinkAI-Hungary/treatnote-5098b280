@@ -632,7 +632,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 /* Apply to a container: children cascade in with incremental delays */
 .stagger-children>* {
   opacity: 0;
-  animation: pageEnterUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fadeInUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .stagger-children>*:nth-child(1) {

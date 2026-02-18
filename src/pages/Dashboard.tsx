@@ -424,6 +424,7 @@ export default function Dashboard() {
         )}
       </div>
 
+
       {/* Onboarding steps */}
       {!allComplete && (
         <div className="space-y-3">

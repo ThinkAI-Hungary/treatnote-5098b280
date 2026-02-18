@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface VoiceJob {
@@ -31,6 +32,8 @@ const MAX_HISTORY_ITEMS = 10;
 
 export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
   const { user } = useAuth();
+  const { profile } = useProfile();
+  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
   const [jobs, setJobs] = useState<VoiceJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -45,7 +48,7 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
     try {
       // First, delete stale jobs (processing for more than 5 minutes)
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      
+
       await supabase
         .from('voice_jobs')
         .delete()
@@ -53,11 +56,17 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
         .eq('status', 'processing')
         .lt('created_at', tenMinutesAgo);
 
-      // Then fetch remaining jobs
-      const { data, error: fetchError } = await supabase
+      // Then fetch remaining jobs, filtered by active telephely
+      let query = supabase
         .from('voice_jobs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id);
+
+      if (activeTelephelyId) {
+        query = query.eq('telephely_id', activeTelephelyId);
+      }
+
+      const { data, error: fetchError } = await query
         .order('created_at', { ascending: false })
         .limit(MAX_HISTORY_ITEMS);
 
@@ -71,7 +80,7 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, activeTelephelyId]);
 
   const pollJob = useCallback(async (jobId: string): Promise<VoiceJob | null> => {
     try {
@@ -125,9 +134,13 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setJobs(prev => [payload.new as VoiceJob, ...prev].slice(0, MAX_HISTORY_ITEMS));
+            const newJob = payload.new as VoiceJob;
+            // Only add if it belongs to the active telephely
+            if (!activeTelephelyId || newJob.telephely_id === activeTelephelyId) {
+              setJobs(prev => [newJob, ...prev].slice(0, MAX_HISTORY_ITEMS));
+            }
           } else if (payload.eventType === 'UPDATE') {
-            setJobs(prev => prev.map(job => 
+            setJobs(prev => prev.map(job =>
               job.id === (payload.new as VoiceJob).id ? (payload.new as VoiceJob) : job
             ));
           } else if (payload.eventType === 'DELETE') {
@@ -140,7 +153,7 @@ export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, activeTelephelyId]);
 
   return {
     jobs,

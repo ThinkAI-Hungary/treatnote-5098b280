@@ -576,8 +576,7 @@ export default function KlinikaAdmin() {
 
       {/* Content layer - slides up after background */}
       <div
-        className="relative z-10 space-y-8 pb-8 px-6 pt-6 animate-fade-in-up"
-        style={{ animationDuration: '400ms', animationDelay: '100ms', animationFillMode: 'both' }}
+        className="relative z-10 space-y-8 pb-8"
       >
         {/* Header section */}
         <div data-tour="header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
@@ -792,6 +791,7 @@ export default function KlinikaAdmin() {
                                     <div className="relative">
                                       <Input
                                         type={showPassword ? "text" : "password"}
+                                        autoComplete="new-password"
                                         placeholder="Jelszó"
                                         value={newUserPassword}
                                         onChange={(e) => setNewUserPassword(e.target.value)}
@@ -816,6 +816,7 @@ export default function KlinikaAdmin() {
                                     <Label className="text-sm font-medium">Jelszó megerősítése</Label>
                                     <Input
                                       type="password"
+                                      autoComplete="new-password"
                                       placeholder="Jelszó újra"
                                       value={newUserConfirmPassword}
                                       onChange={(e) => setNewUserConfirmPassword(e.target.value)}
