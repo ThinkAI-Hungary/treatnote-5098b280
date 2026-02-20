@@ -20,9 +20,11 @@ interface SentInvitation {
   full_name: string | null;
   status: string;
   role?: string;
+  token?: string;
   created_at: string;
   responded_at: string | null;
 }
+
 
 interface KlinikaDataState {
   // Role data

@@ -50,6 +50,7 @@ interface Company {
   id: string;
   name: string;
   slug: string;
+  is_active: boolean;
 }
 
 interface Telephely {
@@ -82,7 +83,7 @@ export default function Admin() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState('');
-  const [newUserFullName, setNewUserFullName] = useState('');
+
   const [newUserCompanyId, setNewUserCompanyId] = useState<string>('');
   const [newUserTelephelyId, setNewUserTelephelyId] = useState<string>('');
   const [newUserRole, setNewUserRole] = useState<'user' | 'admin' | 'klinika_admin'>('user');
@@ -240,7 +241,6 @@ export default function Admin() {
       const { data, error } = await invokeWithRetry('create-user', {
         email: finalEmail,
         password: newUserPassword,
-        fullName: newUserFullName,
         role: newUserRole,
         telephely: newUserTelephelyId ? telephelyek.find(t => t.id === newUserTelephelyId)?.name || '' : '',
         companyId: newUserCompanyId || undefined,
@@ -280,7 +280,6 @@ export default function Admin() {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserConfirmPassword('');
-      setNewUserFullName('');
       setNewUserCompanyId('');
       setNewUserTelephelyId('');
       setNewUserRole('user');
@@ -613,15 +612,7 @@ export default function Admin() {
                               Ha nem tartalmaz @ jelet, automatikusan @localuser.com végződést kap
                             </p>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Teljes név</Label>
-                            <Input
-                              placeholder="Teljes név"
-                              value={newUserFullName}
-                              onChange={(e) => setNewUserFullName(e.target.value)}
-                              className="border-primary/20 focus:border-primary/40"
-                            />
-                          </div>
+
                           <div className="space-y-2">
                             <Label>Jelszó</Label>
                             <div className="relative">
@@ -708,7 +699,7 @@ export default function Admin() {
                             setNewUserEmail('');
                             setNewUserPassword('');
                             setNewUserConfirmPassword('');
-                            setNewUserFullName('');
+
                             setNewUserCompanyId('');
                             setNewUserTelephelyId('');
                             setNewUserRole('user');

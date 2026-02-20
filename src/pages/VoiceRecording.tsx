@@ -30,8 +30,10 @@ type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 export default function VoiceRecording() {
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
-  const { hasSzotar, isLoading: szotarLoading } = useSzotar();
+  // Derive active telephely before hooks that depend on it
+  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
+  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection(activeTelephelyId);
+  const { hasSzotar, flexiDomain, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins } = useKlinikaAdmins();
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useVoiceJobHistory();
@@ -188,6 +190,17 @@ export default function VoiceRecording() {
       formData.append('company_id', profile?.company_id || '');
       formData.append('telephely_id', (profile as any)?.current_telephely_id || profile?.telephely_id || '');
       formData.append('PaciensID', paciensId);
+      formData.append('domain', flexiDomain || '');
+
+      // Fetch flexi credentials
+      const { data: flexiAuth } = await supabase
+        .from('flexi_auth')
+        .select('flexi_username, flexi_pw')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      formData.append('flexi_email', flexiAuth?.flexi_username || '');
+      formData.append('flexi_password', flexiAuth?.flexi_pw || '');
 
       // Call edge function
       const { data: { session } } = await supabase.auth.getSession();
@@ -233,7 +246,7 @@ export default function VoiceRecording() {
   // Check if treatment rules exist
   const [hasRules, setHasRules] = useState(true);
   const [rulesLoading, setRulesLoading] = useState(true);
-  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
+  // activeTelephelyId is already declared at the top (before useFlexiConnection)
   useEffect(() => {
     // Wait for profile to load before checking rules
     if (profileLoading) return;
@@ -704,7 +717,7 @@ export default function VoiceRecording() {
                 <p className="text-muted-foreground text-center">
                   Még nincs felvétel.
                   <br />
-                  Készítsen egy felvételt a bal oldali panelen.
+                  Készítsen felvételt a középső panelen.
                 </p>
               </div>
             )}

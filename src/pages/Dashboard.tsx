@@ -30,6 +30,7 @@ interface OnboardingStep {
   title: string;
   description: string;
   completed: boolean;
+  loading?: boolean; // true while async check is in-flight — step is neither complete nor missing
   adminOnly: boolean;
   actionLabel?: string;
   currentValue?: string | null;
@@ -46,7 +47,11 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
-  const { isConnected: isFlexiConnected, flexiUsername, isLoading: isFlexiLoading, refetch: refetchFlexi } = useFlexiConnection();
+  // Active telephely / company IDs — declared early so useFlexiConnection can use it
+  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
+  const activeCompanyId = profile?.company_id;
+
+  const { isConnected: isFlexiConnected, flexiUsername, isLoading: isFlexiLoading, refetch: refetchFlexi } = useFlexiConnection(activeTelephelyId ?? null);
   const {
     hasSzotar, hasProbaPaciens, hasFlexiDomain,
     flexiDomain, probaPaciensNeve,
@@ -72,9 +77,6 @@ export default function Dashboard() {
   // Flexi connection failure tracking
   const [flexiConnectionFailed, setFlexiConnectionFailed] = useState(false);
 
-  // Active telephely / company IDs
-  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
-  const activeCompanyId = profile?.company_id;
 
   // Fetch treatment_rules count
   useEffect(() => {
@@ -92,21 +94,18 @@ export default function Dashboard() {
     if (!profileLoading) fetchRules();
   }, [activeTelephelyId, profileLoading]);
 
-  // Fetch Klinika Admin contacts (for Felhasználó)
+  // Fetch Klinika Admin contacts (for Felhasználó) — uses edge fn to bypass RLS
   useEffect(() => {
     async function fetchAdmins() {
       if (!activeTelephelyId || isKlinikaAdmin || isAdmin) { setAdminsLoading(false); return; }
       try {
-        const { data: memberships } = await supabase
-          .from('telephely_memberships')
-          .select('user_id')
-          .eq('telephely_id', activeTelephelyId)
-          .eq('role', 'klinika_admin');
-        if (memberships && memberships.length > 0) {
-          const userIds = memberships.map(m => m.user_id);
-          const { data: profiles } = await supabase.from('profiles').select('full_name, phone').in('user_id', userIds);
-          setKlinikaAdmins(profiles || []);
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('No session');
+        const { data } = await supabase.functions.invoke('get-klinika-admins', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setKlinikaAdmins(data?.admins || []);
       } catch { setKlinikaAdmins([]); }
       finally { setAdminsLoading(false); }
     }
@@ -271,9 +270,10 @@ export default function Dashboard() {
     }
   }, [activeTelephelyId, user, hasRules]);
 
-  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading || statsLoading || adminsLoading;
+  // Gate on all step-affecting loading states so the dashboard renders stable.
+  // The user prefers a slightly longer load over a flash of partial/wrong step data.
+  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading;
 
-  // Build onboarding steps
   const allSteps = useMemo<OnboardingStep[]>(() => [
     {
       id: 'domain',
@@ -303,7 +303,8 @@ export default function Dashboard() {
       icon: Link2,
       title: 'FlexiDent fiók csatlakoztatása',
       description: 'Csatlakoztassa saját FlexiDent fiókját a páciensadatok szinkronizálásához.',
-      completed: !!isFlexiConnected,
+      completed: !isFlexiLoading && !!isFlexiConnected,
+      loading: isFlexiLoading, // keeps step neutral while the async DB check resolves
       adminOnly: false,
       actionLabel: isFlexiConnected ? 'Újracsatlakozás' : 'Flexi csatlakoztatás',
       currentValue: flexiUsername || null,
@@ -329,13 +330,14 @@ export default function Dashboard() {
       adminOnly: true,
       actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szótár újragenerálása' : 'Szabályok generálása'),
     },
-  ], [hasFlexiDomain, hasProbaPaciens, isFlexiConnected, hasSzotar, hasRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
+  ], [hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
 
   const isKlinikaAdminOrAdmin = isKlinikaAdmin || isAdmin;
   const userOwnSteps = useMemo(() => allSteps.filter(s => !s.adminOnly), [allSteps]);
-  const adminMissingSteps = useMemo(() => allSteps.filter(s => s.adminOnly && !s.completed), [allSteps]);
-  const allComplete = allSteps.every(s => s.completed);
-  const completedCount = allSteps.filter(s => s.completed).length;
+  // Steps that are loading are excluded from both "missing" and "completed" counts — they're neutral
+  const adminMissingSteps = useMemo(() => allSteps.filter(s => s.adminOnly && !s.completed && !s.loading), [allSteps]);
+  const allComplete = allSteps.every(s => s.completed && !s.loading);
+  const completedCount = allSteps.filter(s => s.completed && !s.loading).length;
   const totalCount = allSteps.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -360,15 +362,16 @@ export default function Dashboard() {
     }
   };
 
-  // Step is processing (loading)
+  // Step is processing (loading or generating)
   const isStepProcessing = (stepId: string) => {
     if (stepId === 'szotar') return szotarGenerating;
     if (stepId === 'rules') return szabalyokGenerating;
+    if (stepId === 'flexi') return isFlexiLoading; // async DB check in-flight
     return false;
   };
 
-  // Signal loading to sidebar indicator
-  usePageLoadingSignal(isLoading);
+  // Signal full loading state to sidebar indicator (include per-feature loads for the progress bar)
+  usePageLoadingSignal(isLoading || szotarLoading || rulesLoading || statsLoading || adminsLoading);
 
   if (isLoading) {
     return null;
@@ -431,7 +434,11 @@ export default function Dashboard() {
           {isKlinikaAdminOrAdmin ? (
             /* ── Klinika Admin / Admin: actionable steps ── */
             allSteps.map((step, idx) => {
-              const isFirstIncomplete = !step.completed && allSteps.slice(0, idx).every(s => s.completed);
+              // A loading step is neither "complete" nor "the next actionable step" —
+              // treat it as a placeholder so subsequent real steps can take its place.
+              const isFirstIncomplete =
+                !step.completed && !step.loading &&
+                allSteps.slice(0, idx).every(s => s.completed || s.loading);
               return (
                 <StepCard
                   key={step.id}
@@ -451,8 +458,8 @@ export default function Dashboard() {
                   key={step.id}
                   step={step}
                   index={idx}
-                  isCurrent={!step.completed}
-                  isProcessing={false}
+                  isCurrent={!step.completed && !step.loading}
+                  isProcessing={isStepProcessing(step.id)}
                   onAction={() => handleStepAction(step.id)}
                 />
               ))}
@@ -536,6 +543,7 @@ export default function Dashboard() {
           }
         }}
         onError={() => setFlexiConnectionFailed(true)}
+        telephelyId={activeTelephelyId ?? null}
       />
     </div>
   );

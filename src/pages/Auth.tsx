@@ -46,7 +46,7 @@ const Auth = () => {
           toast.error(error.message);
         }
       } else {
-        toast.success('Welcome back!');
+        toast.success('Üdvözöljük!');
         navigate('/dashboard');
       }
     } catch (err) {
@@ -61,7 +61,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold">
-            Welcome back
+            Üdvözöljük!
           </CardTitle>
           <CardDescription>
             Enter your credentials to sign in

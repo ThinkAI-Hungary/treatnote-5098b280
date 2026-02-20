@@ -65,7 +65,7 @@ interface SzotarKezelesData {
 
 export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }: SzotarTabProps) {
   const { user } = useAuth();
-  const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection();
+  const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection(telephelyId ?? null);
   const { addNotification } = useNotifications();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);

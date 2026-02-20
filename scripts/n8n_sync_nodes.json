@@ -1,0 +1,45 @@
+{
+    "name": "Flexi-dent Status Sync (Resilient)",
+    "nodes": [
+        {
+            "parameters": {
+                "jsCode": "const allInputs = $input.all();\nconst comprehensiveData = {};\nlet globalComment = \"\";\n\n// 1. Metadata Safety Net (Grab data directly from Webhook node)\nlet metadata = {};\ntry {\n  // Try Method 1: $items() lookup (Standard n8n)\n  const webhookNode = $items(\"Webhook\")[0].json;\n  const b = webhookNode.body || webhookNode;\n  metadata = { \n    domain: b.domain, \n    paciensId: b.PaciensID, \n    email: b.flexi_email, \n    password: b.flexi_password \n  };\n} catch (e) {\n  try {\n    // Try Method 2: Global Object lookup\n    const b = $node[\"Webhook\"].json.body || $node[\"Webhook\"].json;\n    metadata = { \n      domain: b.domain, \n      paciensId: b.PaciensID, \n      email: b.flexi_email, \n      password: b.flexi_password \n    };\n  } catch (e2) {}\n}\n\n// 2. Merge all quadrants and comments\nallInputs.forEach((item) => {\n  const data = item.json || {};\n  if (data.section === \"MEGJEGYZES_FO\") {\n    if (data.content) globalComment = globalComment ? `${globalComment}\\n${data.content}` : data.content;\n  }\n  for (const [key, value] of Object.entries(data)) {\n    if (/^\\d{2}$/.test(key)) comprehensiveData[key] = value;\n    if (['MEGJEGYZES_FO', 'megjegyzes_fo'].includes(key)) {\n       if (typeof value === 'string' && value.trim()) globalComment = globalComment ? `${globalComment}\\n${value}` : value;\n    }\n  }\n});\n\n// 3. Return combined object for Python\nreturn [{ \n  json: {\n    ...comprehensiveData,\n    MEGJEGYZES_FO: globalComment,\n    metadata: metadata\n  } \n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3344,
+                1168
+            ],
+            "id": "710bf757-e9e2-4810-beb9-a57d16120418",
+            "name": "kód2",
+            "alwaysOutputData": true
+        },
+        {
+            "parameters": {
+                "command": "=python3 /data/playground/TreatNote/SCRIPTS/status.py \"{{ $('Webhook').item.json.body?.domain || $('Webhook').item.json.domain }}\" \"{{ $('Webhook').item.json.body?.PaciensID || $('Webhook').item.json.PaciensID }}\" '{{ JSON.stringify($json) }}' \"{{ $('Webhook').item.json.body?.flexi_email || $('Webhook').item.json.flexi_email }}\" \"{{ $('Webhook').item.json.body?.flexi_password || $('Webhook').item.json.flexi_password }}\""
+            },
+            "id": "execute-command-flexi",
+            "name": "Execute Command",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                3560,
+                1168
+            ]
+        }
+    ],
+    "connections": {
+        "kód2": {
+            "main": [
+                [
+                    {
+                        "node": "Execute Command",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

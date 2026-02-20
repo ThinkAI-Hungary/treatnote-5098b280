@@ -119,7 +119,10 @@ const Profile = () => {
 
       setDataReady(false);
       try {
-        await Promise.all([loadProfile(), loadFlexiAuth()]);
+        // Load profile FIRST to resolve telephely_id, then load flexi auth scoped to that telephely.
+        // Running them in parallel would cause loadFlexiAuth to read telephely_id=null from state.
+        const resolvedTelephelyId = await loadProfile();
+        await loadFlexiAuth(resolvedTelephelyId ?? undefined);
       } finally {
         setDataReady(true);
       }
@@ -146,12 +149,12 @@ const Profile = () => {
     }
   }, [searchParams, flexiAuth, setSearchParams]);
 
-  const loadProfile = async () => {
-    if (!user) return;
+  const loadProfile = async (): Promise<string | null> => {
+    if (!user) return null;
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, company_id, telephely_id')
+      .select('full_name, phone, company_id, telephely_id, current_telephely_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -160,7 +163,8 @@ const Profile = () => {
       let telephelyName: string | null = null;
       let flexiDomain: string | null = null;
       let resolvedCompanyId = data.company_id;
-      let resolvedTelephelyId = data.telephely_id;
+      // Prefer current_telephely_id (active) over telephely_id (home)
+      let resolvedTelephelyId = (data as any).current_telephely_id || data.telephely_id;
 
       // Fallback: if profile has no telephely_id, check telephely_memberships
       if (!resolvedTelephelyId) {
@@ -217,17 +221,27 @@ const Profile = () => {
         telephely_name: telephelyName,
         flexi_domain: flexiDomain,
       });
+      return resolvedTelephelyId;
     }
+    return null;
   };
 
-  const loadFlexiAuth = async () => {
+  const loadFlexiAuth = async (telephelyId?: string | null) => {
     if (!user) return;
 
-    const { data } = await supabase
+    // telephelyId is passed explicitly (resolved from loadProfile) to avoid
+    // reading stale null from profile state when called right after loadProfile.
+    const effectiveTelephelyId = telephelyId ?? profile.telephely_id;
+
+    const query = supabase
       .from('flexi_auth')
       .select('flexi_username, created_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .eq('user_id', user.id);
+
+    // Scope to telephely if known
+    const { data } = effectiveTelephelyId
+      ? await query.eq('telephely_id', effectiveTelephelyId).maybeSingle()
+      : await query.is('telephely_id', null).maybeSingle();
 
     setFlexiAuth(data);
   };
@@ -236,10 +250,16 @@ const Profile = () => {
     if (!user) return;
 
     setUnlinking(true);
-    const { error } = await supabase
+    const telephelyId = profile.telephely_id;
+
+    const query = supabase
       .from('flexi_auth')
       .delete()
       .eq('user_id', user.id);
+
+    const { error } = telephelyId
+      ? await query.eq('telephely_id', telephelyId)
+      : await query.is('telephely_id', null);
 
     if (error) {
       toast.error('Nem sikerült a Flexi-Dent leválasztása');
@@ -254,7 +274,7 @@ const Profile = () => {
   const handleFlexiDialogClose = (open: boolean) => {
     setFlexiDialogOpen(open);
     if (!open) {
-      loadFlexiAuth();
+      loadFlexiAuth(profile.telephely_id);
       notifyFlexiConnectionChanged();
     }
   };
@@ -507,6 +527,7 @@ const Profile = () => {
       <FlexiConnectDialog
         open={flexiDialogOpen}
         onOpenChange={handleFlexiDialogClose}
+        telephelyId={profile.telephely_id}
       />
 
       <OnboardingTour

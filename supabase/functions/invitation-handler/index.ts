@@ -239,6 +239,18 @@ serve(async (req) => {
             });
           }
 
+          // Sync legacy user_roles table so useCachedRoles picks up the correct role immediately.
+          // register-invited-user already does this for new users; existing users who accept via
+          // respond-invitation were previously skipped, causing them to appear as plain 'user'.
+          const legacyRole = invitation.role === 'klinika_admin' ? 'klinika_admin' : 'user';
+          try {
+            await supabaseAdmin.from("user_roles").delete().eq("user_id", user.id);
+            await supabaseAdmin.from("user_roles").insert({ user_id: user.id, role: legacyRole });
+            console.log(`Synced user_roles for user ${user.id} with role ${legacyRole}`);
+          } catch (roleErr) {
+            console.error("Error syncing user_roles (non-fatal):", roleErr);
+          }
+
           console.log(`User ${user.id} accepted invitation and joined telephely ${invitation.telephely_id}`);
         } else {
           console.log(`User ${user.id} declined invitation to company ${invitation.company_id}`);
@@ -615,7 +627,7 @@ serve(async (req) => {
               current_telephely_id: invitation.telephely_id,
               company_id: invitation.company_id,
               telephely_id: invitation.telephely_id,
-            });
+            }, { onConflict: 'user_id' }); // Must specify user_id: profiles.id is the PK, not user_id
 
           if (profileError) {
             console.error("Error creating profile:", profileError);

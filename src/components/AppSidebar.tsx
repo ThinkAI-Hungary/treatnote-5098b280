@@ -148,10 +148,10 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
   const { isAdmin, isKlinikaAdmin, isInitialized } = useCachedRoles();
-  const { isConnected: isFlexiConnected } = useFlexiConnection();
-  const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
-  const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const { profile } = useProfile();
+  // activeTelephelyId must be computed before useFlexiConnection so we can scope it per telephely
+  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
+  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection(activeTelephelyId ?? null);
   const { isPageLoading } = usePageLoading();
   const navigate = useNavigate();
   const collapsed = state === 'collapsed';
@@ -171,6 +171,9 @@ export function AppSidebar() {
   const { addNotification } = useNotifications();
   const [hasRules, setHasRules] = useState(false);
   const [rulesLoading, setRulesLoading] = useState(true);
+  // Track when protected items first become visible so we can animate them in
+  const prevShowProtectedRef = useRef(false);
+  const [menuAnimKey, setMenuAnimKey] = useState(0);
 
   // Shimmer lifecycle: show immediately when loading starts, fade out gracefully when loading stops
   useEffect(() => {
@@ -264,8 +267,10 @@ export function AppSidebar() {
     }
   }, [isPageLoading]);
 
+  const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
+  const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
+
   // Fetch treatment_rules count for the active telephely
-  const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
   useEffect(() => {
     async function fetchRules() {
       if (!activeTelephelyId) { setHasRules(false); setRulesLoading(false); return; }
@@ -549,8 +554,21 @@ export function AppSidebar() {
     }
   }, [profile, user, navigate]);
 
+  // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
+  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
+  const showProtectedItems = allOnboardingComplete;
+
+  // Bump animKey whenever protected items first become visible → triggers CSS float-in animation
+  // Must be before the early return so the hook always runs every render.
+  useEffect(() => {
+    if (showProtectedItems && !prevShowProtectedRef.current) {
+      setMenuAnimKey(k => k + 1);
+    }
+    prevShowProtectedRef.current = showProtectedItems;
+  }, [showProtectedItems]);
+
   // Don't render content until roles AND all deps are fully loaded to prevent menu jumping
-  const depsStillLoading = szotarLoading || adminsLoading || rulesLoading;
+  const depsStillLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading;
   if (!isInitialized || depsStillLoading) {
     return (
       <Sidebar collapsible="icon" className="z-30">
@@ -779,11 +797,6 @@ export function AppSidebar() {
     return 'Felhasználó';
   };
 
-  // Determine if all 5 onboarding steps are done
-  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
-  // depsStillLoading is guaranteed false here (early return above handles that case)
-  const showProtectedItems = allOnboardingComplete;
-
   // Build disabled content for Klinika Admin menu item
   const buildKlinikaAdminDisabledContent = () => {
     const missingSteps: string[] = [];
@@ -846,7 +859,7 @@ export function AppSidebar() {
                   if (!showProtectedItems) return null;
                   return (
                     <StaticMenuItem
-                      key={item.title}
+                      key={`${item.title}-${menuAnimKey}`}
                       item={item}
                       collapsed={collapsed}
                     />
@@ -882,7 +895,11 @@ export function AppSidebar() {
 
         {/* Klinika - Only shown if user is klinika admin or admin AND onboarding complete */}
         {(isKlinikaAdmin || isAdmin) && showProtectedItems && (
-          <SidebarGroup data-tour="sidebar-klinika">
+          <SidebarGroup
+            key={`klinika-${menuAnimKey}`}
+            data-tour="sidebar-klinika"
+            className="menu-float-in"
+          >
             {!collapsed && <SidebarGroupLabel>Klinika</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>

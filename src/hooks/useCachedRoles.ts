@@ -78,8 +78,6 @@ export function useCachedRoles(): CachedRolesData {
 
       try {
         // Fetch roles and profile in parallel
-        // We need to fetch basic profile first to know current_telephely_id, or fetch it all together.
-        // We'll fetch profile and global admin role.
         const [adminResult, profileResult] = await Promise.all([
           supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
           supabase.from('profiles')

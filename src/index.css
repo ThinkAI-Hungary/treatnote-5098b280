@@ -1419,3 +1419,30 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   pointer-events: none;
   animation: galaxyGlow 1s ease-in-out forwards;
 }
+
+/* ── Neon float-in for newly revealed sidebar menu items ── */
+.menu-float-in {
+  animation: menuFloatIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menuFloatIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+    filter: drop-shadow(0 0 0px hsl(210 100% 55% / 0));
+  }
+
+  40% {
+    filter: drop-shadow(0 0 8px hsl(210 100% 60% / 0.7));
+  }
+
+  70% {
+    filter: drop-shadow(0 0 6px hsl(210 100% 60% / 0.4));
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: drop-shadow(0 0 0px hsl(210 100% 60% / 0));
+  }
+}

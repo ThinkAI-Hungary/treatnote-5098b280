@@ -95,7 +95,7 @@ serve(async (req) => {
       );
     }
 
-    const { flexiEmail, flexiPassword } = await req.json();
+    const { flexiEmail, flexiPassword, telephely_id: bodyTelephelyId } = await req.json();
 
     if (!flexiEmail || !flexiPassword) {
       return new Response(
@@ -124,6 +124,18 @@ serve(async (req) => {
         .maybeSingle();
 
       flexiDomain = telephelyData?.flexi_domain || null;
+    }
+
+    // Use telephely_id from request body (passed by the frontend knowing the active telephely);
+    // fall back to profile's active telephely if not provided.
+    const resolvedTelephelyId: string | null = bodyTelephelyId || activeTelephelyId || null;
+
+    if (!resolvedTelephelyId) {
+      console.error('No telephely_id available – cannot scope Flexi connection');
+      return new Response(
+        JSON.stringify({ error: 'Telephely azonosító hiányzik. Kérjük válasszon telephelyet.', success: false }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Sending Flexi credentials to n8n webhook...');
@@ -175,36 +187,48 @@ serve(async (req) => {
     const encryptedPassword = await encryptPassword(flexiPassword, encryptionKey);
     console.log('Password encrypted successfully');
 
-    // Check if this flexi_username is already linked to another user
+    // Check if this flexi_username is already linked to another user FOR THIS TELEPHELY
     const { data: existingLink } = await supabaseAdmin
       .from('flexi_auth')
       .select('user_id')
       .eq('flexi_username', flexiEmail)
+      .eq('telephely_id', resolvedTelephelyId)
       .maybeSingle();
 
     if (existingLink && existingLink.user_id !== user.id) {
-      console.log('Flexi account already linked to another user');
+      console.log('Flexi account already linked to another user for this telephely');
       return new Response(
         JSON.stringify({
           error: 'Flexi account already linked',
           success: false,
-          message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve.'
+          message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve ezen a telephelyen.'
         }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Delete any existing record for this user first (to avoid unique constraint issues)
+    // Delete this user's record for THIS TELEPHELY
     await supabaseAdmin
       .from('flexi_auth')
       .delete()
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('telephely_id', resolvedTelephelyId);
 
-    // Insert new record
+    // Also delete any legacy rows (telephely_id = NULL) for this user or with the same
+    // flexi_username — these were created before per-telephely isolation was introduced.
+    // They would trigger the global `flexi_auth_flexi_username_unique` constraint otherwise.
+    await supabaseAdmin
+      .from('flexi_auth')
+      .delete()
+      .is('telephely_id', null)
+      .or(`user_id.eq.${user.id},flexi_username.eq.${flexiEmail}`);
+
+    // Insert new record scoped to this telephely
     const { error: insertError } = await supabaseAdmin
       .from('flexi_auth')
       .insert({
         user_id: user.id,
+        telephely_id: resolvedTelephelyId,
         name: userName,
         flexi_username: flexiEmail,
         flexi_pw: encryptedPassword,

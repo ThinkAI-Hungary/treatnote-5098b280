@@ -86,7 +86,7 @@ export function KezelesiSzabalyokTab({
   telephelyName
 }: KezelesiSzabalyokTabProps) {
   const { user } = useAuth();
-  const { isAdmin } = useCachedRoles();
+  const { isAdmin, isKlinikaAdmin } = useCachedRoles();
   const { addNotification } = useNotifications();
 
   // Invalidate cache if telephely changed
@@ -1046,7 +1046,7 @@ export function KezelesiSzabalyokTab({
                       <TooltipContent>Kijelöltek aktiválása/inaktiválása</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  {isAdmin && deletableSelectedIds.length > 0 && (
+                  {(isAdmin || isKlinikaAdmin) && deletableSelectedIds.length > 0 && (
                     <Button
                       variant="destructive"
                       size="sm"
@@ -1287,7 +1287,7 @@ export function KezelesiSzabalyokTab({
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              {isAdmin && !rule.alapszabaly && (
+                              {(isAdmin || isKlinikaAdmin) && !rule.alapszabaly && (
                                 <Button
                                   variant="ghost"
                                   size="icon"

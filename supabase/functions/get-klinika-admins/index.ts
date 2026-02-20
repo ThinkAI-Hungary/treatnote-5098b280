@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     // Create client with user token to get their profile
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
       global: { headers: { Authorization: authHeader } },
@@ -39,14 +39,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get user's telephely from their profile
+    // Get user's telephely from their profile (check both fields)
     const { data: userProfile, error: profileError } = await supabaseClient
       .from("profiles")
-      .select("telephely_id")
+      .select("telephely_id, current_telephely_id")
       .eq("user_id", user.id)
       .single();
 
-    if (profileError || !userProfile?.telephely_id) {
+    const activeTelephelyId = userProfile?.telephely_id || userProfile?.current_telephely_id;
+
+    if (profileError || !activeTelephelyId) {
       return new Response(JSON.stringify({ admins: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,25 +57,25 @@ Deno.serve(async (req) => {
     // Use service role client to fetch klinika admins (bypass RLS)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all klinika_admin user IDs
-    const { data: klinikaAdminRoles, error: rolesError } = await serviceClient
-      .from("user_roles")
+    // Get admin user_ids directly from telephely_memberships (more reliable than user_roles)
+    const { data: adminMemberships, error: memError } = await serviceClient
+      .from("telephely_memberships")
       .select("user_id")
+      .eq("telephely_id", activeTelephelyId)
       .eq("role", "klinika_admin");
 
-    if (rolesError || !klinikaAdminRoles?.length) {
+    if (memError || !adminMemberships?.length) {
       return new Response(JSON.stringify({ admins: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const adminUserIds = klinikaAdminRoles.map((r) => r.user_id);
+    const adminUserIds = adminMemberships.map((m) => m.user_id);
 
-    // Get profiles for those users that are in the same telephely
+    // Fetch profiles for those admins
     const { data: profiles, error: profilesError } = await serviceClient
       .from("profiles")
       .select("user_id, full_name, phone")
-      .eq("telephely_id", userProfile.telephely_id)
       .in("user_id", adminUserIds);
 
     if (profilesError) {

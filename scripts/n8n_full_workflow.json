@@ -1,0 +1,312 @@
+{
+    "name": "TreatNote Flexi-dent Sync (FULL)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "voxis-webhook",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                0,
+                500
+            ],
+            "id": "webhook-trigger",
+            "name": "Webhook"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Extract dental findings for Quadrant 1 (Teeth 11-18) from this transcription: {{ $json.transcription }}. Output strictly in JSON format matching the schema.",
+                "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"11\": { \"type\": \"object\" }, \"12\": { \"type\": \"object\" }, \"13\": { \"type\": \"object\" }, \"14\": { \"type\": \"object\" }, \"15\": { \"type\": \"object\" }, \"16\": { \"type\": \"object\" }, \"17\": { \"type\": \"object\" }, \"18\": { \"type\": \"object\" }\n  }\n}"
+            },
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                300,
+                200
+            ],
+            "id": "TEETH1_Q10",
+            "name": "TEETH1_Q10"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Extract dental findings for Quadrant 2 (Teeth 21-28) from this transcription: {{ $json.transcription }}. Output strictly in JSON format matching the schema.",
+                "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"21\": { \"type\": \"object\" }, \"22\": { \"type\": \"object\" }, \"23\": { \"type\": \"object\" }, \"24\": { \"type\": \"object\" }, \"25\": { \"type\": \"object\" }, \"26\": { \"type\": \"object\" }, \"27\": { \"type\": \"object\" }, \"28\": { \"type\": \"object\" }\n  }\n}"
+            },
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                300,
+                400
+            ],
+            "id": "TEETH1_Q11",
+            "name": "TEETH1_Q11"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Extract dental findings for Quadrant 3 (Teeth 31-38) from this transcription: {{ $json.transcription }}. Output strictly in JSON format matching the schema.",
+                "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"31\": { \"type\": \"object\" }, \"32\": { \"type\": \"object\" }, \"33\": { \"type\": \"object\" }, \"34\": { \"type\": \"object\" }, \"35\": { \"type\": \"object\" }, \"36\": { \"type\": \"object\" }, \"37\": { \"type\": \"object\" }, \"38\": { \"type\": \"object\" }\n  }\n}"
+            },
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                300,
+                600
+            ],
+            "id": "TEETH_Q3",
+            "name": "TEETH_Q3"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Extract dental findings for Quadrant 4 (Teeth 41-48) from this transcription: {{ $json.transcription }}. Output strictly in JSON format matching the schema.",
+                "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"41\": { \"type\": \"object\" }, \"42\": { \"type\": \"object\" }, \"43\": { \"type\": \"object\" }, \"44\": { \"type\": \"object\" }, \"45\": { \"type\": \"object\" }, \"46\": { \"type\": \"object\" }, \"47\": { \"type\": \"object\" }, \"48\": { \"type\": \"object\" }\n  }\n}"
+            },
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                300,
+                800
+            ],
+            "id": "TEETH1_Q12",
+            "name": "TEETH1_Q12"
+        },
+        {
+            "parameters": {
+                "jsCode": "const output = {};\nfor (let i = 11; i <= 18; i++) {\n  output[i] = $json[i] || { Megjegyzes: \"\" };\n}\nreturn [{ json: output }];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                200
+            ],
+            "id": "Code-Q1",
+            "name": "Code in JavaScript15"
+        },
+        {
+            "parameters": {
+                "jsCode": "const output = {};\nfor (let i = 21; i <= 28; i++) {\n  output[i] = $json[i] || { Megjegyzes: \"\" };\n}\nreturn [{ json: output }];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                400
+            ],
+            "id": "Code-Q2",
+            "name": "Code in JavaScript16"
+        },
+        {
+            "parameters": {
+                "jsCode": "const output = {};\nfor (let i = 31; i <= 38; i++) {\n  output[i] = $json[i] || { Megjegyzes: \"\" };\n}\nreturn [{ json: output }];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                600
+            ],
+            "id": "Code-Q3",
+            "name": "Code in JavaScript17"
+        },
+        {
+            "parameters": {
+                "jsCode": "const output = {};\nfor (let i = 41; i <= 48; i++) {\n  output[i] = $json[i] || { Megjegyzes: \"\" };\n}\nreturn [{ json: output }];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                800
+            ],
+            "id": "Code-Q4",
+            "name": "Code in JavaScript18"
+        },
+        {
+            "parameters": {
+                "mode": "combine",
+                "combineBy": "position"
+            },
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2,
+            "position": [
+                900,
+                500
+            ],
+            "id": "merge-quadrants",
+            "name": "Merge"
+        },
+        {
+            "parameters": {
+                "jsCode": "const allInputs = $input.all();\nconst comprehensiveData = {};\nlet globalComment = \"\";\n\n// 1. Metadata Safety Net (Grab data directly from Webhook node)\nlet metadata = {};\ntry {\n  // Method 1: $items() lookup (Standard n8n)\n  const webhookNode = $items(\"Webhook\")[0].json;\n  const b = webhookNode.body || webhookNode;\n  metadata = { \n    domain: b.flexi_domain || b.domain, \n    paciensId: b.PaciensID, \n    email: b.flexi_username || b.flexi_email, \n    password: b.flexi_pw || b.flexi_password \n  };\n} catch (e) {\n  try {\n    // Method 2: Global Object lookup\n    const b = $node[\"Webhook\"].json.body || $node[\"Webhook\"].json;\n    metadata = { \n      domain: b.flexi_domain || b.domain, \n      paciensId: b.PaciensID, \n      email: b.flexi_username || b.flexi_email, \n      password: b.flexi_pw || b.flexi_password \n    };\n  } catch (e2) {}\n}\n\n// 2. Merge all quadrants and comments\nallInputs.forEach((item) => {\n  const data = item.json || {};\n  if (data.section === \"MEGJEGYZES_FO\") {\n    if (data.content) globalComment = globalComment ? `${globalComment}\\n${data.content}` : data.content;\n  }\n  for (const [key, value] of Object.entries(data)) {\n    if (/^\\d{2}$/.test(key)) comprehensiveData[key] = value;\n    if (['MEGJEGYZES_FO', 'megjegyzes_fo'].includes(key)) {\n       if (typeof value === 'string' && value.trim()) globalComment = globalComment ? `${globalComment}\\n${value}` : value;\n    }\n  }\n});\n\n// Return perfect object for Python\nreturn [{ \n  json: {\n    ...comprehensiveData,\n    MEGJEGYZES_FO: globalComment,\n    metadata: metadata\n  } \n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1100,
+                500
+            ],
+            "id": "kód2",
+            "name": "kód2"
+        },
+        {
+            "parameters": {
+                "command": "=python3 /data/playground/TreatNote/SCRIPTS/status.py \"{{ $('Webhook').item.json.body?.flexi_domain || $('Webhook').item.json.flexi_domain }}\" \"{{ $('Webhook').item.json.body?.PaciensID || $('Webhook').item.json.PaciensID }}\" '{{ JSON.stringify($json) }}' \"{{ $('Webhook').item.json.body?.flexi_username || $('Webhook').item.json.flexi_username }}\" \"{{ $('Webhook').item.json.body?.flexi_pw || $('Webhook').item.json.flexi_pw }}\""
+            },
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                500
+            ],
+            "id": "execute-command",
+            "name": "Execute Command"
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "TEETH1_Q10",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "TEETH1_Q11",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "TEETH_Q3",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "TEETH1_Q12",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "TEETH1_Q10": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript15",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "TEETH1_Q11": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript16",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "TEETH_Q3": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript17",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "TEETH1_Q12": {
+            "main": [
+                [
+                    {
+                        "node": "Code in JavaScript18",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript15": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript16": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript17": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code in JavaScript18": {
+            "main": [
+                [
+                    {
+                        "node": "Merge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Merge": {
+            "main": [
+                [
+                    {
+                        "node": "kód2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "kód2": {
+            "main": [
+                [
+                    {
+                        "node": "Execute Command",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

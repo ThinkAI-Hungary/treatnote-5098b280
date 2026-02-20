@@ -23,6 +23,7 @@ export default function Register() {
     const navigate = useNavigate();
     const token = searchParams.get('token');
 
+    const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -95,6 +96,11 @@ export default function Register() {
             return;
         }
 
+        if (!fullName.trim()) {
+            toast.error('Kérjük adja meg a teljes nevét');
+            return;
+        }
+
         if (password !== confirmPassword) {
             toast.error('A jelszavak nem egyeznek');
             return;
@@ -111,7 +117,8 @@ export default function Register() {
                 body: {
                     operation: 'register-invited-user',
                     token,
-                    password
+                    password,
+                    full_name: fullName.trim(),
                 },
             });
 
@@ -215,6 +222,17 @@ export default function Register() {
                                 value={invitation?.invited_email || ''}
                                 readOnly
                                 className="bg-muted text-muted-foreground cursor-not-allowed"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fullName">Teljes név</Label>
+                            <Input
+                                id="fullName"
+                                type="text"
+                                placeholder="Teljes neve"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                required
                             />
                         </div>
                         <div className="space-y-2">

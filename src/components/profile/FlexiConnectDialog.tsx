@@ -18,9 +18,10 @@ interface FlexiConnectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onError?: () => void;
+  telephelyId?: string | null;
 }
 
-const FlexiConnectDialog = ({ open, onOpenChange, onError }: FlexiConnectDialogProps) => {
+const FlexiConnectDialog = ({ open, onOpenChange, onError, telephelyId }: FlexiConnectDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [flexiEmail, setFlexiEmail] = useState('');
   const [flexiPassword, setFlexiPassword] = useState('');
@@ -59,7 +60,7 @@ const FlexiConnectDialog = ({ open, onOpenChange, onError }: FlexiConnectDialogP
 
     try {
       const { data, error } = await supabase.functions.invoke('flexi-connect', {
-        body: { flexiEmail, flexiPassword },
+        body: { flexiEmail, flexiPassword, telephely_id: telephelyId ?? null },
       });
 
       clearTimeout(timeoutId);

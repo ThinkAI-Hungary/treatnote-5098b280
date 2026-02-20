@@ -28,7 +28,7 @@ interface UseVoiceJobHistoryReturn {
   pollJob: (jobId: string) => Promise<VoiceJob | null>;
 }
 
-const MAX_HISTORY_ITEMS = 10;
+const MAX_HISTORY_ITEMS = 50;
 
 export function useVoiceJobHistory(): UseVoiceJobHistoryReturn {
   const { user } = useAuth();

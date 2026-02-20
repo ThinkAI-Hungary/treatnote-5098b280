@@ -87,7 +87,7 @@ serve(async (req) => {
     // Get all companies
     const { data: companies, error: companiesError } = await supabaseAdmin
       .from('companies')
-      .select('id, name, slug, telephely')
+      .select('id, name, slug, telephely, is_active')
       .order('name');
 
     if (companiesError) {

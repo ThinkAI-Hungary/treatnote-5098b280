@@ -60,13 +60,52 @@ const validRoles = [
   { value: 'klinika_admin', label: 'Klinika Admin' },
 ];
 
+// Stable top-level component — NOT defined inside KlinikaAdmin, so it never re-mounts on re-renders.
+function ManualInvitationDialog({ url, onClose }: { url: string | null; onClose: () => void }) {
+  const handleCopy = () => {
+    if (url) {
+      navigator.clipboard.writeText(url);
+      toast.success('Link másolva');
+    }
+  };
+  return (
+    <Dialog open={!!url} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Meghívó elkészült</DialogTitle>
+          <DialogDescription>
+            A rendszer nem küld automatikus emailt.
+            Kérjük másolja ki az alábbi linket és küldje el a felhasználónak:
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center space-x-2">
+          <div className="grid flex-1 gap-2">
+            <Label htmlFor="inv-link" className="sr-only">Link</Label>
+            <Input id="inv-link" value={url || ''} readOnly />
+          </div>
+          <Button size="sm" type="button" className="px-3" onClick={handleCopy}>
+            <span className="sr-only">Másolás</span>
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+        <DialogFooter className="sm:justify-start">
+          <Button type="button" variant="secondary" onClick={onClose}>Bezárás</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function KlinikaAdmin() {
   const { user: authUser } = useAuth();
   const currentUserId = authUser?.id;
   const navigate = useNavigate();
-  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection();
-  const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
   const { profile } = useProfile();
+  // Use profile telephely to scope the Flexi connection check.
+  // The more authoritative activeTelephelyId (from useKlinikaData) is declared below.
+  const profileTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
+  const { isConnected: isFlexiConnected, isLoading: isFlexiLoading } = useFlexiConnection(profileTelephelyId);
+  const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
 
   // Single unified data hook - no cascading loading states
   const {
@@ -209,6 +248,8 @@ export default function KlinikaAdmin() {
   }, [startTour, tourSteps]);
 
   const [lastInvitationUrl, setLastInvitationUrl] = useState<string | null>(null);
+  // Maps invitation email → registration URL so we can show the link in the pending table
+  const [invitationUrlMap, setInvitationUrlMap] = useState<Record<string, string>>({});
 
   // Create user state
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -234,48 +275,8 @@ export default function KlinikaAdmin() {
   const [editUserRole, setEditUserRole] = useState('user');
   const [updatingUser, setUpdatingUser] = useState(false);
 
-  // Dialog for showing the manual invitation link
-  const ManualInvitationDialog = () => (
-    <Dialog open={!!lastInvitationUrl} onOpenChange={(open) => !open && setLastInvitationUrl(null)}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Meghívó elkészült</DialogTitle>
-          <DialogDescription>
-            A rendszer nem küld automatikus emailt.
-            Kérjük másolja ki az alábbi linket és küldje el a felhasználónak:
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex items-center space-x-2">
-          <div className="grid flex-1 gap-2">
-            <Label htmlFor="link" className="sr-only">
-              Link
-            </Label>
-            <Input
-              id="link"
-              defaultValue={lastInvitationUrl || ''}
-              readOnly
-            />
-          </div>
-          <Button size="sm" type="button" className="px-3" onClick={() => {
-            navigator.clipboard.writeText(lastInvitationUrl || '');
-            toast.success('Link másolva');
-          }}>
-            <span className="sr-only">Másolás</span>
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
-        <DialogFooter className="sm:justify-start">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setLastInvitationUrl(null)}
-          >
-            Bezárás
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  // Dialog is now a stable component defined OUTSIDE this function (below) — just call it with props.
+
 
 
 
@@ -367,6 +368,9 @@ export default function KlinikaAdmin() {
         if (data?.error) throw new Error(data.error);
 
         setLastInvitationUrl(data.invitation_url);
+        if (data.invitation_url) {
+          setInvitationUrlMap(prev => ({ ...prev, [newUserEmail.trim().toLowerCase()]: data.invitation_url }));
+        }
         toast.success(`Meghívó elküldve: ${newUserEmail}`);
         refreshInvitations(); // Refresh invitation list
       }
@@ -402,7 +406,7 @@ export default function KlinikaAdmin() {
     } finally {
       setCreatingUser(false);
     }
-  }, [newUserEmail, newUserPassword, newUserConfirmPassword, newUserFullName, refreshUsers]);
+  }, [newUserEmail, newUserPassword, newUserConfirmPassword, newUserFullName, newUserRole, isLocalUser, companyId, telephelyId, companyName, refreshUsers, refreshInvitations]);
 
   // Keep handleInviteUser for local users (created by admin)
   const handleInviteUser = useCallback(async (userId: string, isLocalUser: boolean) => {
@@ -640,43 +644,6 @@ export default function KlinikaAdmin() {
           {/* Tab content with min-height to prevent layout jumps */}
           <div className="min-h-[400px]">
             <TabsContent value="users" className="space-y-6 mt-0">
-              {lastInvitationUrl && (
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6 flex items-start gap-4 animate-fade-in">
-                  <div className="bg-primary/20 p-2 rounded-full">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <h4 className="font-semibold text-primary">Meghívó sikeresen létrehozva!</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Ha a felhasználó nem kapja meg az emailt, küldje el neki az alábbi linket:
-                    </p>
-                    <div className="flex items-center gap-2 mt-2 bg-background/50 p-2 rounded border border-primary/10">
-                      <code className="text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono selection:bg-primary/20">
-                        {lastInvitationUrl}
-                      </code>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 hover:bg-primary/10"
-                        onClick={() => {
-                          navigator.clipboard.writeText(lastInvitationUrl);
-                          toast.success('Link másolva');
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setLastInvitationUrl(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
 
               <AnimatedCard data-tour="users-table">
                 <CardHeader>
@@ -694,54 +661,58 @@ export default function KlinikaAdmin() {
                     </div>
 
                     {companyId && telephelyId && (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={refreshUsers}
-                          title="Frissítés"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
-                          <DialogTrigger asChild>
-                            <GalaxyButton data-tour="new-user-button">
+                      <>
+                        {/* Single invite button — role is chosen via the Jogkör dropdown inside the dialog */}
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="icon" onClick={refreshUsers} title="Frissítés">
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <GalaxyButton
+                            data-tour="new-user-button"
+                            onClick={() => { setNewUserRole('user'); setIsLocalUser(false); setNewUserEmail(''); setNewUserFullName(''); setCreateUserOpen(true); }}
+                          >
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Új felhasználó
+                          </GalaxyButton>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setIsLocalUser(true); setNewUserEmail(''); setNewUserPassword(''); setNewUserConfirmPassword(''); setNewUserFullName(''); setCreateUserOpen(true); }}
+                            >
                               <Plus className="mr-2 h-4 w-4" />
-                              Új felhasználó
-                            </GalaxyButton>
-                          </DialogTrigger>
+                              Helyi felhasználó
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Unified invite/create dialog — role is pre-set by the button that opened it */}
+                        <Dialog
+                          open={createUserOpen}
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              setCreateUserOpen(false);
+                              setNewUserEmail('');
+                              setNewUserPassword('');
+                              setNewUserConfirmPassword('');
+                              setNewUserFullName('');
+                              setIsLocalUser(false);
+                            }
+                          }}
+                        >
                           <DialogContent className="border-primary/20 dark:border-sparkle-blue/20 bg-card/95 backdrop-blur-md">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-2">
                                 <UserPlus className="h-5 w-5 text-primary" />
-                                Új felhasználó hozzáadása
+                                {isLocalUser ? 'Helyi felhasználó létrehozása' : 'Új felhasználó hozzáadása'}
                               </DialogTitle>
                               <DialogDescription>
-                                Hozzon létre új felhasználót vagy küldjön meghívót.
+                                {isLocalUser
+                                  ? 'Hozzon létre helyi fiókot jelszóval (email nélkül).'
+                                  : 'Adja meg az email címet és válasszon jogkört a meghívóhoz.'}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
-                              {isAdmin && (
-                                <div className="flex items-center space-x-2 pb-2 border-b border-primary/10">
-                                  <Switch
-                                    id="local-user-mode"
-                                    checked={isLocalUser}
-                                    onCheckedChange={setIsLocalUser}
-                                  />
-                                  <Label htmlFor="local-user-mode">Helyi felhasználó létrehozása (email nélkül)</Label>
-                                </div>
-                              )}
-
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Teljes név</Label>
-                                <Input
-                                  placeholder="Teljes név"
-                                  value={newUserFullName}
-                                  onChange={(e) => setNewUserFullName(e.target.value)}
-                                  className="border-primary/20 focus:border-primary/40"
-                                />
-                              </div>
-
                               {!isLocalUser ? (
                                 <div className="space-y-2">
                                   <Label className="text-sm font-medium">Email cím</Label>
@@ -753,7 +724,7 @@ export default function KlinikaAdmin() {
                                     className="border-primary/20 focus:border-primary/40"
                                   />
                                   <p className="text-xs text-muted-foreground">
-                                    A felhasználó kapni fog egy email meghívót a jelszó beállításához.
+                                    Generálunk egy meghívó linket, amelyet elküldhet a felhasználónak.
                                   </p>
                                 </div>
                               ) : (
@@ -770,20 +741,31 @@ export default function KlinikaAdmin() {
                                   </p>
                                 </div>
                               )}
-
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">Jogosultság</Label>
-                                <Select value={newUserRole} onValueChange={setNewUserRole}>
-                                  <SelectTrigger className="border-primary/20">
-                                    <SelectValue placeholder="Válassz jogosultságot" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="user">Felhasználó</SelectItem>
-                                    <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
+                              {!isLocalUser && (
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium">Jogkör</Label>
+                                  <Select value={newUserRole} onValueChange={setNewUserRole}>
+                                    <SelectTrigger className="border-primary/20">
+                                      <SelectValue placeholder="Válassz jogkört" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="user">Felhasználó</SelectItem>
+                                      <SelectItem value="klinika_admin">Klinika Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                              {isLocalUser && (
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium">Teljes név</Label>
+                                  <Input
+                                    placeholder="Teljes név"
+                                    value={newUserFullName}
+                                    onChange={(e) => setNewUserFullName(e.target.value)}
+                                    className="border-primary/20 focus:border-primary/40"
+                                  />
+                                </div>
+                              )}
                               {isLocalUser && (
                                 <div className="grid grid-cols-2 gap-4">
                                   <div className="space-y-2">
@@ -848,19 +830,19 @@ export default function KlinikaAdmin() {
                                 {creatingUser ? (
                                   <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {isLocalUser ? 'Létrehozás...' : 'Meghívás...'}
+                                    {isLocalUser ? 'Létrehozás...' : 'Generálás...'}
                                   </>
                                 ) : (
                                   <>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    {isLocalUser ? 'Létrehozás' : 'Meghívás küldése'}
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {isLocalUser ? 'Létrehozás' : 'Meghívó generálása'}
                                   </>
                                 )}
                               </GalaxyButton>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                      </div>
+                      </>
                     )}
                   </div>
                 </CardHeader>
@@ -970,12 +952,16 @@ export default function KlinikaAdmin() {
                               <TableHead>Email</TableHead>
                               <TableHead>Jogosultság</TableHead>
                               <TableHead>Meghívva</TableHead>
+                              <TableHead>Meghívó link</TableHead>
                               <TableHead className="text-right">Műveletek</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {sentInvitations.filter(i => i.status === 'pending').map((invitation) => (
-                              <TableRow key={invitation.id}>
+                              <TableRow
+                                key={invitation.id}
+                                className="group"
+                              >
                                 <TableCell className="font-medium">{invitation.email}</TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className={cn(
@@ -986,6 +972,35 @@ export default function KlinikaAdmin() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell>{new Date(invitation.created_at).toLocaleDateString('hu-HU')}</TableCell>
+                                <TableCell>
+                                  {/* Meghívó link oszlop — builds URL from token (server) or client-side map */}
+                                  {(() => {
+                                    const url = invitation.token
+                                      ? `${window.location.origin}/register?token=${invitation.token}`
+                                      : invitationUrlMap[invitation.email.toLowerCase()];
+                                    return url ? (
+                                      <div className="flex items-center gap-1 max-w-[220px]">
+                                        <code className="text-xs flex-1 truncate text-muted-foreground font-mono select-all" title={url}>
+                                          {url}
+                                        </code>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 shrink-0 hover:bg-primary/10 hover:text-primary"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(url);
+                                            toast.success('Link másolva');
+                                          }}
+                                          title="Link másolása"
+                                        >
+                                          <Copy className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground/40">—</span>
+                                    );
+                                  })()}
+                                </TableCell>
                                 <TableCell className="text-right">
                                   <Button
                                     variant="ghost"
@@ -1073,15 +1088,17 @@ export default function KlinikaAdmin() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Teljes név</Label>
-              <Input
-                placeholder="Teljes név"
-                value={editUserFullName}
-                onChange={(e) => setEditUserFullName(e.target.value)}
-                className="border-primary/20 focus:border-primary/40"
-              />
-            </div>
+            {(isAdmin || editingUser?.id === currentUserId) && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Teljes név</Label>
+                <Input
+                  placeholder="Teljes név"
+                  value={editUserFullName}
+                  onChange={(e) => setEditUserFullName(e.target.value)}
+                  className="border-primary/20 focus:border-primary/40"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Szerepkör</Label>
               {editingUser?.id === currentUserId ? (
@@ -1131,7 +1148,7 @@ export default function KlinikaAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ManualInvitationDialog />
+      <ManualInvitationDialog url={lastInvitationUrl} onClose={() => setLastInvitationUrl(null)} />
     </div>
   );
 }
