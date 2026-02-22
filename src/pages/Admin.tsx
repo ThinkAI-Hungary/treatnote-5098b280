@@ -16,6 +16,7 @@ import {
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { CompanyManagement } from '@/components/admin/CompanyManagement';
+import { ErrorLogsTab } from '@/components/admin/ErrorLogsTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -566,6 +567,13 @@ export default function Admin() {
               <Building2 className="h-4 w-4" />
               Cégek és telephelyek
             </TabsTrigger>
+            <TabsTrigger
+              value="errors"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Hibakezelés
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab content with min-height to prevent layout jumps */}
@@ -743,6 +751,10 @@ export default function Admin() {
                 telephelyek={telephelyek}
                 onDataChange={refreshCompanyData}
               />
+            </TabsContent>
+
+            <TabsContent value="errors" className="space-y-6 mt-0">
+              <ErrorLogsTab />
             </TabsContent>
           </div>
         </Tabs>

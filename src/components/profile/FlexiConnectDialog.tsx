@@ -49,14 +49,14 @@ const FlexiConnectDialog = ({ open, onOpenChange, onError, telephelyId }: FlexiC
     setLoading(true);
     abortControllerRef.current = new AbortController();
 
-    // 1 minute timeout
+    // 5 minute timeout (CAPTCHA solving can take 2-3 minutes)
     const timeoutId = setTimeout(() => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         setLoading(false);
         toast.error('A Flexi-Dent szerver nem válaszolt időben. Kérjük próbálja újra később.');
       }
-    }, 60000);
+    }, 300000);
 
     try {
       const { data, error } = await supabase.functions.invoke('flexi-connect', {
