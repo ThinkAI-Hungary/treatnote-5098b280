@@ -187,53 +187,94 @@ serve(async (req) => {
     const encryptedPassword = await encryptPassword(flexiPassword, encryptionKey);
     console.log('Password encrypted successfully');
 
-    // Check if this flexi_username is already linked to another user FOR THIS TELEPHELY
-    const { data: existingLink } = await supabaseAdmin
+    // ── Global uniqueness check ──────────────────────────────────────────────
+    // A flexi_username may only be linked to ONE TreatNote user (across ALL
+    // their telephelyek). Another user cannot steal/share the same flexi account.
+    const { data: globalLinks } = await supabaseAdmin
       .from('flexi_auth')
-      .select('user_id')
+      .select('user_id, telephely_id')
       .eq('flexi_username', flexiEmail)
-      .eq('telephely_id', resolvedTelephelyId)
-      .maybeSingle();
+      .neq('user_id', user.id);
 
-    if (existingLink && existingLink.user_id !== user.id) {
-      console.log('Flexi account already linked to another user for this telephely');
+    if (globalLinks && globalLinks.length > 0) {
+      console.log('Flexi account already linked to another user (globally)');
+
+      // Check whether any of those rows belong to the SAME telephely so we can
+      // show the conflicting user's name when relevant.
+      const sameTelephelyRow = globalLinks.find(
+        (r: { telephely_id: string | null }) => r.telephely_id === resolvedTelephelyId
+      );
+
+      let conflictUserName: string | null = null;
+      if (sameTelephelyRow) {
+        const { data: conflictProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', sameTelephelyRow.user_id)
+          .maybeSingle();
+        conflictUserName = conflictProfile?.full_name || conflictProfile?.email || null;
+      }
+
+      const message = conflictUserName
+        ? `Ez a Flexi-Dent fiók már használatban van ezen a telephelyen (${conflictUserName}).`
+        : 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van csatolva. Egy Flexi fiókot csak egy TreatNote felhasználó használhat.';
+
       return new Response(
-        JSON.stringify({
-          error: 'Flexi account already linked',
-          success: false,
-          message: 'Ez a Flexi-Dent fiók már egy másik felhasználóhoz van hozzárendelve ezen a telephelyen.'
-        }),
+        JSON.stringify({ error: 'Flexi account already linked', success: false, message }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Delete this user's record for THIS TELEPHELY
+    // Delete this user's record for THIS TELEPHELY (allows re-connection)
     await supabaseAdmin
       .from('flexi_auth')
       .delete()
       .eq('user_id', user.id)
       .eq('telephely_id', resolvedTelephelyId);
 
-    // Also delete any legacy rows (telephely_id = NULL) for this user or with the same
-    // flexi_username — these were created before per-telephely isolation was introduced.
-    // They would trigger the global `flexi_auth_flexi_username_unique` constraint otherwise.
+    // Delete any null-telephely rows for this user or the same flexi_username.
+    // These are legacy rows created before per-telephely scoping was introduced
+    // and would violate the old global UNIQUE(flexi_username) constraint.
     await supabaseAdmin
       .from('flexi_auth')
       .delete()
       .is('telephely_id', null)
       .or(`user_id.eq.${user.id},flexi_username.eq.${flexiEmail}`);
 
-    // Insert new record scoped to this telephely
-    const { error: insertError } = await supabaseAdmin
+    // UPSERT new record scoped to this telephely.
+    // Using upsert with onConflict on (user_id, telephely_id) so that:
+    // - reconnecting the same telephely works (update instead of error)
+    // - inserting a new telephely row works (insert)
+    const rowPayload = {
+      user_id: user.id,
+      telephely_id: resolvedTelephelyId,
+      name: userName,
+      flexi_username: flexiEmail,
+      flexi_pw: encryptedPassword,
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error: insertError } = await supabaseAdmin
       .from('flexi_auth')
-      .insert({
-        user_id: user.id,
-        telephely_id: resolvedTelephelyId,
-        name: userName,
-        flexi_username: flexiEmail,
-        flexi_pw: encryptedPassword,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(rowPayload, { onConflict: 'user_id,telephely_id' });
+
+    // If we get a unique-constraint error on flexi_username (old schema without
+    // fix-flexi-constraints having been run), fall back: delete ALL same-user rows
+    // with the same flexi_username (across ANY telephely) and retry the insert.
+    // This handles the transition period where the DB still has the global constraint.
+    if (insertError && insertError.code === '23505') {
+      console.warn('Unique constraint hit — likely old schema. Clearing and retrying.', insertError.message);
+      await supabaseAdmin
+        .from('flexi_auth')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('flexi_username', flexiEmail);
+
+      const retry = await supabaseAdmin
+        .from('flexi_auth')
+        .insert(rowPayload);
+      insertError = retry.error;
+    }
 
     if (insertError) {
       console.error('Error storing flexi auth:', insertError);

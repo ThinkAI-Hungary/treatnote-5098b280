@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,8 +42,7 @@ export function useFlexiConnection(telephelyId: string | null = null) {
 
   const [isConnected, setIsConnected] = useState<boolean | null>(cached?.isConnected ?? null);
   const [flexiUsername, setFlexiUsername] = useState<string | null>(cached?.flexiUsername ?? null);
-  // Start loading whenever a check is needed — regardless of telephelyId being null,
-  // because we also search for null-telephely connections (legacy/pre-assignment rows).
+  // Start loading only when there is no cached data yet.
   const [isLoading, setIsLoading] = useState(cached === undefined && !!user);
 
   const updateCache = useCallback((connected: boolean, username: string | null) => {
@@ -54,6 +53,11 @@ export function useFlexiConnection(telephelyId: string | null = null) {
     setFlexiUsername(username);
   }, [cacheKey]);
 
+  // Generation counter — incremented each time a fetch starts.
+  // Allows in-flight stale fetches (e.g. for telephely=null while profile loads)
+  // to be silently discarded when a newer fetch supersedes them.
+  const fetchGenRef = useRef(0);
+
   const checkFlexiConnection = useCallback(async () => {
     if (!user) {
       setIsConnected(false);
@@ -62,14 +66,18 @@ export function useFlexiConnection(telephelyId: string | null = null) {
       return;
     }
 
+    // Grab this fetch's generation BEFORE the first await so we can detect staleness.
+    const myGen = ++fetchGenRef.current;
+
+    // Signal loading immediately so callers don't see a stale resolved state.
+    setIsLoading(true);
+
     /**
-     * Three-strategy fallback chain — mirrors what Profile.tsx does:
-     *
-     * 1. Exact telephely_id match   — normal case
-     * 2. telephely_id IS NULL       — legacy connections saved before telephely was assigned
-     * 3. 800 ms timing retry        — handles first-login RLS propagation lag on Supabase
-     *
-     * Only confirmed results are cached. Errors are NOT cached so the next mount retries.
+     * Three-strategy fallback chain:
+     * 1. Exact telephely_id match  — normal case
+     * 2. telephely_id IS NULL      — legacy rows saved before telephely scoping
+     * 3. 800 ms RLS timing retry   — first-login auth propagation lag
+     *    (skipped when telephelyId is null — no point waiting for an empty result)
      */
     const queryWithTelephelyId = () =>
       telephelyId
@@ -93,23 +101,27 @@ export function useFlexiConnection(telephelyId: string | null = null) {
       // Strategy 1: exact telephely match
       let { data, error } = await queryWithTelephelyId();
 
-      // Strategy 2: null-telephely fallback (legacy rows saved without a telephely scope)
+      // Strategy 2: null-telephely fallback
       if (!error && !data) {
         ({ data, error } = await queryNullTelephely());
       }
 
-      // Strategy 3: RLS timing retry after 800 ms (first-login auth propagation lag)
-      if (!error && !data) {
+      // Strategy 3: RLS timing retry — only when we have a real telephely to query.
+      if (!error && !data && telephelyId) {
         await new Promise<void>(r => setTimeout(r, 800));
+        // Bail out early if a newer fetch has started (stale result).
+        if (fetchGenRef.current !== myGen) return;
         ({ data, error } = await queryWithTelephelyId());
         if (!error && !data) {
           ({ data, error } = await queryNullTelephely());
         }
       }
 
+      // Discard result if a newer fetch supersedes this one.
+      if (fetchGenRef.current !== myGen) return;
+
       if (error) {
         console.error('Error checking flexi connection:', error);
-        // Do NOT cache errors — next mount will retry.
         setIsConnected(false);
         setFlexiUsername(null);
       } else {
@@ -119,14 +131,17 @@ export function useFlexiConnection(telephelyId: string | null = null) {
         cacheUserId = user.id;
       }
     } catch (err) {
+      if (fetchGenRef.current !== myGen) return;
       console.error('Error checking flexi connection:', err);
       setIsConnected(false);
       setFlexiUsername(null);
     } finally {
-      setIsLoading(false);
+      // Only update loading if this is still the current fetch.
+      if (fetchGenRef.current === myGen) {
+        setIsLoading(false);
+      }
     }
   }, [user, telephelyId, updateCache]);
-
   useEffect(() => {
     if (!user) {
       setIsConnected(false);
@@ -135,9 +150,15 @@ export function useFlexiConnection(telephelyId: string | null = null) {
       return;
     }
 
-    // Only fetch if not already cached
+    // Fetch if not yet cached; if already cached by another component instance,
+    // still sync this instance's state from the cache so a stale null/false
+    // initial state (from a previous null-telephely render) doesn't persist.
     if (cached === undefined) {
       checkFlexiConnection();
+    } else {
+      setIsConnected(cached.isConnected);
+      setFlexiUsername(cached.flexiUsername);
+      setIsLoading(false);
     }
 
     // Listen for custom events (immediate updates from same tab)
@@ -181,7 +202,12 @@ export function useFlexiConnection(telephelyId: string | null = null) {
       window.removeEventListener(FLEXI_CONNECTION_CHANGED, handleFlexiChange);
       supabase.removeChannel(channel);
     };
-  }, [user, telephelyId, checkFlexiConnection, cached, updateCache]);
+    // NOTE: `cached` and `updateCache` are intentionally NOT in deps.
+    // `cached` is from the module-level Map — putting it in deps caused an infinite
+    // loop (updateCache mutates the Map → cached changes → effect re-runs → loop).
+    // `updateCache` changes only when cacheKey changes, which is captured by telephelyId+user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, telephelyId, checkFlexiConnection]);
 
   return { isConnected, flexiUsername, isLoading, refetch: checkFlexiConnection };
 }
