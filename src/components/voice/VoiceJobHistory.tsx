@@ -146,7 +146,7 @@ function PreviewContent({ job }: { job: VoiceJob }) {
 
       {/* Eredeti szöveg */}
       {originalText && (
-        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5">
+        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5 dark:bg-transparent">
           <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
             <FileText className="h-3.5 w-3.5 text-galaxy-purple flex-shrink-0" />
             <span className="text-xs font-semibold text-galaxy-purple">Eredeti szöveg</span>
@@ -159,7 +159,7 @@ function PreviewContent({ job }: { job: VoiceJob }) {
 
       {/* Kitöltés */}
       {kitoltes && (
-        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5">
+        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5 dark:bg-transparent">
           <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
             <Book className="h-3.5 w-3.5 text-galaxy-purple flex-shrink-0" />
             <span className="text-xs font-semibold text-galaxy-purple">Kitöltés</span>
@@ -233,7 +233,13 @@ function HistoryPopup({
           if (!v) { cancelHoverClear(); setHoveredJob(null); }
         }}
       >
-        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 gap-0 border-primary/20 bg-[hsl(240_10%_82%)] text-black dark:bg-card/98 dark:text-foreground backdrop-blur-md overflow-hidden">
+        <DialogContent
+          className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 gap-0 border-primary/20 backdrop-blur-md overflow-hidden"
+          style={{
+            backgroundColor: document.documentElement.classList.contains('dark') ? 'hsl(260 35% 10%)' : 'hsl(240 10% 88%)',
+            color: document.documentElement.classList.contains('dark') ? 'hsl(0 0% 95%)' : 'hsl(262 50% 13%)',
+          }}
+        >
           <DialogHeader className="px-6 py-4 border-b border-border/40 flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5 text-primary" />
