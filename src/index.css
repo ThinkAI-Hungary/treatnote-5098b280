@@ -1305,6 +1305,17 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   animation: subtabPulse 8s ease-in-out infinite;
 }
 
+/* Active tab indicator — light mode: lavender, dark mode: default bg */
+[data-state="active"][role="tab"] {
+  background-color: hsl(265 40% 78%) !important;
+  color: hsl(265 50% 20%) !important;
+}
+
+.dark [data-state="active"][role="tab"] {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
 /* Snake border animation for dropdowns */
 @keyframes snakeBorderIn {
   0% {

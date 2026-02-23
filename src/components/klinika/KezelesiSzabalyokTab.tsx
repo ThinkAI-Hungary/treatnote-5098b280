@@ -981,14 +981,22 @@ export function KezelesiSzabalyokTab({
       <CardContent className="space-y-4">
         {/* Sub-tabs for List / Upload */}
         <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as any)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="list" className="data-[state=active]:subtab-pulse data-[state=active]:!bg-[hsl(265_30%_85%)] dark:data-[state=active]:!bg-background group">
+          <TabsList className="grid w-full grid-cols-2 gap-0">
+            <TabsTrigger
+              value="list"
+              className="data-[state=active]:subtab-pulse group rounded-r-none border-r border-border"
+              style={activeSubTab === 'list' ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
+            >
               <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
                 <FileText className="h-4 w-4" />
                 Szabályok ({rules.length})
               </span>
             </TabsTrigger>
-            <TabsTrigger value="upload" className="data-[state=active]:subtab-pulse data-[state=active]:!bg-[hsl(265_30%_85%)] dark:data-[state=active]:!bg-background group">
+            <TabsTrigger
+              value="upload"
+              className="data-[state=active]:subtab-pulse group rounded-l-none"
+              style={activeSubTab === 'upload' ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
+            >
               <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
                 <FileUp className="h-4 w-4" />
                 PDF Feltöltés

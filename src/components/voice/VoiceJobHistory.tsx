@@ -146,10 +146,10 @@ function PreviewContent({ job }: { job: VoiceJob }) {
 
       {/* Eredeti szöveg */}
       {originalText && (
-        <div className="rounded-lg border border-sparkle-blue/20 bg-sparkle-blue/5">
+        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5">
           <div className="flex items-center gap-1.5 px-3 pt-3 pb-2">
-            <FileText className="h-3.5 w-3.5 text-sparkle-blue flex-shrink-0" />
-            <span className="text-xs font-semibold text-sparkle-blue">Eredeti szöveg</span>
+            <FileText className="h-3.5 w-3.5 text-galaxy-purple flex-shrink-0" />
+            <span className="text-xs font-semibold text-galaxy-purple">Eredeti szöveg</span>
           </div>
           <pre className="text-xs text-foreground/80 font-mono leading-relaxed whitespace-pre-wrap break-words px-3 pb-3">
             {normalizeText(originalText)}

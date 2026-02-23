@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, X, Loader2, AlertCircle, Book, FileText, Search } from 'lucide-react';
+import { X, Loader2, AlertCircle, Book, FileText, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMemo } from 'react';
@@ -194,7 +194,7 @@ function MatchItem({ item }: { item: Talalat }) {
       {sd && (
         <div className="space-y-2 pl-3 border-l-2 border-accent/30">
           <h6 className="text-xs font-semibold uppercase tracking-wide text-accent">Keresés részletei</h6>
-          
+
           {/* Primary */}
           {sd.primary && (
             <div className="space-y-1">
@@ -252,7 +252,7 @@ function linkifyText(text: string) {
   const parts = text.split(splitRegex);
   return parts.map((part, i) =>
     testRegex.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-sparkle-blue underline hover:text-sparkle-blue/80 break-all">
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-sparkle-blue underline hover:text-blue-500 dark:hover:text-sparkle-blue/80 break-all">
         {part}
       </a>
     ) : (
@@ -312,11 +312,11 @@ export function VerdiktDisplay({
   const isThreePanel = useMemo(() => hasThreePanelData(payload), [payload]);
 
   return (
-    <Card className="md:col-span-2 xl:col-span-3 border-sparkle-blue/30 bg-gradient-to-br from-card via-card to-galaxy-purple/5">
+    <Card className="md:col-span-2 xl:col-span-3 border-primary/20 bg-gradient-to-br from-card/70 to-card backdrop-blur-sm dark:from-card/30 dark:to-card/60 dark:border-sparkle-blue/20">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-sparkle-blue/20 to-galaxy-purple/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-sparkle-blue" />
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+            <FileText className="h-5 w-5 text-primary" />
           </div>
           <div>
             <CardTitle className="text-lg">
@@ -363,15 +363,20 @@ export function VerdiktDisplay({
               <TabsTrigger value="semantic">Szabály találatok</TabsTrigger>
               <TabsTrigger value="textual">Kitöltés</TabsTrigger>
             </TabsList>
-            <TabsContent value="original">
-              <OriginalTextPanel text={payload?.transcriber?.text} />
-            </TabsContent>
-            <TabsContent value="semantic">
-              <SemanticMatcherPanel report={payload?.execution_report_human} />
-            </TabsContent>
-            <TabsContent value="textual">
-              <TextualListPanel text={payload?.szoveges_lista} />
-            </TabsContent>
+            {/* All panels occupy the same grid cell. The tallest one sets
+                the container height; inactive panels are invisible but still
+                participate in layout, preventing page jumps. */}
+            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+              <TabsContent value="original" forceMount className="data-[state=inactive]:invisible">
+                <OriginalTextPanel text={payload?.transcriber?.text} />
+              </TabsContent>
+              <TabsContent value="semantic" forceMount className="data-[state=inactive]:invisible">
+                <SemanticMatcherPanel report={payload?.execution_report_human} />
+              </TabsContent>
+              <TabsContent value="textual" forceMount className="data-[state=inactive]:invisible">
+                <TextualListPanel text={payload?.szoveges_lista} />
+              </TabsContent>
+            </div>
           </Tabs>
         ) : (
           <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm">
