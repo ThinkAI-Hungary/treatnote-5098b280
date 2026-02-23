@@ -37,7 +37,7 @@ serve(async (req) => {
     const encryptionKey = Deno.env.get('FLEXI_ENCRYPTION_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const formData = await req.formData();
     const audio = formData.get("audio") as File;
     const mode = formData.get("mode") as string;
@@ -59,14 +59,14 @@ serve(async (req) => {
 
     // Clean up stale jobs (processing for more than 10 minutes)
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    
+
     const { data: staleJobs } = await supabaseAdmin
       .from('voice_jobs')
       .delete()
       .eq('status', 'processing')
       .lt('created_at', tenMinutesAgo)
       .select('id');
-    
+
     if (staleJobs && staleJobs.length > 0) {
       console.log(`Cleaned up ${staleJobs.length} stale jobs`);
     }
@@ -82,26 +82,45 @@ serve(async (req) => {
 
       if (activeJob) {
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             error: "Már fut egy feldolgozás. Kérjük, várjon amíg befejeződik.",
-            active_job_id: activeJob.id 
+            active_job_id: activeJob.id
           }),
           { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Fetch flexi credentials
+    // Fetch flexi credentials — scoped to the active telephely.
+    // Strategy 1: exact telephely_id match (normal case for per-telephely rows)
+    // Strategy 2: null-telephely fallback (legacy rows saved before telephely scoping)
     let flexiUsername = "";
     let decryptedFlexiPw = "";
-    
+
     if (userId) {
-      const { data: flexiData } = await supabaseAdmin
-        .from('flexi_auth')
-        .select('flexi_username, flexi_pw')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
+      let flexiData: { flexi_username: string | null; flexi_pw: string | null } | null = null;
+
+      if (telephelyId) {
+        const { data } = await (supabaseAdmin as any)
+          .from('flexi_auth')
+          .select('flexi_username, flexi_pw')
+          .eq('user_id', userId)
+          .eq('telephely_id', telephelyId)
+          .maybeSingle();
+        flexiData = data;
+      }
+
+      // Fallback: try rows with null telephely_id (legacy records)
+      if (!flexiData) {
+        const { data } = await (supabaseAdmin as any)
+          .from('flexi_auth')
+          .select('flexi_username, flexi_pw')
+          .eq('user_id', userId)
+          .is('telephely_id', null)
+          .maybeSingle();
+        flexiData = data;
+      }
+
       if (flexiData) {
         flexiUsername = flexiData.flexi_username || "";
         if (flexiData.flexi_pw && encryptionKey) {
@@ -112,10 +131,12 @@ serve(async (req) => {
           }
         }
       }
+
+      console.log(`[flexi_auth] user=${userId} telephely=${telephelyId} found=${!!flexiData} username=${flexiUsername ? '***' : '(empty)'}`);
     }
 
     // Fetch szabályok and flexi_domain
-    let szabalyokData: Array<{fogalom: string | null; file_name: string; raw_json: unknown}> = [];
+    let szabalyokData: Array<{ fogalom: string | null; file_name: string; raw_json: unknown }> = [];
     let flexiDomain = "";
     let treatmentRulesData: unknown[] = [];
 
@@ -126,11 +147,11 @@ serve(async (req) => {
         .select('flexi_domain')
         .eq('id', telephelyId)
         .maybeSingle();
-      
+
       if (telephelyData) {
         flexiDomain = telephelyData.flexi_domain || "";
       }
-      
+
       const { data: szabalyok } = await supabaseAdmin
         .from('feltoltott_pdf')
         .select(`
@@ -189,7 +210,7 @@ serve(async (req) => {
     }
 
     const finalFilename = filename || audio.name;
-    
+
     // Estimate duration from audio size (rough estimate: ~16KB/s for webm)
     const estimatedDuration = Math.round(audio.size / 16000);
 
@@ -222,7 +243,7 @@ serve(async (req) => {
 
     // Get webhook URL based on mode
     let webhookUrl: string | undefined;
-    
+
     if (mode === "voxis") {
       webhookUrl = Deno.env.get("N8N_VOXIS_WEBHOOK_URL");
     } else if (mode === "treatnote") {
@@ -237,7 +258,7 @@ serve(async (req) => {
         .from('voice_jobs')
         .update({ status: 'error', error: `No webhook URL configured for mode: ${mode}`, completed_at: new Date().toISOString() })
         .eq('id', jobId);
-      
+
       return new Response(
         JSON.stringify({ error: `No webhook URL configured for mode: ${mode}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -257,26 +278,26 @@ serve(async (req) => {
     webhookFormData.append("flexi_pw", decryptedFlexiPw);
     webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
     webhookFormData.append("PaciensID", paciensId);
-    
+
     if (mode === "treatnote" && treatmentRulesData.length > 0) {
       webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));
     }
 
     console.log(`[Job ${jobId}] Sending audio to webhook: ${webhookUrl}`);
-    
+
     // Process webhook in the background using EdgeRuntime.waitUntil
     // This allows the edge function to return immediately without timing out
     const backgroundProcessing = (async () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
-        
+
         const response = await fetch(webhookUrl, {
           method: "POST",
           body: webhookFormData,
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeout);
 
         if (!response.ok) {
@@ -286,7 +307,7 @@ serve(async (req) => {
 
         const responseText = await response.text();
         console.log(`[Job ${jobId}] Webhook response (first 500 chars):`, responseText.substring(0, 500));
-        
+
         let resultData: unknown;
         try {
           resultData = JSON.parse(responseText);
@@ -307,7 +328,7 @@ serve(async (req) => {
         console.log(`[Job ${jobId}] Completed successfully`);
       } catch (webhookError) {
         console.error(`[Job ${jobId}] Webhook error:`, webhookError);
-        
+
         const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error';
         await supabaseAdmin
           .from('voice_jobs')
@@ -332,8 +353,8 @@ serve(async (req) => {
 
     // Return immediately to frontend
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         job_id: jobId,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -302,15 +302,8 @@ export default function VoiceRecording() {
       formData.append('PaciensID', paciensId);
       formData.append('domain', flexiDomain || '');
 
-      // Fetch flexi credentials
-      const { data: flexiAuth } = await supabase
-        .from('flexi_auth')
-        .select('flexi_username, flexi_pw')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      formData.append('flexi_email', flexiAuth?.flexi_username || '');
-      formData.append('flexi_password', flexiAuth?.flexi_pw || '');
+      // Note: flexi credentials (username + decrypted pw) are fetched by the edge function
+      // using the service role key, so the browser does not need to send them.
 
       // Call edge function
       const { data: { session } } = await supabase.auth.getSession();
@@ -837,7 +830,7 @@ export default function VoiceRecording() {
 
         {/* Verdikt card - full width below all cards */}
         {(isVerdiktLoading || verdiktResponseData || selectedJob) && (
-          <div data-tour="vr-verdikt">
+          <div data-tour="vr-verdikt" className="col-span-full">
             <VerdiktDisplay
               isLoading={isVerdiktLoading}
               responseData={selectedJob ? selectedJob.result : verdiktResponseData}
