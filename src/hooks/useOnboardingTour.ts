@@ -20,6 +20,9 @@ interface UseOnboardingTourReturn {
 
 const TOUR_STORAGE_PREFIX = 'tour_completed_';
 
+// Accounts that always see the tour (for testing — treats every visit as a first visit)
+const DEV_PREVIEW_EMAILS = ['zsolt@gmail.com'];
+
 export function useOnboardingTour({
   tourKey,
   isEligible,
@@ -27,6 +30,7 @@ export function useOnboardingTour({
   newUserDays = 7,
 }: UseOnboardingTourOptions): UseOnboardingTourReturn {
   const { user } = useAuth();
+  const isDevPreview = DEV_PREVIEW_EMAILS.includes(user?.email ?? '');
   const [showTour, setShowTour] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [hasSeenTour, setHasSeenTour] = useState(false);
@@ -41,15 +45,23 @@ export function useOnboardingTour({
   useEffect(() => {
     if (!user) return;
 
+    // Dev preview: always treat as not seen and mark as new user
+    if (isDevPreview) {
+      setHasSeenTour(false);
+      setIsNewUser(true);
+      setCheckedInitial(true);
+      return;
+    }
+
     const storageKey = getStorageKey();
     const completed = localStorage.getItem(storageKey);
     setHasSeenTour(completed === 'true');
     setCheckedInitial(true);
-  }, [user, getStorageKey]);
+  }, [user, isDevPreview, getStorageKey]);
 
-  // Check if user is new (created within newUserDays)
+  // Check if user is new (created within newUserDays) — skipped for dev preview
   useEffect(() => {
-    if (!user || !isEligible) return;
+    if (!user || !isEligible || isDevPreview) return;
 
     const checkNewUser = async () => {
       const { data: profile } = await supabase
@@ -66,7 +78,7 @@ export function useOnboardingTour({
     };
 
     checkNewUser();
-  }, [user, isEligible, newUserDays]);
+  }, [user, isEligible, isDevPreview, newUserDays]);
 
   // Auto-show tour for new users who haven't seen it
   useEffect(() => {
@@ -88,14 +100,20 @@ export function useOnboardingTour({
   const completeTour = useCallback(() => {
     setShowTour(false);
     setHasSeenTour(true);
-    localStorage.setItem(getStorageKey(), 'true');
-  }, [getStorageKey]);
+    // Dev preview: don't persist so the tour always re-shows
+    if (!DEV_PREVIEW_EMAILS.includes(user?.email ?? '')) {
+      localStorage.setItem(getStorageKey(), 'true');
+    }
+  }, [getStorageKey, user?.email]);
 
   const skipTour = useCallback(() => {
     setShowTour(false);
     setHasSeenTour(true);
-    localStorage.setItem(getStorageKey(), 'true');
-  }, [getStorageKey]);
+    // Dev preview: don't persist so the tour always re-shows
+    if (!DEV_PREVIEW_EMAILS.includes(user?.email ?? '')) {
+      localStorage.setItem(getStorageKey(), 'true');
+    }
+  }, [getStorageKey, user?.email]);
 
   return {
     showTour,

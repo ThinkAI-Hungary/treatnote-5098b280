@@ -10,9 +10,14 @@ export interface TourStep {
   title: string;
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
-  switchToTab?: string; // Optional: switch to this tab before showing step (legacy)
-  requiredTab?: string; // Which tab this step belongs to (used for both forward and backward navigation)
-  spotlightYOffset?: number; // Optional vertical offset for spotlight (positive = move up)
+  switchToTab?: string;
+  requiredTab?: string;
+  spotlightYOffset?: number;
+  hideNav?: boolean;   // Hide ALL prev/next buttons (only Kihagyás)
+  hideNext?: boolean;  // Hide only Kihagyás (keep Előző) — for action-gated steps
+  interactive?: boolean; // Overlay becomes pointer-events-none so spotlight element stays clickable
+  displayStep?: number;  // Override the counter numerator (e.g. 1)
+  displayTotal?: number; // Override the counter denominator (e.g. 3)
 }
 
 interface OnboardingTourProps {
@@ -21,6 +26,7 @@ interface OnboardingTourProps {
   onComplete: () => void;
   onSkip: () => void;
   onStepChange?: (step: TourStep, stepIndex: number) => void; // Callback for step changes
+  step?: number; // Optional external step override — when provided, drives the current step
 }
 
 interface TargetRect {
@@ -30,7 +36,7 @@ interface TargetRect {
   height: number;
 }
 
-export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange }: OnboardingTourProps) {
+export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange, step: externalStep }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
@@ -41,9 +47,16 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
   // Reset to first step when tour opens
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep(0);
+      setCurrentStep(externalStep ?? 0);
     }
   }, [isOpen]);
+
+  // Sync external step when it changes (reactive tour driving)
+  useEffect(() => {
+    if (isOpen && externalStep !== undefined) {
+      setCurrentStep(externalStep);
+    }
+  }, [externalStep, isOpen]);
 
   const calculatePosition = useCallback(() => {
     if (!isOpen || steps.length === 0) return;
@@ -73,25 +86,26 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     }
 
     const rect = preRect;
-    const spotlightPadding = 16; // Padding around the spotlight (enough to not clip text)
+    const spotlightPaddingX = 2; // Minimal horizontal — avoids overflowing sidebar right border
+    const spotlightPaddingY = 8; // Vertical breathing room above/below
 
     // Store target rect for spotlight (with padding)
     const highlightRect = {
-      top: rect.top - spotlightPadding,
-      left: rect.left - spotlightPadding,
-      width: rect.width + spotlightPadding * 2,
-      height: rect.height + spotlightPadding * 2,
-      bottom: rect.bottom + spotlightPadding,
-      right: rect.right + spotlightPadding,
+      top: rect.top - spotlightPaddingY,
+      left: rect.left - spotlightPaddingX,
+      width: rect.width + spotlightPaddingX * 2,
+      height: rect.height + spotlightPaddingY * 2,
+      bottom: rect.bottom + spotlightPaddingY,
+      right: rect.right + spotlightPaddingX,
     };
 
     // Clamp spotlight to viewport so it never renders outside the screen (prevents top clipping)
     // Use per-step Y offset if provided (e.g., for Profile page inputs near top edge)
     const spotlightYOffset = step.spotlightYOffset ?? 0;
-    const clampedTop = Math.max(24, highlightRect.top - spotlightYOffset);
-    const clampedLeft = Math.max(24, highlightRect.left);
-    const clampedRight = Math.min(window.innerWidth - 24, highlightRect.right);
-    const clampedBottom = Math.min(window.innerHeight - 24, highlightRect.bottom - spotlightYOffset);
+    const clampedTop = Math.max(0, highlightRect.top - spotlightYOffset);
+    const clampedLeft = Math.max(4, highlightRect.left); // min 4px from edge so border is never clipped
+    const clampedRight = Math.min(window.innerWidth - 4, highlightRect.right);
+    const clampedBottom = Math.min(window.innerHeight, highlightRect.bottom - spotlightYOffset);
 
     setTargetRect({
       top: clampedTop,
@@ -128,7 +142,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     type Position = 'top' | 'bottom' | 'left' | 'right';
     const preferredPosition = step.position || 'bottom';
     const positionPriority: Position[] = [preferredPosition];
-    
+
     // Add fallback positions
     if (preferredPosition !== 'bottom') positionPriority.push('bottom');
     if (preferredPosition !== 'top') positionPriority.push('top');
@@ -174,15 +188,15 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
     // Horizontal clamp - keep within viewport
     left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
-    
+
     // Vertical clamp with overlap prevention
     const tooltipBottom = top + tooltipHeight;
     const tooltipRight = left + tooltipWidth;
-    
+
     // Check for overlap and adjust
     const overlapsVertically = !(tooltipBottom < highlightRect.top || top > highlightRect.bottom);
     const overlapsHorizontally = !(tooltipRight < highlightRect.left || left > highlightRect.right);
-    
+
     if (overlapsVertically && overlapsHorizontally) {
       // There's overlap - force repositioning
       if (arrow === 'bottom' || arrow === 'top') {
@@ -197,7 +211,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
         }
       }
     }
-    
+
     // Final viewport clamp
     top = Math.max(16, Math.min(top, window.innerHeight - tooltipHeight - 16));
 
@@ -281,6 +295,13 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[9998]"
+            style={{
+              // When interactive: clip the overlay to a frame around the spotlight so
+              // the spotlight area passes pointer events to the page while the rest is blocked.
+              clipPath: step.interactive && targetRect
+                ? `polygon(0px 0px, 100% 0px, 100% 100%, 0px 100%, 0px 0px, ${targetRect.left}px ${targetRect.top}px, ${targetRect.left}px ${targetRect.top + targetRect.height}px, ${targetRect.left + targetRect.width}px ${targetRect.top + targetRect.height}px, ${targetRect.left + targetRect.width}px ${targetRect.top}px, ${targetRect.left}px ${targetRect.top}px)`
+                : undefined,
+            }}
           >
             <svg className="w-full h-full">
               <defs>
@@ -339,8 +360,8 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
             <motion.div
               key={currentStep} // Reset animation on step change
               initial={{ opacity: 0.5, scale: 1 }}
-              animate={{ 
-                opacity: [0.5, 0], 
+              animate={{
+                opacity: [0.5, 0],
                 scale: [1, 1.15]
               }}
               transition={{
@@ -385,7 +406,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  {currentStep + 1} / {steps.length}
+                  {step.displayStep ?? currentStep + 1} / {step.displayTotal ?? steps.length}
                 </span>
               </div>
               <Button
@@ -410,37 +431,82 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
 
             {/* Footer */}
             <div className="px-4 pb-4 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePrev}
-                disabled={currentStep === 0}
-                className="text-muted-foreground"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Előző
-              </Button>
-
-              <div className="flex gap-1.5">
-                {steps.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      'w-2 h-2 rounded-full transition-colors',
-                      idx === currentStep ? 'bg-primary' : 'bg-muted-foreground/30'
-                    )}
-                  />
-                ))}
-              </div>
-
-              <Button
-                size="sm"
-                onClick={handleNext}
-                className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
-              >
-                {currentStep === steps.length - 1 ? 'Befejezés' : 'Következő'}
-                {currentStep < steps.length - 1 && <ChevronRight className="h-4 w-4 ml-1" />}
-              </Button>
+              {step.hideNav ? (
+                // Action-gated: only show Kihagyás, no navigation
+                <>
+                  <span />
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: step.displayTotal ?? steps.length }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          'w-2 h-2 rounded-full transition-colors',
+                          idx === (step.displayStep != null ? step.displayStep - 1 : currentStep)
+                            ? 'bg-primary' : 'bg-muted-foreground/30'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground text-xs">
+                    Kihagyás
+                  </Button>
+                </>
+              ) : step.hideNext ? (
+                // Click-to-act: Előző only if not on first step, no Következő
+                <>
+                  {currentStep > 0 ? (
+                    <Button variant="ghost" size="sm" onClick={handlePrev} className="text-muted-foreground">
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Előző
+                    </Button>
+                  ) : <span />}
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: step.displayTotal ?? steps.length }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          'w-2 h-2 rounded-full transition-colors',
+                          idx === (step.displayStep != null ? step.displayStep - 1 : currentStep)
+                            ? 'bg-primary' : 'bg-muted-foreground/30'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground text-xs">
+                    Kihagyás
+                  </Button>
+                </>
+              ) : (
+                // Normal nav
+                <>
+                  {currentStep > 0 ? (
+                    <Button variant="ghost" size="sm" onClick={handlePrev} className="text-muted-foreground">
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Előző
+                    </Button>
+                  ) : <span />}
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: step.displayTotal ?? steps.length }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          'w-2 h-2 rounded-full transition-colors',
+                          idx === (step.displayStep != null ? step.displayStep - 1 : currentStep)
+                            ? 'bg-primary' : 'bg-muted-foreground/30'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleNext}
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                  >
+                    {currentStep === steps.length - 1 ? 'Befejezés' : 'Következő'}
+                    {currentStep < steps.length - 1 && <ChevronRight className="h-4 w-4 ml-1" />}
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
         </>

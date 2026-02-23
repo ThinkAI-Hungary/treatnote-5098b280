@@ -55,22 +55,22 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 // All menu items defined statically - no conditional rendering
 const mainMenuItems = [
-  { title: 'Főoldal', url: '/dashboard', icon: Home },
-  { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true },
+  { title: 'Főoldal', url: '/dashboard', icon: Home, tourId: 'nav-dashboard' },
+  { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true, tourId: 'nav-hangfelvetel' },
 ];
 
 const secondaryMenuItems: typeof mainMenuItems = [];
 
 const adminMenuItems = [
-  { title: 'Admin Panel', url: '/admin', icon: Shield, requiresAdmin: true },
+  { title: 'Admin Panel', url: '/admin', icon: Shield, requiresAdmin: true, tourId: undefined },
 ];
 
 const klinikaMenuItems = [
-  { title: 'Klinika Admin', url: '/klinika-admin', icon: Building2, requiresKlinikaAdmin: true },
+  { title: 'Klinika Admin', url: '/klinika-admin', icon: Building2, requiresKlinikaAdmin: true, tourId: 'nav-klinika-admin' },
 ];
 
 const userMenuItems = [
-  { title: 'Profil', url: '/profile', icon: User },
+  { title: 'Profil', url: '/profile', icon: User, tourId: 'nav-profil' },
 ];
 
 // Static menu item component - completely static, no animations
@@ -81,6 +81,7 @@ function StaticMenuItem({
   disabledMessage,
   disabledContent,
   onDisabledClick,
+  tourId,
 }: {
   item: { title: string; url: string; icon: typeof User };
   collapsed: boolean;
@@ -88,13 +89,16 @@ function StaticMenuItem({
   disabledMessage?: string;
   disabledContent?: React.ReactNode;
   onDisabledClick?: () => void;
+  tourId?: string;
 }) {
   if (isDisabled && (disabledMessage || disabledContent)) {
     return (
-      <SidebarMenuItem>
+      <SidebarMenuItem data-tour={tourId}>
         <HoverCard openDelay={0} closeDelay={200}>
           <HoverCardTrigger asChild>
-            <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full rounded-md">
+            <div
+              className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full rounded-md"
+            >
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.title}</span>}
             </div>
@@ -128,7 +132,7 @@ function StaticMenuItem({
   }
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem data-tour={tourId}>
       <SidebarMenuButton asChild tooltip={item.title}>
         <NavLink
           to={item.url}
@@ -862,6 +866,7 @@ export function AppSidebar() {
                       key={`${item.title}-${menuAnimKey}`}
                       item={item}
                       collapsed={collapsed}
+                      tourId={(item as any).tourId}
                     />
                   );
                 }
@@ -870,6 +875,7 @@ export function AppSidebar() {
                     key={item.title}
                     item={item}
                     collapsed={collapsed}
+                    tourId={(item as any).tourId}
                   />
                 );
               })}
@@ -908,6 +914,7 @@ export function AppSidebar() {
                     key={item.title}
                     item={item}
                     collapsed={collapsed}
+                    tourId={(item as any).tourId}
                   />
                 ))}
               </SidebarMenu>
@@ -921,7 +928,12 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {userMenuItems.map((item) => (
-                <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
+                <StaticMenuItem
+                  key={item.title}
+                  item={item}
+                  collapsed={collapsed}
+                  tourId={(item as any).tourId}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>

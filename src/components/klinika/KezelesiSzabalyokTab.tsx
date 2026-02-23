@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
+import { useTheme } from '@/components/ThemeProvider';
 
 // --- Sort helpers ---
 type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
@@ -85,6 +86,8 @@ export function KezelesiSzabalyokTab({
 }: KezelesiSzabalyokTabProps) {
   const { user } = useAuth();
   const { isAdmin, isKlinikaAdmin } = useCachedRoles();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const { addNotification } = useNotifications();
 
   // Invalidate cache if telephely changed
@@ -957,6 +960,14 @@ export function KezelesiSzabalyokTab({
 
           <div className="flex items-center gap-2">
             <GalaxyButton
+              size="icon"
+              onClick={loadRules}
+              disabled={loading}
+              title="Frissítés"
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            </GalaxyButton>
+            <GalaxyButton
               onClick={handleGenerateFromDictionary}
               disabled={generating || loading}
               className="relative"
@@ -965,14 +976,6 @@ export function KezelesiSzabalyokTab({
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
               {loading ? 'Szabályok betöltése...' : generating ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
-            </GalaxyButton>
-            <GalaxyButton
-              size="icon"
-              onClick={loadRules}
-              disabled={loading}
-              title="Frissítés"
-            >
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </GalaxyButton>
           </div>
         </div>
@@ -985,7 +988,7 @@ export function KezelesiSzabalyokTab({
             <TabsTrigger
               value="list"
               className="data-[state=active]:subtab-pulse group rounded-r-none border-r border-border"
-              style={activeSubTab === 'list' ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
+              style={activeSubTab === 'list' && !isDark ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
             >
               <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
                 <FileText className="h-4 w-4" />
@@ -995,7 +998,7 @@ export function KezelesiSzabalyokTab({
             <TabsTrigger
               value="upload"
               className="data-[state=active]:subtab-pulse group rounded-l-none"
-              style={activeSubTab === 'upload' ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
+              style={activeSubTab === 'upload' && !isDark ? { backgroundColor: 'hsl(265 40% 78%)', color: 'hsl(265 50% 20%)' } : undefined}
             >
               <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
                 <FileUp className="h-4 w-4" />

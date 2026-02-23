@@ -15,8 +15,11 @@ import { useSzotar } from '@/hooks/useSzotar';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useVoiceJobHistory, VoiceJob } from '@/hooks/useVoiceJobHistory';
+import { useTheme } from '@/components/ThemeProvider';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
+import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,6 +32,8 @@ type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 
 export default function VoiceRecording() {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const { profile, loading: profileLoading } = useProfile();
   // Derive active telephely before hooks that depend on it
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
@@ -38,6 +43,94 @@ export default function VoiceRecording() {
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
   const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useVoiceJobHistory();
   const navigate = useNavigate();
+
+  // ── Onboarding tour ──────────────────────────────────────────────────────
+  const VOICE_TOUR_STEPS: TourStep[] = [
+    {
+      target: '[data-tour="vr-mode-select"]',
+      title: 'Feldolgozási mód',
+      content: 'Válassza ki, milyen formában szeretné feldolgoztatni a felvett hangot: Kezelési terv vizsgálati jegyzőkönyvet, Státuszfelvétel általános átírást, Ambuláns adatlap pedig ambuláns lapot készít.',
+      position: 'right',
+    },
+    {
+      target: '[data-tour="vr-paciens-id"]',
+      title: 'Páciens ID-ja',
+      content: 'Adja meg a FlexiDent oldalon látható páciens ID-t. Az ID megtalálásában a mező melletti kis információ gomb segít. Miután meggyőződött a helyes kitöltésről, kattintson a „Zárolás" gombra — ez megvédi az értékmezőt a véletlenszerű módosítástól.',
+      position: 'bottom',
+    },
+    {
+      // Step 2: interactive — Előző available, overlay passthrough so mic is clickable
+      target: '[data-tour="vr-record-btn"]',
+      title: 'Teszt felvétel indítása',
+      content: 'Kattintson a mikrofon gombra egy rövid teszt felvétel indításához! A tartalom nem számít, néhány másodpercnyi hang is tökéletes.',
+      position: 'bottom',
+      hideNext: true,
+      interactive: true,
+    },
+    {
+      // Step 3: recording active — navigable (4/7), interactive so stop button is clickable
+      target: '[data-tour="vr-record-btn"]',
+      title: 'Szünet és leállítás',
+      content: 'A felvétel elindult! A bal oldali gombbal szüneteltetheti (Pause / Resume). A nagy középső gombbal állítsa le a felvételt a befejezéshez.',
+      position: 'bottom',
+      interactive: true,
+    },
+    {
+      // Step 4: playback intro — shown automatically after recording stops
+      target: '[data-tour="vr-playback"]',
+      title: 'Visszajátszás és feltöltés',
+      content: 'A felvétel leállítása után itt jelenik meg a rögzített hang. Visszajátszhatja, hangerőt állíthat, letöltheti. A „Feltöltés" gombra kattintva indul el a feldolgozás.',
+      position: 'left',
+    },
+    {
+      target: '[data-tour="vr-verdikt"]',
+      title: 'Feldolgozás eredménye',
+      content: 'A feltöltés után itt jelenik meg az eredmény. • Eredeti szöveg: amit Ön felmondótt. • Szabály találatok: a szövegre legjobban értelmezhető szabályok. • Kitöltés: ez kerül be a FlexiDent oldalra olyan formában, ahogy ott is látható.',
+      position: 'top',
+    },
+    {
+      target: '[data-tour="vr-history"]',
+      title: 'Előzmények',
+      content: 'Itt tekintheti meg a korábbi kitöltéseket. Kattintson egy elemre az eredmény megtekintéséhez. A „További előzmények” gombbal még régebbi felvételeket is előhívhat és visszahúzhat.',
+      position: 'right',
+    },
+  ];
+
+  const {
+    showTour,
+    startTour,
+    completeTour,
+    skipTour,
+  } = useOnboardingTour({
+    tourKey: 'voice-recording',
+    isEligible: true,
+    autoShowForNewUsers: true,
+    newUserDays: 30,
+  });
+
+  // ── Interactive tour: reactive step control ───────────────────────────────
+  const [activeTourStep, setActiveTourStep] = useState(0);
+  const wasRecordingRef = useRef(false);
+  // Tracks whether the playback intro was already shown this session
+  const hasShownPlaybackIntroRef = useRef(false);
+
+  const handleStartTour = useCallback(() => {
+    setActiveTourStep(0); // Always begin from Feldolgozási mód (step 1/3)
+    startTour();
+  }, [startTour]);
+
+
+  // Reset step when tour closes so next open starts fresh at step 2
+  useEffect(() => {
+    if (!showTour) setActiveTourStep(0);
+  }, [showTour]);
+
+  // Info button re-starts the interactive tour from step 2
+  useEffect(() => {
+    const handler = () => handleStartTour();
+    window.addEventListener('taskbar-info', handler);
+    return () => window.removeEventListener('taskbar-info', handler);
+  }, [handleStartTour]);
 
   // User ID for store operations
   const userId = user?.id ?? '';
@@ -70,6 +163,7 @@ export default function VoiceRecording() {
     isRecording,
     isPaused,
     duration,
+    finalDuration,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -85,6 +179,33 @@ export default function VoiceRecording() {
       toast.error('Hiba a felvétel során: ' + error.message);
     },
   });
+
+  // Tour: recording starts while at step 2 → auto-advance to pause/stop step
+  useEffect(() => {
+    if (!showTour) return;
+    if (isRecording && !wasRecordingRef.current && activeTourStep === 2) {
+      setActiveTourStep(3);
+    }
+    wasRecordingRef.current = isRecording;
+  }, [isRecording, showTour, activeTourStep]);
+
+  // Tour: recording stops with audio ready → introduce the playback card
+  // Triggers even if the tour was closed — once per recording session
+  useEffect(() => {
+    if (!isRecording && audioBlob && !hasShownPlaybackIntroRef.current) {
+      hasShownPlaybackIntroRef.current = true;
+      const t = setTimeout(() => {
+        setActiveTourStep(4);
+        if (!showTour) startTour(); // Re-open tour at playback step if it was closed
+      }, 400);
+      return () => clearTimeout(t);
+    }
+  }, [isRecording, audioBlob, showTour, startTour]);
+
+  // Reset playback intro flag when a new recording session starts
+  useEffect(() => {
+    if (isRecording) hasShownPlaybackIntroRef.current = false;
+  }, [isRecording]);
 
   // Poll for job completion
   useEffect(() => {
@@ -143,17 +264,6 @@ export default function VoiceRecording() {
     } else {
       pauseRecording();
     }
-  };
-
-  const handlePlayPause = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
   };
 
   const handleClearRecording = () => {
@@ -448,7 +558,7 @@ export default function VoiceRecording() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {/* History sidebar - static size matching other cards */}
-        <div className="hidden xl:block">
+        <div className="hidden xl:block" data-tour="vr-history">
           <VoiceJobHistory
             jobs={jobs}
             isLoading={historyLoading}
@@ -467,7 +577,7 @@ export default function VoiceRecording() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Mode selector */}
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="vr-mode-select">
               <Label>Feldolgozási mód</Label>
               <Select
                 value={mode}
@@ -486,7 +596,7 @@ export default function VoiceRecording() {
             </div>
 
             {/* Páciens ID input */}
-            <div className="space-y-2">
+            <div className="space-y-2" data-tour="vr-paciens-id">
               <div className="flex items-center gap-2">
                 <Label>Páciens ID-ja</Label>
                 <TooltipProvider>
@@ -588,7 +698,7 @@ export default function VoiceRecording() {
               )}
 
               {/* Main controls */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4" data-tour="vr-record-btn">
                 {isRecording && (
                   <Button
                     size="lg"
@@ -620,14 +730,14 @@ export default function VoiceRecording() {
 
               <p className="mt-4 text-sm text-muted-foreground text-center">
                 {isRecording
-                  ? 'Kattintson a leállításhoz'
+                  ? isPaused ? 'Kattintson a folytatáshoz' : 'Kattintson a leállításhoz'
                   : 'Kattintson a felvétel indításához'}
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="vr-playback">
           <CardHeader>
             <CardTitle>Visszajátszás</CardTitle>
             <CardDescription>
@@ -637,35 +747,36 @@ export default function VoiceRecording() {
           <CardContent className="space-y-6">
             {audioUrl ? (
               <>
+                {/* Duration badge */}
+                <div className="flex justify-center">
+                  <span className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-mono font-semibold bg-primary/10 text-primary border border-primary/20">
+                    <Mic className="h-3.5 w-3.5" />
+                    {formatDuration(finalDuration || duration)}
+                  </span>
+                </div>
+
                 {/* Audio player */}
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <audio
                     ref={audioRef}
                     src={audioUrl}
                     onEnded={() => setIsPlaying(false)}
-                    className="hidden"
+                    onLoadedMetadata={(e) => {
+                      const audio = e.currentTarget;
+                      // MediaRecorder blobs have Infinity duration — force browser to compute real duration
+                      if (audio.duration === Infinity || isNaN(audio.duration)) {
+                        audio.currentTime = 1e101;
+                        const fix = () => {
+                          audio.currentTime = 0;
+                          audio.removeEventListener('timeupdate', fix);
+                        };
+                        audio.addEventListener('timeupdate', fix);
+                      }
+                    }}
+                    controls
+                    className="w-full h-10 rounded-lg"
+                    style={{ colorScheme: 'dark' }}
                   />
-
-                  <div className="flex items-center justify-center gap-4">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={handlePlayPause}
-                      className="h-14 w-14 rounded-full"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-6 w-6" />
-                      ) : (
-                        <Play className="h-6 w-6" />
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="flex justify-center">
-                    <span className="text-sm text-muted-foreground">
-                      Felvétel hossza: {formatDuration(duration)}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Actions */}
@@ -691,7 +802,13 @@ export default function VoiceRecording() {
                     }}
                   >
                     <Button
-                      className="w-full"
+                      className="w-full border-0 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20"
+                      style={{
+                        background: isDark
+                          ? 'linear-gradient(to right, hsl(270 70% 60%), hsl(250 65% 55%), hsl(195 85% 50%))'
+                          : 'linear-gradient(to right, hsl(268 30% 82%), hsl(263 22% 87%), hsl(255 12% 92%))',
+                        color: isDark ? 'white' : 'hsl(262 48% 16%)',
+                      }}
                       onClick={handleUpload}
                       disabled={isUploading || !isPaciensIdLocked}
                     >
@@ -720,22 +837,24 @@ export default function VoiceRecording() {
 
         {/* Verdikt card - full width below all cards */}
         {(isVerdiktLoading || verdiktResponseData || selectedJob) && (
-          <VerdiktDisplay
-            isLoading={isVerdiktLoading}
-            responseData={selectedJob ? selectedJob.result : verdiktResponseData}
-            isSelectedJob={!!selectedJob}
-            selectedJobMode={selectedJob?.mode}
-            selectedJobPaciensId={selectedJob?.paciens_id}
-            selectedJobError={selectedJob?.error}
-            selectedJobStatus={selectedJob?.status}
-            onClose={() => {
-              if (selectedJob) {
-                setSelectedJobId(null);
-              } else {
-                clearVerdikt();
-              }
-            }}
-          />
+          <div data-tour="vr-verdikt">
+            <VerdiktDisplay
+              isLoading={isVerdiktLoading}
+              responseData={selectedJob ? selectedJob.result : verdiktResponseData}
+              isSelectedJob={!!selectedJob}
+              selectedJobMode={selectedJob?.mode}
+              selectedJobPaciensId={selectedJob?.paciens_id}
+              selectedJobError={selectedJob?.error}
+              selectedJobStatus={selectedJob?.status}
+              onClose={() => {
+                if (selectedJob) {
+                  setSelectedJobId(null);
+                } else {
+                  clearVerdikt();
+                }
+              }}
+            />
+          </div>
         )}
       </div>
 
@@ -761,6 +880,16 @@ export default function VoiceRecording() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Onboarding tour */}
+      <OnboardingTour
+        steps={VOICE_TOUR_STEPS}
+        isOpen={showTour}
+        step={activeTourStep}
+        onComplete={completeTour}
+        onSkip={skipTour}
+        onStepChange={(_step, idx) => setActiveTourStep(idx)}
+      />
     </div>
   );
 }

@@ -23,6 +23,8 @@ import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
+import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
+import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 
 interface OnboardingStep {
   id: string;
@@ -373,6 +375,78 @@ export default function Dashboard() {
   // Signal full loading state to sidebar indicator (include per-feature loads for the progress bar)
   usePageLoadingSignal(isLoading || szotarLoading || rulesLoading || statsLoading || adminsLoading);
 
+  // ── Onboarding tour ──────────────────────────────────────────────────────
+  const DASHBOARD_TOUR_STEPS: TourStep[] = !allComplete ? [
+    {
+      target: '[data-tour="dashboard-header"]',
+      title: 'Főoldal — Üdvözlő oldal',
+      content: 'Ez az üdvözlőoldal. Amennyiben valamilyen információ még hiányzik az Ön profiljáról, arról itt fog tájékoztatást kapni, illetve lehetősége van beállítani azokat.',
+      position: 'bottom',
+    },
+    {
+      target: '[data-tour="dashboard-steps"]',
+      title: 'Beállítási lépések',
+      content: 'Ezek a lépések szükségesek a rendszer használatához. Az első hiányzó lépés aktívan kiemelve jelenik meg, a gombra kattintva elvégezheti azt. Egyes lépések a Klinika Admin feladata.',
+      position: 'top',
+    },
+  ] : [
+    {
+      target: '[data-tour="nav-hangfelvetel"]',
+      title: 'Hangfelvétel',
+      content: 'Minden beállítás kész! Itt készíthet hangfelvételeket — a rendszer a kért módon dolgozza fel azokat: kezelési terv, státuszfelvétel vagy ambuláns lap.',
+      position: 'right',
+    },
+    ...(isKlinikaAdmin || isAdmin ? [
+      {
+        target: '[data-tour="sidebar-klinika"]',
+        title: 'Klinika Admin',
+        content: 'Ezen az oldalon kezelheti a klinika beállításait: szótár, kezelési szabályok, felhasználók és FlexiDent kapcsolat.',
+        position: 'right' as const,
+      },
+    ] : []),
+    {
+      target: '[data-tour="sidebar-profile"]',
+      title: 'Profil',
+      content: 'A Profil menüpont alatt kezelheti fiókadatait, FlexiDent kapcsolatát és értesítési beállításait.',
+      position: 'right',
+    },
+  ];
+
+  // Only enable the tour after all async data has settled so allComplete is accurate
+  const tourDataReady = !isLoading && !szotarLoading && !rulesLoading && !isFlexiLoading;
+
+  const {
+    showTour: showDashTour,
+    startTour: startDashTour,
+    completeTour: completeDashTour,
+    skipTour: skipDashTour,
+  } = useOnboardingTour({
+    tourKey: 'dashboard',
+    isEligible: tourDataReady,
+    autoShowForNewUsers: true,
+    newUserDays: 30,
+  });
+
+  // Re-trigger the tour when deps flip to complete in the same session
+  // (page didn't reload, user just finished the last setup step)
+  const prevAllCompleteRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!tourDataReady) return;
+    if (prevAllCompleteRef.current === false && allComplete === true) {
+      // Small extra delay to let the sidebar menu animate in first
+      const t = setTimeout(() => startDashTour(), 600);
+      return () => clearTimeout(t);
+    }
+    prevAllCompleteRef.current = allComplete;
+  }, [tourDataReady, allComplete, startDashTour]);
+
+  // Info button triggers this page's tour
+  useEffect(() => {
+    const handler = () => startDashTour();
+    window.addEventListener('taskbar-info', handler);
+    return () => window.removeEventListener('taskbar-info', handler);
+  }, [startDashTour]);
+
   if (isLoading) {
     return null;
   }
@@ -381,7 +455,7 @@ export default function Dashboard() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
+      <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
 
 
         <div className="flex items-center gap-4">
@@ -433,7 +507,7 @@ export default function Dashboard() {
 
       {/* Onboarding steps */}
       {!allComplete && (
-        <div className="space-y-3">
+        <div data-tour="dashboard-steps" className="space-y-3">
           {isKlinikaAdminOrAdmin ? (
             /* ── Klinika Admin / Admin: actionable steps ── */
             allSteps.map((step, idx) => {
@@ -547,6 +621,14 @@ export default function Dashboard() {
         }}
         onError={() => setFlexiConnectionFailed(true)}
         telephelyId={activeTelephelyId ?? null}
+      />
+
+      {/* Dashboard onboarding tour */}
+      <OnboardingTour
+        steps={DASHBOARD_TOUR_STEPS}
+        isOpen={showDashTour}
+        onComplete={completeDashTour}
+        onSkip={skipDashTour}
       />
     </div>
   );

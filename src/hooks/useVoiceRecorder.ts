@@ -9,6 +9,7 @@ interface UseVoiceRecorderReturn {
   isRecording: boolean;
   isPaused: boolean;
   duration: number;
+  finalDuration: number;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   pauseRecording: () => void;
@@ -25,21 +26,33 @@ export function useVoiceRecorder({
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [finalDuration, setFinalDuration] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const pausedDurationRef = useRef<number>(0);
+  // When recording started (ms), updated after each resume
+  const segmentStartRef = useRef<number>(0);
+  // Total elapsed seconds before current segment
+  const accumulatedRef = useRef<number>(0);
 
-  const updateDuration = useCallback(() => {
-    if (!isPaused && startTimeRef.current) {
-      const elapsed = Date.now() - startTimeRef.current - pausedDurationRef.current;
-      setDuration(Math.floor(elapsed / 1000));
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-  }, [isPaused]);
+  }, []);
+
+  const startTimer = useCallback(() => {
+    clearTimer();
+    segmentStartRef.current = Date.now();
+    timerRef.current = window.setInterval(() => {
+      const segmentSecs = (Date.now() - segmentStartRef.current) / 1000;
+      setDuration(Math.floor(accumulatedRef.current + segmentSecs));
+    }, 100);
+  }, [clearTimer]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -48,7 +61,8 @@ export function useVoiceRecorder({
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
-      pausedDurationRef.current = 0;
+      setFinalDuration(0);
+      accumulatedRef.current = 0;
 
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -63,8 +77,8 @@ export function useVoiceRecorder({
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/mp4')
-        ? 'audio/mp4'
-        : 'audio/webm';
+          ? 'audio/mp4'
+          : 'audio/webm';
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
@@ -83,6 +97,14 @@ export function useVoiceRecorder({
         // Stop all tracks
         stream.getTracks().forEach((track) => track.stop());
 
+        // Capture final duration before clearing timer
+        const segmentSecs = segmentStartRef.current
+          ? (Date.now() - segmentStartRef.current) / 1000
+          : 0;
+        const total = Math.floor(accumulatedRef.current + segmentSecs);
+        setFinalDuration(total);
+        clearTimer();
+
         // Create blob
         const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
@@ -92,13 +114,7 @@ export function useVoiceRecorder({
         setAudioUrl(url);
 
         // Callback
-        onRecordingComplete?.(blob, duration);
-
-        // Clear timer
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
+        onRecordingComplete?.(blob, total);
       };
 
       mediaRecorder.onerror = (event) => {
@@ -108,17 +124,16 @@ export function useVoiceRecorder({
 
       // Start recording
       mediaRecorder.start(1000); // Collect data every second
-      startTimeRef.current = Date.now();
       setIsRecording(true);
       setIsPaused(false);
 
       // Start duration timer
-      timerRef.current = window.setInterval(updateDuration, 100);
+      startTimer();
     } catch (error) {
       console.error('Error starting recording:', error);
       onError?.(error as Error);
     }
-  }, [duration, onRecordingComplete, onError, updateDuration]);
+  }, [onRecordingComplete, onError, startTimer, clearTimer]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -131,46 +146,48 @@ export function useVoiceRecorder({
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       mediaRecorderRef.current.pause();
+      // Accumulate elapsed time from this segment
+      const segmentSecs = (Date.now() - segmentStartRef.current) / 1000;
+      accumulatedRef.current += segmentSecs;
+      segmentStartRef.current = 0;
+      clearTimer();
       setIsPaused(true);
-      pausedDurationRef.current = Date.now();
     }
-  }, [isRecording, isPaused]);
+  }, [isRecording, isPaused, clearTimer]);
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && isPaused) {
       mediaRecorderRef.current.resume();
-      pausedDurationRef.current = Date.now() - pausedDurationRef.current;
       setIsPaused(false);
+      startTimer();
     }
-  }, [isRecording, isPaused]);
+  }, [isRecording, isPaused, startTimer]);
 
   const resetRecording = useCallback(() => {
     // Clean up any existing URL
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
     }
-    
+
+    clearTimer();
+
     // Reset all state
     chunksRef.current = [];
     setAudioBlob(null);
     setAudioUrl(null);
     setDuration(0);
+    setFinalDuration(0);
     setIsRecording(false);
     setIsPaused(false);
-    pausedDurationRef.current = 0;
-    startTimeRef.current = 0;
-    
-    // Clear timer if running
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, [audioUrl]);
+    accumulatedRef.current = 0;
+    segmentStartRef.current = 0;
+  }, [audioUrl, clearTimer]);
 
   return {
     isRecording,
     isPaused,
     duration,
+    finalDuration,
     startRecording,
     stopRecording,
     pauseRecording,
