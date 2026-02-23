@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,7 +35,7 @@ import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { normalizeHungarianString } from '@/lib/hungarianNormalizer';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
-import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
+import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
@@ -550,7 +551,6 @@ export default function KlinikaAdmin() {
   if (!isKlinikaAdmin && !isAdmin) {
     return (
       <div className="relative min-h-[60vh] animate-fade-in">
-        <StarField />
         <AnimatedCard className="relative z-10 max-w-md mx-auto mt-20">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <div className="relative mb-6">
@@ -573,10 +573,7 @@ export default function KlinikaAdmin() {
   return (
     <div className="relative min-h-screen">
       {/* Background layer - fades in first */}
-      <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
-        <StarField />
-        <div className="absolute inset-0 pointer-events-none nebula-overlay" />
-      </div>
+
 
       {/* Content layer - slides up after background */}
       <div
@@ -584,9 +581,6 @@ export default function KlinikaAdmin() {
       >
         {/* Header section */}
         <div data-tour="header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-          <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-          <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
-
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -664,9 +658,9 @@ export default function KlinikaAdmin() {
                       <>
                         {/* Single invite button — role is chosen via the Jogkör dropdown inside the dialog */}
                         <div className="flex gap-2">
-                          <Button variant="outline" size="icon" onClick={refreshUsers} title="Frissítés">
+                          <GalaxyButton size="icon" onClick={refreshUsers} title="Frissítés">
                             <RefreshCw className="h-4 w-4" />
-                          </Button>
+                          </GalaxyButton>
                           <GalaxyButton
                             data-tour="new-user-button"
                             onClick={() => { setNewUserRole('user'); setIsLocalUser(false); setNewUserEmail(''); setNewUserFullName(''); setCreateUserOpen(true); }}
@@ -674,16 +668,6 @@ export default function KlinikaAdmin() {
                             <UserPlus className="mr-2 h-4 w-4" />
                             Új felhasználó
                           </GalaxyButton>
-                          {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setIsLocalUser(true); setNewUserEmail(''); setNewUserPassword(''); setNewUserConfirmPassword(''); setNewUserFullName(''); setCreateUserOpen(true); }}
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Helyi felhasználó
-                            </Button>
-                          )}
                         </div>
 
                         {/* Unified invite/create dialog — role is pre-set by the button that opened it */}
@@ -739,6 +723,24 @@ export default function KlinikaAdmin() {
                                   <p className="text-xs text-muted-foreground">
                                     Ha nem tartalmaz @ jelet, automatikusan @{companyName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'local'}.com végződést kap
                                   </p>
+                                </div>
+                              )}
+                              {isAdmin && (
+                                <div className="flex items-center gap-2 pt-1">
+                                  <Checkbox
+                                    id="local-user-toggle"
+                                    checked={isLocalUser}
+                                    onCheckedChange={(checked) => {
+                                      setIsLocalUser(!!checked);
+                                      setNewUserEmail('');
+                                      setNewUserPassword('');
+                                      setNewUserConfirmPassword('');
+                                      setNewUserFullName('');
+                                    }}
+                                  />
+                                  <Label htmlFor="local-user-toggle" className="text-sm font-medium cursor-pointer">
+                                    Helyi felhasználó (jelszóval, email meghívó nélkül)
+                                  </Label>
                                 </div>
                               )}
                               {!isLocalUser && (
@@ -1058,8 +1060,6 @@ export default function KlinikaAdmin() {
         </Tabs>
       </div>
 
-      {/* Tour help button - fixed position at bottom right */}
-      {!showTour && <TourHelpButton onClick={handleStartTour} />}
 
       {/* Onboarding Tour */}
       <OnboardingTour

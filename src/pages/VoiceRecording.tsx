@@ -367,17 +367,14 @@ export default function VoiceRecording() {
     return (
       <div className="space-y-6">
         <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-          <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-          <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
-
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[hsl(268_42%_72%)] via-[hsl(263_28%_80%)] to-[hsl(255_13%_88%)] dark:from-primary dark:via-primary/70 dark:to-accent flex items-center justify-center glow-purple">
                 <Mic className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[hsl(268_52%_50%)] via-[hsl(263_32%_65%)] to-[hsl(255_18%_74%)] dark:from-primary dark:via-primary/60 dark:to-accent bg-clip-text text-transparent">
                 Hangfelvétel
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -431,17 +428,14 @@ export default function VoiceRecording() {
   return (
     <div className="space-y-6">
       <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-        <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-        <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
-
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+            <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[hsl(268_42%_72%)] via-[hsl(263_28%_80%)] to-[hsl(255_13%_88%)] dark:from-primary dark:to-accent flex items-center justify-center glow-purple">
               <Mic className="h-7 w-7 text-primary-foreground" />
             </div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[hsl(268_52%_50%)] via-[hsl(263_32%_65%)] to-[hsl(255_18%_74%)] dark:from-primary dark:via-primary/60 dark:to-accent bg-clip-text text-transparent">
               Hangfelvétel
             </h1>
             <p className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -613,7 +607,7 @@ export default function VoiceRecording() {
                 <Button
                   size="lg"
                   variant={isRecording ? 'destructive' : 'default'}
-                  className="h-20 w-20 rounded-full"
+                  className="h-20 w-20 rounded-full primary-btn-gradient dark:bg-gradient-to-br dark:from-[hsl(270_70%_60%)] dark:via-[hsl(250_65%_55%)] dark:to-[hsl(195_85%_50%)] dark:hover:shadow-lg dark:hover:shadow-[hsl(270_70%_60%)/0.4]"
                   onClick={handleToggleRecording}
                 >
                   {isRecording ? (

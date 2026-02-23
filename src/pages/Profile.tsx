@@ -32,7 +32,7 @@ import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
 import { X, Check, User, Building2, MapPin, Phone, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
-import { OnboardingTour, TourHelpButton, TourStep } from '@/components/klinika/OnboardingTour';
+import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { PageLoader } from '@/components/PageLoader';
 import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
@@ -332,8 +332,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Tour help button - fixed position */}
-      {!showTour && <TourHelpButton onClick={startTour} />}
 
       <Card>
         <CardHeader>

@@ -12,7 +12,7 @@ import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import {
   Users, Calendar, Stethoscope, TrendingUp,
   Globe, TestTube, Link2, BookOpen, ClipboardList,
-  CheckCircle2, Circle, Sparkles, Star,
+  CheckCircle2, Circle,
   Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle
 } from 'lucide-react';
 import { PageLoader } from '@/components/PageLoader';
@@ -381,17 +381,20 @@ export default function Dashboard() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-card via-card to-primary/5 p-6 border border-primary/20 dark:border-sparkle-blue/20">
-        <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-pulse" />
-        <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
+
 
         <div className="flex items-center gap-4">
-          <div className={cn(
-            "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500",
-            allComplete
-              ? "bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30"
-              : "bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30",
-          )}>
+          <div
+            className={cn(
+              "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
+              !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
+            )}
+            style={allComplete
+              ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
+              : undefined
+            }
+          >
             {allComplete ? (
               <PartyPopper className="h-7 w-7 text-white" />
             ) : (

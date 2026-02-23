@@ -11,7 +11,6 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Plus,
   Search,
   Pencil,
   Trash2,
@@ -22,7 +21,6 @@ import {
   Filter,
   FileUp,
   RefreshCw,
-  Sparkles,
   Flag,
   Power,
   Link2,
@@ -963,25 +961,18 @@ export function KezelesiSzabalyokTab({
               disabled={generating || loading}
               className="relative"
             >
-              {generating || loading ? (
+              {(generating || loading) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
               )}
               {loading ? 'Szabályok betöltése...' : generating ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
             </GalaxyButton>
-            <Button
-              variant="outline"
+            <GalaxyButton
               size="icon"
               onClick={loadRules}
               disabled={loading}
               title="Frissítés"
             >
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            </Button>
-            <GalaxyButton onClick={handleNewRule}>
-              <Plus className="h-4 w-4 mr-2" />
-              Új szabály
             </GalaxyButton>
           </div>
         </div>
@@ -991,13 +982,17 @@ export function KezelesiSzabalyokTab({
         {/* Sub-tabs for List / Upload */}
         <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as any)}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Szabályok ({rules.length})
+            <TabsTrigger value="list" className="data-[state=active]:subtab-pulse data-[state=active]:!bg-[hsl(265_30%_85%)] dark:data-[state=active]:!bg-background group">
+              <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
+                <FileText className="h-4 w-4" />
+                Szabályok ({rules.length})
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <FileUp className="h-4 w-4" />
-              PDF Feltöltés
+            <TabsTrigger value="upload" className="data-[state=active]:subtab-pulse data-[state=active]:!bg-[hsl(265_30%_85%)] dark:data-[state=active]:!bg-background group">
+              <span className="flex items-center gap-2 transition-transform duration-500 group-hover:scale-[1.25]">
+                <FileUp className="h-4 w-4" />
+                PDF Feltöltés
+              </span>
             </TabsTrigger>
           </TabsList>
 

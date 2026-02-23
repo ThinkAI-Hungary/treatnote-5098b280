@@ -13,58 +13,70 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 
 @layer base {
   :root {
-    --background: 240 10% 96%;
-    --foreground: 260 30% 15%;
+    /* ── Background: really light silver — just barely not white ── */
+    --background: 255 8% 97%;
+    /* near-silver, faintly purple-tinted */
+    --foreground: 262 50% 13%;
+    /* deep purple-charcoal text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 260 30% 15%;
+    --card: 255 5% 98.5%;
+    /* almost-white, float above bg */
+    --card-foreground: 262 50% 13%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 260 30% 15%;
+    --popover: 255 5% 98.5%;
+    --popover-foreground: 262 50% 13%;
 
-    --primary: 270 60% 55%;
+    /* ── Brand purple ── */
+    --primary: 268 60% 52%;
+    /* vivid purple CTA */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 260 20% 92%;
-    --secondary-foreground: 260 30% 25%;
+    /* ── Secondary / muted ── */
+    --secondary: 263 20% 92%;
+    --secondary-foreground: 263 45% 22%;
 
-    --muted: 260 15% 92%;
-    --muted-foreground: 260 10% 45%;
+    --muted: 263 15% 93%;
+    --muted-foreground: 263 20% 44%;
 
-    --accent: 195 90% 55%;
-    --accent-foreground: 195 90% 15%;
+    /* ── Accent: silver-lavender ── */
+    --accent: 255 14% 72%;
+    --accent-foreground: 262 45% 18%;
 
-    --destructive: 0 70% 55%;
+    /* ── Semantic ── */
+    --destructive: 0 68% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 260 20% 88%;
-    --input: 260 20% 88%;
-    --ring: 270 60% 55%;
+    --warning: 25 95% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --warning: 25 95% 55%;
-    --warning-foreground: 25 95% 15%;
+    /* ── Borders: very soft ── */
+    --border: 263 16% 89%;
+    --input: 263 16% 89%;
+    --ring: 268 55% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 260 25% 98%;
-    --sidebar-foreground: 260 20% 30%;
-    --sidebar-primary: 270 60% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 195 80% 92%;
-    --sidebar-accent-foreground: 195 90% 25%;
-    --sidebar-border: 260 20% 90%;
-    --sidebar-ring: 270 60% 55%;
+    /* ── Sidebar — light lavender-silver panel ── */
+    --sidebar-background: 265 14% 94%;
+    --sidebar-foreground: 265 42% 20%;
+    --sidebar-primary: 268 28% 78%;
+    --sidebar-primary-foreground: 262 48% 16%;
+    --sidebar-accent: 265 18% 91%;
+    --sidebar-accent-foreground: 265 50% 20%;
+    --sidebar-border: 265 14% 88%;
+    --sidebar-ring: 268 40% 72%;
 
-    /* Galaxy theme specific */
+    /* ── Galaxy tokens ── */
     --galaxy-purple: 270 60% 55%;
     --galaxy-purple-dark: 270 70% 35%;
     --galaxy-purple-light: 270 50% 75%;
-    --sparkle-blue: 195 90% 55%;
-    --sparkle-blue-light: 195 80% 75%;
-    --sparkle-blue-dark: 195 90% 35%;
+    --sparkle-blue: 255 18% 72%;
+    --sparkle-blue-light: 255 14% 82%;
+    --sparkle-blue-dark: 255 20% 52%;
     --nebula-pink: 300 60% 60%;
     --star-white: 60 10% 95%;
   }
+
 
   .dark {
     --background: 260 40% 6%;
@@ -129,6 +141,33 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     @apply bg-background text-foreground;
   }
 
+  /* Light mode: silver (top) → lavender → light purple (bottom) */
+  :root body {
+    background:
+      linear-gradient(to bottom,
+        hsl(255 8% 97%) 0%,
+        hsl(260 18% 95%) 30%,
+        hsl(263 28% 92%) 65%,
+        hsl(267 38% 88%) 100%) fixed;
+    background-attachment: fixed;
+  }
+
+  /* Dark mode keeps the flat dark background */
+  .dark body {
+    background: hsl(var(--background));
+    background-attachment: unset;
+  }
+
+  /* Sidebar: transparent so the body's fixed-gradient shows through, keeping colour-match on scroll */
+  :root:not(.dark) [data-sidebar="sidebar"] {
+    background: transparent;
+  }
+
+  /* Dark mode keeps the sidebar's own dark background */
+  .dark [data-sidebar="sidebar"] {
+    background: hsl(var(--sidebar-background));
+  }
+
   /* Focus styles - completely removed white flash and focus ring on click */
   *:focus {
     @apply outline-none ring-0 ring-offset-0;
@@ -190,6 +229,81 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     @apply bg-card/80 backdrop-blur-xl border border-galaxy-purple/30 shadow-[0_0_15px_-5px_hsl(var(--galaxy-purple)/0.3)];
   }
 
+  /* Light-mode button gradient: light purple → lavender → silver */
+  .primary-btn-gradient {
+    background: linear-gradient(135deg,
+        hsl(268 30% 82%) 0%,
+        hsl(263 22% 87%) 50%,
+        hsl(255 12% 92%) 100%);
+    color: hsl(262 48% 16%);
+    border: 1px solid hsl(265 18% 87%);
+    box-shadow: 0 1px 3px hsl(265 20% 80% / 0.2);
+  }
+
+  .primary-btn-gradient:hover {
+    background: linear-gradient(135deg,
+        hsl(268 35% 78%) 0%,
+        hsl(263 26% 84%) 50%,
+        hsl(255 14% 89%) 100%);
+  }
+
+  .dark .primary-btn-gradient {
+    background: transparent;
+    color: inherit;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Galaxy gradient button — dedicated class that overrides primary-btn-gradient */
+  .galaxy-gradient {
+    background: linear-gradient(to right,
+        hsl(268 30% 82%),
+        hsl(263 22% 87%),
+        hsl(255 12% 92%)) !important;
+    color: hsl(262 48% 16%);
+    border: 1px solid hsl(265 18% 87%);
+    box-shadow: 0 1px 3px hsl(265 20% 80% / 0.2);
+  }
+
+  .galaxy-gradient:hover {
+    background: linear-gradient(to right,
+        hsl(268 35% 78%),
+        hsl(263 26% 84%),
+        hsl(255 14% 89%)) !important;
+  }
+
+  .dark .galaxy-gradient {
+    background: linear-gradient(to right,
+        hsl(270 70% 60%),
+        hsl(250 65% 55%),
+        hsl(195 85% 50%)) !important;
+    color: white;
+    border: 1px solid hsl(270 50% 45% / 0.3);
+    box-shadow: 0 1px 6px hsl(270 60% 40% / 0.3);
+  }
+
+  .dark .galaxy-gradient:hover {
+    background: linear-gradient(to right,
+        hsl(270 70% 65%),
+        hsl(250 65% 60%),
+        hsl(195 85% 55%)) !important;
+  }
+
+  /* Galaxy page-header banner */
+  .bg-galaxy-header {
+    background: linear-gradient(135deg,
+        hsl(268 22% 93%) 0%,
+        hsl(263 15% 95%) 45%,
+        hsl(255 8% 97%) 100%);
+  }
+
+  .dark .bg-galaxy-header {
+    background: linear-gradient(135deg,
+        hsl(268 35% 16%) 0%,
+        hsl(262 28% 12%) 50%,
+        hsl(255 20% 10%) 100%);
+  }
+
   /* Smooth fade animations */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out forwards;
@@ -223,12 +337,49 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     box-shadow: 0 0 20px hsl(270 70% 60% / 0.3), 0 0 40px hsl(270 70% 60% / 0.15);
   }
 
+  /* Light mode: make glow barely visible so it blends with the light header */
+  :root:not(.dark) .glow-purple {
+    box-shadow: 0 0 12px hsl(265 20% 85% / 0.25), 0 0 24px hsl(265 15% 90% / 0.12) !important;
+  }
+
+  /* Light mode: header text should be plain black, not gradient purple */
+  :root:not(.dark) .bg-clip-text.text-transparent {
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: unset !important;
+    color: hsl(0 0% 8%) !important;
+    background: none !important;
+  }
+
+  /* Light mode: tab triggers should use lavender-grey when active */
+  :root:not(.dark) [data-state="active"][role="tab"] {
+    background: hsl(265 15% 93%) !important;
+    color: hsl(0 0% 10%) !important;
+    box-shadow: 0 1px 2px hsl(265 15% 85% / 0.3) !important;
+  }
+
+  /* Light mode: checkboxes use soft lavender instead of vivid purple */
+  :root:not(.dark) [role="checkbox"] {
+    border-color: hsl(265 25% 78%) !important;
+  }
+
+  :root:not(.dark) [role="checkbox"][data-state="checked"] {
+    background-color: hsl(265 28% 78%) !important;
+    border-color: hsl(265 28% 78%) !important;
+  }
+
+  /* Light mode: selected table rows use soft lavender tint */
+  :root:not(.dark) tr.bg-primary\/10,
+  :root:not(.dark) [class*="bg-primary/10"] {
+    background-color: hsl(265 20% 94%) !important;
+  }
+
   .glow-blue {
-    box-shadow: 0 0 20px hsl(195 85% 55% / 0.3), 0 0 40px hsl(195 85% 55% / 0.15);
+    box-shadow: 0 0 20px hsl(255 20% 68% / 0.4), 0 0 40px hsl(255 20% 68% / 0.2);
   }
 
   .glow-subtle {
-    box-shadow: 0 0 30px hsl(270 70% 60% / 0.1), 0 0 60px hsl(195 85% 55% / 0.05);
+    box-shadow: 0 0 30px hsl(270 50% 65% / 0.12), 0 0 60px hsl(255 15% 72% / 0.08);
   }
 
   /* Star sparkle effect */
@@ -266,10 +417,43 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 
   .bg-galaxy-header {
-    background: linear-gradient(90deg,
-        hsl(270 70% 55% / 0.15) 0%,
-        hsl(195 85% 55% / 0.1) 50%,
-        hsl(270 70% 55% / 0.15) 100%);
+    background: linear-gradient(to right,
+        hsl(268 42% 72% / 0.25) 0%,
+        hsl(263 28% 80% / 0.18) 50%,
+        hsl(255 13% 88% / 0.12) 100%);
+  }
+
+  /* Dark mode header - subtle dark gradient */
+  .dark .bg-galaxy-header {
+    background: linear-gradient(to right,
+        hsl(270 50% 25% / 0.3) 0%,
+        hsl(265 40% 18% / 0.2) 50%,
+        hsl(260 30% 15% / 0.15) 100%);
+  }
+
+  /* Light mode: glassy see-through separator lines for sidebar and header */
+  :root:not(.dark) [data-sidebar="sidebar"] {
+    border-color: hsl(265 20% 80% / 0.4) !important;
+  }
+
+  :root:not(.dark) header.border-b {
+    border-color: hsl(265 20% 80% / 0.4) !important;
+  }
+
+  /* Light mode: soften icon gradient backgrounds (from-primary to-accent is too vivid) */
+  :root:not(.dark) .glow-purple,
+  :root:not(.dark) .rounded-lg.bg-gradient-to-br,
+  :root:not(.dark) .rounded-xl.bg-gradient-to-br {
+    background: linear-gradient(to bottom right,
+        hsl(268 30% 82%) 0%,
+        hsl(255 14% 88%) 100%) !important;
+  }
+
+  /* Card/table subtle bottom-darkening gradient in light mode */
+  :root:not(.dark) .card-table-gradient {
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        hsl(265 15% 93%) 100%);
   }
 
   /* Nebula effect for backgrounds */
@@ -282,9 +466,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse at 20% 30%, hsl(270 70% 50% / 0.1) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 70%, hsl(195 85% 50% / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, hsl(300 60% 50% / 0.05) 0%, transparent 60%);
+      radial-gradient(ellipse at 20% 30%, hsl(270 50% 60% / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, hsl(255 18% 70% / 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(265 30% 65% / 0.05) 0%, transparent 60%);
     pointer-events: none;
   }
 
@@ -366,9 +550,9 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg,
-        hsl(270 70% 55% / 0.12) 0%,
-        hsl(195 85% 55% / 0.15) 50%,
-        hsl(270 70% 55% / 0.08) 100%);
+        hsl(270 55% 60% / 0.10) 0%,
+        hsl(255 18% 72% / 0.12) 50%,
+        hsl(270 45% 65% / 0.07) 100%);
     opacity: 0;
     transition: opacity 0.5s ease-out;
     pointer-events: none;
@@ -479,7 +663,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .color-orb-1 {
     width: 400px;
     height: 400px;
-    background: hsl(270 70% 50% / 0.15);
+    background: hsl(265 45% 65% / 0.12);
     top: 10%;
     left: -100px;
     animation-delay: 0s;
@@ -488,7 +672,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .color-orb-2 {
     width: 350px;
     height: 350px;
-    background: hsl(195 85% 50% / 0.12);
+    background: hsl(255 18% 72% / 0.10);
     top: 50%;
     right: -80px;
     animation-delay: 5s;
@@ -497,7 +681,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .color-orb-3 {
     width: 300px;
     height: 300px;
-    background: hsl(300 60% 50% / 0.1);
+    background: hsl(270 40% 70% / 0.08);
     bottom: 10%;
     left: 30%;
     animation-delay: 10s;
@@ -506,7 +690,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   .color-orb-4 {
     width: 250px;
     height: 250px;
-    background: hsl(220 80% 50% / 0.08);
+    background: hsl(260 25% 75% / 0.07);
     top: 30%;
     right: 30%;
     animation-delay: 15s;
@@ -1062,15 +1246,24 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   bottom: 0;
   height: 100%;
   background: linear-gradient(to top,
-      hsl(300 70% 60% / 0.35) 0%,
-      hsl(300 65% 58% / 0.25) 25%,
-      hsl(300 60% 55% / 0.15) 50%,
-      hsl(300 55% 52% / 0.08) 75%,
+      hsl(270 70% 60% / 0.35) 0%,
+      hsl(270 65% 55% / 0.25) 25%,
+      hsl(270 60% 50% / 0.15) 50%,
+      hsl(270 55% 45% / 0.08) 75%,
       transparent 100%);
   opacity: 0;
   transition: opacity 0.5s ease-out;
   pointer-events: none;
   border-radius: inherit;
+}
+
+:root:not(.dark) .sidebar-menu-gradient::before {
+  background: linear-gradient(to top,
+      hsl(265 20% 82% / 0.4) 0%,
+      hsl(265 16% 85% / 0.28) 25%,
+      hsl(265 12% 88% / 0.16) 50%,
+      hsl(260 8% 92% / 0.08) 75%,
+      transparent 100%);
 }
 
 .sidebar-menu-gradient:hover::before {
@@ -1093,6 +1286,23 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 .sidebar-menu-gradient.active::before {
   opacity: 1;
   animation: gradientPulseSlow 6s ease-in-out infinite;
+}
+
+/* Sub-tab active pulse (very slow breathing) */
+@keyframes subtabPulse {
+
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.subtab-pulse {
+  animation: subtabPulse 8s ease-in-out infinite;
 }
 
 /* Snake border animation for dropdowns */

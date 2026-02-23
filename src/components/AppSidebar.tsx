@@ -836,7 +836,7 @@ export function AppSidebar() {
           "flex items-center gap-2 py-3",
           collapsed ? "px-2 justify-center" : "px-2"
         )}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
             T
           </div>
           {!collapsed && (
@@ -973,7 +973,7 @@ export function AppSidebar() {
                 >
                   <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage src="" />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    <AvatarFallback className="primary-btn-gradient dark:bg-primary dark:text-primary-foreground text-xs text-[hsl(262_48%_16%)] dark:text-white border-0">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>

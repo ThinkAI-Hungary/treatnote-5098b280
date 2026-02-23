@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { PageLoader } from "@/components/PageLoader";
 import { preloadCommonRoutes } from "@/lib/routePrefetch";
@@ -98,7 +97,6 @@ const App = () => {
                 <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
               </Routes>
             </BrowserRouter>
-            <ThemeToggle />
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

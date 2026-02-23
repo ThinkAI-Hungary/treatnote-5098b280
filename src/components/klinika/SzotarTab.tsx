@@ -11,6 +11,7 @@ import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { toast } from 'sonner';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
+import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
@@ -547,19 +548,19 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
               <div className="flex items-center gap-0">
                 <Button
                   disabled
-                  className={`${buttonBaseClass} rounded-r-none border-r-0 bg-gradient-to-r from-primary to-accent text-primary-foreground`}
+                  className={`${buttonBaseClass} rounded-r-none border-r-0 galaxy-gradient`}
                 >
                   {szotarButtonContent}
                 </Button>
                 <Button
                   onClick={() => setProbaPaciensDialogOpen(true)}
-                  className="rounded-none border-r-0 border-l border-primary-foreground/20 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
+                  className="rounded-none border-r-0 border-l border-primary-foreground/20 hover:opacity-90 galaxy-gradient"
                 >
                   {probaButtonContent}
                 </Button>
                 <Button
                   onClick={() => setDomainDialogOpen(true)}
-                  className="rounded-l-none border-l border-primary-foreground/20 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
+                  className="rounded-l-none border-l border-primary-foreground/20 hover:opacity-90 galaxy-gradient"
                 >
                   {domainButtonContent}
                 </Button>
@@ -579,19 +580,19 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         <Button
           onClick={handleGenerateSzotar}
           disabled={buttonState.disabled}
-          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-r-none"
+          className="hover:opacity-90 rounded-r-none galaxy-gradient"
         >
           {szotarButtonContent}
         </Button>
         <Button
           onClick={() => setProbaPaciensDialogOpen(true)}
-          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-none border-l border-primary-foreground/20"
+          className="hover:opacity-90 rounded-none border-l border-primary-foreground/20 galaxy-gradient"
         >
           {probaButtonContent}
         </Button>
         <Button
           onClick={() => setDomainDialogOpen(true)}
-          className="bg-gradient-to-r from-primary to-accent hover:opacity-90 rounded-l-none border-l border-primary-foreground/20"
+          className="hover:opacity-90 rounded-l-none border-l border-primary-foreground/20 galaxy-gradient"
         >
           {domainButtonContent}
         </Button>
@@ -671,13 +672,12 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 <span className="text-sm text-muted-foreground">FlexiDent domain:</span>
                 <span className="font-medium">{flexiDomain}.flexi-dent.hu</span>
               </div>
-              <Button
-                variant="ghost"
+              <GalaxyButton
                 size="sm"
                 onClick={() => setDomainDialogOpen(true)}
               >
                 Szerkesztés
-              </Button>
+              </GalaxyButton>
             </div>
           </CardHeader>
         </AnimatedCard>
@@ -693,13 +693,12 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 <span className="text-sm text-muted-foreground">Próbapáciens:</span>
                 <span className="font-medium">{probaPaciensNeve}</span>
               </div>
-              <Button
-                variant="ghost"
+              <GalaxyButton
                 size="sm"
                 onClick={() => setProbaPaciensDialogOpen(true)}
               >
                 Szerkesztés
-              </Button>
+              </GalaxyButton>
             </div>
           </CardHeader>
         </AnimatedCard>

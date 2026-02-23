@@ -233,7 +233,7 @@ function HistoryPopup({
           if (!v) { cancelHoverClear(); setHoveredJob(null); }
         }}
       >
-        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 gap-0 border-primary/20 bg-card/98 backdrop-blur-md overflow-hidden">
+        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 gap-0 border-primary/20 bg-[hsl(240_10%_82%)] text-black dark:bg-card/98 dark:text-foreground backdrop-blur-md overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-border/40 flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5 text-primary" />

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import {
   Shield, Users, FolderTree, Plus,
   AlertTriangle,
-  Building2, Eye, EyeOff, Loader2, Sparkles, Star, RefreshCw
+  Building2, Eye, EyeOff, Loader2, RefreshCw
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
@@ -509,12 +509,7 @@ export default function Admin() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Background layer */}
-      <div className="fixed inset-0 z-0">
-        <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
-          <StarField />
-          <div className="absolute inset-0 pointer-events-none nebula-overlay" />
-        </div>
-      </div>
+
 
       {/* Content layer */}
       <div
@@ -522,9 +517,6 @@ export default function Admin() {
       >
         {/* Header */}
         <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-          <Sparkles className="absolute top-4 right-4 h-6 w-6 text-accent/50 animate-float" style={{ willChange: 'transform' }} />
-          <Star className="absolute bottom-4 right-12 h-4 w-4 text-primary/40 animate-float" style={{ animationDelay: '1s', willChange: 'transform' }} />
-
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
