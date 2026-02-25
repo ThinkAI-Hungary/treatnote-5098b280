@@ -287,9 +287,10 @@ async function updateJobStatus(
   }
 }
 
-// Background processing function for PDF upload with auto-retry
+// Synchronous processing function for PDF upload with auto-retry
+// Runs within the main request (150s limit) — no more EdgeRuntime.waitUntil()
 // deno-lint-ignore no-explicit-any
-async function processPdfInBackground(
+async function processPdf(
   supabase: any,
   jobId: string,
   webhookUrl: string,
@@ -299,8 +300,9 @@ async function processPdfInBackground(
   hexDigest: string,
   telephely_id: string,
   eventId: string
-): Promise<void> {
-  console.log(`[Background ${eventId}] Starting PDF webhook processing (job: ${jobId})...`);
+): Promise<{ inserted: number; duplicates: number; embeddings: { success: number; failed: number } }> {
+  const result = { inserted: 0, duplicates: 0, embeddings: { success: 0, failed: 0 } };
+  console.log(`[${eventId}] Starting PDF webhook processing (job: ${jobId})...`);
 
   try {
     // Helper: call a single webhook URL once
@@ -340,7 +342,7 @@ async function processPdfInBackground(
 
     // Auto-retry loop: attempt 1 + 3 retries (30s, 60s, 90s delays)
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      console.log(`[Background ${eventId}] Attempt ${attempt}/${MAX_ATTEMPTS}`);
+      console.log(`[${eventId}] Attempt ${attempt}/${MAX_ATTEMPTS}`);
       await updateJobStatus(supabase, jobId, 'processing', { attempt });
 
       // Try primary, then secondary
@@ -348,7 +350,7 @@ async function processPdfInBackground(
       let successfulResult = primaryResult;
 
       if (!primaryResult.success) {
-        console.log(`[Background ${eventId}] Primary failed (${primaryResult.error}), trying secondary...`);
+        console.log(`[${eventId}] Primary failed (${primaryResult.error}), trying secondary...`);
         const secondaryResult = await callWebhookOnce(secondaryWebhookUrl, 'SECONDARY');
         if (secondaryResult.success) {
           successfulResult = secondaryResult;
@@ -361,12 +363,9 @@ async function processPdfInBackground(
           || (successfulResult.responseData.body as Record<string, unknown>)?.extractions;
 
         if (extractionsData && Array.isArray(extractionsData)) {
-          console.log(`[Background ${eventId}] Got ${extractionsData.length} extractions, inserting into DB...`);
+          console.log(`[${eventId}] Got ${extractionsData.length} extractions, inserting into DB...`);
 
           const extractions = extractionsData as ExtractionItem[];
-          let insertedCount = 0;
-          let duplicateCount = 0;
-          const embeddingStats = { success: 0, failed: 0 };
 
           for (const extraction of extractions) {
             if (!extraction.fogalom) {
@@ -389,7 +388,7 @@ async function processPdfInBackground(
             if (ruleError) {
               if (ruleError.code === '23505') {
                 console.log(`Duplicate: ${extraction.fogalom}`);
-                duplicateCount++;
+                result.duplicates++;
                 continue;
               } else {
                 console.error('Rule insert error:', ruleError);
@@ -434,50 +433,48 @@ async function processPdfInBackground(
 
             // Embedding generation
             const ruleEmbeddingStats = await saveEmbeddings(supabase, ruleData.id, extraction.semantic_description || null, allItemNames);
-            embeddingStats.success += ruleEmbeddingStats.success;
-            embeddingStats.failed += ruleEmbeddingStats.failed;
-            insertedCount++;
+            result.embeddings.success += ruleEmbeddingStats.success;
+            result.embeddings.failed += ruleEmbeddingStats.failed;
+            result.inserted++;
           }
 
-          console.log(`[Background ${eventId}] Complete: ${insertedCount} inserted, ${duplicateCount} duplicates`);
-          console.log(`[Background ${eventId}] Embeddings: ${embeddingStats.success} success, ${embeddingStats.failed} failed`);
+          console.log(`[${eventId}] Complete: ${result.inserted} inserted, ${result.duplicates} duplicates`);
+          console.log(`[${eventId}] Embeddings: ${result.embeddings.success} success, ${result.embeddings.failed} failed`);
 
-          await updateJobStatus(supabase, jobId, 'completed', { extractions_count: insertedCount });
-          return; // Success — exit retry loop
+          await updateJobStatus(supabase, jobId, 'completed', { extractions_count: result.inserted });
+          return result; // Success — exit retry loop
         }
 
         // Webhook succeeded but no extractions
-        console.log(`[Background ${eventId}] Webhook succeeded but no extractions in response`);
+        console.log(`[${eventId}] Webhook succeeded but no extractions in response`);
         await updateJobStatus(supabase, jobId, 'completed', { extractions_count: 0 });
-        return;
+        return result;
       }
 
       // This attempt failed — mark error and wait before retry
       const errorMsg = successfulResult.error || 'Unknown error';
-      console.error(`[Background ${eventId}] Attempt ${attempt} failed: ${errorMsg}`);
+      console.error(`[${eventId}] Attempt ${attempt} failed: ${errorMsg}`);
       await updateJobStatus(supabase, jobId, 'error', { error_message: errorMsg, attempt });
 
       if (attempt < MAX_ATTEMPTS) {
         const delay = RETRY_DELAYS[attempt - 1];
-        console.log(`[Background ${eventId}] Waiting ${delay / 1000}s before retry ${attempt + 1}...`);
+        console.log(`[${eventId}] Waiting ${delay / 1000}s before retry ${attempt + 1}...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
-    console.error(`[Background ${eventId}] All ${MAX_ATTEMPTS} attempts exhausted`);
+    console.error(`[${eventId}] All ${MAX_ATTEMPTS} attempts exhausted`);
+    return result;
 
   } catch (fatalError) {
-    console.error(`[Background ${eventId}] Fatal error:`, fatalError);
+    console.error(`[${eventId}] Fatal error:`, fatalError);
     await updateJobStatus(supabase, jobId, 'error', {
       error_message: `Fatal: ${fatalError instanceof Error ? fatalError.message : String(fatalError)}`,
     });
+    return result;
   }
 }
 
-// Declare EdgeRuntime for Deno
-declare const EdgeRuntime: {
-  waitUntil: (promise: Promise<unknown>) => void;
-};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -582,23 +579,23 @@ serve(async (req) => {
       }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 🚀 Start background processing
-    EdgeRuntime.waitUntil(
-      processPdfInBackground(
-        supabase, jobData.id, webhookUrl, secondaryWebhookUrl,
-        hmacSecret, payloadString, hexDigest, telephely_id, eventId
-      )
+    // Process synchronously (no more EdgeRuntime.waitUntil)
+    const pdfResult = await processPdf(
+      supabase, jobData.id, webhookUrl, secondaryWebhookUrl,
+      hmacSecret, payloadString, hexDigest, telephely_id, eventId
     );
 
-    // 🚀 Return immediately
+    // Return actual results to frontend
     return new Response(JSON.stringify({
       ok: true,
-      status: 'started',
+      status: 'processed',
       event_id: eventId,
       batch_id: batchId,
       job_id: jobData.id,
-      message: 'PDF feldolgozás elindult háttérben',
-    }), { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      inserted: pdfResult.inserted,
+      duplicates: pdfResult.duplicates,
+      embeddings: pdfResult.embeddings,
+    } as SuccessResponse), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
     console.error('Unexpected error in szabalyepito-teszt-webhook:', error);

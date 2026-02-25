@@ -39,6 +39,7 @@ import { hu } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useTheme } from '@/components/ThemeProvider';
+import { notifyRulesDataChanged } from '@/lib/rulesEvents';
 
 // --- Sort helpers ---
 type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
@@ -236,21 +237,43 @@ export function KezelesiSzabalyokTab({
           filter: `clinic_id=eq.${telephelyId}`,
         },
         async (payload: { new: { id: string } }) => {
-          const { data: newRule, error } = await supabase
-            .from('treatment_rules')
-            .select(`
-              *,
-              visits:rule_visits(
+          // Helper to fetch a rule with its visits + items
+          const fetchRuleWithDetails = async (ruleId: string) => {
+            const { data, error } = await supabase
+              .from('treatment_rules')
+              .select(`
                 *,
-                items:rule_items(*)
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single();
+                visits:rule_visits(
+                  *,
+                  items:rule_items(*)
+                )
+              `)
+              .eq('id', ruleId)
+              .single();
+            return { data, error };
+          };
+
+          const countItems = (rule: any) =>
+            (rule.visits || []).reduce((sum: number, v: any) => sum + (v.items?.length || 0), 0);
+
+          // Wait 2s before first fetch — processPdf inserts visits/items
+          // AFTER the rule row, so the Realtime event fires too early.
+          await new Promise(r => setTimeout(r, 2000));
+
+          let { data: newRule, error } = await fetchRuleWithDetails(payload.new.id);
 
           if (error || !newRule) {
             console.error('Error fetching new rule via Realtime:', error);
             return;
+          }
+
+          // If still 0 items, retry once after 3s (n8n + DB round-trip can be slow)
+          if (countItems(newRule) === 0) {
+            await new Promise(r => setTimeout(r, 3000));
+            const retry = await fetchRuleWithDetails(payload.new.id);
+            if (!retry.error && retry.data) {
+              newRule = retry.data;
+            }
           }
 
           const ruleWithDetails = {
@@ -882,6 +905,7 @@ export function KezelesiSzabalyokTab({
                   setBackgroundProcessing(false);
                   if (completed > 0) {
                     toast.success(`Szabályok generálva! ${completed}/${total} sikeres${errors > 0 ? `, ${errors} hibás` : ''}`);
+                    notifyRulesDataChanged();
                   } else {
                     toast.error(`Minden protokoll hibás (${errors}/${total})`);
                   }
@@ -893,6 +917,7 @@ export function KezelesiSzabalyokTab({
             if (pollCount >= maxPolls) {
               clearInterval(pollInterval);
               setBackgroundProcessing(false);
+              notifyRulesDataChanged();
               toast.info('Generálás időtúllépés — ellenőrizze az eredményt');
             }
           }, 3000);
@@ -933,7 +958,7 @@ export function KezelesiSzabalyokTab({
 
   return (
     <AnimatedCard data-tour="kezelesi-szabalyok">
-      <CardHeader className="pb-4">
+      <CardHeader data-tour="ksz-header" className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -958,7 +983,7 @@ export function KezelesiSzabalyokTab({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div data-tour="ksz-generate" className="flex items-center gap-2">
             <GalaxyButton
               size="icon"
               onClick={loadRules}
@@ -969,13 +994,13 @@ export function KezelesiSzabalyokTab({
             </GalaxyButton>
             <GalaxyButton
               onClick={handleGenerateFromDictionary}
-              disabled={generating || loading}
+              disabled={generating || backgroundProcessing || loading}
               className="relative"
             >
-              {(generating || loading) && (
+              {(generating || backgroundProcessing || loading) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              {loading ? 'Szabályok betöltése...' : generating ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
+              {loading ? 'Szabályok betöltése...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
             </GalaxyButton>
           </div>
         </div>
@@ -984,7 +1009,7 @@ export function KezelesiSzabalyokTab({
       <CardContent className="space-y-4">
         {/* Sub-tabs for List / Upload */}
         <Tabs value={activeSubTab} onValueChange={(v) => setActiveSubTab(v as any)}>
-          <TabsList className="grid w-full grid-cols-2 gap-0">
+          <TabsList data-tour="ksz-subtabs" className="grid w-full grid-cols-2 gap-0">
             <TabsTrigger
               value="list"
               className="data-[state=active]:subtab-pulse group rounded-r-none border-r border-border"
@@ -1010,7 +1035,7 @@ export function KezelesiSzabalyokTab({
           {/* List Tab */}
           <TabsContent value="list" className="mt-4 space-y-4">
             {/* Filters */}
-            <div className="flex gap-4">
+            <div data-tour="ksz-search" className="flex gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -1073,7 +1098,7 @@ export function KezelesiSzabalyokTab({
             </div>
 
             {/* Rules table */}
-            <div className="border rounded-lg overflow-hidden">
+            <div data-tour="ksz-table" className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">

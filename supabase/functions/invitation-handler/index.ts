@@ -491,7 +491,7 @@ serve(async (req) => {
             } catch { }
           }
 
-          const invitationUrl = `${baseUrl}/${isNewUser ? 'register' : 'accept-invitation'}?token=${invitationToken}`;
+          const invitationUrl = `${baseUrl}/accept-invitation?token=${invitationToken}`;
 
           console.log(`Invitation created for ${email} (New User: ${isNewUser})`);
           console.log(`Invitation URL: ${invitationUrl}`);

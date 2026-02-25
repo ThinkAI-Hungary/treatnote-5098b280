@@ -24,6 +24,7 @@ async function generateEmbeddings(texts: string[], openaiApiKey: string): Promis
     body: JSON.stringify({
       model: "text-embedding-3-large",
       input: texts,
+      dimensions: 1536,
     }),
   });
 

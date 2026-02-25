@@ -13,11 +13,14 @@ export interface TourStep {
   switchToTab?: string;
   requiredTab?: string;
   spotlightYOffset?: number;
-  hideNav?: boolean;   // Hide ALL prev/next buttons (only Kihagyás)
-  hideNext?: boolean;  // Hide only Kihagyás (keep Előző) — for action-gated steps
+  hideNav?: boolean;    // Hide ALL prev/next buttons (only Kihagyás)
+  hideNext?: boolean;   // Hide Next button but keep Előző; Kihagyás still shown unless hideSkip
+  hideSkip?: boolean;   // Hide the Kihagyás (skip) button in the footer
   interactive?: boolean; // Overlay becomes pointer-events-none so spotlight element stays clickable
+  showArrows?: boolean;  // Render animated gradient arrows on the sides of the spotlight
   displayStep?: number;  // Override the counter numerator (e.g. 1)
   displayTotal?: number; // Override the counter denominator (e.g. 3)
+  noScroll?: boolean;    // Don't scroll to element — use its current viewport rect as-is
 }
 
 interface OnboardingTourProps {
@@ -42,17 +45,17 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
   const [arrowPosition, setArrowPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const [tooltipSize, setTooltipSize] = useState({ width: 350, height: 200 });
 
-  // Reset to first step when tour opens
-  useEffect(() => {
+  // Reset to first step when tour opens — useLayoutEffect so it's synchronous before paint
+  useLayoutEffect(() => {
     if (isOpen) {
       setCurrentStep(externalStep ?? 0);
     }
-  }, [isOpen]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync external step when it changes (reactive tour driving)
-  useEffect(() => {
+  // Sync external step when VoiceRecording drives it (record/stop buttons)
+  // useLayoutEffect: step state updates BEFORE the browser paints, avoiding a flicker frame
+  useLayoutEffect(() => {
     if (isOpen && externalStep !== undefined) {
       setCurrentStep(externalStep);
     }
@@ -77,12 +80,14 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     // Ensure the target is fully on-screen BEFORE measuring spotlight.
     // Otherwise the glow/outline can get clipped by the viewport edge.
     const preRect = element.getBoundingClientRect();
-    const edgeBuffer = 40;
-    const isNearTop = preRect.top < edgeBuffer;
-    const isNearBottom = preRect.bottom > window.innerHeight - edgeBuffer;
-    if (isNearTop || isNearBottom) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+    if (!step.noScroll) {
+      const edgeBuffer = 40;
+      const isNearTop = preRect.top < edgeBuffer;
+      const isNearBottom = preRect.bottom > window.innerHeight - edgeBuffer;
+      if (isNearTop || isNearBottom) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
     }
 
     const rect = preRect;
@@ -114,8 +119,11 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
       height: Math.max(0, clampedBottom - clampedTop),
     });
 
-    const tooltipWidth = tooltipSize.width;
-    const tooltipHeight = tooltipSize.height;
+    // Read tooltip size directly from the DOM — synchronous, no async state needed.
+    // Falls back to reasonable defaults if the tooltip isn't mounted yet.
+    const tooltipEl = tooltipRef.current;
+    const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 350;
+    const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 200;
     const gap = 20; // Gap between highlight border and tooltip
 
     let top = 0;
@@ -219,9 +227,11 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     setArrowPosition(arrow);
 
     // Scroll is handled near the start of this function to avoid viewport-edge clipping.
-  }, [currentStep, isOpen, steps, tooltipSize.width, tooltipSize.height]);
+  }, [currentStep, isOpen, steps]);
 
-  useEffect(() => {
+  // useLayoutEffect: fires synchronously after DOM mutations, before the browser paints.
+  // This means positions are always correct on the very first painted frame after a step change.
+  useLayoutEffect(() => {
     calculatePosition();
     window.addEventListener('resize', calculatePosition);
     window.addEventListener('scroll', calculatePosition, true);
@@ -232,35 +242,13 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
     };
   }, [calculatePosition]);
 
+  // Notify parent when step changes (keeps activeTourStep in VoiceRecording in sync
+  // when the user presses Előző/Következő inside the tour itself)
   useEffect(() => {
-    // Notify parent of step change (for tab switching etc.)
     if (isOpen && steps[currentStep] && onStepChange) {
       onStepChange(steps[currentStep], currentStep);
     }
   }, [currentStep, isOpen, steps, onStepChange]);
-
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-    // Measure tooltip height/width (content-dependent) to avoid clipping into the highlighted element
-    const raf = requestAnimationFrame(() => {
-      const el = tooltipRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      // Avoid pointless rerenders
-      setTooltipSize((prev) =>
-        prev.width === r.width && prev.height === r.height
-          ? prev
-          : { width: r.width, height: r.height }
-      );
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [isOpen, currentStep, steps.length]);
-
-  useEffect(() => {
-    // Recalculate after a small delay to allow DOM updates
-    const timeout = setTimeout(calculatePosition, 100);
-    return () => clearTimeout(timeout);
-  }, [currentStep, calculatePosition]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -380,6 +368,48 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
             />
           )}
 
+          {/* Directional arrows pointing at the spotlight (showArrows steps) */}
+          {step.showArrows && targetRect && (
+            <>
+              {/* Left arrow — tip points RIGHT (inward toward button) */}
+              <motion.div
+                key={`arrow-left-${currentStep}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, x: [0, 8, 0] }}
+                transition={{ opacity: { duration: 0.3 }, x: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}
+                className="fixed z-[9999] pointer-events-none"
+                style={{
+                  top: targetRect.top + targetRect.height / 2 - 20,
+                  left: targetRect.left - 58,
+                  transform: 'translateY(-50%)',
+                  width: 42,
+                  height: 42,
+                  clipPath: 'polygon(0% 30%, 55% 30%, 55% 0%, 100% 50%, 55% 100%, 55% 70%, 0% 70%)',
+                  background: 'linear-gradient(to right, hsl(var(--accent)), hsl(var(--primary)))',
+                  filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.8))',
+                }}
+              />
+              {/* Right arrow — tip points LEFT (inward toward button) */}
+              <motion.div
+                key={`arrow-right-${currentStep}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, x: [0, -8, 0] }}
+                transition={{ opacity: { duration: 0.3 }, x: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}
+                className="fixed z-[9999] pointer-events-none"
+                style={{
+                  top: targetRect.top + targetRect.height / 2 - 20,
+                  left: targetRect.left + targetRect.width + 16,
+                  transform: 'translateY(-50%)',
+                  width: 42,
+                  height: 42,
+                  clipPath: 'polygon(100% 30%, 45% 30%, 45% 0%, 0% 50%, 45% 100%, 45% 70%, 100% 70%)',
+                  background: 'linear-gradient(to left, hsl(var(--accent)), hsl(var(--primary)))',
+                  filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.8))',
+                }}
+              />
+            </>
+          )}
+
           {/* Tooltip */}
           <motion.div
             ref={tooltipRef}
@@ -472,9 +502,11 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
                       />
                     ))}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground text-xs">
-                    Kihagyás
-                  </Button>
+                  {!step.hideSkip ? (
+                    <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground text-xs">
+                      Kihagyás
+                    </Button>
+                  ) : <span />}
                 </>
               ) : (
                 // Normal nav

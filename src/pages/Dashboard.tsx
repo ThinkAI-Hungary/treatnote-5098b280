@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,13 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
 import { supabase } from '@/integrations/supabase/client';
-import { notifySzotarDataChanged } from '@/lib/szotarEvents';
+import {
+  isSzotarGenerating,
+  isSzabalyokGenerating,
+  subscribeGenerationStore,
+  startSzotarGeneration,
+  startSzabalyokGeneration,
+} from '@/lib/generationStore';
 import {
   Users, Calendar, Stethoscope, TrendingUp,
   Globe, TestTube, Link2, BookOpen, ClipboardList,
@@ -72,9 +78,9 @@ export default function Dashboard() {
   const [probaDialogOpen, setProbaDialogOpen] = useState(false);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
 
-  // Loading states for webhook steps
-  const [szotarGenerating, setSzotarGenerating] = useState(false);
-  const [szabalyokGenerating, setSzabalyokGenerating] = useState(false);
+  // Generation state lives in a module-level store so it survives navigation
+  const szotarGenerating = useSyncExternalStore(subscribeGenerationStore, isSzotarGenerating);
+  const szabalyokGenerating = useSyncExternalStore(subscribeGenerationStore, isSzabalyokGenerating);
 
   // Flexi connection failure tracking
   const [flexiConnectionFailed, setFlexiConnectionFailed] = useState(false);
@@ -128,148 +134,16 @@ export default function Dashboard() {
     fetchStats();
   }, [user]);
 
-  // ── Szótár webhook trigger ──
-  const generationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const handleGenerateSzotar = useCallback(async () => {
+  // ── Szótár webhook trigger (delegates to module-level store) ──
+  const handleGenerateSzotar = useCallback(() => {
     if (!activeTelephelyId || !activeCompanyId || !user) return;
-    setSzotarGenerating(true);
-    notifySzotarDataChanged();
-    try {
-      const { data, error } = await supabase.functions.invoke('szotar-webhook', {
-        body: {
-          telephely_id: activeTelephelyId,
-          company_id: activeCompanyId,
-          user_id: user.id,
-          regenerate: false,
-        },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Ismeretlen hiba');
-      toast.success('Szótár generálása elindítva!');
-
-      // Poll for completion
-      if (generationPollRef.current) clearInterval(generationPollRef.current);
-      const startedAt = Date.now();
-      generationPollRef.current = setInterval(async () => {
-        try {
-          const { count } = await supabase
-            .from('szotar_kezelesek')
-            .select('id', { count: 'exact', head: true })
-            .eq('telephely_id', activeTelephelyId);
-          if ((count || 0) > 0) {
-            if (generationPollRef.current) clearInterval(generationPollRef.current);
-            generationPollRef.current = null;
-            await refreshSzotar();
-            notifySzotarDataChanged();
-            setSzotarGenerating(false);
-            toast.success('Szótár sikeresen generálva!');
-
-            // Trigger embeddings in background
-            supabase.functions.invoke('generate-szotar-embeddings', {
-              body: { telephely_id: activeTelephelyId }
-            }).catch(() => { });
-          }
-          if (Date.now() - startedAt > 180_000) {
-            if (generationPollRef.current) clearInterval(generationPollRef.current);
-            generationPollRef.current = null;
-            setSzotarGenerating(false);
-            toast.info('A szótár generálása még folyamatban van. Kérjük várjon.');
-          }
-        } catch {
-          // ignore poll errors
-        }
-      }, 3000);
-    } catch (err: any) {
-      console.error('Szotar generation error:', err);
-      toast.error(err.message || 'Hiba a szótár generálásakor');
-      setSzotarGenerating(false);
-    }
+    startSzotarGeneration(activeTelephelyId, activeCompanyId, user.id, refreshSzotar);
   }, [activeTelephelyId, activeCompanyId, user, refreshSzotar]);
 
-  // Cleanup polls on unmount
-  useEffect(() => {
-    return () => {
-      if (generationPollRef.current) clearInterval(generationPollRef.current);
-      if (rulesPollRef.current) clearInterval(rulesPollRef.current);
-    };
-  }, []);
-
-  // ── Szabályok generálása szótárból webhook ──
-  const rulesPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const handleGenerateRules = useCallback(async () => {
+  // ── Szabályok generálása szótárból webhook (delegates to module-level store) ──
+  const handleGenerateRules = useCallback(() => {
     if (!activeTelephelyId || !user) return;
-    setSzabalyokGenerating(true);
-    try {
-      const isRegenerate = hasRules;
-      const { data, error } = await supabase.functions.invoke('szotar-rules-webhook', {
-        body: {
-          telephely_id: activeTelephelyId,
-          user_id: user.id,
-          regenerate: isRegenerate,
-        },
-      });
-      if (error) throw new Error(error.message || 'Edge function error');
-
-      if (data?.ok && data.status === 'started' && data.batch_id) {
-        toast.success(isRegenerate ? 'Szabályok újragenerálása elindult!' : 'Szabályok generálása elindult!');
-        // Poll rule_generation_jobs by batch_id
-        if (rulesPollRef.current) clearInterval(rulesPollRef.current);
-        let pollCount = 0;
-        rulesPollRef.current = setInterval(async () => {
-          pollCount++;
-          try {
-            const { data: jobs } = await supabase
-              .from('rule_generation_jobs')
-              .select('status')
-              .eq('batch_id', data.batch_id);
-
-            if (jobs && jobs.length > 0) {
-              const completed = jobs.filter((j: { status: string }) => j.status === 'completed').length;
-              const errors = jobs.filter((j: { status: string }) => j.status === 'error').length;
-              const total = jobs.length;
-              const done = completed + errors;
-
-              if (done >= total) {
-                // All jobs finished
-                if (rulesPollRef.current) clearInterval(rulesPollRef.current);
-                rulesPollRef.current = null;
-                setSzabalyokGenerating(false);
-                if (completed > 0) {
-                  setHasRules(true);
-                  toast.success(`Szabályok generálva! ${completed}/${total} sikeres${errors > 0 ? `, ${errors} hibás` : ''}`);
-                } else {
-                  toast.error(`Minden protokoll hibás (${errors}/${total})`);
-                }
-                return;
-              }
-            }
-
-            // Safety timeout after ~5 minutes (100 polls * 3s)
-            if (pollCount >= 100) {
-              if (rulesPollRef.current) clearInterval(rulesPollRef.current);
-              rulesPollRef.current = null;
-              setSzabalyokGenerating(false);
-              setHasRules(true);
-              toast.info('Generálás időtúllépés — ellenőrizze az eredményt');
-            }
-          } catch { /* ignore polling errors */ }
-        }, 3000);
-        return;
-      } else if (data?.ok) {
-        toast.success('Kérés elküldve feldolgozásra');
-        setSzabalyokGenerating(false);
-        return;
-      } else {
-        toast.error(data?.message || 'Hiba a szabályok generálásakor');
-        setSzabalyokGenerating(false);
-      }
-    } catch (err: any) {
-      console.error('Error generating rules:', err);
-      toast.error(err.message || 'Hiba a szabályok generálásakor');
-      setSzabalyokGenerating(false);
-    }
+    startSzabalyokGeneration(activeTelephelyId, user.id, hasRules, () => setHasRules(true));
   }, [activeTelephelyId, user, hasRules]);
 
   // Gate on all step-affecting loading states so the dashboard renders stable.

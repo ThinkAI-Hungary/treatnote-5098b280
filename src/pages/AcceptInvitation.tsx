@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Building2, MapPin, Check, X } from 'lucide-react';
+import { Loader2, Building2, MapPin, Check, X, UserPlus } from 'lucide-react';
 import { StarField } from '@/components/klinika/StarField';
 
 interface InvitationDetails {
@@ -14,6 +14,7 @@ interface InvitationDetails {
   company_name: string;
   telephely_name: string;
   invited_by_name: string;
+  invited_email: string;
 }
 
 export default function AcceptInvitation() {
@@ -23,12 +24,15 @@ export default function AcceptInvitation() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [responding, setResponding] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
 
   // Verify the invitation token on mount
   useEffect(() => {
@@ -74,6 +78,20 @@ export default function AcceptInvitation() {
       if (data.error) throw new Error(data.error);
 
       setInvitation(data.invitation);
+
+      // Check if user already has an account
+      const invitedEmail = data.invitation.invited_email;
+      if (invitedEmail) {
+        try {
+          const { data: checkData } = await supabase.functions.invoke('invitation-handler', {
+            body: { operation: 'check-user', email: invitedEmail },
+          });
+          setUserExists(checkData?.exists ?? false);
+        } catch {
+          // If check fails, assume user exists (safer — shows login form)
+          setUserExists(true);
+        }
+      }
     } catch (err: any) {
       console.error('Token verification failed:', err);
       setError(err.message || 'A meghívó link érvénytelen vagy lejárt');
@@ -100,6 +118,66 @@ export default function AcceptInvitation() {
       toast.success('Sikeres bejelentkezés');
     } catch (err: any) {
       toast.error(err.message || 'Bejelentkezési hiba');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!fullName.trim()) {
+      toast.error('Kérjük adja meg a teljes nevét');
+      return;
+    }
+
+    if (!password || !confirmPassword) {
+      toast.error('Kérjük töltse ki a jelszó mezőket');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('A jelszavak nem egyeznek');
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error('A jelszónak legalább 6 karakternek kell lennie');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invitation-handler', {
+        body: {
+          operation: 'register-invited-user',
+          token,
+          password,
+          full_name: fullName.trim(),
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast.success('Sikeres regisztráció!');
+
+      // Auto login
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: password,
+      });
+
+      if (loginError) {
+        console.error('Auto login failed:', loginError);
+        toast.info('Sikeres regisztráció. Kérjük jelentkezzen be.');
+        navigate('/auth');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      console.error('Registration failed:', err);
+      toast.error(err.message || 'Hiba a regisztráció során');
     } finally {
       setLoading(false);
     }
@@ -166,17 +244,28 @@ export default function AcceptInvitation() {
     );
   }
 
+  // Determine if this is a new user registration flow
+  const isNewUserFlow = !isLoggedIn && userExists === false;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <StarField />
       <Card className="relative z-10 w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Building2 className="h-7 w-7 text-primary-foreground" />
+            {isNewUserFlow ? (
+              <UserPlus className="h-7 w-7 text-primary-foreground" />
+            ) : (
+              <Building2 className="h-7 w-7 text-primary-foreground" />
+            )}
           </div>
-          <CardTitle className="text-2xl">Meghívás elfogadása</CardTitle>
+          <CardTitle className="text-2xl">
+            {isNewUserFlow ? 'Regisztráció és meghívás elfogadása' : 'Meghívás elfogadása'}
+          </CardTitle>
           <CardDescription>
-            Meghívást kapott a következő organizációba
+            {isNewUserFlow
+              ? 'Hozza létre fiókját a meghívás elfogadásához'
+              : 'Meghívást kapott a következő organizációba'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -203,8 +292,67 @@ export default function AcceptInvitation() {
             </div>
           )}
 
-          {/* Show login form if not logged in */}
-          {!isLoggedIn ? (
+          {/* NEW USER: Registration form */}
+          {isNewUserFlow ? (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Teljes név</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Teljes neve"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Felhasználónév</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={invitation?.invited_email || ''}
+                  readOnly
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Jelszó</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Jelszó megerősítése</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Regisztráció...
+                  </>
+                ) : (
+                  'Regisztráció és elfogadás'
+                )}
+              </Button>
+            </form>
+          ) : !isLoggedIn ? (
+            /* EXISTING USER: Show login form */
             <form onSubmit={handleLogin} className="space-y-4">
               <p className="text-sm text-center text-muted-foreground">
                 Kérjük jelentkezzen be a meghívás elfogadásához
@@ -243,7 +391,7 @@ export default function AcceptInvitation() {
               </Button>
             </form>
           ) : (
-            /* Show accept/decline buttons if logged in */
+            /* LOGGED IN: Show accept/decline buttons */
             <div className="space-y-4">
               <p className="text-sm text-center text-muted-foreground">
                 Bejelentkezve: <span className="font-medium text-foreground">{email}</span>

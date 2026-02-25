@@ -604,7 +604,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     <div className="space-y-6">
       {/* Header Card */}
       <AnimatedCard>
-        <CardHeader>
+        <CardHeader data-tour="szt-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
@@ -630,7 +630,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                 </CardDescription>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div data-tour="szt-actions" className="flex flex-col items-end gap-2">
               {renderActionButtons()}
               {isInWarningState && (
                 <p className="text-xs text-muted-foreground max-w-[400px] text-right">
@@ -664,7 +664,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
 
       {/* Domain info card */}
       {hasFlexiDomain && (
-        <AnimatedCard>
+        <AnimatedCard data-tour="szt-domain">
           <CardHeader className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -706,7 +706,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
 
       {/* Content Card - Show szotar_kezelesek */}
       {hasSzotar ? (
-        <AnimatedCard>
+        <AnimatedCard data-tour="szt-kezelesek">
           <CardHeader>
             <CardTitle className="text-lg">Szótár kezelések</CardTitle>
             <CardDescription>

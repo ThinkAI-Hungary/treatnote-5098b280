@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
@@ -215,6 +215,64 @@ export default function KlinikaAdmin() {
     },
   ], []);
 
+  // Tour steps for Kezelési Szabályok tab
+  const rulesTourSteps: TourStep[] = useMemo(() => [
+    {
+      target: '[data-tour="ksz-header"]',
+      title: 'Kezelési Szabályok',
+      content: 'Itt kezelheti a klinika kezelési szabályait. A szabályok határozzák meg, hogyan értelmezze a rendszer a felvételeket és milyen tételekké alakítsa őket.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="ksz-generate"]',
+      title: 'Szabályok generálása',
+      content: 'A „Generálás szótárból" gombbal automatikusan létrehozhatja a szabályokat a feltöltött szótár alapján. Ha már vannak szabályai, az „Újragenerálás" frissíti őket.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="ksz-subtabs"]',
+      title: 'Szabályok / PDF Feltöltés',
+      content: 'Két alfül érhető el: a „Szabályok" listázza az összes meglévő szabályt, míg a „PDF Feltöltés" fülön PDF protokollokat tölthet fel, amelyekből a rendszer automatikusan szabályokat generál.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="ksz-table"]',
+      title: 'Szabályok táblázat',
+      content: 'A táblázatban láthatja a szabályok nevét, kategóriáját, vizitjeit és tételeit. Szerkeszthet, törölhet, vagy ki-/bekapcsolhat szabályokat. A keresővel és kategória szűrővel gyorsan rátalálhat egy adott szabályra.',
+      position: 'bottom' as const,
+      noScroll: true,
+    },
+  ], []);
+
+  // Tour steps for Szótár tab
+  const szotarTourSteps: TourStep[] = useMemo(() => [
+    {
+      target: '[data-tour="szt-header"]',
+      title: 'Szótár',
+      content: 'A szótár tartalmazza a klinika kezeléseit, amelyeket a FlexiDent rendszerből generálunk. A szótár alapján a rendszer felismeri, milyen kezeléseket említett a felvételen.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="szt-actions"]',
+      title: 'Szótár műveletek',
+      content: 'Itt készíthet vagy újragenerálhat szótárt, beállíthatja a próba páciens azonosítót (a tesztek futtatásához szükséges), és megadhatja a FlexiDent domain-t.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="szt-domain"]',
+      title: 'FlexiDent domain',
+      content: 'Itt láthatja és szerkesztheti a klinika FlexiDent domain címét. Erre a rendszernek szüksége van a kezelési adatok lekérdezéséhez.',
+      position: 'bottom' as const,
+    },
+    {
+      target: '[data-tour="szt-kezelesek"]',
+      title: 'Szótár kezelések',
+      content: 'A generált szótár kezeléseinek listája. Kereshet név szerint és szűrhet kategória alapján. Ezek a kezelések jelennek meg a hangfelvétel feldolgozásánál is.',
+      position: 'bottom' as const,
+      noScroll: true,
+    },
+  ], []);
+
   const {
     showTour,
     startTour,
@@ -228,15 +286,37 @@ export default function KlinikaAdmin() {
     newUserDays: 7,
   });
 
-  // Freeze the tour steps at the moment the tour opens to avoid “glitchy” reordering
+  // Separate tour for Kezelési Szabályok tab
+  const {
+    showTour: showRulesTour,
+    startTour: startRulesTour,
+    completeTour: completeRulesTour,
+    skipTour: skipRulesTour,
+  } = useOnboardingTour({
+    tourKey: 'klinika-rules',
+    isEligible: isKlinikaAdmin || isAdmin,
+    autoShowForNewUsers: false,
+  });
+
+  // Separate tour for Szótár tab
+  const {
+    showTour: showSzotarTour,
+    startTour: startSzotarTour,
+    completeTour: completeSzotarTour,
+    skipTour: skipSzotarTour,
+  } = useOnboardingTour({
+    tourKey: 'klinika-szotar',
+    isEligible: isKlinikaAdmin || isAdmin,
+    autoShowForNewUsers: false,
+  });
+
+  // Freeze the tour steps at the moment the tour opens to avoid "glitchy" reordering
   const [tourStepsSnapshot, setTourStepsSnapshot] = useState<TourStep[] | null>(null);
 
   useEffect(() => {
     if (showTour) {
-      // Capture steps only once per open
       setTourStepsSnapshot((prev) => prev ?? tourSteps);
     } else {
-      // Clear snapshot when closing
       setTourStepsSnapshot(null);
     }
   }, [showTour, tourSteps]);
@@ -247,6 +327,47 @@ export default function KlinikaAdmin() {
     setTourStepsSnapshot(tourSteps);
     startTour();
   }, [startTour, tourSteps]);
+
+  const handleStartRulesTour = useCallback(() => {
+    setActiveTab('kezelesi-szabalyok');
+    setTimeout(() => startRulesTour(), 100);
+  }, [startRulesTour]);
+
+  const handleStartSzotarTour = useCallback(() => {
+    setActiveTab('szotar');
+    setTimeout(() => startSzotarTour(), 100);
+  }, [startSzotarTour]);
+
+  // Auto-start tab-specific tours when switching tabs
+  const prevTabRef = useRef(activeTab);
+  useEffect(() => {
+    const prev = prevTabRef.current;
+    prevTabRef.current = activeTab;
+    if (prev === activeTab) return;
+    const anyTourOpen = showTour || showRulesTour || showSzotarTour;
+    if (anyTourOpen) return;
+
+    if (activeTab === 'kezelesi-szabalyok') {
+      setTimeout(() => startRulesTour(), 150);
+    } else if (activeTab === 'szotar') {
+      setTimeout(() => startSzotarTour(), 150);
+    }
+  }, [activeTab, startRulesTour, startSzotarTour, showRulesTour, showSzotarTour, showTour]);
+
+  // Info button: launch the tour matching the currently active tab
+  useEffect(() => {
+    const handler = () => {
+      if (activeTab === 'kezelesi-szabalyok') {
+        handleStartRulesTour();
+      } else if (activeTab === 'szotar') {
+        handleStartSzotarTour();
+      } else {
+        handleStartTour();
+      }
+    };
+    window.addEventListener('taskbar-info', handler);
+    return () => window.removeEventListener('taskbar-info', handler);
+  }, [handleStartTour, handleStartRulesTour, handleStartSzotarTour, activeTab]);
 
   const [lastInvitationUrl, setLastInvitationUrl] = useState<string | null>(null);
   // Maps invitation email → registration URL so we can show the link in the pending table
@@ -1061,18 +1182,31 @@ export default function KlinikaAdmin() {
       </div>
 
 
-      {/* Onboarding Tour */}
+      {/* Onboarding Tour — Tagok */}
       <OnboardingTour
         steps={effectiveTourSteps}
         isOpen={showTour}
         onComplete={completeTour}
         onSkip={skipTour}
         onStepChange={(step) => {
-          // Switch to the appropriate tab when a step requires it (works for both Next and Previous)
           if (step.requiredTab) {
             setActiveTab(step.requiredTab);
           }
         }}
+      />
+      {/* Onboarding Tour — Kezelési Szabályok */}
+      <OnboardingTour
+        steps={rulesTourSteps}
+        isOpen={showRulesTour}
+        onComplete={completeRulesTour}
+        onSkip={skipRulesTour}
+      />
+      {/* Onboarding Tour — Szótár */}
+      <OnboardingTour
+        steps={szotarTourSteps}
+        isOpen={showSzotarTour}
+        onComplete={completeSzotarTour}
+        onSkip={skipSzotarTour}
       />
 
       {/* Edit User Dialog */}

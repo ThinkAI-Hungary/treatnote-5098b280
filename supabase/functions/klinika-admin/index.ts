@@ -1378,7 +1378,7 @@ serve(async (req) => {
         // Get the user's profile info for folder deletion
         const { data: targetProfile } = await supabaseAdmin
           .from("profiles")
-          .select("full_name, company_id, telephely_id")
+          .select("full_name, company_id, telephely_id, current_telephely_id")
           .eq("user_id", targetUserId)
           .single();
 
@@ -1405,10 +1405,15 @@ serve(async (req) => {
 
         const hasOtherMemberships = otherMemberships && otherMemberships.length > 0;
 
-        if (hasOtherMemberships) {
-          console.log(`User ${targetUserId} has ${otherMemberships.length} other memberships. Removing only from current telephely.`);
+        // ---------------------------------------------------------------
+        // SOFT-DELETE path: always used by klinika_admin.
+        // Also used by full admins when the user belongs to other telephelys.
+        // Keeps the auth account alive; only removes the user from this telephely.
+        // ---------------------------------------------------------------
+        if (!isAdmin || hasOtherMemberships) {
+          console.log(`Soft-removing user ${targetUserId} from telephely ${telephelyId}. hasOtherMemberships=${hasOtherMemberships}, isAdmin=${isAdmin}`);
 
-          // 1. Remove membership for current telephely
+          // 1. Remove telephely membership
           const { error: deleteMemError } = await supabaseAdmin
             .from("telephely_memberships")
             .delete()
@@ -1423,27 +1428,59 @@ serve(async (req) => {
             });
           }
 
-          // 2. Update profile if it points to current telephely
-          if (targetProfile.telephely_id === telephelyId || targetProfile.current_telephely_id === telephelyId) {
-            const nextMem = otherMemberships[0];
+          // 2. Update profile
+          if (hasOtherMemberships) {
+            // Point profile at another membership so the user keeps a valid context
+            const pointsHere = targetProfile?.telephely_id === telephelyId ||
+              (targetProfile as any)?.current_telephely_id === telephelyId;
+            if (pointsHere) {
+              const nextMem = otherMemberships[0];
+              await supabaseAdmin
+                .from("profiles")
+                .update({
+                  telephely_id: nextMem.telephely_id,
+                  current_telephely_id: nextMem.telephely_id,
+                })
+                .eq("user_id", targetUserId);
+            }
+          } else {
+            // No other memberships — detach from company/telephely entirely
             await supabaseAdmin
               .from("profiles")
-              .update({
-                company_id: nextMem.company_id,
-                telephely_id: nextMem.telephely_id,
-                current_telephely_id: nextMem.telephely_id
-              })
+              .update({ company_id: null, telephely_id: null, current_telephely_id: null })
               .eq("user_id", targetUserId);
           }
 
-          return new Response(JSON.stringify({ success: true, message: "User removed from organization (account kept active for other organizations)" }), {
+          // 3. Drop Flexi connection for this telephely — clears immediately in the client
+          await supabaseAdmin
+            .from("flexi_auth")
+            .delete()
+            .eq("user_id", targetUserId)
+            .eq("telephely_id", telephelyId);
+
+          // 4. Release any license the user held in this company
+          await supabaseAdmin
+            .from("licenses")
+            .update({ assigned_user_id: null, status: "available" })
+            .eq("company_id", companyId)
+            .eq("assigned_user_id", targetUserId);
+
+          const msg = hasOtherMemberships
+            ? "User removed from organization (account kept active for other organizations)"
+            : "User removed from telephely (account preserved)";
+
+          console.log(`User ${targetUserId} soft-removed from telephely ${telephelyId} by ${caller.id}`);
+          return new Response(JSON.stringify({ success: true, message: msg }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        // If no other memberships, proceed with full deletion
-        console.log(`User ${targetUserId} has no other memberships. Proceeding with full deletion.`);
+        // ---------------------------------------------------------------
+        // HARD-DELETE path: only reached by a full admin when the user has
+        // no other telephely memberships.
+        // ---------------------------------------------------------------
+        console.log(`Admin ${caller.id} hard-deleting user ${targetUserId} (no other memberships).`);
 
         // Delete user's folder from storage if they had a company and telephely
         if (targetProfile?.company_id && targetProfile?.telephely_id) {
@@ -1455,7 +1492,6 @@ serve(async (req) => {
             ]);
 
             if (companyResult.data?.name && telephelyResult.data?.name) {
-              // Sanitize path by converting Hungarian/special characters to ASCII equivalents and keeping spaces
               const charMap: Record<string, string> = {
                 'á': 'a', 'Á': 'A', 'é': 'e', 'É': 'E', 'í': 'i', 'Í': 'I',
                 'ó': 'o', 'Ó': 'O', 'ö': 'o', 'Ö': 'O', 'ő': 'o', 'Ő': 'O',
@@ -1469,10 +1505,8 @@ serve(async (req) => {
               const sanitizedUser = sanitize(userName);
 
               const folderPath = `TreatNote/Companies/${sanitizedCompany}/${sanitizedTelephely}/Users/${sanitizedUser}`;
-
               console.log(`Deleting user folder: ${folderPath}`);
 
-              // List all files in the user's folder
               const { data: files, error: listError } = await supabaseAdmin.storage
                 .from("client-files")
                 .list(folderPath, { limit: 1000 });
@@ -1480,12 +1514,10 @@ serve(async (req) => {
               if (listError) {
                 console.error("Error listing user folder:", listError);
               } else if (files && files.length > 0) {
-                // Delete all files in the folder
                 const filePaths = files.map(f => `${folderPath}/${f.name}`);
                 const { error: deleteFilesError } = await supabaseAdmin.storage
                   .from("client-files")
                   .remove(filePaths);
-
                 if (deleteFilesError) {
                   console.error("Error deleting user files:", deleteFilesError);
                 } else {
@@ -1497,35 +1529,20 @@ serve(async (req) => {
             }
           } catch (folderError) {
             console.error("Error deleting user folder:", folderError);
-            // Continue with user deletion even if folder deletion fails
           }
         }
 
-        // Delete from all related tables first (foreign key safety)
-        console.log(`Deleting user ${targetUserId} (${email}) - cleaning up related data...`);
-
-        // Delete memberships first
+        // Delete from all related tables (foreign key safety)
+        console.log(`Hard-deleting user ${targetUserId} (${email}) - cleaning up related data...`);
         await supabaseAdmin.from("telephely_memberships").delete().eq("user_id", targetUserId);
-
-        // Delete invitations (both sent and received)
         await supabaseAdmin.from("invitations").delete().eq("invited_user_id", targetUserId);
         await supabaseAdmin.from("invitations").delete().eq("invited_by_user_id", targetUserId);
-
-        // Delete user roles
         await supabaseAdmin.from("user_roles").delete().eq("user_id", targetUserId);
-
-        // Delete folder access
         await supabaseAdmin.from("folder_access").delete().eq("user_id", targetUserId);
-
-        // Delete flexi auth
         await supabaseAdmin.from("flexi_auth").delete().eq("user_id", targetUserId);
-
-        // Delete profile
         await supabaseAdmin.from("profiles").delete().eq("user_id", targetUserId);
 
-        // Finally, delete the auth user
         const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
-
         if (deleteAuthError) {
           console.error("Error deleting auth user:", deleteAuthError);
           return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteAuthError.message }), {
@@ -1534,8 +1551,7 @@ serve(async (req) => {
           });
         }
 
-        console.log(`User ${targetUserId} (${email}) completely deleted (including storage folder) by ${caller.id}`);
-
+        console.log(`User ${targetUserId} (${email}) completely deleted by admin ${caller.id}`);
         return new Response(JSON.stringify({ success: true, deletedEmail: email }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

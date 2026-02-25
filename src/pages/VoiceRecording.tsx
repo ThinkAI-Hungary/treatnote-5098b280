@@ -45,6 +45,30 @@ export default function VoiceRecording() {
   const navigate = useNavigate();
 
   // ── Onboarding tour ──────────────────────────────────────────────────────
+  // Demo payload shown at step 6/7 so the spotlight has a real element to highlight
+  const TOUR_DEMO_VERDIKT = {
+    transcriber: {
+      text: 'A páciens arcíves harapásrögzítést kér rágóizom relaxációs harapásvétellel, fog 11-esnél. ICT érzéstelenítés szükséges fog 11-esnél.',
+    },
+    szoveges_lista:
+      'Vizit 0\nKezelés: Arcíves harapásrögzítés rágóizom relaxációs harapásvétellel\n\t– Fog: 11\nKezelés: ICT érzéstelenítés\n\t– Fog: 11',
+    execution_report_human: {
+      statisztika: { total: 2, matched: 2, match_rate: '100%' },
+      talalatok: [
+        {
+          sorszam: 1,
+          input_text: 'arcíves harapásrögzítés rágóizom relaxációs harapásvétellel',
+          eredmeny: { status: 'matched', rule_name: 'Arcíves harapásrögzítés', valasztas_modja: 'primary' },
+        },
+        {
+          sorszam: 2,
+          input_text: 'ICT érzéstelenítés',
+          eredmeny: { status: 'matched', rule_name: 'ICT érzéstelenítés', valasztas_modja: 'primary' },
+        },
+      ],
+    },
+  };
+
   const VOICE_TOUR_STEPS: TourStep[] = [
     {
       target: '[data-tour="vr-mode-select"]',
@@ -65,7 +89,9 @@ export default function VoiceRecording() {
       content: 'Kattintson a mikrofon gombra egy rövid teszt felvétel indításához! A tartalom nem számít, néhány másodpercnyi hang is tökéletes.',
       position: 'bottom',
       hideNext: true,
+      hideSkip: true,
       interactive: true,
+      showArrows: true,
     },
     {
       // Step 3: recording active — navigable (4/7), interactive so stop button is clickable
@@ -87,6 +113,7 @@ export default function VoiceRecording() {
       title: 'Feldolgozás eredménye',
       content: 'A feltöltés után itt jelenik meg az eredmény. • Eredeti szöveg: amit Ön felmondótt. • Szabály találatok: a szövegre legjobban értelmezhető szabályok. • Kitöltés: ez kerül be a FlexiDent oldalra olyan formában, ahogy ott is látható.',
       position: 'top',
+      interactive: true,
     },
     {
       target: '[data-tour="vr-history"]',
@@ -110,9 +137,6 @@ export default function VoiceRecording() {
 
   // ── Interactive tour: reactive step control ───────────────────────────────
   const [activeTourStep, setActiveTourStep] = useState(0);
-  const wasRecordingRef = useRef(false);
-  // Tracks whether the playback intro was already shown this session
-  const hasShownPlaybackIntroRef = useRef(false);
 
   const handleStartTour = useCallback(() => {
     setActiveTourStep(0); // Always begin from Feldolgozási mód (step 1/3)
@@ -180,33 +204,6 @@ export default function VoiceRecording() {
     },
   });
 
-  // Tour: recording starts while at step 2 → auto-advance to pause/stop step
-  useEffect(() => {
-    if (!showTour) return;
-    if (isRecording && !wasRecordingRef.current && activeTourStep === 2) {
-      setActiveTourStep(3);
-    }
-    wasRecordingRef.current = isRecording;
-  }, [isRecording, showTour, activeTourStep]);
-
-  // Tour: recording stops with audio ready → introduce the playback card
-  // Triggers even if the tour was closed — once per recording session
-  useEffect(() => {
-    if (!isRecording && audioBlob && !hasShownPlaybackIntroRef.current) {
-      hasShownPlaybackIntroRef.current = true;
-      const t = setTimeout(() => {
-        setActiveTourStep(4);
-        if (!showTour) startTour(); // Re-open tour at playback step if it was closed
-      }, 400);
-      return () => clearTimeout(t);
-    }
-  }, [isRecording, audioBlob, showTour, startTour]);
-
-  // Reset playback intro flag when a new recording session starts
-  useEffect(() => {
-    if (isRecording) hasShownPlaybackIntroRef.current = false;
-  }, [isRecording]);
-
   // Poll for job completion
   useEffect(() => {
     if (!currentJobId) return;
@@ -250,11 +247,19 @@ export default function VoiceRecording() {
   const handleToggleRecording = () => {
     if (isRecording) {
       stopRecording();
+      // Tour: treat stop-recording as “Következő” on 4/7 → advance to 5/7 immediately
+      if (showTour && activeTourStep === 3) {
+        setActiveTourStep(4);
+      }
     } else {
       // Clear verdikt and selection when starting a new recording
       clearVerdikt();
       setSelectedJobId(null);
       startRecording();
+      // Tour: treat start-recording as “Következő” on 3/7 → advance to 4/7 immediately
+      if (showTour && activeTourStep === 2) {
+        setActiveTourStep(3);
+      }
     }
   };
 
@@ -829,26 +834,35 @@ export default function VoiceRecording() {
         </Card>
 
         {/* Verdikt card - full width below all cards */}
-        {(isVerdiktLoading || verdiktResponseData || selectedJob) && (
-          <div data-tour="vr-verdikt" className="col-span-full">
-            <VerdiktDisplay
-              isLoading={isVerdiktLoading}
-              responseData={selectedJob ? selectedJob.result : verdiktResponseData}
-              isSelectedJob={!!selectedJob}
-              selectedJobMode={selectedJob?.mode}
-              selectedJobPaciensId={selectedJob?.paciens_id}
-              selectedJobError={selectedJob?.error}
-              selectedJobStatus={selectedJob?.status}
-              onClose={() => {
-                if (selectedJob) {
-                  setSelectedJobId(null);
-                } else {
-                  clearVerdikt();
-                }
-              }}
-            />
-          </div>
-        )}
+        {/* At tour step 6/7 (index 5) always show with demo data so the spotlight has something to point at */}
+        {(() => {
+          const isDemoVerdiktStep = showTour && activeTourStep === 5;
+          const showVerdikt = isVerdiktLoading || verdiktResponseData || selectedJob || isDemoVerdiktStep;
+          const effectiveData = isDemoVerdiktStep && !verdiktResponseData && !selectedJob
+            ? TOUR_DEMO_VERDIKT
+            : (selectedJob ? selectedJob.result : verdiktResponseData);
+          return showVerdikt ? (
+            <div data-tour="vr-verdikt" className="col-span-full">
+              <VerdiktDisplay
+                isLoading={isVerdiktLoading}
+                responseData={effectiveData}
+                isSelectedJob={!!selectedJob}
+                selectedJobMode={selectedJob?.mode}
+                selectedJobPaciensId={selectedJob?.paciens_id}
+                selectedJobError={selectedJob?.error}
+                selectedJobStatus={selectedJob?.status}
+                onClose={() => {
+                  if (isDemoVerdiktStep) return; // keep mounted during tour demo
+                  if (selectedJob) {
+                    setSelectedJobId(null);
+                  } else {
+                    clearVerdikt();
+                  }
+                }}
+              />
+            </div>
+          ) : null;
+        })()}
       </div>
 
       <Card>
@@ -874,7 +888,6 @@ export default function VoiceRecording() {
         </CardContent>
       </Card>
 
-      {/* Onboarding tour */}
       <OnboardingTour
         steps={VOICE_TOUR_STEPS}
         isOpen={showTour}

@@ -23,7 +23,7 @@ const TOUR_STORAGE_PREFIX = 'tour_completed_';
 // Accounts that always see the tour (for testing — treats every visit as a first visit)
 // To re-enable: uncomment the email below
 const DEV_PREVIEW_EMAILS: string[] = [
-  // 'zsolt@gmail.com',
+  'zsolt@gmail.com',
 ];
 
 export function useOnboardingTour({

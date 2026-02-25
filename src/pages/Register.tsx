@@ -215,16 +215,6 @@ export default function Register() {
 
                     <form onSubmit={handleRegister} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email cím</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={invitation?.invited_email || ''}
-                                readOnly
-                                className="bg-muted text-muted-foreground cursor-not-allowed"
-                            />
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="fullName">Teljes név</Label>
                             <Input
                                 id="fullName"
@@ -233,6 +223,16 @@ export default function Register() {
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Felhasználónév</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={invitation?.invited_email || ''}
+                                readOnly
+                                className="bg-muted text-muted-foreground cursor-not-allowed"
                             />
                         </div>
                         <div className="space-y-2">

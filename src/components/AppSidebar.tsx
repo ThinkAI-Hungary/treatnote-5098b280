@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { notifySzotarDataChanged } from '@/lib/szotarEvents';
+import { subscribeToRulesChanges } from '@/lib/rulesEvents';
 import { subscribeToMembershipChanges } from '@/lib/telephelyEvents';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -288,6 +289,23 @@ export function AppSidebar() {
       finally { setRulesLoading(false); }
     }
     fetchRules();
+  }, [activeTelephelyId]);
+
+  // Re-fetch rules when a generation completes (from any page)
+  useEffect(() => {
+    const unsubscribe = subscribeToRulesChanges(() => {
+      if (!activeTelephelyId) return;
+      (async () => {
+        try {
+          const { count } = await supabase
+            .from('treatment_rules')
+            .select('id', { count: 'exact', head: true })
+            .eq('clinic_id', activeTelephelyId);
+          setHasRules((count || 0) > 0);
+        } catch { /* ignore */ }
+      })();
+    });
+    return unsubscribe;
   }, [activeTelephelyId]);
 
   // Fetch all telephely memberships for the user
