@@ -180,6 +180,7 @@ export type Database = {
           created_at: string | null
           current_period_end: string | null
           id: string
+          is_active: boolean
           livemode: boolean
           name: string
           seats: number
@@ -197,6 +198,7 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           id?: string
+          is_active?: boolean
           livemode?: boolean
           name: string
           seats?: number
@@ -214,6 +216,7 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           id?: string
+          is_active?: boolean
           livemode?: boolean
           name?: string
           seats?: number
@@ -291,6 +294,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      error_logs: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          domain: string | null
+          full_log: string
+          id: string
+          metadata: Json | null
+          screenshot_urls: string[] | null
+          script_name: string
+          severity: string | null
+          summary: string
+          telephely_name: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          domain?: string | null
+          full_log: string
+          id?: string
+          metadata?: Json | null
+          screenshot_urls?: string[] | null
+          script_name: string
+          severity?: string | null
+          summary: string
+          telephely_name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          domain?: string | null
+          full_log?: string
+          id?: string
+          metadata?: Json | null
+          screenshot_urls?: string[] | null
+          script_name?: string
+          severity?: string | null
+          summary?: string
+          telephely_name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
       }
       examinations: {
         Row: {
@@ -405,50 +456,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      error_logs: {
-        Row: {
-          id: string
-          created_at: string
-          script_name: string
-          domain: string | null
-          severity: string
-          summary: string
-          full_log: string
-          screenshot_urls: string[]
-          metadata: Json
-          company_name: string | null
-          telephely_name: string | null
-          username: string | null
-          user_id: string | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          script_name: string
-          domain?: string | null
-          severity?: string
-          summary: string
-          full_log: string
-          screenshot_urls?: string[]
-          metadata?: Json
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          script_name?: string
-          domain?: string | null
-          severity?: string
-          summary?: string
-          full_log?: string
-          screenshot_urls?: string[]
-          metadata?: Json
-          company_name?: string | null
-          telephely_name?: string | null
-          username?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
       }
       feltoltott_pdf: {
         Row: {
@@ -582,6 +589,7 @@ export type Database = {
           flexi_username: string | null
           id: string
           name: string | null
+          telephely_id: string | null
           updated_at: string
           user_id: string
         }
@@ -591,6 +599,7 @@ export type Database = {
           flexi_username?: string | null
           id?: string
           name?: string | null
+          telephely_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -600,10 +609,19 @@ export type Database = {
           flexi_username?: string | null
           id?: string
           name?: string | null
+          telephely_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "flexi_auth_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       folder_access: {
         Row: {
@@ -679,38 +697,50 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
+          expires_at: string
+          full_name: string | null
           id: string
           invitation_token: string | null
           invited_by_user_id: string
           invited_email: string | null
-          invited_user_id: string
+          invited_user_id: string | null
           responded_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
           status: string
           telephely_id: string
+          used_at: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
+          expires_at?: string
+          full_name?: string | null
           id?: string
           invitation_token?: string | null
           invited_by_user_id: string
           invited_email?: string | null
-          invited_user_id: string
+          invited_user_id?: string | null
           responded_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           status?: string
           telephely_id: string
+          used_at?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
+          expires_at?: string
+          full_name?: string | null
           id?: string
           invitation_token?: string | null
           invited_by_user_id?: string
           invited_email?: string | null
-          invited_user_id?: string
+          invited_user_id?: string | null
           responded_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           status?: string
           telephely_id?: string
+          used_at?: string | null
         }
         Relationships: [
           {
@@ -883,6 +913,7 @@ export type Database = {
           company_id: string | null
           company_name: string | null
           created_at: string | null
+          current_telephely_id: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -902,6 +933,7 @@ export type Database = {
           company_id?: string | null
           company_name?: string | null
           created_at?: string | null
+          current_telephely_id?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -921,6 +953,7 @@ export type Database = {
           company_id?: string | null
           company_name?: string | null
           created_at?: string | null
+          current_telephely_id?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -943,7 +976,76 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "profiles_current_telephely_id_fkey"
+            columns: ["current_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_generation_jobs: {
+        Row: {
+          attempt: number
+          batch_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          extractions_count: number | null
+          id: string
+          max_attempts: number
+          protocol_id: number | null
+          protocol_name: string
+          source: string
+          status: string
+          telephely_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extractions_count?: number | null
+          id?: string
+          max_attempts?: number
+          protocol_id?: number | null
+          protocol_name: string
+          source?: string
+          status?: string
+          telephely_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extractions_count?: number | null
+          id?: string
+          max_attempts?: number
+          protocol_id?: number | null
+          protocol_name?: string
+          source?: string
+          status?: string
+          telephely_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_generation_jobs_telephely_id_fkey"
             columns: ["telephely_id"]
             isOneToOne: false
             referencedRelation: "telephely"
@@ -1032,6 +1134,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      statusz_embeddings: {
+        Row: {
+          category: string
+          created_at: string
+          data_name: string
+          embedding: string | null
+          id: string
+          label_hu: string
+          marker_key: string
+          text_source: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data_name: string
+          embedding?: string | null
+          id?: string
+          label_hu: string
+          marker_key: string
+          text_source: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data_name?: string
+          embedding?: string | null
+          id?: string
+          label_hu?: string
+          marker_key?: string
+          text_source?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       stripe_events: {
         Row: {
@@ -1340,6 +1478,38 @@ export type Database = {
           },
         ]
       }
+      telephely_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          telephely_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          telephely_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          telephely_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telephely_memberships_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_embeddings: {
         Row: {
           created_at: string
@@ -1583,6 +1753,10 @@ export type Database = {
         Args: { _path: string; _user_id: string }
         Returns: boolean
       }
+      check_is_telephely_admin: {
+        Args: { _telephely_id: string; _user_id: string }
+        Returns: boolean
+      }
       cleanup_orphaned_embeddings: { Args: never; Returns: number }
       clinic_subscription_active: {
         Args: { _company_id: string }
@@ -1647,6 +1821,20 @@ export type Database = {
           source_type: string
         }[]
       }
+      match_statusz_marker: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          data_name: string
+          label_hu: string
+          marker_key: string
+          similarity: number
+        }[]
+      }
       match_szotar_embedding: {
         Args: {
           match_count?: number
@@ -1666,37 +1854,37 @@ export type Database = {
         }[]
       }
       match_treatment_embedding:
-      | {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          p_clinic_id?: string
-          p_source_types?: string[]
-          query_embedding: string
-        }
-        Returns: {
-          matched_text: string
-          rule_name: string
-          similarity: number
-          source_type: string
-          treatment_rule_id: string
-        }[]
-      }
-      | {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          p_clinic_id?: string
-          query_embedding: string
-        }
-        Returns: {
-          matched_text: string
-          rule_name: string
-          similarity: number
-          source_type: string
-          treatment_rule_id: string
-        }[]
-      }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              p_source_types?: string[]
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
       policy_count: { Args: { p_table: unknown }; Returns: number }
       rls_enabled: { Args: { p_table: unknown }; Returns: boolean }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
@@ -1708,6 +1896,17 @@ export type Database = {
           p_text_source: string
         }
         Returns: string
+      }
+      upsert_statusz_embedding: {
+        Args: {
+          p_category: string
+          p_data_name: string
+          p_embedding: string
+          p_label_hu: string
+          p_marker_key: string
+          p_text_source: string
+        }
+        Returns: undefined
       }
       upsert_szotar_embedding: {
         Args: {
@@ -1743,116 +1942,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
