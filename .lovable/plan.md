@@ -1,35 +1,73 @@
 
 
-## Fix VerdiktDisplay: Field Name Mismatches and Rendering Issues
+# Onboarding Tour / Tooltip elrejtese mobilon
 
-### Problems Found
+## Cel
 
-**Problem 1: Hungarian vs English field names in interfaces (CRITICAL)**
-The actual webhook JSON from n8n uses Hungarian field names, but the TypeScript interfaces in `VerdiktDisplay.tsx` use English names. This causes the "Szabaly talaltatok" panel to show all N/A values:
+Mobil nezetben (768px alatt) az onboarding tour es a TourHelpButton ne jelenjen meg, hogy ne zavarja a felhasznalot a kisebb kepernyokon.
 
-| Interface field (English) | Actual JSON field (Hungarian) |
-|---|---|
-| `final_decision` | `eredmeny` |
-| `search_details` | `keresek` |
-| `selected` / `candidates` | `kivalasztott` / `jeloltek` |
-| `override` | `alapszabaly_override` |
-| `similarity_summary` | `similarity_osszesites` |
-| `total`, `matched`, `match_rate` | nested under `statisztika` |
+## Megoldas
 
-**Problem 2: Kitoltes text may appear truncated**
-The `linkifyText` function uses a regex with the `g` (global) flag combined with `.test()` inside a `.map()` loop. The `g` flag causes `.test()` to maintain internal state (`lastIndex`) across calls, which can lead to incorrect match/no-match results on subsequent iterations. This is a known JavaScript footgun. Also the ScrollArea `max-h-[500px]` may be too small for long treatment plans.
+Egyetlen fajl modositasa szukseges: `src/hooks/useOnboardingTour.ts`
 
-### Solution
+### Valtozasok
 
-**File: `src/components/voice/VerdiktDisplay.tsx`**
+**`src/hooks/useOnboardingTour.ts`**:
+- Importalni a `useIsMobile` hookot a `src/hooks/use-mobile.tsx` fajlbol
+- Ha `isMobile === true`:
+  - `showTour` mindig `false` marad (az auto-show logika nem indul el)
+  - `startTour` nem csinal semmit (a TourHelpButton kattintasa nem inditja el a turt)
+- A visszaadott objektumba felvenni egy `isMobile` mezo is, hogy a TourHelpButton-t a hivo komponensekben el lehessen rejteni
 
-1. Update `ExecutionReportHuman` interface to match actual JSON structure -- add `statisztika` wrapper with `similarity_osszesites` sub-object, keep `talalatok` as-is.
+**Hivo komponensek** (pl. `KlinikaAdmin.tsx`, `Dashboard.tsx`, `Profile.tsx`, `VoiceRecording.tsx`):
+- A `TourHelpButton`-t feltetelesen renderelni: csak akkor jelenjen meg, ha nem mobil nezet
+- Ezt a `useOnboardingTour`-bol visszakapott `isMobile` ertekkel vagy kulon `useIsMobile()` hivassal oldhatjuk meg
 
-2. Update `Talalat` interface to use Hungarian field names: `eredmeny` instead of `final_decision`, `keresek` instead of `search_details`. Update nested types: `kivalasztott` instead of `selected`, `jeloltek` instead of `candidates`, `alapszabaly_override` instead of `override`.
+## Technikai reszletek
 
-3. Update `MatchItem` component to reference the corrected Hungarian field names (`item.eredmeny`, `item.keresek`, etc.).
+A `useOnboardingTour` hook-ban:
 
-4. Fix `linkifyText`: remove the `g` flag from the regex used in `.test()`, or use a separate non-global regex for testing. The `split()` method ignores the `g` flag anyway.
+```text
+import { useIsMobile } from '@/hooks/use-mobile';
 
-5. Increase `max-h` on Kitoltes ScrollArea from `500px` to `800px` for longer treatment plans.
+export function useOnboardingTour(...) {
+  const isMobile = useIsMobile();
+
+  // Az auto-show effect-ben: ha isMobile, ne induljon el
+  useEffect(() => {
+    if (!checkedInitial || !isEligible || isMobile) return;
+    ...
+  }, [checkedInitial, autoShowForNewUsers, isNewUser, hasSeenTour, isEligible, isMobile]);
+
+  const startTour = useCallback(() => {
+    if (isMobile) return;  // mobilon nem indul
+    setShowTour(true);
+  }, [isMobile]);
+
+  return { showTour, startTour, completeTour, skipTour, isNewUser, hasSeenTour, isMobile };
+}
+```
+
+A hivo komponensekben:
+
+```text
+const { showTour, startTour, ..., isMobile } = useOnboardingTour({...});
+
+// A renderben:
+{!isMobile && <TourHelpButton onClick={startTour} />}
+```
+
+## Erintett fajlok
+
+| Fajl | Valtozas |
+|------|----------|
+| `src/hooks/useOnboardingTour.ts` | `useIsMobile` hozzaadasa, mobil guard az auto-show-ra es startTour-ra, `isMobile` visszaadasa |
+| `src/pages/KlinikaAdmin.tsx` | TourHelpButton felteteles renderelese |
+| `src/pages/Dashboard.tsx` | TourHelpButton felteteles renderelese |
+| `src/pages/Profile.tsx` | TourHelpButton felteteles renderelese |
+| `src/pages/VoiceRecording.tsx` | TourHelpButton felteteles renderelese |
+
+## Kockazat
+
+Alacsony -- csak felteteles logika hozzaadasa, meglevo mukodes nem valtozik desktop-on.
 
