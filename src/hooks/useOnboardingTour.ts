@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UseOnboardingTourOptions {
   tourKey: string; // Unique key for this tour (e.g., 'klinika-admin-tour')
@@ -16,6 +17,7 @@ interface UseOnboardingTourReturn {
   skipTour: () => void;
   isNewUser: boolean;
   hasSeenTour: boolean;
+  isMobile: boolean;
 }
 
 const TOUR_STORAGE_PREFIX = 'tour_completed_';
@@ -33,6 +35,7 @@ export function useOnboardingTour({
   newUserDays = 7,
 }: UseOnboardingTourOptions): UseOnboardingTourReturn {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const isDevPreview = DEV_PREVIEW_EMAILS.includes(user?.email ?? '');
   const [showTour, setShowTour] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -85,7 +88,7 @@ export function useOnboardingTour({
 
   // Auto-show tour for new users who haven't seen it
   useEffect(() => {
-    if (!checkedInitial || !isEligible) return;
+    if (!checkedInitial || !isEligible || isMobile) return;
 
     if (autoShowForNewUsers && isNewUser && !hasSeenTour) {
       // Small delay to let the page render first
@@ -94,11 +97,12 @@ export function useOnboardingTour({
       }, 800);
       return () => clearTimeout(timeout);
     }
-  }, [checkedInitial, autoShowForNewUsers, isNewUser, hasSeenTour, isEligible]);
+  }, [checkedInitial, autoShowForNewUsers, isNewUser, hasSeenTour, isEligible, isMobile]);
 
   const startTour = useCallback(() => {
+    if (isMobile) return;
     setShowTour(true);
-  }, []);
+  }, [isMobile]);
 
   const completeTour = useCallback(() => {
     setShowTour(false);
@@ -125,5 +129,6 @@ export function useOnboardingTour({
     skipTour,
     isNewUser,
     hasSeenTour,
+    isMobile,
   };
 }
