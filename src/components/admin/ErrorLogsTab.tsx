@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
     AlertTriangle, ChevronDown, ChevronRight, ChevronLeft, Trash2, Loader2, X,
-    RefreshCw, Copy, Check, ImageIcon, Clock, Terminal, Globe,
+    RefreshCw, Copy, Check, ImageIcon, Clock, Terminal, Globe, Database,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -225,6 +225,16 @@ export function ErrorLogsTab() {
         });
     };
 
+    // Retrospective size: full_log UTF-8 bytes + ~100KB per screenshot stored in Storage
+    const computeLogSize = (log: ErrorLog): string => {
+        const logBytes = new TextEncoder().encode(log.full_log || '').length;
+        const screenshotEstimate = (log.screenshot_urls?.length || 0) * 100 * 1024; // ~100KB each
+        const total = logBytes + screenshotEstimate;
+        if (total >= 1024 * 1024) return `${(total / (1024 * 1024)).toFixed(1)} MB`;
+        if (total >= 1024) return `${(total / 1024).toFixed(0)} KB`;
+        return `${total} B`;
+    };
+
     if (loading && logs.length === 0) {
         return (
             <AnimatedCard>
@@ -324,6 +334,11 @@ export function ErrorLogsTab() {
                                                 {log.screenshot_urls.length}
                                             </span>
                                         )}
+
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                            <Database className="h-3 w-3" />
+                                            {computeLogSize(log)}
+                                        </span>
 
                                         <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                             <Clock className="h-3 w-3" />

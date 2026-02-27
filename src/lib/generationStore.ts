@@ -58,6 +58,7 @@ export async function startSzotarGeneration(
     companyId: string,
     userId: string,
     refreshSzotar: () => Promise<void>,
+    hasSzotar: boolean = false,
 ) {
     if (szotarGenerating) return; // prevent duplicate
     szotarGenerating = true;
@@ -71,7 +72,7 @@ export async function startSzotarGeneration(
                 telephely_id: telephelyId,
                 company_id: companyId,
                 user_id: userId,
-                regenerate: false,
+                regenerate: hasSzotar,
             },
         });
         if (error) throw error;

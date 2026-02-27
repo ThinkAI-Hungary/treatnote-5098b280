@@ -278,6 +278,7 @@ serve(async (req) => {
     webhookFormData.append("flexi_pw", decryptedFlexiPw);
     webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
     webhookFormData.append("PaciensID", paciensId);
+    webhookFormData.append("job_id", jobId);
 
     if (mode === "treatnote" && treatmentRulesData.length > 0) {
       webhookFormData.append("treatment_rules", JSON.stringify(treatmentRulesData));

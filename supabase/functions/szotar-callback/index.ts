@@ -84,7 +84,7 @@ async function processKezelesekWithEmbeddings(
 
   // Prepare texts for embedding (name embeddings only for now)
   const embeddingTasks: { id: string; text: string; sourceType: 'name' | 'category' }[] = [];
-  
+
   for (const result of upsertResults) {
     embeddingTasks.push({
       id: result.id,
@@ -95,7 +95,7 @@ async function processKezelesekWithEmbeddings(
 
   // Process in batches of 100 (OpenAI limit)
   const BATCH_SIZE = 100;
-  
+
   for (let i = 0; i < embeddingTasks.length; i += BATCH_SIZE) {
     const batch = embeddingTasks.slice(i, i + BATCH_SIZE);
     const texts = batch.map(t => t.text);
@@ -147,7 +147,7 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { telephely_id, user_id, content, kezelesek } = await req.json();
+    const { telephely_id, user_id, content, kezelesek, regenerate } = await req.json();
 
     if (!telephely_id) {
       throw new Error("Missing required field: telephely_id");
@@ -155,9 +155,9 @@ serve(async (req) => {
 
     // Parse content - expect an array of strings or objects (existing logic)
     let parsedContent: string[] = [];
-    
+
     if (Array.isArray(content)) {
-      parsedContent = content.map(item => 
+      parsedContent = content.map(item =>
         typeof item === 'string' ? item : JSON.stringify(item)
       );
     } else if (typeof content === 'object' && content !== null) {
@@ -225,14 +225,14 @@ serve(async (req) => {
 
     // NEW: Handle kezelesek with embeddings
     let embeddingResult = { processed: 0, errors: [] as string[] };
-    
+
     if (kezelesek && Array.isArray(kezelesek) && kezelesek.length > 0) {
       console.log(`Processing ${kezelesek.length} kezelesek with embeddings`);
-      
+
       if (!openaiApiKey) {
         console.warn('OPENAI_API_KEY not configured, skipping embedding generation');
         embeddingResult.errors.push('OPENAI_API_KEY not configured');
-        
+
         // Still upsert kezelesek without embeddings
         for (const kezeles of kezelesek as KezelesItem[]) {
           const { error } = await supabase
@@ -246,7 +246,7 @@ serve(async (req) => {
               },
               { onConflict: 'telephely_id,name' }
             );
-          
+
           if (error) {
             console.error(`Error upserting kezeles "${kezeles.name}":`, error);
           } else {
@@ -261,13 +261,54 @@ serve(async (req) => {
           openaiApiKey
         );
       }
-      
+
       console.log(`Embedding processing complete: ${embeddingResult.processed} processed, ${embeddingResult.errors.length} errors`);
+
+      // Always clean up stale rows after successful upsert.
+      // szotar-callback always receives the full kezelesek list for the telephely,
+      // so any name not in the new set is genuinely stale and safe to delete.
+      if (kezelesek.length > 0) {
+        const newKeys = new Set(
+          (kezelesek as KezelesItem[]).map(k => `${k.name}|||${k.category || ''}`)
+        );
+        console.log(`[CLEANUP] Checking for stale rows (keeping ${newKeys.size} name+category combos)...`);
+
+        const { data: allRows, error: fetchErr } = await supabase
+          .from('szotar_kezelesek')
+          .select('id, name, category')
+          .eq('telephely_id', telephely_id);
+
+        if (fetchErr) {
+          console.error('[CLEANUP] Error fetching existing rows:', fetchErr);
+        } else if (allRows) {
+          const staleIds = allRows
+            .filter((row: { id: string; name: string; category: string | null }) =>
+              !newKeys.has(`${row.name}|||${row.category || ''}`)
+            )
+            .map((row: { id: string; name: string; category: string | null }) => row.id);
+
+          if (staleIds.length > 0) {
+            console.log(`[CLEANUP] Deleting ${staleIds.length} stale rows...`);
+            const { error: deleteErr } = await supabase
+              .from('szotar_kezelesek')
+              .delete()
+              .in('id', staleIds);
+
+            if (deleteErr) {
+              console.error('[CLEANUP] Delete error:', deleteErr);
+            } else {
+              console.log(`[CLEANUP] Successfully deleted ${staleIds.length} stale rows`);
+            }
+          } else {
+            console.log('[CLEANUP] No stale rows to delete');
+          }
+        }
+      }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         items_count: parsedContent.length,
         kezelesek_processed: embeddingResult.processed,
         kezelesek_errors: embeddingResult.errors.length > 0 ? embeddingResult.errors : undefined,

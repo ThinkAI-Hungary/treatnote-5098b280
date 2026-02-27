@@ -1000,7 +1000,7 @@ export function KezelesiSzabalyokTab({
               {(generating || backgroundProcessing || loading) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              {loading ? 'Szabályok betöltése...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szótár újragenerálása' : 'Generálás szótárból')}
+              {loading ? 'Szabályok betöltése...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szabályok újragenerálása' : 'Generálás szótárból')}
             </GalaxyButton>
           </div>
         </div>

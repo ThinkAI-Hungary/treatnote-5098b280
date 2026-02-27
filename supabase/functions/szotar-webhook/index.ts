@@ -51,15 +51,34 @@ serve(async (req) => {
 
     const szotar_exists = !!existingSzotar;
 
-    // Fetch flexi credentials for the user
-    const { data: flexiAuth, error: flexiError } = await supabase
-      .from('flexi_auth')
-      .select('flexi_username, flexi_pw')
-      .eq('user_id', user_id)
-      .maybeSingle();
+    // Fetch flexi credentials for the user — scoped to the active telephely.
+    // Strategy 1: exact (user_id, telephely_id) match (per-telephely rows)
+    // Strategy 2: null-telephely fallback (legacy rows saved before telephely scoping)
+    let flexiAuth: { flexi_username: string | null; flexi_pw: string | null } | null = null;
 
-    if (flexiError) {
-      console.error('Error fetching flexi auth:', flexiError);
+    {
+      const { data } = await supabase
+        .from('flexi_auth')
+        .select('flexi_username, flexi_pw')
+        .eq('user_id', user_id)
+        .eq('telephely_id', telephely_id)
+        .maybeSingle();
+      flexiAuth = data;
+    }
+
+    // Fallback: try rows with null telephely_id (legacy records)
+    if (!flexiAuth) {
+      const { data } = await supabase
+        .from('flexi_auth')
+        .select('flexi_username, flexi_pw')
+        .eq('user_id', user_id)
+        .is('telephely_id', null)
+        .maybeSingle();
+      flexiAuth = data;
+    }
+
+    if (!flexiAuth) {
+      console.warn(`[flexi_auth] No credentials found for user=${user_id} telephely=${telephely_id}`);
     }
 
     // Decrypt password using AES-GCM (same as encryption in flexi-connect)

@@ -137,7 +137,7 @@ export default function Dashboard() {
   // ── Szótár webhook trigger (delegates to module-level store) ──
   const handleGenerateSzotar = useCallback(() => {
     if (!activeTelephelyId || !activeCompanyId || !user) return;
-    startSzotarGeneration(activeTelephelyId, activeCompanyId, user.id, refreshSzotar);
+    startSzotarGeneration(activeTelephelyId, activeCompanyId, user.id, refreshSzotar, hasSzotar);
   }, [activeTelephelyId, activeCompanyId, user, refreshSzotar]);
 
   // ── Szabályok generálása szótárból webhook (delegates to module-level store) ──
@@ -198,13 +198,13 @@ export default function Dashboard() {
     {
       id: 'rules',
       icon: ClipboardList,
-      title: hasRules ? 'Szótár újragenerálása' : 'Szabályok generálása szótárból',
+      title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
       description: hasRules
         ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
         : 'Generálja le a kezelési szabályokat a szótár alapján.',
       completed: hasRules,
       adminOnly: true,
-      actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szótár újragenerálása' : 'Szabályok generálása'),
+      actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
     },
   ], [hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
 

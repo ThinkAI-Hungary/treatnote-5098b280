@@ -2,6 +2,8 @@ import sys
 import os
 import json
 import time
+import urllib.request
+from datetime import datetime, timezone
 from playwright.sync_api import sync_playwright, Page, TimeoutError as PWTimeoutError
 
 # ---------------------------------------------------------------------------
@@ -10,18 +12,116 @@ from playwright.sync_api import sync_playwright, Page, TimeoutError as PWTimeout
 # ---------------------------------------------------------------------------
 
 # ── Config ──────────────────────────────────────────────────────────────────
-SLOWMO_MS        = 50      # breathing room between Playwright ops (matches old script)
-CLICK_TIMEOUT_MS = 15000   # 15s — the UI can be slow to render buttons
+SLOWMO_MS        = 100     # breathing room between Playwright ops (increased for safety)
+CLICK_TIMEOUT_MS = 3000    # 3s per attempt — fast retries, 3 attempts = 9s max
 NAV_TIMEOUT_MS   = 30000
-TOOTH_PAUSE      = 0.5     # pause between teeth (matches old script)
-BUTTON_PAUSE     = 0.05    # pause between button clicks
+TOOTH_PAUSE      = 1.0     # pause between teeth (increased)
+BUTTON_PAUSE     = 0.2     # pause between button clicks (increased)
+
+SUPABASE_URL = "https://bpjzgapmoyhtgryglcke.supabase.co"
+SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwanpnYXBtb3lodGdyeWdsY2tlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMxMDI4MywiZXhwIjoyMDgwODg2MjgzfQ.uBOJ6vZyjryFNULweNFecPdY4ZjslVjsl3HCXiSOI2E"
+
+_log_buffer: list = []
+_screenshot_buffer: list = []
 
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 def log(msg: str, level: str = "INFO") -> None:
     colors = {"OK": "\033[92m", "ERROR": "\033[91m", "DEBUG": "\033[95m", "WARN": "\033[93m"}
     c = colors.get(level, "")
-    print(f"{c}[{level}] {time.strftime('%H:%M:%S')} {msg}\033[0m", flush=True)
+    line = f"[{level}] {time.strftime('%H:%M:%S')} {msg}"
+    _log_buffer.append(line)
+    print(f"{c}{line}\033[0m", flush=True)
+    # Also write to stderr so n8n Execute Command captures diagnostic output
+    print(line, file=sys.stderr, flush=True)
+
+# ── Supabase Error Reporting ────────────────────────────────────────────────
+def supabase_upload_screenshot(name: str, png_bytes: bytes) -> str:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        log("[UPLOAD] Supabase env vars hiányoznak", "ERROR")
+        return ""
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    path = f"{timestamp}/{name}.png"
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/error-screenshots/{path}"
+
+    try:
+        req = urllib.request.Request(
+            upload_url,
+            data=png_bytes,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Content-Type": "image/png",
+                "x-upsert": "true",
+            },
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        log(f"[UPLOAD] Screenshot feltöltve: {path} ({resp.status})", "INFO")
+        return path
+    except Exception as e:
+        log(f"[UPLOAD] Screenshot hiba: {type(e).__name__}: {str(e)[:200]}", "ERROR")
+        return ""
+
+
+def upload_error_report(summary: str, severity: str = "error") -> None:
+    """Upload all buffered screenshots + full log to Supabase."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        log("[UPLOAD] Supabase env vars hiányoznak, error log nem lett elmentve", "ERROR")
+        return
+
+    # Upload screenshots
+    screenshot_paths = []
+    for name, png_bytes in _screenshot_buffer:
+        path = supabase_upload_screenshot(name, png_bytes)
+        if path:
+            screenshot_paths.append(path)
+
+    full_log = "\n".join(_log_buffer)
+    screenshot_urls = [
+        f"{SUPABASE_URL}/storage/v1/object/error-screenshots/{p}" for p in screenshot_paths
+    ]
+
+    # Safely get globals
+    email_val = globals().get("EMAIL", "Unknown")
+    patient_id_val = globals().get("PATIENT_ID", "Unknown")
+    domain_val = globals().get("DOMAIN", "Unknown")
+
+    metadata = {
+        "email": email_val,
+        "patient_id": patient_id_val,
+        "screenshot_count": len(_screenshot_buffer),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    body = json.dumps({
+        "script_name": "status.py",
+        "domain": domain_val,
+        "severity": severity,
+        "summary": summary,
+        "full_log": full_log,
+        "screenshot_urls": screenshot_urls,
+        "metadata": metadata,
+    }).encode("utf-8")
+
+    insert_url = f"{SUPABASE_URL}/rest/v1/error_logs"
+    try:
+        req = urllib.request.Request(
+            insert_url,
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                "apikey": SUPABASE_SERVICE_KEY,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        log(f"[UPLOAD] Error log elmentve ({resp.status})", "INFO")
+    except Exception as e:
+        log(f"[UPLOAD] Error log mentés hiba: {type(e).__name__}: {str(e)[:200]}", "ERROR")
 
 
 # ── Argument Parsing ─────────────────────────────────────────────────────────
@@ -298,28 +398,39 @@ def expand_all_menus(page: Page) -> None:
     }""")
 
 
-def safe_click(page: Page, selector: str, description: str, timeout: int = CLICK_TIMEOUT_MS) -> bool:
+def safe_click(page: Page, selector: str, description: str, timeout: int = CLICK_TIMEOUT_MS, max_retries: int = 2) -> bool:
     """
     Click an element via Playwright (real click, not JS).
     Waits for visible, scrolls into view, then clicks.
+    Retries up to max_retries times with a 1s delay on failure.
     Returns True on success.
     """
-    try:
-        loc = page.locator(selector).first
-        loc.wait_for(state="visible", timeout=timeout)
-        loc.scroll_into_view_if_needed(timeout=timeout)
-        loc.click(timeout=timeout)
-        return True
-    except PWTimeoutError:
-        log(f"Timeout clicking: {description} ({selector})", "WARN")
-        return False
-    except Exception as e:
-        log(f"Error clicking: {description} — {e}", "ERROR")
-        return False
+    for attempt in range(max_retries + 1):
+        try:
+            loc = page.locator(selector).first
+            loc.wait_for(state="visible", timeout=timeout)
+            loc.scroll_into_view_if_needed(timeout=timeout)
+            loc.click(timeout=timeout)
+            return True
+        except PWTimeoutError:
+            if attempt < max_retries:
+                log(f"Timeout clicking: {description} ({selector}) — retrying ({attempt + 1}/{max_retries})...", "WARN")
+                time.sleep(1.0)
+            else:
+                log(f"Timeout clicking: {description} ({selector}) after {max_retries} retries.", "WARN")
+                return False
+        except Exception as e:
+            if attempt < max_retries:
+                log(f"Error clicking: {description} — {e} — retrying ({attempt + 1}/{max_retries})...", "WARN")
+                time.sleep(1.0)
+            else:
+                log(f"Error clicking: {description} — {e}", "ERROR")
+                return False
+    return False
 
 
 # ── Tooth Processing ─────────────────────────────────────────────────────────
-def process_tooth(page: Page, tooth_num: str, data: dict) -> None:
+def process_tooth(page: Page, tooth_num: str, data: dict, failed_list: list) -> None:
     buttons, comment = collect_actions(data)
     if not buttons and not comment:
         return
@@ -328,23 +439,29 @@ def process_tooth(page: Page, tooth_num: str, data: dict) -> None:
 
     # Select the tooth (real Playwright click, like old script)
     if not safe_click(page, tooth_sel, f"tooth {tooth_num}"):
+        failed_list.append(f"[{tooth_num}] tooth click failed")
         time.sleep(0.5)
         return
 
+    # Re-expand menus after tooth click (UI may collapse them)
+    expand_all_menus(page)
+    time.sleep(0.3)
+
     # Click status buttons (real Playwright clicks with wait_for + scroll)
     for json_key, data_name in buttons:
+        # Check if this status is already applied on the tooth
+        existing_sel = f"#tooth-status-{tooth_num}-{data_name}"
+        if page.locator(existing_sel).count() > 0:
+            log(f"  [{tooth_num}] Already set: {json_key} → {data_name}", "DEBUG")
+            continue
+
         btn_sel = f'button.addDentilSignButton[data-name="{data_name}"]'
-        try:
-            btn = page.locator(btn_sel).first
-            btn.wait_for(state="visible", timeout=CLICK_TIMEOUT_MS)
-            btn.scroll_into_view_if_needed(timeout=CLICK_TIMEOUT_MS)
-            btn.click(timeout=CLICK_TIMEOUT_MS)
+        if safe_click(page, btn_sel, f"[{tooth_num}] {json_key} → {data_name}"):
             log(f"  [{tooth_num}] Synced: {json_key} → {data_name}", "OK")
             time.sleep(BUTTON_PAUSE)
-        except PWTimeoutError:
-            log(f"  [{tooth_num}] Timeout: {json_key} → {data_name}", "WARN")
-        except Exception as e:
-            log(f"  [{tooth_num}] Error: {json_key} → {data_name} — {e}", "ERROR")
+        else:
+            log(f"  [{tooth_num}] Failed: {json_key} → {data_name}", "ERROR")
+            failed_list.append(f"[{tooth_num}] {json_key} → {data_name}")
 
     # Save comment
     if comment:
@@ -435,6 +552,23 @@ def run() -> None:
         context = browser.new_context(viewport={"width": 1400, "height": 900})
         page    = context.new_page()
 
+        # Set a global timeout so the script doesn't hang forever
+        page.set_default_timeout(NAV_TIMEOUT_MS)
+        page.set_default_navigation_timeout(NAV_TIMEOUT_MS)
+
+        ss_num = [0]
+        def screenshot(leiras: str):
+            """Capture screenshot to in-memory buffer."""
+            ss_num[0] += 1
+            name = f"{ss_num[0]:02d}_{leiras}"
+            try:
+                png_bytes = page.screenshot(full_page=True)
+                _screenshot_buffer.append((name, png_bytes))
+                log(f"[SCREENSHOT] {name} ({len(png_bytes)} bytes)", "INFO")
+            except Exception as e:
+                log(f"[SCREENSHOT] {name} hiba: {e}", "ERROR")
+
+        success = False
         try:
             # ── Login ──────────────────────────────────────────────────
             log(f"Navigating to {base_url}…")
@@ -447,52 +581,133 @@ def run() -> None:
 
             if "msg=no-for-patient" in page.url:
                 log("Authentication failed!", "ERROR")
+                screenshot("auth_failed")
+                upload_error_report("Authentication failed")
                 sys.exit(1)
             log("Logged in.", "OK")
+            screenshot("logged_in")
 
             # ── Patient Card ───────────────────────────────────────────
             log(f"Opening patient card: {PATIENT_ID}")
             page.goto(f"{base_url}/hu/patients/cardboard/cardboard?id={PATIENT_ID}",
                       wait_until="networkidle", timeout=NAV_TIMEOUT_MS)
+            screenshot("patient_card_opened")
+
+            # ── Ensure we are on "Új karton" (new card) tab ───────────
+            # The page may load on "Régi karton" (old card) where the
+            # status editor is not available.
+            try:
+                uj_karton_btn = page.locator("div#changeToNewCardboardMenuButton")
+                if uj_karton_btn.count() > 0 and uj_karton_btn.first.is_visible():
+                    # Check if it's already active
+                    classes = uj_karton_btn.first.get_attribute("class") or ""
+                    if "menu-toggle-button-active" not in classes:
+                        log("Page loaded on Régi karton — switching to Új karton…", "WARN")
+                        uj_karton_btn.first.click(timeout=CLICK_TIMEOUT_MS)
+                        page.wait_for_load_state("networkidle", timeout=NAV_TIMEOUT_MS)
+                        time.sleep(1.0)
+                        log("Switched to Új karton.", "OK")
+                        screenshot("switched_to_uj_karton")
+                    else:
+                        log("Already on Új karton — proceeding.", "OK")
+                else:
+                    log("Új karton button not found — assuming correct tab.", "DEBUG")
+            except Exception as e:
+                log(f"Új karton check error: {e} — continuing anyway.", "WARN")
 
             # ── Open Status Editor ─────────────────────────────────────
             log("Opening Status UI…")
-            safe_click(page, "div#editStatusText", "Status editor")
-            time.sleep(0.5)
-
+            if not safe_click(page, "div#editStatusText", "Status editor"):
+                log("Failed to click Status editor!", "ERROR")
+                screenshot("failed_open_status")
+                upload_error_report("Failed to open Status editor")
+                sys.exit(1)
+                
+            time.sleep(1.0)
+            
             # Dismiss any "unsaved changes" confirmation dialog
             try:
                 page.locator(".jconfirm-buttons .btn.btn-red").first.click(timeout=1500)
                 page.wait_for_load_state("networkidle", timeout=NAV_TIMEOUT_MS)
-                time.sleep(0.3)
+                time.sleep(0.5)
             except PWTimeoutError:
                 log("No confirmation dialog — continuing.", "DEBUG")
+
+            # ── Wait for DOM to settle ────────────────────────────────
+            log("Waiting for Status UI to settle (networkidle + visibility)...")
+            try:
+                page.wait_for_load_state("networkidle", timeout=15000)
+                page.wait_for_selector(".tooth-option-parent", state="attached", timeout=15000)
+                # Extra explicit wait for slow connections where Angular re-renders the DOM
+                time.sleep(2.0)
+            except PWTimeoutError:
+                log("Timeout waiting for Status UI to settle, continuing anyway...", "WARN")
+            
+            screenshot("status_editor_ready")
 
             # ── Expand all sub-menus ──────────────────────────────────
             expand_all_menus(page)
 
             # ── Process teeth ─────────────────────────────────────────
+            failed_buttons: list = []
             for tooth in actionable:
                 log(f"Processing tooth {tooth}…")
-                process_tooth(page, tooth, STATUS_DATA[tooth])
+                process_tooth(page, tooth, STATUS_DATA[tooth], failed_buttons)
 
             # ── General Comment ────────────────────────────────────────
             save_general_comment(page)
 
             # ── Final Save (Státusz Rögzítése) ────────────────────────
             log("Finalising — clicking 'Státusz Rögzítése'…")
+            screenshot("before_final_save")
             if safe_click(page, "button#saveStatusDentilHeader", "Státusz Rögzítése"):
-                time.sleep(1.0)
+                time.sleep(1.5)
+                # Also wait for the post-save navigation or network idle to ensure the save goes through
+                try:
+                    page.wait_for_load_state("networkidle", timeout=10000)
+                except PWTimeoutError:
+                    pass
                 log("Session saved successfully.", "OK")
             else:
                 log("Final save button did not respond!", "ERROR")
+                screenshot("failed_final_save")
+                upload_error_report("Failed to click final save button")
+                sys.exit(1)
 
+            screenshot("automation_completed")
             log("Automation completed.", "OK")
 
+            # Upload error report if any buttons failed
+            if failed_buttons:
+                summary = f"{len(failed_buttons)} button(s) failed: {'; '.join(failed_buttons[:5])}"
+                log(f"Uploading error report: {summary}", "WARN")
+                upload_error_report(summary, severity="warning")
+
+            success = True
+
+        except SystemExit:
+            # Re-raise so the exit code (1) propagates to OS / n8n.
+            # The `finally` block still runs before the process exits.
+            raise
+        except Exception as e:
+            log(f"Unexpected error in automation: {type(e).__name__}: {str(e)}", "ERROR")
+            screenshot("unexpected_error")
+            upload_error_report(f"Unexpected error: {str(e)[:100]}")
+            sys.exit(1)
         finally:
+            log("Closing browser...")
             browser.close()
             log("Browser closed.")
 
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+    except SystemExit as e:
+        # Propagate the exit code to the OS (n8n checks this)
+        sys.exit(e.code)
+    except Exception as e:
+        # Catch-all so n8n always gets stderr output
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
