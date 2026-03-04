@@ -45,41 +45,58 @@ serve(async (req) => {
     }
     const userId = user.id;
 
-    const { company_id, price_id, seats } = await req.json();
+    const { company_id, telephely_id, price_id, seats, items, embedded = false } = await req.json();
 
     // Validate inputs
-    if (!company_id || !price_id || !seats) {
-      return new Response(JSON.stringify({ error: "Missing required fields: company_id, price_id, seats" }), {
+    if (!company_id) {
+      return new Response(JSON.stringify({ error: "Missing required fields: company_id" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!VALID_PRICES.includes(price_id)) {
-      return new Response(JSON.stringify({ error: "Invalid price_id" }), {
+
+    // Process items (support legacy single item or multiple items)
+    const normalizedItems: { price_id: string; seats: number }[] = [];
+    if (items && Array.isArray(items)) {
+      normalizedItems.push(...items);
+    } else if (price_id && seats) {
+      normalizedItems.push({ price_id, seats });
+    }
+
+    if (normalizedItems.length === 0) {
+      return new Response(JSON.stringify({ error: "Missing required fields: items or price_id/seats" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (typeof seats !== "number" || seats < 1 || seats > MAX_SEATS) {
-      return new Response(JSON.stringify({ error: `Seats must be between 1 and ${MAX_SEATS}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    const stripeLineItems = [];
+    for (const item of normalizedItems) {
+      if (!VALID_PRICES.includes(item.price_id)) {
+        return new Response(JSON.stringify({ error: `Invalid price_id: ${item.price_id}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (typeof item.seats !== "number" || item.seats < 1 || item.seats > MAX_SEATS) {
+        return new Response(JSON.stringify({ error: `Seats for ${item.price_id} must be between 1 and ${MAX_SEATS}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      stripeLineItems.push({ price: item.price_id, quantity: item.seats });
     }
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify klinika_admin or admin role + company ownership
+    // Verify klinika_admin role + company ownership
     const { data: hasKlinikaAdmin } = await serviceClient.rpc("has_role", {
       _user_id: userId,
       _role: "klinika_admin",
     });
-    const { data: hasAdmin } = await serviceClient.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (!hasKlinikaAdmin && !hasAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: klinika_admin or admin role required" }), {
+
+    if (!hasKlinikaAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: ONLY klinika_admin role is permitted for billing" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -112,6 +129,27 @@ serve(async (req) => {
       });
     }
 
+    if (telephely_id) {
+      const { data: telephely, error: telephelyError } = await serviceClient
+        .from("telephely")
+        .select("id")
+        .eq("id", telephely_id)
+        .eq("company_id", company_id)
+        .single();
+
+      if (telephelyError || !telephely) {
+        return new Response(JSON.stringify({ error: "Invalid telephely_id for this company" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({ error: "Missing required fields: telephely_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Note: We allow creating checkout sessions even with an active subscription
     // This enables buying additional licenses (monthly or yearly separately)
 
@@ -122,6 +160,7 @@ serve(async (req) => {
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
         name: company.name,
+        email: user.email,
         metadata: { company_id: company.id },
       });
       stripeCustomerId = customer.id;
@@ -130,21 +169,62 @@ serve(async (req) => {
         .from("companies")
         .update({ stripe_customer_id: stripeCustomerId })
         .eq("id", company_id);
+    } else {
+      // Auto-sync the Stripe Customer email to the current admin executing the checkout
+      if (user.email) {
+        await stripe.customers.update(stripeCustomerId, {
+          email: user.email,
+        });
+      }
     }
 
     // Determine success/cancel URLs
     const origin = req.headers.get("origin") || "https://treatnote.lovable.app";
 
-    // Create Checkout Session
+    if (embedded) {
+      // Embedded checkout — returns client_secret, user stays on page
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer: stripeCustomerId,
+        line_items: stripeLineItems,
+        ui_mode: "embedded",
+        return_url: `${origin}/klinika-admin?tab=elofizetes&checkout=success`,
+        metadata: {
+          company_id,
+          telephely_id,
+          user_id: userId,
+          items: JSON.stringify(normalizedItems),
+        },
+        subscription_data: {
+          metadata: {
+            telephely_id,
+            company_id,
+          }
+        },
+      });
+
+      return new Response(JSON.stringify({ client_secret: session.client_secret }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Standard redirect checkout (fallback / legacy)
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: stripeCustomerId,
-      line_items: [{ price: price_id, quantity: seats }],
+      line_items: stripeLineItems,
       metadata: {
         company_id,
+        telephely_id,
         user_id: userId,
-        price_id,
-        seats: String(seats),
+        items: JSON.stringify(normalizedItems),
+      },
+      subscription_data: {
+        metadata: {
+          telephely_id,
+          company_id,
+        }
       },
       success_url: `${origin}/klinika-admin?tab=elofizetes&checkout=success`,
       cancel_url: `${origin}/klinika-admin?tab=elofizetes`,
@@ -154,9 +234,10 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+
+  } catch (err: any) {
     console.error("Error creating checkout session:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: err.message || "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

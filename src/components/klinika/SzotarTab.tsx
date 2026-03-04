@@ -13,6 +13,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useSzotar } from '@/hooks/useSzotar';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
@@ -65,8 +66,10 @@ interface SzotarKezelesData {
 }
 
 export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }: SzotarTabProps) {
+  console.log("SzotarTab rendering", { companyId, telephelyId });
   const { user } = useAuth();
   const { isConnected: isFlexiConnected, isLoading: flexiLoading } = useFlexiConnection(telephelyId ?? null);
+  const { startPolling } = useSzotar();
   const { addNotification } = useNotifications();
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);
@@ -125,7 +128,10 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     return data?.[0]?.updated_at ?? null;
   }, [telephelyId]);
 
+
+
   const loadSzotar = useCallback(async () => {
+    console.log("SzotarTab: Calling loadSzotar...", { telephelyId });
     if (!telephelyId) {
       setLoading(false);
       return;
@@ -192,64 +198,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
     loadSzotar();
   }, [loadSzotar]);
 
-  // Force-refresh sidebar (Hangfelvétel availability) when szótár kezelések arrive/refresh
-  useEffect(() => {
-    notifySzotarDataChanged();
-  }, [szotarKezelesek.length]);
 
-  // Listen for telephely data changes from other components
-  useEffect(() => {
-    const unsubscribe = subscribeToTelephelyChanges(() => {
-      loadSzotar();
-    });
-    return unsubscribe;
-  }, [loadSzotar]);
 
-  // Real-time subscription for szotar and szotar_kezelesek changes
-  useEffect(() => {
-    if (!telephelyId) return;
 
-    const channel = supabase
-      .channel(`szotar_changes_${telephelyId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'szotar_kezelesek',
-          filter: `telephely_id=eq.${telephelyId}`,
-        },
-        () => {
-          console.log('SzotarTab: realtime update detected (szotar_kezelesek)');
-          if (generationPollRef.current) {
-            clearInterval(generationPollRef.current);
-            generationPollRef.current = null;
-          }
-          setGenerating(false);
-          loadSzotar();
-          notifySzotarDataChanged();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'szotar',
-          filter: `telephely_id=eq.${telephelyId}`,
-        },
-        () => {
-          console.log('SzotarTab: realtime update detected (szotar)');
-          loadSzotar();
-          notifySzotarDataChanged();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [telephelyId, loadSzotar]);
 
   const handleGenerateSzotar = async () => {
     if (!telephelyId || !companyId || !user) {
@@ -273,6 +224,8 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       console.warn('SzotarTab: Could not read baseline updated_at for polling', err);
     }
 
+
+
     try {
       // Call the edge function that will trigger n8n webhook
       const { data, error } = await supabase.functions.invoke('szotar-webhook', {
@@ -291,6 +244,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       }
 
       toast.success(szotar ? 'Szótár újragenerálása elindítva!' : 'Szótár készítése elindítva!');
+
+      // Start the centralized aggressive polling logic to watch for the changes
+      startPolling();
 
       // Fallback: poll the DB until szotar_kezelesek changes (realtime might be disabled per-table)
       const startedAt = Date.now();
@@ -353,6 +309,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
           generationPollInFlightRef.current = false;
         }
       }, 2500);
+
     } catch (err: any) {
       console.error('Error generating szotar:', err);
       toast.error('Hiba a szótár generálásakor: ' + (err.message || 'Ismeretlen hiba'));

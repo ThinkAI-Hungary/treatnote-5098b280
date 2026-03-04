@@ -33,6 +33,7 @@ interface UseSzotarReturn {
   flexiDomain: string | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
+  startPolling: () => void;
 }
 
 // Module-level cache so data persists across component mounts
@@ -88,6 +89,7 @@ export function useSzotar(): UseSzotarReturn {
       return;
     }
 
+    setIsLoading(true);
     try {
       // Fetch szotar, szotar_kezelesek and telephely data in parallel
       const [szotarResult, kezelesekResult, telephelyResult] = await Promise.all([
@@ -226,11 +228,12 @@ export function useSzotar(): UseSzotarReturn {
   // Force-refresh consumers (e.g. sidebar) when other screens detect szótár changes
   useEffect(() => {
     const unsubscribe = subscribeToSzotarChanges(() => {
-      // Do an aggressive poll window because Supabase Realtime can be flaky / disabled per-table
-      startAggressivePolling();
+      // Just do a single fetch. Aggressive polling on every broadcast causes an infinite loop
+      // if the broadcaster is reacting to its own data loads.
+      fetchSzotar();
     });
     return unsubscribe;
-  }, [startAggressivePolling]);
+  }, [fetchSzotar]);
 
   // Real-time subscription for szotar and szotar_kezelesek changes
   useEffect(() => {
@@ -305,5 +308,6 @@ export function useSzotar(): UseSzotarReturn {
     flexiDomain,
     isLoading: isLoading || profileLoading,
     refresh: fetchSzotar,
+    startPolling: startAggressivePolling,
   };
 }

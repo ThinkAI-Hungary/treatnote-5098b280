@@ -1534,6 +1534,11 @@ serve(async (req) => {
 
         // Delete from all related tables (foreign key safety)
         console.log(`Hard-deleting user ${targetUserId} (${email}) - cleaning up related data...`);
+        // Release any license the user held (same as soft-delete path)
+        await supabaseAdmin
+          .from("licenses")
+          .update({ assigned_user_id: null, status: "available" })
+          .eq("assigned_user_id", targetUserId);
         await supabaseAdmin.from("telephely_memberships").delete().eq("user_id", targetUserId);
         await supabaseAdmin.from("invitations").delete().eq("invited_user_id", targetUserId);
         await supabaseAdmin.from("invitations").delete().eq("invited_by_user_id", targetUserId);

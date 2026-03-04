@@ -75,5 +75,5 @@ SET statement_timeout = '30s';
 
 -- 5. Successfully create HNSW index for 1536-dim vectors
 CREATE INDEX idx_bno_embeddings_vector_hnsw ON bno_embeddings 
-USING hnsw (embedding vector_cosine_ops)
+USING hnsw (embedding extensions.vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);

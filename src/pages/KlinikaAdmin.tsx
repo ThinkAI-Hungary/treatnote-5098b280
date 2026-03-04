@@ -127,13 +127,31 @@ export default function KlinikaAdmin() {
   const activeTelephelyId = telephelyId || profile?.telephely_id || (profile as any)?.current_telephely_id;
   const [hasRulesGuard, setHasRulesGuard] = useState(true);
   const [rulesGuardLoading, setRulesGuardLoading] = useState(true);
+  const [onboardingScannedFor, setOnboardingScannedFor] = useState<string | null>(null);
+
   useEffect(() => {
     if (!activeTelephelyId) { setHasRulesGuard(false); setRulesGuardLoading(false); return; }
-    supabase
-      .from('treatment_rules')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinic_id', activeTelephelyId)
-      .then(({ count }) => { setHasRulesGuard((count || 0) > 0); setRulesGuardLoading(false); });
+
+    const checkRules = async () => {
+      setRulesGuardLoading(true);
+      try {
+        const { count, error } = await supabase
+          .from('treatment_rules')
+          .select('id', { count: 'exact', head: true })
+          .eq('clinic_id', activeTelephelyId);
+
+        if (error) throw error;
+        setHasRulesGuard((count || 0) > 0);
+      } catch (err) {
+        console.error('Failed to load rules guard:', err);
+        setHasRulesGuard(false);
+      } finally {
+        setOnboardingScannedFor(activeTelephelyId);
+        setRulesGuardLoading(false);
+      }
+    };
+
+    checkRules();
   }, [activeTelephelyId]);
 
   const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
@@ -173,6 +191,7 @@ export default function KlinikaAdmin() {
   // Sync tab from URL param on mount and when URL changes
   useEffect(() => {
     const tabParam = searchParams.get('tab');
+    console.log("KlinikaAdmin synced activeTab from URL:", tabParam);
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
     }
@@ -180,6 +199,7 @@ export default function KlinikaAdmin() {
 
   // Update URL when tab changes
   const handleTabChange = useCallback((value: string) => {
+    console.log("KlinikaAdmin handleTabChange:", value);
     setActiveTab(value);
     setSearchParams({ tab: value });
   }, [setSearchParams]);
@@ -292,6 +312,7 @@ export default function KlinikaAdmin() {
     startTour: startRulesTour,
     completeTour: completeRulesTour,
     skipTour: skipRulesTour,
+    hasSeenTour: hasSeenRulesTour,
   } = useOnboardingTour({
     tourKey: 'klinika-rules',
     isEligible: isKlinikaAdmin || isAdmin,
@@ -304,6 +325,7 @@ export default function KlinikaAdmin() {
     startTour: startSzotarTour,
     completeTour: completeSzotarTour,
     skipTour: skipSzotarTour,
+    hasSeenTour: hasSeenSzotarTour,
   } = useOnboardingTour({
     tourKey: 'klinika-szotar',
     isEligible: isKlinikaAdmin || isAdmin,
@@ -338,7 +360,7 @@ export default function KlinikaAdmin() {
     setTimeout(() => startSzotarTour(), 100);
   }, [startSzotarTour]);
 
-  // Auto-start tab-specific tours when switching tabs
+  // Auto-start tab-specific tours when switching tabs — only if the user hasn't seen them yet
   const prevTabRef = useRef(activeTab);
   useEffect(() => {
     const prev = prevTabRef.current;
@@ -347,12 +369,12 @@ export default function KlinikaAdmin() {
     const anyTourOpen = showTour || showRulesTour || showSzotarTour;
     if (anyTourOpen) return;
 
-    if (activeTab === 'kezelesi-szabalyok') {
+    if (activeTab === 'kezelesi-szabalyok' && !hasSeenRulesTour) {
       setTimeout(() => startRulesTour(), 150);
-    } else if (activeTab === 'szotar') {
+    } else if (activeTab === 'szotar' && !hasSeenSzotarTour) {
       setTimeout(() => startSzotarTour(), 150);
     }
-  }, [activeTab, startRulesTour, startSzotarTour, showRulesTour, showSzotarTour, showTour]);
+  }, [activeTab, startRulesTour, startSzotarTour, showRulesTour, showSzotarTour, showTour, hasSeenRulesTour, hasSeenSzotarTour]);
 
   // Info button: launch the tour matching the currently active tab
   useEffect(() => {
@@ -634,13 +656,32 @@ export default function KlinikaAdmin() {
   // Signal loading to sidebar indicator
   usePageLoadingSignal(isLoading);
 
-  // Single loading gate - loader stays until ALL data is ready
-  if (isLoading) {
-    return null;
+  // Single unified loading gate - loader stays until ALL data is ready, including sync latency
+  const isSyncingOnboarding = !!activeTelephelyId && onboardingScannedFor !== activeTelephelyId;
+  const isCurrentlyLoading = isLoading || onboardingLoading || isSyncingOnboarding;
+
+  console.log("KlinikaAdmin Loading State:", {
+    isCurrentlyLoading,
+    isLoading,
+    onboardingLoading,
+    szotarLoading,
+    isFlexiLoading,
+    rulesGuardLoading,
+    isSyncingOnboarding,
+    activeTelephelyId,
+    onboardingScannedFor,
+  });
+
+  if (isCurrentlyLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   // Guard: if onboarding is incomplete, show info message
-  if (!onboardingLoading && !allOnboardingComplete) {
+  if (!allOnboardingComplete) {
     return (
       <div className="space-y-6">
         <div>
@@ -1173,6 +1214,7 @@ export default function KlinikaAdmin() {
             <TabsContent value="elofizetes" className="mt-0">
               <ElofizetesTab
                 companyId={companyId}
+                telephelyId={telephelyId}
                 companyName={companyName}
                 users={users}
               />

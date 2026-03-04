@@ -1,0 +1,1 @@
+{"type":"checkout.session.completed","data":{"object":{"metadata":{"company_id":"test-company-123","telephely_id":"test-telephely-456"},"subscription":{"id":"test-sub-123"},"customer":{"id":"test-cus-123"}}}}

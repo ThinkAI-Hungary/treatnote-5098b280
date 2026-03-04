@@ -274,6 +274,7 @@ export function AppSidebar() {
 
   const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
+  const depsInitialLoadRef = useRef(true);
 
   // Fetch treatment_rules count for the active telephely
   useEffect(() => {
@@ -589,9 +590,9 @@ export function AppSidebar() {
     prevShowProtectedRef.current = showProtectedItems;
   }, [showProtectedItems]);
 
-  // Don't render content until roles AND all deps are fully loaded to prevent menu jumping
-  const depsStillLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading;
-  if (!isInitialized || depsStillLoading) {
+  const depsCurrentlyLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading;
+
+  if (depsCurrentlyLoading && depsInitialLoadRef.current) {
     return (
       <Sidebar collapsible="icon" className="z-30">
         <SidebarHeader className="border-b border-sidebar-border">
@@ -616,6 +617,11 @@ export function AppSidebar() {
         </SidebarContent>
       </Sidebar>
     );
+  }
+
+  // Once we get past the loading screen, lock the initial load state so we never return to the spinner
+  if (!depsCurrentlyLoading && depsInitialLoadRef.current) {
+    depsInitialLoadRef.current = false;
   }
 
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'U';

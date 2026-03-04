@@ -1,52 +1,183 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CreditCard, Users, ArrowRight, Minus, Plus, ExternalLink, RefreshCw, Check } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  useBillingDetails,
+  fetchInvoices,
+  cancelSubscription,
+  createSetupIntent,
+  createEmbeddedCheckout,
+  switchPlan,
+  formatCurrency,
+  formatDate,
+  PRICE_IDS,
+  type PaymentMethod,
+} from '@/hooks/useBillingDetails';
+import { PaymentMethodCard } from '@/components/billing/PaymentMethodCard';
+import { InvoiceRow, type Invoice } from '@/components/billing/InvoiceRow';
+import { LicenseGrid } from '@/components/billing/LicenseGrid';
+import { CheckoutModal } from '@/components/billing/CheckoutModal';
+import { StripeProvider } from '@/components/billing/StripeProvider';
+import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useSearchParams } from 'react-router-dom';
+import {
+  CreditCard, Users, Receipt, LayoutDashboard, RefreshCw,
+  TrendingUp, TrendingDown, Calendar, ArrowUpDown, Plus,
+  CheckCircle, AlertTriangle, XCircle, Clock, Zap, Minus,
+  ChevronRight, Shield
+} from 'lucide-react';
 
-const MONTHLY_PRICE_ID = "price_1Sz1XkDG9IVOU80stgzB49Nq";
-const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
+// ─── Setup Intent Form (inside Stripe Elements) ────────────────────────────
 
-interface CompanySubscription {
-  id: string;
-  name: string;
-  subscription_status: string;
-  subscription_price_id: string | null;
-  seats: number;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-  stripe_customer_id: string | null;
-  stripe_subscription_item_id: string | null;
+function SetupForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSaving(true);
+    setError(null);
+
+    const { error: confirmErr } = await stripe.confirmSetup({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    });
+
+    if (confirmErr) {
+      setError(confirmErr.message || 'Hiba a kártya mentésekor');
+      setSaving(false);
+    } else {
+      toast.success('Fizetési mód elmentve!');
+      onSuccess();
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement options={{ layout: { type: 'tabs', defaultCollapsed: false } }} />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex gap-2 pt-2">
+        <Button type="submit" disabled={saving || !stripe} className="flex-1">
+          {saving ? 'Mentés...' : 'Kártya mentése'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+          Mégse
+        </Button>
+      </div>
+    </form>
+  );
 }
+
+// ─── Status icon helper ─────────────────────────────────────────────────────
+
+function StatusIcon({ status }: { status: string | null }) {
+  switch (status) {
+    case 'active': return <CheckCircle className="h-5 w-5 text-green-500" />;
+    case 'past_due': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case 'canceled': return <XCircle className="h-5 w-5 text-destructive" />;
+    case 'trialing': return <Clock className="h-5 w-5 text-primary" />;
+    default: return <Shield className="h-5 w-5 text-muted-foreground" />;
+  }
+}
+
+function statusLabel(status: string | null): string {
+  const map: Record<string, string> = {
+    active: 'Aktív',
+    past_due: 'Késedelmes',
+    canceled: 'Lemondva',
+    trialing: 'Próbaidőszak',
+    incomplete: 'Feldolgozás alatt',
+  };
+  return (status && map[status]) || 'Nincs előfizetés';
+}
+
+// ─── Plan selection cards ────────────────────────────────────────────────────
+
+function PlanCard({
+  label, description, amount, currency, selected, onClick,
+  badge,
+}: {
+  label: string; description: string; amount: number; currency: string;
+  selected: boolean; onClick: () => void; badge?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative text-left w-full rounded-xl border p-5 transition-all duration-200 group ${selected
+        ? 'border-primary/60 bg-primary/5 dark:bg-primary/10 shadow-[0_0_20px_hsl(270_70%_60%/0.1)]'
+        : 'border-border/60 bg-card/60 hover:border-border hover:bg-card/80'
+        }`}
+    >
+      {badge && (
+        <span className="absolute top-3 right-3 text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
+          {badge}
+        </span>
+      )}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-semibold">{label}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+        </div>
+        <div className={`w-4 h-4 rounded-full border-2 mt-1 flex items-center justify-center shrink-0 transition-colors ${selected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
+          }`}>
+          {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+        </div>
+      </div>
+      <p className="mt-4 text-2xl font-bold tracking-tight">
+        {formatCurrency(amount, currency)}
+        <span className="text-sm font-normal text-muted-foreground">/hó · licencenként</span>
+      </p>
+    </button>
+  );
+}
+
+// ─── Main Billing page ───────────────────────────────────────────────────────
 
 export default function Billing() {
   const { session } = useAuth();
-  const { isKlinikaAdmin, companyId, loading: rolesLoading } = useCachedRoles();
-  const [searchParams] = useSearchParams();
-  const [company, setCompany] = useState<CompanySubscription | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const { isKlinikaAdmin, companyId, telephelyId, loading: rolesLoading } = useCachedRoles();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Billing details
+  const { details, loading, refresh } = useBillingDetails(companyId);
+
+  // Invoices (loaded lazily on tab switch)
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+
+  // Members (for license tab)
+  const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; email?: string }>>([]);
+
+  // UI state
+  const [tab, setTab] = useState('overview');
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
+  const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null);
+  const [showSetupForm, setShowSetupForm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [seatCount, setSeatCount] = useState(1);
+  const [actionLoading, setActionLoading] = useState(false);
   const [polling, setPolling] = useState(false);
 
-  const fetchCompany = useCallback(async () => {
-    if (!companyId) { setLoading(false); return; }
-    const { data, error } = await supabase
-      .from('companies')
-      .select('id, name, subscription_status, subscription_price_id, seats, current_period_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_item_id')
-      .eq('id', companyId)
-      .single();
-    if (!error && data) setCompany(data as CompanySubscription);
-    setLoading(false);
-  }, [companyId]);
-
-  useEffect(() => { if (!rolesLoading) fetchCompany(); }, [rolesLoading, fetchCompany]);
+  // Detect dark mode
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
   // Poll after checkout success
   useEffect(() => {
@@ -54,101 +185,141 @@ export default function Billing() {
     setPolling(true);
     const interval = setInterval(async () => {
       if (!companyId) return;
-      const { data } = await supabase
-        .from('companies')
-        .select('subscription_status')
-        .eq('id', companyId)
-        .single();
+      const { data } = await supabase.from('companies').select('subscription_status').eq('id', companyId).single();
       if (data?.subscription_status === 'active') {
         setPolling(false);
         clearInterval(interval);
-        fetchCompany();
+        refresh();
         toast.success('Előfizetés aktiválva!');
+        setSearchParams(prev => {
+          const params = new URLSearchParams(prev);
+          params.delete('checkout');
+          return params;
+        }, { replace: true });
       }
     }, 3000);
-    const timeout = setTimeout(() => { setPolling(false); clearInterval(interval); }, 60000);
+    const timeout = setTimeout(() => { setPolling(false); clearInterval(interval); }, 90000);
     return () => { clearInterval(interval); clearTimeout(timeout); };
-  }, [searchParams, companyId, fetchCompany]);
+  }, [searchParams, companyId, refresh, setSearchParams]);
 
-  async function invokeFunction(name: string, body: Record<string, unknown>) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    const { data, error } = await supabase.functions.invoke(name, {
-      body,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (error) throw error;
-    return data;
+  // Load invoices when tab is selected
+  async function loadInvoices() {
+    if (!companyId || invoicesLoading) return;
+    setInvoicesLoading(true);
+    try {
+      const data = await fetchInvoices(companyId);
+      setInvoices(data?.invoices || []);
+    } catch {
+      toast.error('Számlák betöltése sikertelen');
+    } finally {
+      setInvoicesLoading(false);
+    }
   }
 
-  async function handleCheckout() {
+  // Load members for license tab
+  const loadMembers = useCallback(async () => {
     if (!companyId) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('user_id, full_name')
+      .eq('company_id', companyId);
+    if (data) setMembers(data as any);
+  }, [companyId]);
+
+  useEffect(() => {
+    if (tab === 'licences') loadMembers();
+    if (tab === 'invoices') loadInvoices();
+  }, [tab]);
+
+  async function handleStartCheckout() {
+    if (!companyId || !details) return;
     setActionLoading(true);
     try {
-      const priceId = selectedPlan === 'monthly' ? MONTHLY_PRICE_ID : YEARLY_PRICE_ID;
-      const data = await invokeFunction('create-checkout-session', {
-        company_id: companyId,
-        price_id: priceId,
-        seats: seatCount,
-      });
-      if (data?.url) window.location.href = data.url;
-      else toast.error('Nem sikerült a fizetési munkamenet létrehozása.');
+      const priceId = selectedPlan === 'yearly' ? PRICE_IDS.yearly : PRICE_IDS.monthly;
+      const data = await createEmbeddedCheckout(companyId, telephelyId || "", priceId, seatCount);
+      if (data?.client_secret) {
+        setCheckoutClientSecret(data.client_secret);
+      } else {
+        toast.error('Nem sikerült elindítani a fizetést');
+      }
     } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt.');
+      toast.error(err?.message || 'Hiba történt');
     } finally {
       setActionLoading(false);
     }
   }
 
-  async function handleUpdateSeats(newSeats: number) {
+  async function handleAddPaymentMethod() {
     if (!companyId) return;
     setActionLoading(true);
     try {
-      await invokeFunction('update-seats', { company_id: companyId, new_seats: newSeats });
-      toast.success(`Licence szám frissítve: ${newSeats}`);
-      fetchCompany();
+      const data = await createSetupIntent(companyId);
+      if (data?.client_secret) {
+        setSetupClientSecret(data.client_secret);
+        setShowSetupForm(true);
+      }
     } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt.');
+      toast.error(err?.message || 'Hiba történt');
     } finally {
       setActionLoading(false);
     }
   }
 
   async function handleSwitchPlan() {
-    if (!companyId || !company) return;
-    const newPriceId = company.subscription_price_id === MONTHLY_PRICE_ID ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+    if (!companyId || !details) return;
+    const newPriceId = details.subscription.price_id === PRICE_IDS.monthly ? PRICE_IDS.yearly : PRICE_IDS.monthly;
     setActionLoading(true);
     try {
-      await invokeFunction('switch-plan', { company_id: companyId, new_price_id: newPriceId });
-      toast.success('Csomag váltás elindítva!');
-      fetchCompany();
+      await switchPlan(companyId, newPriceId);
+      toast.success('Csomag váltás sikeres!');
+      await refresh();
     } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt.');
+      toast.error(err?.message || 'Hiba történt');
     } finally {
       setActionLoading(false);
     }
   }
 
-  async function handlePortal() {
+  async function handleCancel(immediately = false) {
     if (!companyId) return;
     setActionLoading(true);
     try {
-      const data = await invokeFunction('create-portal-session', { company_id: companyId });
-      if (data?.url) window.location.href = data.url;
-      else toast.error('Nem sikerült megnyitni a számlázási portált.');
+      await cancelSubscription(companyId, { immediately });
+      toast.success(immediately ? 'Előfizetés lemondva.' : 'Lemondás ütemezve a periódus végére.');
+      await refresh();
     } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt.');
+      toast.error(err?.message || 'Hiba történt');
     } finally {
       setActionLoading(false);
     }
   }
 
+  async function handleReactivate() {
+    if (!companyId) return;
+    setActionLoading(true);
+    try {
+      await cancelSubscription(companyId, { reactivate: true });
+      toast.success('Lemondás visszavonva!');
+      await refresh();
+    } catch (err: any) {
+      toast.error(err?.message || 'Hiba történt');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // ── Access check ──
   if (rolesLoading || loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Számlázás</h1>
           <p className="text-muted-foreground mt-1">Betöltés...</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-28 rounded-xl bg-muted/40 animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -159,13 +330,12 @@ export default function Billing() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Számlázás</h1>
-          <p className="text-muted-foreground mt-1">Előfizetés és számlázási információk</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CreditCard className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground text-center max-w-sm">
-              Az előfizetés kezelése a klinika adminisztrátor feladata. Kérjük, forduljon a klinika adminisztrátorához.
+            <p className="text-muted-foreground text-center max-w-sm text-sm">
+              Az előfizetés kezelése a klinika adminisztrátor feladata.
             </p>
           </CardContent>
         </Card>
@@ -173,199 +343,452 @@ export default function Billing() {
     );
   }
 
-  const isActive = company?.subscription_status === 'active';
-  const isPastDue = company?.subscription_status === 'past_due';
-  const currentPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Éves' : 'Havi';
-  const otherPlanLabel = company?.subscription_price_id === YEARLY_PRICE_ID ? 'Havi' : 'Éves';
+  const sub = details?.subscription;
+  const isActive = sub?.status === 'active' || sub?.status === 'trialing';
+  const isPastDue = sub?.status === 'past_due';
+  const isCancelPending = sub?.cancel_at_period_end;
+  const isYearly = sub?.price_id === PRICE_IDS.yearly;
+  const prices = details?.prices;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Számlázás</h1>
-        <p className="text-muted-foreground mt-1">
-          {company?.name} – Előfizetés és licence kezelés
-        </p>
-      </div>
-
-      {polling && (
-        <Card className="border-accent">
-          <CardContent className="flex items-center gap-3 py-4">
-            <RefreshCw className="h-5 w-5 text-accent animate-spin" />
-            <p className="text-sm">Fizetés feldolgozás alatt... Kérjük, várjon.</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Active subscription management */}
-      {(isActive || isPastDue) && company && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Státusz</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Badge variant={isActive ? 'default' : 'destructive'} className="text-sm">
-                  {isActive ? 'Aktív' : 'Lejárt fizetés'}
-                </Badge>
-                {company.cancel_at_period_end && (
-                  <p className="text-xs text-muted-foreground mt-1">Lemondás a periódus végén</p>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Csomag</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{currentPlanLabel}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Licencek</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{company.seats}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {company.current_period_end && (
-            <p className="text-sm text-muted-foreground">
-              Következő megújítás: {new Date(company.current_period_end).toLocaleDateString('hu-HU')}
+    <div className="space-y-6 animate-fade-in">
+      {/* ── Header ── */}
+      <div className="bg-galaxy-header rounded-2xl px-6 py-5 border border-border/40">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Számlázás</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Előfizetés, licencek és számlázási információk
             </p>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Seat management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Licencek kezelése
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={actionLoading || company.seats <= 1}
-                    onClick={() => handleUpdateSeats(company.seats - 1)}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="text-2xl font-bold min-w-[3rem] text-center">{company.seats}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={actionLoading || company.seats >= 500}
-                    onClick={() => handleUpdateSeats(company.seats + 1)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Az arányos elszámolás automatikusan történik.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Plan switching */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <ArrowRight className="h-5 w-5" />
-                  Csomag váltás
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Jelenlegi: <strong>{currentPlanLabel}</strong>
-                </p>
-                <Button onClick={handleSwitchPlan} disabled={actionLoading} variant="outline">
-                  Váltás {otherPlanLabel} csomagra
-                </Button>
-              </CardContent>
-            </Card>
           </div>
-
-          <Card>
-            <CardContent className="flex items-center justify-between py-4">
-              <div>
-                <p className="font-medium">Stripe számlázási portál</p>
-                <p className="text-sm text-muted-foreground">Számlák, fizetési mód, lemondás</p>
-              </div>
-              <Button onClick={handlePortal} disabled={actionLoading} variant="outline">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Megnyitás
-              </Button>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* New subscription purchase */}
-      {!isActive && !isPastDue && !polling && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card
-              className={`cursor-pointer transition-all ${selectedPlan === 'monthly' ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setSelectedPlan('monthly')}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Havi
-                  {selectedPlan === 'monthly' && <Check className="h-5 w-5 text-primary" />}
-                </CardTitle>
-                <CardDescription>Rugalmas, havi elszámolás</CardDescription>
-              </CardHeader>
-            </Card>
-            <Card
-              className={`cursor-pointer transition-all ${selectedPlan === 'yearly' ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => setSelectedPlan('yearly')}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Éves
-                  {selectedPlan === 'yearly' && <Check className="h-5 w-5 text-primary" />}
-                </CardTitle>
-                <CardDescription>Kedvezményes éves elszámolás</CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Licencek száma
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Button variant="outline" size="icon" disabled={seatCount <= 1} onClick={() => setSeatCount((s) => Math.max(1, s - 1))}>
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="text-2xl font-bold min-w-[3rem] text-center">{seatCount}</span>
-                <Button variant="outline" size="icon" disabled={seatCount >= 500} onClick={() => setSeatCount((s) => Math.min(500, s + 1))}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           <Button
-            size="lg"
-            className="w-full"
-            onClick={handleCheckout}
-            disabled={actionLoading}
+            variant="ghost"
+            size="icon"
+            className="mt-1"
+            onClick={refresh}
+            disabled={loading}
           >
-            <CreditCard className="h-5 w-5 mr-2" />
-            Előfizetés indítása
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
+
+        {/* Status bar */}
+        {polling && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            Fizetés feldolgozás alatt...
+          </div>
+        )}
+      </div>
+
+      {/* ── Stat cards ── */}
+      {(isActive || isPastDue) && sub && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Status */}
+          <Card className="border-border/60">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground mb-2">Státusz</p>
+              <div className="flex items-center gap-2">
+                <StatusIcon status={sub.status} />
+                <span className="font-semibold text-sm">{statusLabel(sub.status)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Plan */}
+          <Card className="border-border/60">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground mb-2">Csomag</p>
+              <div className="flex items-center gap-2">
+                {isYearly ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-primary" />}
+                <span className="font-semibold text-sm">{isYearly ? 'Éves' : 'Havi'}</span>
+                {isYearly && <Badge className="text-[9px] px-1 h-4 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">Megtakarítás</Badge>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Seats */}
+          <Card className="border-border/60">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground mb-2">Licencek</p>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-sm">{sub.seats} db</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Next billing */}
+          <Card className="border-border/60">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground mb-2">
+                {isCancelPending ? 'Lejár' : 'Következő számla'}
+              </p>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">{formatDate(sub.current_period_end)}</span>
+              </div>
+              {isCancelPending && (
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Lemondásra ütemezve</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Main content tabs ── */}
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="w-full justify-start h-10 bg-muted/40 border border-border/40 rounded-xl p-1">
+          <TabsTrigger value="overview" className="gap-1.5 text-xs"><LayoutDashboard className="h-3.5 w-3.5" /> Áttekintés</TabsTrigger>
+          <TabsTrigger value="payment" className="gap-1.5 text-xs"><CreditCard className="h-3.5 w-3.5" /> Fizetési módok</TabsTrigger>
+          <TabsTrigger value="invoices" className="gap-1.5 text-xs"><Receipt className="h-3.5 w-3.5" /> Számlák</TabsTrigger>
+          <TabsTrigger value="licences" className="gap-1.5 text-xs"><Users className="h-3.5 w-3.5" /> Licencek</TabsTrigger>
+        </TabsList>
+
+        {/* ── Overview tab ── */}
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          {(isActive || isPastDue) && sub ? (
+            <>
+              {/* Upcoming invoice */}
+              {details?.upcoming_invoice && (
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        Következő számlázás
+                      </CardTitle>
+                      <span className="text-xl font-bold">
+                        {formatCurrency(details.upcoming_invoice.amount_due, details.upcoming_invoice.currency)}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    {details.upcoming_invoice.lines.map((line, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{line.description}</span>
+                        <span className="font-medium">{formatCurrency(line.amount, details.upcoming_invoice!.currency)}</span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Esedékesség: {formatDate(details.upcoming_invoice.period_end)}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Plan management */}
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <ArrowUpDown className="h-4 w-4 text-primary" />
+                      Csomag kezelés
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Jelenlegi</span>
+                      <Badge variant="secondary">{isYearly ? 'Éves' : 'Havi'}</Badge>
+                    </div>
+                    {prices && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Egységár</span>
+                        <span className="font-medium">
+                          {formatCurrency(isYearly ? prices.yearly.unit_amount : prices.monthly.unit_amount, isYearly ? prices.yearly.currency : prices.monthly.currency)}/hó
+                        </span>
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleSwitchPlan}
+                      disabled={actionLoading}
+                    >
+                      <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
+                      Váltás {isYearly ? 'havi' : 'éves'} csomagra
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Cancellation */}
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                      Előfizetés kezelés
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {isCancelPending ? (
+                      <>
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                          Lemondás ütemezve: {formatDate(sub.current_period_end)}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-primary/40 text-primary hover:bg-primary/5"
+                          onClick={handleReactivate}
+                          disabled={actionLoading}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                          Lemondás visszavonása
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground">
+                          Az előfizetés a periódus végéig aktív marad lemondás esetén.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-destructive hover:bg-destructive/5 hover:border-destructive/40"
+                          onClick={() => handleCancel(false)}
+                          disabled={actionLoading}
+                        >
+                          Lemondás a periódus végén
+                        </Button>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : (
+            /* New subscription purchase */
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold mb-1">Válassz csomagot</h2>
+                <p className="text-sm text-muted-foreground">Minden csomag tartalmaz minden funkciót. A licencek száma határozza meg a felhasználókat.</p>
+              </div>
+
+              {prices && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <PlanCard
+                    label="Havi"
+                    description="Rugalmas, havi megújítás"
+                    amount={prices.monthly.unit_amount || 0}
+                    currency={prices.monthly.currency}
+                    selected={selectedPlan === 'monthly'}
+                    onClick={() => setSelectedPlan('monthly')}
+                  />
+                  <PlanCard
+                    label="Éves"
+                    description="Kedvezményes éves elszámolás"
+                    amount={(prices.yearly.unit_amount || 0) / 12}
+                    currency={prices.yearly.currency}
+                    selected={selectedPlan === 'yearly'}
+                    onClick={() => setSelectedPlan('yearly')}
+                    badge="Legjobb érték"
+                  />
+                </div>
+              )}
+
+              {/* Seat count */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Licencek száma
+                  </CardTitle>
+                  <CardDescription>Hány felhasználó fér hozzá a rendszerhez?</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="w-10 h-10 rounded-xl border border-border/60 bg-muted/40 flex items-center justify-center hover:bg-muted/70 transition-colors disabled:opacity-40"
+                      disabled={seatCount <= 1}
+                      onClick={() => setSeatCount((s) => Math.max(1, s - 1))}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="text-3xl font-bold w-16 text-center">{seatCount}</span>
+                    <button
+                      className="w-10 h-10 rounded-xl border border-border/60 bg-muted/40 flex items-center justify-center hover:bg-muted/70 transition-colors disabled:opacity-40"
+                      disabled={seatCount >= 500}
+                      onClick={() => setSeatCount((s) => Math.min(500, s + 1))}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    {prices && (
+                      <div className="ml-4 text-sm text-muted-foreground">
+                        = <span className="font-semibold text-foreground">
+                          {formatCurrency(
+                            (selectedPlan === 'yearly' ? prices.yearly.unit_amount : prices.monthly.unit_amount) * seatCount,
+                            selectedPlan === 'yearly' ? prices.yearly.currency : prices.monthly.currency
+                          )}
+                        </span>/{selectedPlan === 'yearly' ? 'év' : 'hó'}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button
+                size="lg"
+                className="w-full galaxy-gradient font-semibold gap-2 h-12 text-base"
+                onClick={handleStartCheckout}
+                disabled={actionLoading}
+              >
+                <CreditCard className="h-5 w-5" />
+                {actionLoading ? 'Indítás...' : 'Előfizetés indítása'}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+                <Shield className="h-3 w-3" />
+                Biztonságos fizetés a Stripe által. Kártyaadatait soha nem tároljuk.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Payment methods tab ── */}
+        <TabsContent value="payment" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold">Fizetési módok</h2>
+              <p className="text-sm text-muted-foreground">Mentett kártyák és fizetési módok</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleAddPaymentMethod}
+              disabled={actionLoading}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Hozzáadás
+            </Button>
+          </div>
+
+          {/* SetupIntent form */}
+          {showSetupForm && setupClientSecret && (
+            <Card className="border-primary/30 bg-primary/5 dark:bg-primary/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Új fizetési mód</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StripeProvider clientSecret={setupClientSecret} isDark={isDark}>
+                  <SetupForm
+                    onSuccess={() => { setShowSetupForm(false); setSetupClientSecret(null); refresh(); }}
+                    onCancel={() => { setShowSetupForm(false); setSetupClientSecret(null); }}
+                  />
+                </StripeProvider>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Saved payment methods */}
+          {details?.payment_methods && details.payment_methods.length > 0 ? (
+            <div className="space-y-2">
+              {details.payment_methods.map((pm) => (
+                <PaymentMethodCard key={pm.id} pm={pm} />
+              ))}
+            </div>
+          ) : !showSetupForm ? (
+            <Card className="border-border/60">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+                <CreditCard className="h-10 w-10 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground text-center">
+                  Nincs mentett fizetési mód.
+                  <br />Adj hozzá egyet a gombbal fentebb.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+        </TabsContent>
+
+        {/* ── Invoices tab ── */}
+        <TabsContent value="invoices" className="space-y-4 mt-4">
+          <div>
+            <h2 className="text-base font-semibold">Számlák</h2>
+            <p className="text-sm text-muted-foreground">Korábbi és aktuális számlák listája</p>
+          </div>
+
+          {invoicesLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <div key={i} className="h-14 rounded-lg bg-muted/40 animate-pulse" />)}
+            </div>
+          ) : invoices.length > 0 ? (
+            <Card className="border-border/60 overflow-hidden">
+              <CardContent className="p-2">
+                <div className="divide-y divide-border/40">
+                  {invoices.map((inv) => <InvoiceRow key={inv.id} invoice={inv} />)}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-border/60">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
+                <Receipt className="h-10 w-10 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Még nincsenek számlák.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ── Licences tab ── */}
+        <TabsContent value="licences" className="space-y-4 mt-4">
+          <div>
+            <h2 className="text-base font-semibold">Licencek</h2>
+            <p className="text-sm text-muted-foreground">Kiosztott és szabad licencek kezelése</p>
+          </div>
+
+          {sub && companyId && (
+            <Card className="border-border/60">
+              <CardContent className="pt-5 pb-5">
+                <LicenseGrid
+                  companyId={companyId}
+                  totalSeats={sub.seats || 0}
+                  usedSeats={members.length}
+                  onUpdate={refresh}
+                  readOnly={!isActive && !isPastDue}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Members table */}
+          {members.length > 0 && (
+            <Card className="border-border/60 overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Tagok</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-border/40">
+                  {members.map((m, i) => (
+                    <div key={m.user_id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                        {m.full_name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{m.full_name || 'Ismeretlen'}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto text-[10px] px-1.5">
+                        #{i + 1}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* ── Checkout modal ── */}
+      {checkoutClientSecret && (
+        <CheckoutModal
+          clientSecret={checkoutClientSecret}
+          onClose={() => setCheckoutClientSecret(null)}
+          onComplete={() => {
+            setCheckoutClientSecret(null);
+            setPolling(true);
+          }}
+        />
       )}
     </div>
   );

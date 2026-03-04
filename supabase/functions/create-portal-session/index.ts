@@ -30,14 +30,14 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await userClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const { company_id } = await req.json();
     if (!company_id) {
@@ -50,9 +50,9 @@ serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: hasKlinikaAdmin } = await serviceClient.rpc("has_role", { _user_id: userId, _role: "klinika_admin" });
-    const { data: hasAdmin } = await serviceClient.rpc("has_role", { _user_id: userId, _role: "admin" });
-    if (!hasKlinikaAdmin && !hasAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: klinika_admin or admin role required" }), {
+
+    if (!hasKlinikaAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: ONLY klinika_admin role is permitted for billing" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -81,6 +81,12 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
     const origin = req.headers.get("origin") || "https://treatnote.lovable.app";
+
+    if (user.email) {
+      await stripe.customers.update(company.stripe_customer_id, {
+        email: user.email,
+      });
+    }
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: company.stripe_customer_id,
