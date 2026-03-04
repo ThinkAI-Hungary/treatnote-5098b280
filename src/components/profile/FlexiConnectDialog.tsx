@@ -16,8 +16,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, Loader2, AlertTriangle, TriangleAlert } from 'lucide-react';
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const flexiSchema = z.object({
-  flexiEmail: z.string().min(1, 'Email megadása kötelező').email('Érvénytelen email cím').max(255, 'Email max 255 karakter'),
+  flexiEmail: z.string().min(1, 'Email megadása kötelező').regex(emailRegex, 'Érvénytelen email cím').max(255, 'Email max 255 karakter'),
   flexiPassword: z.string().min(1, 'Jelszó megadása kötelező').max(128, 'Jelszó max 128 karakter'),
 });
 

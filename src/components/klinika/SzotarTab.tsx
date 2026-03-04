@@ -14,6 +14,7 @@ import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSzotar } from '@/hooks/useSzotar';
+import { subscribeGenerationStore, isSzotarGenerating, startSzotarGeneration } from '@/lib/generationStore';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
@@ -74,7 +75,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const [szotar, setSzotar] = useState<SzotarData | null>(null);
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState(isSzotarGenerating());
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(null);
   const [flexiDomain, setFlexiDomain] = useState<string | null>(null);
   const [probaPaciensDialogOpen, setProbaPaciensDialogOpen] = useState(false);
@@ -83,9 +84,6 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Robust fallback when Realtime doesn't fire (common if table replication isn't enabled)
-  const generationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const generationPollInFlightRef = useRef(false);
 
   // Check if we should open the dialog from URL params
   useEffect(() => {
@@ -106,27 +104,13 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
   const hasFlexiDomain = !!flexiDomain;
 
   useEffect(() => {
+    const unsubscribeGeneration = subscribeGenerationStore(() => {
+      setGenerating(isSzotarGenerating());
+    });
     return () => {
-      if (generationPollRef.current) {
-        clearInterval(generationPollRef.current);
-        generationPollRef.current = null;
-      }
+      unsubscribeGeneration();
     };
   }, []);
-
-  const getLatestKezelesekUpdatedAt = useCallback(async () => {
-    if (!telephelyId) return null;
-
-    const { data, error } = await supabase
-      .from('szotar_kezelesek')
-      .select('updated_at')
-      .eq('telephely_id', telephelyId)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-
-    if (error) throw error;
-    return data?.[0]?.updated_at ?? null;
-  }, [telephelyId]);
 
 
 
@@ -208,118 +192,9 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
       return;
     }
 
-    // Prevent multiple clicks - generating stays true until we see DB changes
     if (generating) return;
 
-    setGenerating(true);
-
-    // Kick the sidebar refresh logic immediately (it will start polling in useSzotar)
-    notifySzotarDataChanged();
-
-    // Baseline timestamp (for both initial create and regenerate)
-    let baselineUpdatedAt: string | null = null;
-    try {
-      baselineUpdatedAt = await getLatestKezelesekUpdatedAt();
-    } catch (err) {
-      console.warn('SzotarTab: Could not read baseline updated_at for polling', err);
-    }
-
-
-
-    try {
-      // Call the edge function that will trigger n8n webhook
-      const { data, error } = await supabase.functions.invoke('szotar-webhook', {
-        body: {
-          telephely_id: telephelyId,
-          company_id: companyId,
-          user_id: user.id,
-          regenerate: szotar !== null,
-        },
-      });
-
-      if (error) throw error;
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Ismeretlen hiba');
-      }
-
-      toast.success(szotar ? 'Szótár újragenerálása elindítva!' : 'Szótár készítése elindítva!');
-
-      // Start the centralized aggressive polling logic to watch for the changes
-      startPolling();
-
-      // Fallback: poll the DB until szotar_kezelesek changes (realtime might be disabled per-table)
-      const startedAt = Date.now();
-
-      if (generationPollRef.current) {
-        clearInterval(generationPollRef.current);
-        generationPollRef.current = null;
-      }
-
-      generationPollRef.current = setInterval(async () => {
-        // Prevent overlapping requests
-        if (generationPollInFlightRef.current) return;
-        generationPollInFlightRef.current = true;
-
-        try {
-          const latestUpdatedAt = await getLatestKezelesekUpdatedAt();
-          const changed =
-            (baselineUpdatedAt === null && latestUpdatedAt !== null) ||
-            (baselineUpdatedAt !== null &&
-              latestUpdatedAt !== null &&
-              latestUpdatedAt !== baselineUpdatedAt);
-
-          if (changed) {
-            if (generationPollRef.current) {
-              clearInterval(generationPollRef.current);
-              generationPollRef.current = null;
-            }
-
-            await loadSzotar();
-            notifySzotarDataChanged();
-            setGenerating(false);
-            addNotification('szotar', 'Szótár sikeresen generálva');
-
-            // Trigger embedding generation in the background
-            console.log('SzotarTab: Triggering embedding generation for telephely:', telephelyId);
-            supabase.functions.invoke('generate-szotar-embeddings', {
-              body: { telephely_id: telephelyId }
-            }).then(({ error }) => {
-              if (error) {
-                console.error('Error triggering embedding generation:', error);
-              } else {
-                console.log('Embedding generation triggered successfully');
-              }
-            });
-
-            return;
-          }
-
-          if (Date.now() - startedAt > 120000) {
-            if (generationPollRef.current) {
-              clearInterval(generationPollRef.current);
-              generationPollRef.current = null;
-            }
-            toast.info('Szótár generálás várakozik... Kérem várjon vagy próbálja újra később.');
-            setGenerating(false);
-          }
-        } catch (err) {
-          // keep polling
-        } finally {
-          generationPollInFlightRef.current = false;
-        }
-      }, 2500);
-
-    } catch (err: any) {
-      console.error('Error generating szotar:', err);
-      toast.error('Hiba a szótár generálásakor: ' + (err.message || 'Ismeretlen hiba'));
-      setGenerating(false);
-
-      if (generationPollRef.current) {
-        clearInterval(generationPollRef.current);
-        generationPollRef.current = null;
-      }
-    }
+    await startSzotarGeneration(telephelyId, companyId, user.id, loadSzotar, szotar !== null);
   };
 
   const handleProbaPaciensSaved = (name: string) => {
@@ -436,7 +311,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
         ) : (
           <RefreshCw className="mr-2 h-4 w-4" />
         )}
-        {hasSzotar ? 'Szótár újragenerálása' : 'Szótár készítése'}
+        {generating ? 'Generálás...' : (hasSzotar ? 'Szótár újragenerálása' : 'Szótár készítése')}
       </>
     );
 

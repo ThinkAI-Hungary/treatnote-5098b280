@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const authSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.string().regex(emailRegex, 'Please enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
