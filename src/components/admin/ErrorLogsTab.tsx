@@ -44,6 +44,24 @@ export function ErrorLogsTab() {
     const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
     const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 
+    // Keyboard navigation for lightbox
+    useEffect(() => {
+        if (!lightbox) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { setLightbox(null); return; }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                setLightbox(prev => prev && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev);
+            }
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                setLightbox(prev => prev && prev.index < prev.urls.length - 1 ? { ...prev, index: prev.index + 1 } : prev);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [lightbox != null]); // only re-attach when lightbox opens/closes, not on every index change
+
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         const { data, error } = await supabase
@@ -474,15 +492,6 @@ export function ErrorLogsTab() {
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
                     onClick={(e) => { if (e.target === e.currentTarget) setLightbox(null); }}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Escape') setLightbox(null);
-                        if (e.key === 'ArrowLeft' && lightbox.index > 0)
-                            setLightbox({ ...lightbox, index: lightbox.index - 1 });
-                        if (e.key === 'ArrowRight' && lightbox.index < lightbox.urls.length - 1)
-                            setLightbox({ ...lightbox, index: lightbox.index + 1 });
-                    }}
-                    tabIndex={0}
-                    ref={(el) => el?.focus()}
                 >
                     {/* Close button */}
                     <button
@@ -498,38 +507,47 @@ export function ErrorLogsTab() {
                     </div>
 
                     {/* Previous button */}
-                    {lightbox.index > 0 && (
-                        <button
-                            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setLightbox({ ...lightbox, index: lightbox.index - 1 });
-                            }}
-                        >
-                            <ChevronLeft className="h-8 w-8" />
-                        </button>
-                    )}
+                    <button
+                        className={cn(
+                            "absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors",
+                            lightbox.index > 0 ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed"
+                        )}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (lightbox.index > 0)
+                                setLightbox(prev => prev ? { ...prev, index: prev.index - 1 } : null);
+                        }}
+                    >
+                        <ChevronLeft className="h-8 w-8" />
+                    </button>
 
-                    {/* Image */}
-                    <img
-                        src={lightbox.urls[lightbox.index]}
-                        alt={`Screenshot ${lightbox.index + 1}`}
-                        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+                    {/* Image — fixed window size regardless of screenshot resolution */}
+                    <div
+                        className="w-[80vw] h-[85vh] flex items-center justify-center"
                         onClick={(e) => e.stopPropagation()}
-                    />
+                    >
+                        <img
+                            key={lightbox.index}
+                            src={lightbox.urls[lightbox.index]}
+                            alt={`Screenshot ${lightbox.index + 1}`}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                        />
+                    </div>
 
                     {/* Next button */}
-                    {lightbox.index < lightbox.urls.length - 1 && (
-                        <button
-                            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setLightbox({ ...lightbox, index: lightbox.index + 1 });
-                            }}
-                        >
-                            <ChevronRight className="h-8 w-8" />
-                        </button>
-                    )}
+                    <button
+                        className={cn(
+                            "absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 rounded-full bg-black/40 hover:bg-black/60 transition-colors",
+                            lightbox.index < lightbox.urls.length - 1 ? "text-white/80 hover:text-white" : "text-white/20 cursor-not-allowed"
+                        )}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (lightbox.index < lightbox.urls.length - 1)
+                                setLightbox(prev => prev ? { ...prev, index: prev.index + 1 } : null);
+                        }}
+                    >
+                        <ChevronRight className="h-8 w-8" />
+                    </button>
                 </div>
             )}
 

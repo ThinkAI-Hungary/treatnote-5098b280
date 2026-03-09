@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MONTHLY_PRICE_ID = "price_1Sz1XkDG9IVOU80stgzB49Nq";
+const MONTHLY_PRICE_ID = "price_1T8u7qDG9IVOU80s98QkFIo6";
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
 const VALID_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
 const MAX_SEATS = 500;

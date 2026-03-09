@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const MONTHLY_PRICE_ID = "price_1Sz1XkDG9IVOU80stgzB49Nq";
+const MONTHLY_PRICE_ID = "price_1T8u7qDG9IVOU80s98QkFIo6";
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
 const KNOWN_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
 
@@ -67,10 +67,11 @@ async function reconcileLicenses(
   }
   const { data: currentLicenses } = await supabase
     .from("licenses")
-    .select("id, status, assigned_user_id, billing_interval, stripe_subscription_item_id")
+    .select("id, status, assigned_user_id, billing_interval, stripe_subscription_item_id, license_type")
     .eq("company_id", companyId)
     .eq("telephely_id", telephelyId)
     .in("status", ["available", "assigned"])
+    .neq("license_type", "trial")  // Never touch trial licenses during Stripe reconciliation
     .order("created_at", { ascending: true });
 
   const current = currentLicenses || [];

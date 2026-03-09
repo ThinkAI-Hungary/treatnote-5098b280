@@ -407,9 +407,14 @@ def bejelentkezes_playwright(aldomain: str, email: str, jelszo: str) -> int:
             try:
                 import captcha_solver
                 captcha_solver.set_log_callback(naploz)
+                import time as _captcha_time
                 captcha_result = captcha_solver.solve_recaptcha_v2(
                     page,
                     screenshot_callback=screenshot,
+                    domain=aldomain,
+                    session_id=str(int(_captcha_time.time())),
+                    supabase_url=SUPABASE_URL,
+                    supabase_service_key=SUPABASE_SERVICE_KEY,
                 )
                 if captcha_result["solved"]:
                     naploz("INFO", f"[PLAYWRIGHT] reCAPTCHA megoldva! "
@@ -515,7 +520,7 @@ def futtatas() -> None:
 
     # Upload error report to Supabase (only on failure)
     upload_error_report(
-        script_name="flexi_login_check",
+        script_name="login",
         domain=aldomain,
         eredmeny=eredmeny,
         email=email,

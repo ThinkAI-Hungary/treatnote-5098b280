@@ -117,6 +117,7 @@ export function DomainDialog({
                 id="domain-name"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
                 placeholder="klinika-neve"
                 autoComplete="off"
                 className="flex-1"

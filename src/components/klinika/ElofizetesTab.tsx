@@ -8,8 +8,11 @@ import { Progress } from '@/components/ui/progress';
 import {
   CreditCard, LayoutDashboard, Receipt, ShieldCheck,
   Minus, Plus, ExternalLink, RefreshCw, AlertCircle,
-  Copy, CheckCircle2, ChevronDown, Calendar, TrendingUp, Users,
+  Copy, CheckCircle2, ChevronDown, Calendar, TrendingUp, Users, AlertTriangle,
 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
@@ -52,6 +55,8 @@ interface License {
   status: string;
   expires_at: string | null;
   billing_interval: string;
+  license_type: string;
+  cancel_at_period_end: boolean;
   created_at: string;
 }
 
@@ -101,12 +106,15 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
   const fetchLicenses = useCallback(async () => {
     if (!companyId) { setLicensesLoading(false); return; }
     setLicensesLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('licenses')
-      .select('id, assigned_user_id, status, expires_at, billing_interval, created_at')
+      .select('id, assigned_user_id, status, expires_at, billing_interval, license_type, cancel_at_period_end, created_at')
       .eq('company_id', companyId)
       .in('status', ['available', 'assigned'])
       .order('created_at', { ascending: true });
+    // Scope licenses to this telephely when available
+    if (telephelyId) query = query.eq('telephely_id', telephelyId);
+    const { data } = await query;
     if (data) {
       const loaded = data as License[];
 
@@ -130,10 +138,18 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
         }
       }
 
-      setLicenses(loaded);
+      const now = new Date();
+      const visible = loaded.filter(l => {
+        // Drop expired trial licenses so they disappear automatically
+        if (l.license_type === 'trial') {
+          return l.expires_at ? new Date(l.expires_at) > now : false;
+        }
+        return true;
+      });
+      setLicenses(visible);
     }
     setLicensesLoading(false);
-  }, [companyId, klinikaUsers]);
+  }, [companyId, telephelyId, klinikaUsers]);
 
   useEffect(() => { fetchLicenses(); }, [fetchLicenses]);
 
@@ -378,10 +394,12 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
   const isMonthlyPlan = sub?.price_id === PRICE_IDS.monthly;
   const isCancelPending = sub?.cancel_at_period_end ?? false;
 
-  const monthlyLicenses = licenses.filter(l => l.billing_interval === 'monthly');
-  const yearlyLicenses = licenses.filter(l => l.billing_interval === 'yearly');
+  // Exclude trial licenses and licenses with renewal turned off from billing calculations
+  const paidLicenses = licenses.filter(l => l.license_type !== 'trial');
+  const monthlyLicenses = paidLicenses.filter(l => l.billing_interval === 'monthly' && !l.cancel_at_period_end);
+  const yearlyLicenses = paidLicenses.filter(l => l.billing_interval === 'yearly' && !l.cancel_at_period_end);
   const assignedLicenses = licenses.filter(l => l.status === 'assigned');
-  const availableLicenses = licenses.filter(l => l.status === 'available');
+  const availableLicenses = paidLicenses.filter(l => l.status === 'available');
 
   const prices = details?.prices;
 
@@ -587,9 +605,7 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
           <TabsTrigger value="overview" className="text-xs h-7 gap-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all">
             <LayoutDashboard className="h-3.5 w-3.5" /> Áttekintés
           </TabsTrigger>
-          <TabsTrigger value="payment" className="text-xs h-7 gap-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all">
-            <CreditCard className="h-3.5 w-3.5" /> Fizetési mód
-          </TabsTrigger>
+
           <TabsTrigger value="invoices" className="text-xs h-7 gap-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary transition-all">
             <Receipt className="h-3.5 w-3.5" /> Számlák
           </TabsTrigger>
@@ -607,37 +623,14 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
           <AnimatedCard className="overflow-hidden">
             <div className="px-4 pt-4 pb-4">
               {/* 3 mini metrics */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><Users className="h-3 w-3" /> Licencek</p>
                   <p className="text-base font-bold mt-0.5 tabular-nums">{assignedLicenses.length}<span className="text-xs font-normal text-muted-foreground">/{licenses.length}</span></p>
                 </div>
-                <div className="text-center border-l border-border/30">
-                  <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><ShieldCheck className="h-3 w-3" /> Havi / Éves</p>
-                  <p className="text-base font-bold mt-0.5 tabular-nums">{monthlyLicenses.length}<span className="text-xs font-normal text-muted-foreground"> / {yearlyLicenses.length}</span></p>
-                </div>
               </div>
 
-              {/* Default payment card */}
-              {(() => {
-                const defaultCard = details?.payment_methods?.find(m => m.is_default);
-                return (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
-                      <CreditCard className="h-3 w-3" /> Alapkártya
-                    </p>
-                    {defaultCard ? (
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span className="capitalize text-muted-foreground">{defaultCard.brand}</span>
-                        <span className="font-mono font-medium tracking-wider">•••• {defaultCard.last4}</span>
-                        <span className="text-muted-foreground text-[10px]">{defaultCard.exp_month}/{defaultCard.exp_year}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">— nincs mentett kártya</span>
-                    )}
-                  </div>
-                );
-              })()}
+
             </div>
           </AnimatedCard>
 
@@ -733,77 +726,7 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
 
         </TabsContent>
 
-        {/* ══════════════════════════════════════════
-            Tab 2: Fizetési mód
-        ══════════════════════════════════════════ */}
-        <TabsContent value="payment" className="mt-0 space-y-4">
-          <AnimatedCard>
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-accent" /> Fizetési módok
-              </CardTitle>
-              <CardDescription className="text-xs">Bankkártyák kezelése</CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-3">
-              {loading ? (
-                <div className="flex items-center justify-center py-6">
-                  <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : details?.payment_methods && details.payment_methods.length > 0 ? (
-                <>
-                  {details.payment_methods.map(pm => (
-                    <PaymentMethodCard
-                      key={pm.id}
-                      pm={pm}
-                      onDelete={handleDeletePaymentMethod}
-                      deleting={deletingPm === pm.id}
-                      onSetDefault={handleSetDefaultPaymentMethod}
-                      settingDefault={settingDefaultPm === pm.id}
-                      canSetDefault={(details.payment_methods?.length ?? 0) > 1}
-                    />
-                  ))}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground gap-2">
-                  <CreditCard className="h-7 w-7 opacity-40" />
-                  <p className="text-sm">Nincs mentett fizetési mód.</p>
-                </div>
-              )}
 
-              {/* Inline Stripe card form */}
-              {addCardClientSecret && stripePromiseRef.current ? (
-                <div className="border border-border/40 rounded-lg p-4 bg-muted/10">
-                  <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
-                    <CreditCard className="h-3 w-3" /> Kártyaadatok megadása
-                  </p>
-                  <Elements
-                    stripe={stripePromiseRef.current}
-                    options={{
-                      clientSecret: addCardClientSecret,
-                      appearance: { theme: 'night', variables: { colorPrimary: '#7c3aed', borderRadius: '6px' } },
-                    }}
-                  >
-                    <AddCardFormInner
-                      onSuccess={() => { setAddCardClientSecret(null); refresh(); toast.success('Kártya elmentve!'); }}
-                      onCancel={() => setAddCardClientSecret(null)}
-                    />
-                  </Elements>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddCard}
-                  disabled={addingCard}
-                  className="w-full h-8 text-xs border-dashed border-primary/30 hover:bg-primary/5 mt-1"
-                >
-                  {addingCard ? <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> : <Plus className="h-3 w-3 mr-1.5" />}
-                  Kártya hozzáadása
-                </Button>
-              )}
-            </CardContent>
-          </AnimatedCard>
-        </TabsContent>
 
         {/* ══════════════════════════════════════════
             Tab 3: Számlák
@@ -942,7 +865,9 @@ interface LicMgmtProps {
     assigned_user_id: string | null;
     status: string;
     billing_interval: string;
+    license_type: string;
     expires_at: string | null;
+    cancel_at_period_end: boolean;
   }>;
   users: KlinikaUser[];
   companyId: string | null;
@@ -965,6 +890,7 @@ function LicenseManagementTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Cart state: store planned changes before executing
   const [stagedIntervalChanges, setStagedIntervalChanges] = useState<Record<string, 'monthly' | 'yearly'>>({});
@@ -979,8 +905,8 @@ function LicenseManagementTable({
   const hasStagedChanges = Object.keys(stagedIntervalChanges).length > 0
     || stagedCancelIds.size > 0
     || stagedReactivateIds.size > 0
-    || stagedMonthlySeats !== null
-    || stagedYearlySeats !== null;
+    || (stagedMonthlySeats !== null && stagedMonthlySeats > 0)
+    || (stagedYearlySeats !== null && stagedYearlySeats > 0);
 
   const userMap = useMemo(() => {
     const m: Record<string, KlinikaUser> = {};
@@ -988,7 +914,7 @@ function LicenseManagementTable({
     return m;
   }, [users]);
 
-  const allIds = licenses.map(l => l.id);
+  const allIds = licenses.filter(l => l.license_type !== 'trial').map(l => l.id);
   const allSelected = selected.size === allIds.length && allIds.length > 0;
   const someSelected = selected.size > 0;
 
@@ -1007,6 +933,35 @@ function LicenseManagementTable({
       setStagedCancelIds(prev => { const n = new Set(prev); ids.forEach(id => n.add(id)); return n; });
       setStagedReactivateIds(prev => { const n = new Set(prev); ids.forEach(id => n.delete(id)); return n; });
     }
+    setSelected(new Set());
+  }
+
+  // Individually toggle each license: renewing → cancel, not renewing → reactivate
+  function queueToggle(ids: string[]) {
+    setStagedCancelIds(prev => {
+      const n = new Set(prev);
+      ids.forEach(id => {
+        const isRenewing = stagedReactivateIds.has(id)
+          ? true
+          : stagedCancelIds.has(id)
+            ? false
+            : !(licenses.find(l => l.id === id)?.cancel_at_period_end ?? false);
+        if (isRenewing) { n.add(id); } else { n.delete(id); }
+      });
+      return n;
+    });
+    setStagedReactivateIds(prev => {
+      const n = new Set(prev);
+      ids.forEach(id => {
+        const isRenewing = stagedReactivateIds.has(id)
+          ? true
+          : stagedCancelIds.has(id)
+            ? false
+            : !(licenses.find(l => l.id === id)?.cancel_at_period_end ?? false);
+        if (!isRenewing) { n.add(id); } else { n.delete(id); }
+      });
+      return n;
+    });
     setSelected(new Set());
   }
 
@@ -1033,24 +988,26 @@ function LicenseManagementTable({
 
     try {
       // We need to build an items array for checkout or cancel
-      const baseMonthlySeats = licenses.filter(l => l.billing_interval === "monthly").length;
-      const baseYearlySeats = licenses.filter(l => l.billing_interval === "yearly").length;
+      // Exclude trial licenses from base paid seat counts
+      const baseMonthlySeats = licenses.filter(l => l.billing_interval === "monthly" && l.license_type !== 'trial').length;
+      const baseYearlySeats = licenses.filter(l => l.billing_interval === "yearly" && l.license_type !== 'trial').length;
 
       const finalMonthly = stagedMonthlySeats !== null ? stagedMonthlySeats : baseMonthlySeats;
       const finalYearly = stagedYearlySeats !== null ? stagedYearlySeats : baseYearlySeats;
 
-      // 1. Process cancels
-      const cancels = Array.from(stagedCancelIds);
-      if (cancels.length > 0) {
-        try { await cancelLicense(companyId, cancels, { immediately: false }); }
-        catch (e: any) { console.error(e); errorMsgs.push("Lemondás hiba: " + e.message); }
-      }
-
-      // 2. Process reactivates
-      const reactivates = Array.from(stagedReactivateIds);
-      if (reactivates.length > 0) {
-        try { await cancelLicense(companyId, reactivates, { reactivate: true }); }
-        catch (e: any) { console.error(e); errorMsgs.push("Visszavonás hiba: " + e.message); }
+      // 1. Turn off / Turn on auto-renewal in ONE atomic call.
+      // Sending cancel_ids and reactivate_ids together lets the edge function
+      // make a SINGLE net Stripe quantity update per subscription item,
+      // avoiding the race condition where two sequential Stripe calls produce
+      // overlapping webhooks that corrupt the quantity.
+      if (stagedCancelIds.size > 0 || stagedReactivateIds.size > 0) {
+        try {
+          await cancelLicense(companyId, [], {
+            cancel_ids: Array.from(stagedCancelIds),
+            reactivate_ids: Array.from(stagedReactivateIds),
+            immediately: false,
+          });
+        } catch (e: any) { console.error(e); errorMsgs.push('Megújítás módosítás hiba: ' + e.message); }
       }
 
       // 3. Process interval changes
@@ -1066,38 +1023,10 @@ function LicenseManagementTable({
         catch (e: any) { console.error(e); errorMsgs.push("Éves váltás hiba: " + e.message); }
       }
 
-      // 4. Update total seats (Demotions)
-      if (finalMonthly < baseMonthlySeats || finalYearly < baseYearlySeats) {
+      // 4. Seat purchases (Checkout Modal) — stagedMonthlySeats is the quantity to buy
+      if (stagedMonthlySeats && stagedMonthlySeats > 0) {
         try {
-          const toRemoveMonthly = baseMonthlySeats - finalMonthly;
-          const toRemoveYearly = baseYearlySeats - finalYearly;
-
-          const removes: string[] = [];
-          if (toRemoveMonthly > 0) {
-            const monthly = licenses.filter(l => l.billing_interval === 'monthly' && l.status === 'available' && !stagedCancelIds.has(l.id));
-            removes.push(...monthly.slice(-toRemoveMonthly).map(l => l.id));
-          }
-          if (toRemoveYearly > 0) {
-            const yearly = licenses.filter(l => l.billing_interval === 'yearly' && l.status === 'available' && !stagedCancelIds.has(l.id));
-            removes.push(...yearly.slice(-toRemoveYearly).map(l => l.id));
-          }
-          if (removes.length > 0) {
-            await cancelLicense(companyId, removes, { immediately: false });
-          } else if (toRemoveMonthly > 0 || toRemoveYearly > 0) {
-            throw new Error("Nincs elég szabad licenc a csökkentéshez.");
-          }
-        } catch (e: any) {
-          console.error("Seat demotion failed:", e);
-          errorMsgs.push("Licenc csökkentés hiba: " + e.message);
-        }
-      }
-
-      // 5. Seat Increases (Checkout Modal)
-      if (finalMonthly > baseMonthlySeats || finalYearly > baseYearlySeats) {
-        try {
-          const itemsToBuy = [];
-          if (finalMonthly > baseMonthlySeats) itemsToBuy.push({ price_id: PRICE_IDS.monthly, seats: finalMonthly - baseMonthlySeats });
-          if (finalYearly > baseYearlySeats) itemsToBuy.push({ price_id: PRICE_IDS.yearly, seats: finalYearly - baseYearlySeats });
+          const itemsToBuy = [{ price_id: PRICE_IDS.monthly, seats: stagedMonthlySeats }];
 
           if (itemsToBuy.length > 1) {
             throw new Error("A Stripe nem engedélyezi Havi és Éves licencek egyidejű vásárlását egyetlen tranzakcióban. Kérjük, vásárolja meg őket külön lépésekben.");
@@ -1137,29 +1066,79 @@ function LicenseManagementTable({
     }
   }
 
-  // Calculate projected counts based on staged changes
-  const baseMonthly = licenses.filter(l => l.billing_interval === 'monthly').length;
-  const baseYearly = licenses.filter(l => l.billing_interval === 'yearly').length;
+  const trialLicenses = licenses.filter(l => l.license_type === 'trial');
+  const paidLicenses = licenses.filter(l => l.license_type !== 'trial');
+
+  // Seat counts only from paid licenses
+  const baseMonthly = paidLicenses.filter(l => l.billing_interval === 'monthly').length;
+  const baseYearly = paidLicenses.filter(l => l.billing_interval === 'yearly').length;
 
   let projectedMonthly = stagedMonthlySeats ?? baseMonthly;
   let projectedYearly = stagedYearlySeats ?? baseYearly;
 
-  // Add/Subtract based on interval changes (does NOT change total seats)
-  licenses.forEach(l => {
+  // interval changes only apply to paid licenses
+  paidLicenses.forEach(l => {
     const plannedInt = stagedIntervalChanges[l.id];
     if (plannedInt === 'monthly' && l.billing_interval === 'yearly') { projectedMonthly++; projectedYearly--; }
     else if (plannedInt === 'yearly' && l.billing_interval === 'monthly') { projectedYearly++; projectedMonthly--; }
   });
 
-  // Calculate assigned
-  const assignedCount = licenses.filter(l => l.assigned_user_id).length;
-  const assignedMonthlyCount = licenses.filter(l => l.assigned_user_id && l.billing_interval === 'monthly').length;
-  const assignedYearlyCount = licenses.filter(l => l.assigned_user_id && l.billing_interval === 'yearly').length;
+  // Calculate assigned — paid only for seat management
+  const assignedCount = paidLicenses.filter(l => l.assigned_user_id).length;
+  const assignedMonthlyCount = paidLicenses.filter(l => l.assigned_user_id && l.billing_interval === 'monthly').length;
+  const assignedYearlyCount = paidLicenses.filter(l => l.assigned_user_id && l.billing_interval === 'yearly').length;
 
   const displaySeats = projectedMonthly + projectedYearly;
 
   return (
     <>
+      {/* ── Trial license section ── */}
+      {trialLicenses.length > 0 && (
+        <AnimatedCard className="border border-primary/20 bg-primary/5 dark:bg-primary/10 overflow-hidden mb-3">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <span className="text-primary">🎁</span> Próbaidőszak licenc
+              <span className="ml-auto inline-flex text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Aktív</span>
+            </CardTitle>
+          </CardHeader>
+          <div className="divide-y divide-border/30">
+            {trialLicenses.map(lic => {
+              const userMap2: Record<string, KlinikaUser> = {};
+              users.forEach(u => { userMap2[u.id] = u; });
+              const user = lic.assigned_user_id ? userMap2[lic.assigned_user_id] : null;
+              const displayName = user ? (user.full_name || user.email) : null;
+              const expiresAt = lic.expires_at ? new Date(lic.expires_at) : null;
+              const diff = expiresAt ? expiresAt.getTime() - Date.now() : 0;
+              const days = Math.max(0, Math.floor(diff / 86_400_000));
+              const hours = Math.max(0, Math.floor((diff % 86_400_000) / 3_600_000));
+              const minutes = Math.max(0, Math.floor((diff % 3_600_000) / 60_000));
+              return (
+                <div key={lic.id} className="px-4 py-3 flex items-center justify-between gap-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                      {displayName ? displayName.charAt(0).toUpperCase() : '–'}
+                    </div>
+                    <div>
+                      <p className="font-medium">{displayName ?? <span className="italic text-muted-foreground">Szabad</span>}</p>
+                      {user?.full_name && <p className="text-[9px] text-muted-foreground">{user.email}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-muted-foreground">
+                    {expiresAt && (
+                      <span className="tabular-nums text-[11px]">
+                        <span className="text-primary font-semibold">{days}n {hours}ó {minutes}p</span> hátralévő
+                      </span>
+                    )}
+                    <span className="text-[10px] opacity-60">{expiresAt ? expiresAt.toLocaleDateString('hu-HU') : '–'}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </AnimatedCard>
+      )}
+
+      {/* ── Paid license table (always visible so user can buy) ── */}
       <AnimatedCard className="overflow-hidden">
 
         {/* Compact Card header: summary + Tranzakció button */}
@@ -1176,20 +1155,11 @@ function LicenseManagementTable({
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">Licencek kezelése:</span>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-400">Havi</span>
+                    <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-400">Licence vétel</span>
                     <LicSeatAdjuster
-                      total={stagedMonthlySeats ?? baseMonthly}
-                      min={Math.max(assignedMonthlyCount, projectedYearly === 0 ? 1 : 0)}
+                      total={stagedMonthlySeats ?? 0}
+                      min={0}
                       onSave={(val) => setStagedMonthlySeats(val)}
-                      disabled={bulkLoading || actionLoading}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-green-700 dark:text-green-400">Éves</span>
-                    <LicSeatAdjuster
-                      total={stagedYearlySeats ?? baseYearly}
-                      min={Math.max(assignedYearlyCount, projectedMonthly === 0 ? 1 : 0)}
-                      onSave={(val) => setStagedYearlySeats(val)}
                       disabled={bulkLoading || actionLoading}
                     />
                   </div>
@@ -1197,21 +1167,12 @@ function LicenseManagementTable({
               </div>
             </div>
 
-            {/* Right side: Stats + Execute button */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1 text-cyan-700 dark:text-cyan-400">
-                  <span className="w-2 h-2 rounded-full bg-cyan-600 dark:bg-cyan-400" /> {projectedMonthly} havi
-                </span>
-                <span className="flex items-center gap-1 text-green-700 dark:text-green-400">
-                  <span className="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400" /> {projectedYearly} éves
-                </span>
-                <span className="text-muted-foreground ml-2">{assignedCount}/{displaySeats} kiosztva</span>
-              </div>
-
+            {/* Right side: Subscription actions + Execute button */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Buy more */}
               <Button
                 size="sm"
-                className={cn("h-8 text-xs ml-2 transition-all", hasStagedChanges ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground")}
+                className={cn("h-8 text-xs ml-1 transition-all", hasStagedChanges ? "bg-primary hover:bg-primary/90" : "bg-muted text-muted-foreground")}
                 disabled={!hasStagedChanges || bulkLoading}
                 onClick={executeTransaction}
               >
@@ -1229,12 +1190,10 @@ function LicenseManagementTable({
               <RefreshCw className="h-3.5 w-3.5" /> Várható Tranzakciók (Kosár)
             </p>
             <ul className="space-y-1.5 text-[11px] text-yellow-800 dark:text-yellow-300">
-              {stagedMonthlySeats !== null && stagedMonthlySeats !== baseMonthly && (
+              {stagedMonthlySeats !== null && stagedMonthlySeats > 0 && (
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-600/50 dark:bg-cyan-400/50 shrink-0" />
-                  {stagedMonthlySeats > baseMonthly
-                    ? `+${stagedMonthlySeats - baseMonthly} új Havi licenc vásárlása`
-                    : `${baseMonthly - stagedMonthlySeats} Havi licenc lemondása`}
+                  +{stagedMonthlySeats} új Havi licenc vásárlása
                 </li>
               )}
 
@@ -1291,19 +1250,51 @@ function LicenseManagementTable({
           </div>
         )}
 
-        {/* Bulk action bar */}
+        {/* Selection action bar — paid licenses only */}
         {someSelected && (
           <div className="flex items-center justify-between gap-2 px-4 py-2 bg-primary/5 border-b border-primary/20">
             <span className="text-xs font-medium text-primary">{selected.size} kiválasztva</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => queueCancel(Array.from(selected), true)} disabled={bulkLoading}
-                className="text-[11px] px-2.5 py-1 rounded-md border border-primary/30 text-primary hover:bg-primary/10 transition-colors disabled:opacity-40">
-                ↺ Visszavon (Kártyába)
-              </button>
-              <button onClick={() => queueCancel(Array.from(selected), false)} disabled={bulkLoading}
-                className="text-[11px] px-2.5 py-1 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40">
-                Lemond (Kártyába)
-              </button>
+              {(() => {
+                const selArr = Array.from(selected);
+                const renewingIds = selArr.filter(id => {
+                  // Check staged state first, then per-license DB state
+                  if (stagedReactivateIds.has(id)) return true;
+                  if (stagedCancelIds.has(id)) return false;
+                  const lic = licenses.find(l => l.id === id);
+                  return lic ? !lic.cancel_at_period_end : true;
+                });
+                const allRenewing = renewingIds.length === selArr.length;
+                const noneRenewing = renewingIds.length === 0;
+                const isMixed = !allRenewing && !noneRenewing;
+                const label = allRenewing
+                  ? 'Megújítások kikapcsolása'
+                  : noneRenewing
+                    ? 'Megújítások bekapcsolása'
+                    : 'Megújítások ki/be-kapcsolása';
+                return (
+                  <GalaxyButton
+                    size="sm"
+                    onClick={() =>
+                      isMixed ? queueToggle(selArr) : queueCancel(selArr, noneRenewing)
+                    }
+                    disabled={bulkLoading}
+                    className="h-7 text-[11px]"
+                  >
+                    {label}
+                  </GalaxyButton>
+                );
+              })()}
+
+              {/* Immediate cancel — destructive, requires confirm */}
+              <GalaxyButton
+                size="sm"
+                disabled={actionLoading || bulkLoading}
+                onClick={() => setShowCancelConfirm(true)}
+                className="h-7 text-[11px]"
+              >
+                Licenc azonnali lemondása
+              </GalaxyButton>
               <button onClick={() => setSelected(new Set())}
                 className="text-[11px] px-2 py-1 rounded-md text-muted-foreground hover:text-foreground transition-colors">
                 ✕
@@ -1311,6 +1302,60 @@ function LicenseManagementTable({
             </div>
           </div>
         )}
+
+        {/* ── Azonnali lemondás megerősítő dialog ── */}
+        <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+          <DialogContent className="max-w-md border border-destructive/30 bg-background shadow-2xl shadow-destructive/10">
+            <DialogHeader className="gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 ring-1 ring-destructive/20">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <DialogTitle className="text-base">Licenc azonnali lemondása</DialogTitle>
+              </div>
+              <DialogDescription className="text-sm leading-relaxed pl-[52px]">
+                Biztosan azonnal le kívánja mondani az előfizetést?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mx-4 my-1 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Ez a művelet{' '}
+              <span className="font-semibold">visszavonhatatlan</span>{' '}
+              — az előfizetés azonnal megszűnik és a licencek törlésre kerülnek!
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={bulkLoading}
+              >
+                Mégse
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={bulkLoading}
+                onClick={async () => {
+                  if (!companyId) return;
+                  setShowCancelConfirm(false);
+                  setBulkLoading(true);
+                  try {
+                    await cancelSubscription(companyId, { immediately: true });
+                    toast.success('Előfizetés azonnal lemondva.');
+                    onRefresh();
+                  } catch (e: any) { toast.error(e.message); }
+                  finally { setBulkLoading(false); }
+                }}
+              >
+                {bulkLoading ? (
+                  <><RefreshCw className="h-3 w-3 animate-spin mr-1.5" /> Feldolgozás...</>
+                ) : (
+                  'Igen, azonnal lemondok'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* License table */}
         <div className="overflow-x-auto">
@@ -1324,12 +1369,13 @@ function LicenseManagementTable({
                 <th className="text-left text-[11px] text-muted-foreground py-2.5 font-normal">Felhasználó</th>
                 <th className="text-center text-[11px] text-muted-foreground py-2.5 font-normal">Elszámolás</th>
                 <th className="text-center text-[11px] text-muted-foreground py-2.5 font-normal">Lejárat</th>
+                <th className="text-center text-[11px] text-muted-foreground py-2.5 font-normal">Megújítás</th>
                 <th className="text-center text-[11px] text-muted-foreground py-2.5 font-normal">Állapot</th>
-                <th className="text-right text-[11px] text-muted-foreground py-2.5 pr-4 font-normal">Műveletek</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {licenses.map((lic) => {
+                if (lic.license_type === 'trial') return null;  // trial shown in its own card above
                 const user = lic.assigned_user_id ? userMap[lic.assigned_user_id] : null;
 
                 // Resolve actual vs planned states
@@ -1338,7 +1384,8 @@ function LicenseManagementTable({
 
                 const isPlannedCancel = stagedCancelIds.has(lic.id);
                 const isPlannedReactivate = stagedReactivateIds.has(lic.id);
-                const effCancelPending = isPlannedCancel ? true : isPlannedReactivate ? false : isCancelPending;
+                // Per-license: staged overrides, then fall back to the license's own DB field
+                const effCancelPending = isPlannedCancel ? true : isPlannedReactivate ? false : lic.cancel_at_period_end;
 
                 const isRowModified = !!stagedIntervalChanges[lic.id] || isPlannedCancel || isPlannedReactivate;
 
@@ -1381,27 +1428,29 @@ function LicenseManagementTable({
                       </div>
                     </td>
 
-                    {/* Monthly / Yearly toggle (Staged) */}
+                    {/* Billing interval — read-only badge */}
                     <td className="py-2.5 text-center">
-                      <div className="inline-flex rounded-lg border border-border/50 overflow-hidden text-[10px]">
-                        <button onClick={() => !isMonthly && queueIntervalSwitch(lic.id, 'monthly')}
-                          disabled={isLoading || isMonthly}
-                          className={cn('px-2 py-1 transition-colors disabled:opacity-60 border border-transparent',
-                            isMonthly ? 'bg-cyan-600 text-white dark:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/30 font-semibold cursor-default' : 'text-muted-foreground hover:bg-muted/50 cursor-pointer')}>
-                          Havi
-                        </button>
-                        <button onClick={() => isMonthly && queueIntervalSwitch(lic.id, 'yearly')}
-                          disabled={isLoading || !isMonthly}
-                          className={cn('px-2 py-1 transition-colors disabled:opacity-60 border border-transparent',
-                            !isMonthly ? 'bg-green-600 text-white dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30 font-semibold cursor-default' : 'text-muted-foreground hover:bg-muted/50 cursor-pointer')}>
-                          Éves
-                        </button>
-                      </div>
+                      <span className={cn(
+                        'inline-flex text-[10px] px-2 py-0.5 rounded-full font-medium',
+                        isMonthly
+                          ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400'
+                          : 'bg-green-500/10 text-green-700 dark:text-green-400'
+                      )}>
+                        {isMonthly ? 'Havi' : 'Éves'}
+                      </span>
                     </td>
 
                     {/* Expiry */}
                     <td className="py-2.5 text-center text-muted-foreground">
                       {lic.expires_at ? formatDate(lic.expires_at) : '–'}
+                    </td>
+
+                    {/* Renewal status */}
+                    <td className="py-2.5 text-center">
+                      {effCancelPending
+                        ? <span className="inline-flex text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 font-medium">Ki</span>
+                        : <span className="inline-flex text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 font-medium">Be</span>
+                      }
                     </td>
 
                     {/* Status */}
@@ -1414,20 +1463,8 @@ function LicenseManagementTable({
                       }
                     </td>
 
-                    {/* Action (Staged) */}
-                    <td className="py-2.5 pr-4 text-right">
-                      {effCancelPending ? (
-                        <button onClick={() => queueCancel([lic.id], true)} disabled={isLoading || actionLoading}
-                          className="text-[10px] px-2 py-1 rounded-md border border-primary/30 text-primary hover:bg-primary/5 transition-colors disabled:opacity-40">
-                          ↺ Visszavon
-                        </button>
-                      ) : (
-                        <button onClick={() => queueCancel([lic.id], false)} disabled={isLoading || actionLoading}
-                          className="text-[10px] px-2 py-1 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-40">
-                          Lemond
-                        </button>
-                      )}
-                    </td>
+                    {/* No per-row action */}
+                    <td className="py-2.5 pr-4 text-right" />
                   </tr>
                 );
               })}

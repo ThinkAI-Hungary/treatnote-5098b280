@@ -17,6 +17,7 @@ import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { CompanyManagement } from '@/components/admin/CompanyManagement';
 import { ErrorLogsTab } from '@/components/admin/ErrorLogsTab';
+import { CaptchaReviewTab } from '@/components/admin/CaptchaReviewTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -545,13 +546,16 @@ export default function Admin() {
               <Users className="h-4 w-4" />
               Felhasználók
             </TabsTrigger>
-            <TabsTrigger
-              value="files"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
-            >
-              <FolderTree className="h-4 w-4" />
-              Fájlkezelő
-            </TabsTrigger>
+            {/* Fájlkezelő tab hidden - not in use currently */}
+            <div className="hidden">
+              <TabsTrigger
+                value="files"
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
+              >
+                <FolderTree className="h-4 w-4" />
+                Fájlkezelő
+              </TabsTrigger>
+            </div>
             <TabsTrigger
               value="companies"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
@@ -565,6 +569,12 @@ export default function Admin() {
             >
               <AlertTriangle className="h-4 w-4" />
               Hibakezelés
+            </TabsTrigger>
+            <TabsTrigger
+              value="captcha"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
+            >
+              🤖 CAPTCHA Tanítás
             </TabsTrigger>
           </TabsList>
 
@@ -747,6 +757,10 @@ export default function Admin() {
 
             <TabsContent value="errors" className="space-y-6 mt-0">
               <ErrorLogsTab />
+            </TabsContent>
+
+            <TabsContent value="captcha" className="space-y-6 mt-0">
+              <CaptchaReviewTab />
             </TabsContent>
           </div>
         </Tabs>

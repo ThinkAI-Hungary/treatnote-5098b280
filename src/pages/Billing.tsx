@@ -20,6 +20,7 @@ import { InvoiceRow, type Invoice } from '@/components/billing/InvoiceRow';
 import { LicenseGrid } from '@/components/billing/LicenseGrid';
 import { CheckoutModal } from '@/components/billing/CheckoutModal';
 import { StripeProvider } from '@/components/billing/StripeProvider';
+import { TrialLicenseCard } from '@/components/billing/TrialLicenseCard';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -447,6 +448,7 @@ export default function Billing() {
 
         {/* ── Overview tab ── */}
         <TabsContent value="overview" className="space-y-4 mt-4">
+          <TrialLicenseCard />
           {(isActive || isPastDue) && sub ? (
             <>
               {/* Upcoming invoice */}
@@ -477,85 +479,6 @@ export default function Billing() {
                 </Card>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Plan management */}
-                <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <ArrowUpDown className="h-4 w-4 text-primary" />
-                      Csomag kezelés
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Jelenlegi</span>
-                      <Badge variant="secondary">{isYearly ? 'Éves' : 'Havi'}</Badge>
-                    </div>
-                    {prices && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Egységár</span>
-                        <span className="font-medium">
-                          {formatCurrency(isYearly ? prices.yearly.unit_amount : prices.monthly.unit_amount, isYearly ? prices.yearly.currency : prices.monthly.currency)}/hó
-                        </span>
-                      </div>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={handleSwitchPlan}
-                      disabled={actionLoading}
-                    >
-                      <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
-                      Váltás {isYearly ? 'havi' : 'éves'} csomagra
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Cancellation */}
-                <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-muted-foreground" />
-                      Előfizetés kezelés
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {isCancelPending ? (
-                      <>
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                          Lemondás ütemezve: {formatDate(sub.current_period_end)}
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-primary/40 text-primary hover:bg-primary/5"
-                          onClick={handleReactivate}
-                          disabled={actionLoading}
-                        >
-                          <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                          Lemondás visszavonása
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-muted-foreground">
-                          Az előfizetés a periódus végéig aktív marad lemondás esetén.
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-destructive hover:bg-destructive/5 hover:border-destructive/40"
-                          onClick={() => handleCancel(false)}
-                          disabled={actionLoading}
-                        >
-                          Lemondás a periódus végén
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
             </>
           ) : (
             /* New subscription purchase */
@@ -566,23 +489,14 @@ export default function Billing() {
               </div>
 
               {prices && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="max-w-sm">
                   <PlanCard
                     label="Havi"
                     description="Rugalmas, havi megújítás"
                     amount={prices.monthly.unit_amount || 0}
                     currency={prices.monthly.currency}
-                    selected={selectedPlan === 'monthly'}
-                    onClick={() => setSelectedPlan('monthly')}
-                  />
-                  <PlanCard
-                    label="Éves"
-                    description="Kedvezményes éves elszámolás"
-                    amount={(prices.yearly.unit_amount || 0) / 12}
-                    currency={prices.yearly.currency}
-                    selected={selectedPlan === 'yearly'}
-                    onClick={() => setSelectedPlan('yearly')}
-                    badge="Legjobb érték"
+                    selected={true}
+                    onClick={() => { }}
                   />
                 </div>
               )}
@@ -736,6 +650,7 @@ export default function Billing() {
             <h2 className="text-base font-semibold">Licencek</h2>
             <p className="text-sm text-muted-foreground">Kiosztott és szabad licencek kezelése</p>
           </div>
+          <TrialLicenseCard />
 
           {sub && companyId && (
             <Card className="border-border/60">

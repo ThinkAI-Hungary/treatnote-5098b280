@@ -55,8 +55,8 @@ export function UsersTable({ users, companies, telephelyek, loading = false, onE
   const [filterTelephely, setFilterTelephely] = useState<string>('all');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [sortField, setSortField] = useState<SortField | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [sortField, setSortField] = useState<SortField | null>('company_name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Get available telephely options based on selected company filter
   const filteredTelephelyOptions = useMemo(() => {

@@ -111,6 +111,7 @@ export function ProbaPaciensDialog({
               id="probapaciens-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
               placeholder="Pl.: 12345678"
               autoComplete="off"
             />

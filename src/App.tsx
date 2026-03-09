@@ -29,6 +29,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const KlinikaAdmin = lazy(() => import("./pages/KlinikaAdmin"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const Register = lazy(() => import("./pages/Register"));
+const SoloRegister = lazy(() => import("./pages/SoloRegister"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/accept-invitation" element={<Suspense fallback={<PageLoader />}><AcceptInvitation /></Suspense>} />
                 <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
+                <Route path="/solo-register" element={<Suspense fallback={<PageLoader />}><SoloRegister /></Suspense>} />
 
 
                 {/* Authenticated routes - Layout wrapper stays mounted */}

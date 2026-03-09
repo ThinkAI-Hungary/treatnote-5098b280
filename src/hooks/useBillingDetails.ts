@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const MONTHLY_PRICE_ID = 'price_1Sz1XkDG9IVOU80stgzB49Nq';
+const MONTHLY_PRICE_ID = 'price_1T8u7qDG9IVOU80s98QkFIo6';
 const YEARLY_PRICE_ID = 'price_1SzFbZDG9IVOU80soy18oPwM';
 
 export interface PaymentMethod {
@@ -126,7 +126,13 @@ export async function switchPlan(companyId: string, newPriceId: string) {
 export async function cancelLicense(
     companyId: string,
     licenseIds: string[],
-    opts: { immediately?: boolean; reactivate?: boolean } = {}
+    opts: {
+        immediately?: boolean;
+        reactivate?: boolean;
+        /** Unified atomic API: pass both to make a single net Stripe quantity update */
+        cancel_ids?: string[];
+        reactivate_ids?: string[];
+    } = {}
 ) {
     return invokeWithAuth('cancel-license', { body: { company_id: companyId, license_ids: licenseIds, ...opts } });
 }

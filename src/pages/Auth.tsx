@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +11,8 @@ import { z } from 'zod';
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const authSchema = z.object({
-  email: z.string().regex(emailRegex, 'Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().regex(emailRegex, 'Érvénytelen email cím'),
+  password: z.string().min(6, 'A jelszónak legalább 6 karakter hosszúnak kell lennie'),
 });
 
 const Auth = () => {
@@ -42,17 +42,21 @@ const Auth = () => {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password');
+        const msg = error.message.toLowerCase();
+        if (msg.includes('invalid login credentials')) {
+          toast.error('Hibás email cím vagy jelszó');
+        } else if (msg.includes('email not confirmed')) {
+          toast.error('Kérem erősítse meg az email címét!');
         } else {
           toast.error(error.message);
         }
+
       } else {
         toast.success('Üdvözöljük!');
         navigate('/dashboard');
       }
     } catch (err) {
-      toast.error('An unexpected error occurred');
+      toast.error('Váratlan hiba történt');
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +70,7 @@ const Auth = () => {
             Üdvözöljük!
           </CardTitle>
           <CardDescription>
-            Enter your credentials to sign in
+            Adja meg belépési adatait
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,7 +87,7 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Jelszó</Label>
               <Input
                 id="password"
                 type="password"
@@ -94,9 +98,15 @@ const Auth = () => {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Loading...' : 'Sign in'}
+              {isLoading ? 'Betöltés...' : 'Bejelentkezés'}
             </Button>
           </form>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Még nincs fiókja?{' '}
+            <Link to="/solo-register" className="text-primary hover:underline font-medium">
+              Regisztráció
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -104,3 +114,4 @@ const Auth = () => {
 };
 
 export default Auth;
+
