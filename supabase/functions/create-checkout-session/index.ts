@@ -118,7 +118,7 @@ serve(async (req) => {
     // Get company
     const { data: company, error: companyError } = await serviceClient
       .from("companies")
-      .select("id, name, stripe_customer_id, subscription_status")
+      .select("id, name, stripe_customer_id, stripe_subscription_id, subscription_status")
       .eq("id", company_id)
       .single();
 
@@ -150,10 +150,57 @@ serve(async (req) => {
       });
     }
 
-    // Note: We allow creating checkout sessions even with an active subscription
-    // This enables buying additional licenses (monthly or yearly separately)
-
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
+
+    // ── Duplicate subscription guard ──────────────────────────────────────────
+    // If the company already has an active subscription, updating the quantity
+    // on the existing item is much safer than creating a NEW subscription
+    // (which would cause double-counting of licenses in the webhook).
+    const activeStatuses = ["active", "past_due", "trialing"];
+    if (
+      company.stripe_subscription_id &&
+      activeStatuses.includes(company.subscription_status ?? "")
+    ) {
+      try {
+        const existingSub = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
+        if (activeStatuses.includes(existingSub.status)) {
+          // Only handle single-item requests in the update path
+          if (normalizedItems.length === 1) {
+            const requestedPriceId = normalizedItems[0].price_id;
+            const requestedSeats = normalizedItems[0].seats;
+
+            // Find matching item on the existing subscription
+            const matchingItem = existingSub.items.data.find(
+              (i) => i.price.id === requestedPriceId
+            );
+
+            if (matchingItem) {
+              // Same price already subscribed — update the quantity in-place
+              await stripe.subscriptionItems.update(matchingItem.id, {
+                quantity: requestedSeats,
+                proration_behavior: "create_prorations",
+              });
+              return new Response(JSON.stringify({ updated: true, seats: requestedSeats }), {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            } else {
+              // Different price than what's already subscribed.
+              // Fall through to create a NEW embedded checkout session — this creates a separate
+              // subscription for the different billing interval. The reconciliation logic in
+              // getReconciliationData aggregates ALL active subscriptions per customer, so
+              // having a yearly sub + a monthly sub works correctly.
+              // (Using subscriptionItems.create here bypasses Stripe Checkout and the proration
+              // invoice may not fire invoice.payment_succeeded reliably, causing licenses to never appear.)
+            }
+          }
+        }
+      } catch (stripeErr) {
+        // If we can't retrieve the subscription (e.g. it was deleted in Stripe
+        // but DB not yet synced), fall through and create a new checkout session.
+        console.warn("Could not retrieve existing subscription, proceeding with new checkout:", stripeErr);
+      }
+    }
 
     // Ensure Stripe Customer exists
     let stripeCustomerId = company.stripe_customer_id;

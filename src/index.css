@@ -289,6 +289,23 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
         hsl(195 85% 55%)) !important;
   }
 
+  /* Hero landing page title gradient text */
+  .hero-title-dark {
+    background: linear-gradient(to right, hsl(270 70% 60%), hsl(250 65% 55%), hsl(195 85% 50%)) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent;
+  }
+
+  .hero-title-light {
+    background: linear-gradient(to right, hsl(268 50% 65%), hsl(270 40% 72%), hsl(255 18% 82%)) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent;
+  }
+
   /* Galaxy page-header banner */
   .bg-galaxy-header {
     background: linear-gradient(135deg,

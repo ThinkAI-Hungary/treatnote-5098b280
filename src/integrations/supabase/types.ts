@@ -181,6 +181,7 @@ export type Database = {
           current_period_end: string | null
           id: string
           is_active: boolean
+          is_solo: boolean
           livemode: boolean
           name: string
           seats: number
@@ -199,6 +200,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           is_active?: boolean
+          is_solo?: boolean
           livemode?: boolean
           name: string
           seats?: number
@@ -217,6 +219,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           is_active?: boolean
+          is_solo?: boolean
           livemode?: boolean
           name?: string
           seats?: number
@@ -922,6 +925,7 @@ export type Database = {
           current_telephely_id: string | null
           full_name: string | null
           id: string
+          is_solo: boolean
           phone: string | null
           subscription_amount: number | null
           subscription_end_date: string | null
@@ -942,6 +946,7 @@ export type Database = {
           current_telephely_id?: string | null
           full_name?: string | null
           id?: string
+          is_solo?: boolean
           phone?: string | null
           subscription_amount?: number | null
           subscription_end_date?: string | null
@@ -962,6 +967,7 @@ export type Database = {
           current_telephely_id?: string | null
           full_name?: string | null
           id?: string
+          is_solo?: boolean
           phone?: string | null
           subscription_amount?: number | null
           subscription_end_date?: string | null

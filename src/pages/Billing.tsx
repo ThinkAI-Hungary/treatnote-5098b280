@@ -479,6 +479,54 @@ export default function Billing() {
                 </Card>
               )}
 
+              {/* ── Subscription management: rebilling + terminate ── */}
+              <Card className="border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    Előfizetés kezelése
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Rebilling toggle */}
+                  <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">Automatikus megújítás</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isCancelPending
+                          ? 'Kikapcsolva – nem újul meg az időszak végén'
+                          : 'Bekapcsolva – automatikusan megújul'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => isCancelPending ? handleReactivate() : handleCancel(false)}
+                      disabled={actionLoading}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${isCancelPending ? 'bg-muted-foreground/30' : 'bg-primary'}`}
+                      aria-label="Megújítás kapcsoló"
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${isCancelPending ? 'translate-x-1' : 'translate-x-6'}`} />
+                    </button>
+                  </div>
+
+                  {isCancelPending && (
+                    <p className="text-xs text-muted-foreground px-1">
+                      Az előfizetés az időszak végén megszűnik. Kapcsold vissza a megújítást a fenntartáshoz.
+                    </p>
+                  )}
+
+                  {/* Terminate immediately */}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    disabled={actionLoading}
+                    onClick={() => handleCancel(true)}
+                  >
+                    {actionLoading ? 'Feldolgozás…' : 'Előfizetés azonnali lemondása'}
+                  </Button>
+                </CardContent>
+              </Card>
+
             </>
           ) : (
             /* New subscription purchase */

@@ -8,8 +8,10 @@ const corsHeaders = {
 };
 
 const MONTHLY_PRICE_ID = "price_1T8u7qDG9IVOU80s98QkFIo6";
+// Yearly licenses are no longer supported. YEARLY_PRICE_ID kept as a constant only to
+// allow graceful handling of any stray Stripe events, but is excluded from KNOWN_PRICES.
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
-const KNOWN_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
+const KNOWN_PRICES = [MONTHLY_PRICE_ID];
 
 function priceToInterval(priceId: string | null | undefined): string {
   return priceId === YEARLY_PRICE_ID ? "yearly" : "monthly";
@@ -318,10 +320,13 @@ serve(async (req) => {
 
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          // Prefer subscription metadata over session metadata (session metadata is immutable after creation)
-          const telephelyId = subscription.metadata?.telephely_id || session.metadata?.telephely_id;
 
-          const { companyTotalSeats: totalSeats, telephelyParsedItems: parsedItems, periodEnd } = await getReconciliationData(stripe, customerId, telephelyId);
+          // Just update the company record — license creation is handled exclusively
+          // by invoice.payment_succeeded to avoid the triple-reconcile race condition
+          // (checkout.session.completed + customer.subscription.updated + invoice.payment_succeeded
+          //  all fire near-simultaneously and would each create the same licenses).
+          const telephelyId = subscription.metadata?.telephely_id || session.metadata?.telephely_id;
+          const { companyTotalSeats: totalSeats, periodEnd } = await getReconciliationData(stripe, customerId, telephelyId);
 
           await supabase.from("companies").update({
             stripe_customer_id: customerId,
@@ -332,15 +337,15 @@ serve(async (req) => {
             cancel_at_period_end: subscription.cancel_at_period_end,
             livemode: event.livemode,
           }).eq("id", companyId);
-
-          // Reconcile licenses
-          await reconcileLicenses(supabase, companyId, telephelyId, parsedItems, subscriptionId, periodEnd);
+          // NOTE: reconcileLicenses is intentionally NOT called here.
+          // invoice.payment_succeeded is the single source of truth for license creation.
         }
         break;
       }
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
+        const previousAttributes = (event.data as any).previous_attributes ?? {};
         const customerId = typeof subscription.customer === "string" ? subscription.customer : (subscription.customer as any)?.id;
         const telephelyId = subscription.metadata?.telephely_id;
 
@@ -362,10 +367,16 @@ serve(async (req) => {
           });
         }
 
-        // Get company_id for license reconciliation
-        const { data: comp } = await supabase.from("companies").select("id").eq("stripe_customer_id", customerId).maybeSingle();
-        if (comp) {
-          await reconcileLicenses(supabase, comp.id, telephelyId, parsedItems, subscription.id, periodEnd);
+        // Only reconcile licenses when subscription item quantities actually changed
+        // (e.g. admin used update-seats). Status-only transitions (incomplete → active)
+        // are handled by invoice.payment_succeeded, so we must skip reconcile here
+        // to avoid the double-create race condition.
+        const itemsChanged = previousAttributes.items != null;
+        if (itemsChanged) {
+          const { data: comp } = await supabase.from("companies").select("id").eq("stripe_customer_id", customerId).maybeSingle();
+          if (comp) {
+            await reconcileLicenses(supabase, comp.id, telephelyId, parsedItems, subscription.id, periodEnd);
+          }
         }
         break;
       }
@@ -373,16 +384,31 @@ serve(async (req) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : (subscription.customer as any)?.id;
+        const deletedSubId = subscription.id;
 
-        await supabase.from("companies").update({
-          subscription_status: "canceled",
-          cancel_at_period_end: false,
-        }).eq("stripe_customer_id", customerId);
+        // Check if the customer still has other active subscriptions before marking company as canceled
+        const remainingSubs = await stripe.subscriptions.list({ customer: customerId, status: "active" });
+        const stillActive = remainingSubs.data.filter((s: Stripe.Subscription) => s.id !== deletedSubId);
 
-        // Expire all licenses
+        if (stillActive.length === 0) {
+          // No other active subscriptions — mark company as canceled
+          await supabase.from("companies").update({
+            subscription_status: "canceled",
+            cancel_at_period_end: false,
+          }).eq("stripe_customer_id", customerId);
+        } else {
+          console.log(`customer.subscription.deleted: sub ${deletedSubId} deleted but ${stillActive.length} other active sub(s) remain. Company stays active.`);
+        }
+
+        // Only expire licenses tied to THIS specific subscription — not all licenses for the customer
         const { data: comp } = await supabase.from("companies").select("id").eq("stripe_customer_id", customerId).maybeSingle();
         if (comp) {
-          await supabase.from("licenses").update({ status: "expired", assigned_user_id: null }).eq("company_id", comp.id).in("status", ["available", "assigned"]);
+          await supabase.from("licenses")
+            .update({ status: "expired", assigned_user_id: null })
+            .eq("company_id", comp.id)
+            .eq("stripe_subscription_id", deletedSubId)
+            .in("status", ["available", "assigned"]);
+          console.log(`Expired licenses for company ${comp.id} tied to deleted subscription ${deletedSubId}`);
         }
         break;
       }

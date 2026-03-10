@@ -147,12 +147,21 @@ export async function switchLicenseInterval(
     return invokeWithAuth('switch-plan', { body: { company_id: companyId, license_ids: licenseIds, interval } });
 }
 
+// Stripe zero-decimal currencies: stored without subunits, so no /100 needed.
+// NOTE: HUF is NOT zero-decimal — Stripe stores it in fillér (1 HUF = 100 fillér).
+const ZERO_DECIMAL_CURRENCIES = new Set([
+    'bif', 'clp', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx',
+    'vnd', 'vuv', 'xaf', 'xof', 'xpf',
+]);
+
 export function formatCurrency(amount: number, currency: string): string {
+    const isZeroDecimal = ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase());
+    const value = isZeroDecimal ? amount : amount / 100;
     return new Intl.NumberFormat('hu-HU', {
         style: 'currency',
         currency: currency.toUpperCase(),
         minimumFractionDigits: 0,
-    }).format(amount / 100);
+    }).format(value);
 }
 
 export function formatDate(dateStr: string | null | number): string {

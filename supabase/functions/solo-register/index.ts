@@ -15,6 +15,78 @@ function slugify(emailPrefix: string): string {
         .substring(0, 50);
 }
 
+/**
+ * Find the right slug for a new company registration.
+ *
+ * Rules:
+ *  - A company is "active" if it has at least one profile (user) associated.
+ *  - Ghost companies (no profiles) are **deleted** so their slugs can be reused.
+ *  - If the base slug has no active company → use it directly (no suffix).
+ *  - If it does, find the lowest integer >= 2 that is not used by an active company.
+ *
+ * Example: active slugs are "foo", "foo-2", "foo-5"
+ *   → next slug is "foo-3" (lowest gap)
+ */
+async function findAvailableSlug(
+    supabase: ReturnType<typeof createClient>,
+    baseSlug: string
+): Promise<string> {
+    // 1. Fetch all companies whose slug is exactly baseSlug or matches baseSlug-<number>
+    const { data: candidates } = await supabase
+        .from("companies")
+        .select("id, slug")
+        .or(`slug.eq.${baseSlug},slug.like.${baseSlug}-%`);
+
+    if (!candidates || candidates.length === 0) {
+        return baseSlug; // nothing exists → plain slug is free
+    }
+
+    // 2. For each candidate, check if it has at least one profile
+    const activeNumbers = new Set<number>();
+    let baseActive = false;
+    const ghostIds: string[] = [];
+
+    for (const co of candidates) {
+        const { count } = await supabase
+            .from("profiles")
+            .select("*", { count: "exact", head: true })
+            .eq("company_id", co.id);
+
+        const hasUsers = (count ?? 0) > 0;
+
+        if (hasUsers) {
+            if (co.slug === baseSlug) {
+                baseActive = true;
+            } else {
+                // Extract the numeric suffix, e.g. "zombori.mark-3" → 3
+                const m = co.slug.match(/-(\d+)$/);
+                if (m) activeNumbers.add(parseInt(m[1], 10));
+            }
+        } else {
+            // No profiles → ghost company, mark for cleanup
+            ghostIds.push(co.id);
+        }
+    }
+
+    // 3. Delete ghost companies (they have no users – safe to remove so slugs are freed)
+    if (ghostIds.length > 0) {
+        // Also delete any orphaned telephely/licenses that belong to ghost companies
+        await supabase.from("telephely").delete().in("company_id", ghostIds);
+        await supabase.from("licenses").delete().in("company_id", ghostIds);
+        await supabase.from("companies").delete().in("id", ghostIds);
+    }
+
+    // 4. Determine the slug to use
+    if (!baseActive) {
+        return baseSlug; // base slug is free (ghost was cleaned up)
+    }
+
+    // Find lowest available suffix >= 2
+    let n = 2;
+    while (activeNumbers.has(n)) n++;
+    return `${baseSlug}-${n}`;
+}
+
 serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -41,21 +113,23 @@ serve(async (req) => {
 
         const displayName = full_name?.trim() || email.split("@")[0];
 
-        // ── Use signUp() so Supabase sends the confirmation email ───────────────
-        // We use the anon client for signup (this triggers the confirmation email),
-        // but we pass the service role key via a separate admin client for DB ops.
         const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
             auth: { autoRefreshToken: false, persistSession: false },
         });
 
-        const origin = req.headers.get("origin") || "https://bpjzgapmoyhtgryglcke.supabase.co";
+        const origin = req.headers.get("origin") || "";
+        // Use APP_URL secret if set; otherwise use request origin only if it's not localhost.
+        // If origin is localhost and no APP_URL is configured, omit emailRedirectTo so
+        // Supabase falls back to the Site URL configured in Authentication → URL Configuration.
+        const appUrl = Deno.env.get("APP_URL") ||
+            (!origin.includes("localhost") && !origin.includes("127.0.0.1") ? origin : null);
+
         const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
-            email,
-            password,
+            email, password,
             options: {
                 data: { full_name: displayName, solo_registration: true },
-                emailRedirectTo: `${origin}/dashboard`,
+                ...(appUrl && { emailRedirectTo: `${appUrl}/auth` }),
             },
         });
 
@@ -72,32 +146,21 @@ serve(async (req) => {
 
         const userId = signUpData.user?.id;
         if (!userId) {
-            // Supabase returns user=null when email already exists (no error thrown)
             return new Response(
                 JSON.stringify({ error: "Ez az email cím már regisztrálva van" }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
             );
         }
 
-        // ── Derive a unique slug from the email prefix ──────────────────────────
+        // ── Derive a unique slug (smart: reuses gaps, cleans ghost companies) ───
         const baseSlug = slugify(email.split("@")[0]);
-        let slug = baseSlug;
-        let suffix = 2;
-        while (true) {
-            const { data: existing } = await supabaseAdmin
-                .from("companies")
-                .select("id")
-                .eq("slug", slug)
-                .maybeSingle();
-            if (!existing) break;
-            slug = `${baseSlug}-${suffix++}`;
-        }
+        const slug = await findAvailableSlug(supabaseAdmin, baseSlug);
         const companyName = slug;
 
         // ── Create company ──────────────────────────────────────────────────────
         const { data: company, error: companyError } = await supabaseAdmin
             .from("companies")
-            .insert({ name: companyName, slug })
+            .insert({ name: companyName, slug, is_solo: true })
             .select("id")
             .single();
 
@@ -125,19 +188,16 @@ serve(async (req) => {
             });
         }
 
-        // ── Pre-create the profile (trigger will hit ON CONFLICT DO NOTHING) ───
-        // If the user confirms email later, the trigger's INSERT hits the conflict
-        // clause and skips — so our profile with company/telephely stays intact.
+        // ── Pre-create the profile ──────────────────────────────────────────────
         const profilePayload = {
             user_id: userId,
             full_name: displayName,
             company_id: company.id,
             telephely_id: telephely.id,
             current_telephely_id: telephely.id,
+            is_solo: true,
         };
 
-        // The trigger may have already run synchronously (if Supabase internally
-        // confirms during signUp), so use upsert (ON CONFLICT update).
         const { error: profileError } = await supabaseAdmin
             .from("profiles")
             .upsert(profilePayload, { onConflict: "user_id" });
@@ -147,7 +207,6 @@ serve(async (req) => {
         }
 
         // ── Set role: klinika_admin via telephely_memberships ──────────────────
-        // The trigger may have already inserted user_roles('user'). Remove it.
         await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
 
         const { error: membershipError } = await supabaseAdmin
@@ -177,15 +236,11 @@ serve(async (req) => {
 
         if (licenseError) {
             console.error("Trial license creation error:", licenseError);
-            // Non-fatal — user is still registered
         }
 
-        // ── Store registration intent so confirmation webhook can clean up ──────
-
-        // (If you later add a webhook on email confirmation, you can re-read this.)
         await supabaseAdmin
             .from("profiles")
-            .update({ full_name: displayName }) // trigger the sync_company_name as well
+            .update({ full_name: displayName })
             .eq("user_id", userId);
 
         console.log(`Solo registration: ${email} → company "${companyName}" | awaiting email confirmation`);

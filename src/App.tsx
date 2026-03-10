@@ -63,7 +63,7 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="klinika-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="klinika-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>

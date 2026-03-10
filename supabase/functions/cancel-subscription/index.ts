@@ -58,17 +58,33 @@ serve(async (req) => {
         if (reactivate) {
             // Remove scheduled cancellation
             await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: false });
+            // Immediately sync DB so frontend refresh() sees the new value before the webhook fires
+            await serviceClient.from("companies").update({ cancel_at_period_end: false }).eq("id", company_id);
             return new Response(JSON.stringify({ success: true, action: "reactivated" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         if (immediately) {
-            // Cancel immediately
+            // Cancel immediately in Stripe
             await stripe.subscriptions.cancel(subscriptionId);
+            // Immediately expire all active licenses + mark company cancelled.
+            // This ensures the frontend re-query (triggered by notifyLicenseDataChanged)
+            // sees the expired state right away — before the Stripe webhook arrives.
+            await Promise.all([
+                serviceClient.from("companies")
+                    .update({ subscription_status: "canceled", cancel_at_period_end: false })
+                    .eq("id", company_id),
+                serviceClient.from("licenses")
+                    .update({ status: "expired", assigned_user_id: null })
+                    .eq("company_id", company_id)
+                    .in("status", ["available", "assigned"]),
+            ]);
             return new Response(JSON.stringify({ success: true, action: "cancelled_immediately" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
         // Cancel at period end
         await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+        // Immediately sync DB so frontend refresh() sees the new value before the webhook fires
+        await serviceClient.from("companies").update({ cancel_at_period_end: true }).eq("id", company_id);
         return new Response(JSON.stringify({ success: true, action: "cancel_at_period_end" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     } catch (err) {

@@ -19,6 +19,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { cn } from '@/lib/utils';
+import { notifyLicenseDataChanged } from '@/lib/licenseEvents';
 import {
   useBillingDetails,
   cancelSubscription,
@@ -65,11 +66,12 @@ interface ElofizetesTabProps {
   telephelyId?: string | null;
   companyName?: string | null;
   users?: KlinikaUser[];
+  isSolo?: boolean;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ElofizetesTab({ companyId, telephelyId, companyName, users: klinikaUsers = [] }: ElofizetesTabProps) {
+export function ElofizetesTab({ companyId, telephelyId, companyName, users: klinikaUsers = [], isSolo = false }: ElofizetesTabProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Billing details from edge function
@@ -281,6 +283,15 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
     try {
       await cancelSubscription(companyId, opts);
       await refresh();
+      // For immediate cancellation, the Stripe webhook needs 2-4s to expire licenses.
+      // Refresh licenses right away + poll again to catch the webhook update.
+      // Also fire the license event so AppSidebar locks Hangfelvétel instantly.
+      if (opts.immediately) {
+        notifyLicenseDataChanged();
+        await fetchLicenses();
+        setTimeout(() => fetchLicenses(), 3000);
+        setTimeout(() => fetchLicenses(), 7000);
+      }
       toast.success(opts.reactivate ? 'Lemondás visszavonva!' : opts.immediately ? 'Előfizetés lemondva.' : 'Lemondás beütemezve a periódus végére.');
     } catch (err: any) {
       const msg = err?.message ?? 'Hiba.';
@@ -289,6 +300,12 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
     } finally {
       setActionLoading(false);
     }
+  }
+
+  async function handleToggleRebilling(currentlyWillCancel: boolean) {
+    // currentlyWillCancel=true means cancel_at_period_end is ON (rebilling OFF)
+    // toggle flips it: true → reactivate (turn rebilling back ON), false → cancel at period end
+    await handleCancelSubscription({ reactivate: currentlyWillCancel });
   }
 
   async function handleSwitchPlan(newPriceId: string) {
@@ -634,8 +651,8 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
             </div>
           </AnimatedCard>
 
-          {/* ── Következő számlázások — per-license-group forecast table ── */}
-          {forecastEntries.length > 0 && (
+          {/* ── Következő számlázások — hidden when subscription set to cancel ── */}
+          {forecastEntries.length > 0 && !isCancelPending && (
             <AnimatedCard>
               <CardHeader className="pb-2 pt-4 px-4">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -768,33 +785,111 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
         {/* ══════════════════════════════════════════
             Tab 4: Licencek
         ══════════════════════════════════════════ */}
-        <TabsContent value="licenses" className="mt-0">
-          {licenses.length > 0 ? (
-            <LicenseManagementTable
-              licenses={licenses}
-              users={klinikaUsers}
-              companyId={companyId}
-              telephelyId={telephelyId}
-              seats={sub?.seats ?? licenses.length}
-              isCancelPending={isCancelPending}
-              actionLoading={actionLoading}
-              onRefresh={fetchLicenses}
-              onUpdateSeats={handleUpdateSeats}
-            />
-          ) : licensesLoading ? (
+        <TabsContent value="licenses" className="mt-0 space-y-3">
+
+          {/* ── Solo: buy one license or manage subscription ── */}
+          {isSolo && (
             <AnimatedCard>
-              <CardContent className="flex items-center justify-center py-8">
-                <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-accent" /> Licenc kezelése
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Egyfelhasználós előfizetés — 1 havi licenc, automatikus megújítással.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-3">
+                {!hasSubscription ? (
+                  /* No active subscription → buy button */
+                  <GalaxyButton
+                    onClick={() => handleBuyLicenses('monthly')}
+                    disabled={actionLoading}
+                    className="w-full"
+                  >
+                    {actionLoading ? (
+                      <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Feldolgozás…</>
+                    ) : (
+                      <><CreditCard className="h-4 w-4 mr-2" /> 1 havi licenc vásárlása</>
+                    )}
+                  </GalaxyButton>
+                ) : (
+                  /* Active subscription → management */
+                  <div className="space-y-3">
+                    {/* Rebilling toggle */}
+                    <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">Automatikus megújítás</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {isCancelPending
+                            ? 'Kikapcsolva – nem újul meg az időszak végén'
+                            : 'Bekapcsolva – automatikusan megújul'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleToggleRebilling(isCancelPending)}
+                        disabled={actionLoading}
+                        className={cn(
+                          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50',
+                          isCancelPending ? 'bg-muted-foreground/30' : 'bg-accent'
+                        )}
+                        aria-label="Megújítás kapcsoló"
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
+                            isCancelPending ? 'translate-x-1' : 'translate-x-6'
+                          )}
+                        />
+                      </button>
+                    </div>
+
+                    {isCancelPending && (
+                      <p className="text-xs text-muted-foreground px-1">
+                        Az előfizetés az időszak végén megszűnik. Kapcsold vissza a megújítást a fenntartáshoz.
+                      </p>
+                    )}
+
+                    {/* Terminate immediately button */}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      disabled={actionLoading}
+                      onClick={() => handleCancelSubscription({ immediately: true })}
+                    >
+                      {actionLoading ? (
+                        <><RefreshCw className="h-3 w-3 mr-2 animate-spin" /> Feldolgozás…</>
+                      ) : (
+                        'Előfizetés azonnali lemondása'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </AnimatedCard>
-          ) : (
-            <AnimatedCard>
-              <CardContent className="flex flex-col items-center justify-center py-10 gap-3">
-                <ShieldCheck className="h-9 w-9 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Nincsenek licencek.</p>
-                <p className="text-xs text-muted-foreground">Vásárolj licenceket az Áttekintés fülön.</p>
-              </CardContent>
-            </AnimatedCard>
+          )}
+
+          {/* LicenseManagementTable: always shown for non-solo companies */}
+          {!isSolo && (
+            licensesLoading ? (
+              <AnimatedCard>
+                <CardContent className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                </CardContent>
+              </AnimatedCard>
+            ) : (
+              <LicenseManagementTable
+                licenses={licenses}
+                users={klinikaUsers}
+                companyId={companyId}
+                telephelyId={telephelyId}
+                seats={sub?.seats ?? licenses.length}
+                isCancelPending={isCancelPending}
+                actionLoading={actionLoading}
+                onRefresh={fetchLicenses}
+                onUpdateSeats={handleUpdateSeats}
+              />
+            )
           )}
         </TabsContent>
       </Tabs>
@@ -898,15 +993,14 @@ function LicenseManagementTable({
   const [stagedReactivateIds, setStagedReactivateIds] = useState<Set<string>>(new Set());
 
   const [stagedMonthlySeats, setStagedMonthlySeats] = useState<number | null>(null);
-  const [stagedYearlySeats, setStagedYearlySeats] = useState<number | null>(null);
+
 
   const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
 
   const hasStagedChanges = Object.keys(stagedIntervalChanges).length > 0
     || stagedCancelIds.size > 0
     || stagedReactivateIds.size > 0
-    || (stagedMonthlySeats !== null && stagedMonthlySeats > 0)
-    || (stagedYearlySeats !== null && stagedYearlySeats > 0);
+    || (stagedMonthlySeats !== null && stagedMonthlySeats > 0);
 
   const userMap = useMemo(() => {
     const m: Record<string, KlinikaUser> = {};
@@ -982,18 +1076,20 @@ function LicenseManagementTable({
   // ─── Execute all staged changes ────────────────────────────────────
 
   async function executeTransaction() {
-    if (!companyId || !hasStagedChanges) return;
+    if (!hasStagedChanges) { toast.error('Nincs várható tranzakció.'); return; }
+    if (!companyId) { toast.error('Hiba: company_id hiányzik. Kérlek frissítsd az oldalt.'); return; }
     setBulkLoading(true);
     let errorMsgs: string[] = [];
+    // When the checkout modal opens we must NOT call onRefresh() — that would toggle
+    // licensesLoading and unmount LicenseManagementTable, destroying checkoutClientSecret state
+    // before the modal can render. The modal's own onSuccess callback triggers the refresh.
+    let skipRefresh = false;
 
     try {
       // We need to build an items array for checkout or cancel
       // Exclude trial licenses from base paid seat counts
       const baseMonthlySeats = licenses.filter(l => l.billing_interval === "monthly" && l.license_type !== 'trial').length;
-      const baseYearlySeats = licenses.filter(l => l.billing_interval === "yearly" && l.license_type !== 'trial').length;
-
       const finalMonthly = stagedMonthlySeats !== null ? stagedMonthlySeats : baseMonthlySeats;
-      const finalYearly = stagedYearlySeats !== null ? stagedYearlySeats : baseYearlySeats;
 
       // 1. Turn off / Turn on auto-renewal in ONE atomic call.
       // Sending cancel_ids and reactivate_ids together lets the edge function
@@ -1010,17 +1106,11 @@ function LicenseManagementTable({
         } catch (e: any) { console.error(e); errorMsgs.push('Megújítás módosítás hiba: ' + e.message); }
       }
 
-      // 3. Process interval changes
+      // 3. Process interval changes (monthly only)
       const toMonthly = Object.entries(stagedIntervalChanges).filter(([_, int]) => int === 'monthly').map(([id]) => id);
-      const toYearly = Object.entries(stagedIntervalChanges).filter(([_, int]) => int === 'yearly').map(([id]) => id);
-
       if (toMonthly.length > 0) {
         try { await switchLicenseInterval(companyId, toMonthly, 'monthly'); }
         catch (e: any) { console.error(e); errorMsgs.push("Havi váltás hiba: " + e.message); }
-      }
-      if (toYearly.length > 0) {
-        try { await switchLicenseInterval(companyId, toYearly, 'yearly'); }
-        catch (e: any) { console.error(e); errorMsgs.push("Éves váltás hiba: " + e.message); }
       }
 
       // 4. Seat purchases (Checkout Modal) — stagedMonthlySeats is the quantity to buy
@@ -1036,8 +1126,14 @@ function LicenseManagementTable({
             const data = await createEmbeddedCheckoutMultiple(companyId, telephelyId || '', itemsToBuy);
             if (data?.client_secret) {
               setCheckoutClientSecret(data.client_secret);
-              // Do not setBulkLoading(false) yet, the modal is handling the rest
+              // Skip onRefresh() — if we call it here the licensesLoading toggle unmounts
+              // this component and destroys checkoutClientSecret before the modal renders.
+              // The CheckoutModal's onSuccess callback will trigger onRefresh when done.
+              skipRefresh = true;
               return;
+            } else if (data?.updated) {
+              // Seat update applied in-place on existing subscription — no checkout needed
+              // Fall through to success handling below
             } else {
               throw new Error("Nem sikerült elindítani a fizetést.");
             }
@@ -1055,40 +1151,27 @@ function LicenseManagementTable({
         setStagedCancelIds(new Set());
         setStagedReactivateIds(new Set());
         setStagedMonthlySeats(null);
-        setStagedYearlySeats(null);
       } else {
         toast.error(`A tranzakció befejeződött, de hiba történt:\n${errorMsgs.join('\n')}`);
       }
 
     } finally {
       setBulkLoading(false);
-      onRefresh(); // Refresh data to get true state from server
+      if (!skipRefresh) onRefresh(); // Refresh data to get true state from server
     }
   }
 
   const trialLicenses = licenses.filter(l => l.license_type === 'trial');
   const paidLicenses = licenses.filter(l => l.license_type !== 'trial');
 
-  // Seat counts only from paid licenses
+  // Seat counts — monthly paid licenses only
   const baseMonthly = paidLicenses.filter(l => l.billing_interval === 'monthly').length;
-  const baseYearly = paidLicenses.filter(l => l.billing_interval === 'yearly').length;
+  const projectedMonthly = stagedMonthlySeats ?? baseMonthly;
 
-  let projectedMonthly = stagedMonthlySeats ?? baseMonthly;
-  let projectedYearly = stagedYearlySeats ?? baseYearly;
-
-  // interval changes only apply to paid licenses
-  paidLicenses.forEach(l => {
-    const plannedInt = stagedIntervalChanges[l.id];
-    if (plannedInt === 'monthly' && l.billing_interval === 'yearly') { projectedMonthly++; projectedYearly--; }
-    else if (plannedInt === 'yearly' && l.billing_interval === 'monthly') { projectedYearly++; projectedMonthly--; }
-  });
-
-  // Calculate assigned — paid only for seat management
   const assignedCount = paidLicenses.filter(l => l.assigned_user_id).length;
   const assignedMonthlyCount = paidLicenses.filter(l => l.assigned_user_id && l.billing_interval === 'monthly').length;
-  const assignedYearlyCount = paidLicenses.filter(l => l.assigned_user_id && l.billing_interval === 'yearly').length;
 
-  const displaySeats = projectedMonthly + projectedYearly;
+  const displaySeats = projectedMonthly;
 
   return (
     <>
@@ -1197,30 +1280,15 @@ function LicenseManagementTable({
                 </li>
               )}
 
-              {stagedYearlySeats !== null && stagedYearlySeats !== baseYearly && (
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-600/50 dark:bg-green-400/50 shrink-0" />
-                  {stagedYearlySeats > baseYearly
-                    ? `+${stagedYearlySeats - baseYearly} új Éves licenc vásárlása`
-                    : `${baseYearly - stagedYearlySeats} Éves licenc lemondása`}
-                </li>
-              )}
+
 
               {Object.entries(stagedIntervalChanges).map(([id, int]) => {
                 const u = userMap[licenses.find(l => l.id === id)?.assigned_user_id ?? ''];
                 const name = u ? (u.full_name || u.email) : 'Szabad licenc';
-                const isToYearly = int === 'yearly';
                 return (
-                  <li key={`int-${id}`} className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50 shrink-0" />
-                      <span>Csomagváltás: <span className="font-medium">{name}</span> ➔ {isToYearly ? 'Éves' : 'Havi'}</span>
-                    </div>
-                    <span className="text-[9.5px] opacity-80 ml-3.5 leading-tight">
-                      {isToYearly
-                        ? "(Azonnali váltás: az új éves díj azonnal fizetendő, a fel nem használt havi időszak jóváírásra kerül)"
-                        : "(Azonnali váltás: a fel nem használt éves időszak jóváírásra kerül a következő havi számlákból)"}
-                    </span>
+                  <li key={`int-${id}`} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50 shrink-0" />
+                    <span>Csomagváltás Havira: <span className="font-medium">{name}</span></span>
                   </li>
                 );
               })}
@@ -1485,7 +1553,7 @@ function LicenseManagementTable({
             setCheckoutClientSecret(null);
             setBulkLoading(false);
             setStagedMonthlySeats(null);
-            setStagedYearlySeats(null);
+
             setStagedIntervalChanges({});
             setStagedCancelIds(new Set());
             setStagedReactivateIds(new Set());

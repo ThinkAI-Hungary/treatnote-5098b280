@@ -1,34 +1,31 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { StarField } from '@/components/klinika/StarField';
+import { useTheme } from '@/components/ThemeProvider';
 import { Stethoscope, ArrowRight, LogIn, Moon, Sun } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
+const galaxyStyle = {
+  background: 'linear-gradient(to right, hsl(270 70% 60%), hsl(250 65% 55%), hsl(195 85% 50%))',
+  color: 'white',
+  border: 'none',
+} as const;
+
+const lightStyle = {
+  background: 'linear-gradient(to right, hsl(268 30% 82%), hsl(263 22% 87%), hsl(255 12% 92%))',
+  color: 'hsl(262 48% 16%)',
+  border: '1px solid hsl(265 18% 87%)',
+  boxShadow: '0 1px 3px hsl(265 20% 80% / 0.2)',
+} as const;
 
 const Index = () => {
   const { user } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
 
-  // Initialise from the current <html> class (set by the rest of the app)
-  const [dark, setDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
-
-  useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [dark]);
+  const btnStyle = dark ? galaxyStyle : lightStyle;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Star field only in light mode */}
-      {!dark && <StarField />}
-
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
@@ -40,31 +37,40 @@ const Index = () => {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {/* Theme toggle */}
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setDark(d => !d)}
+            onClick={() => setTheme(dark ? 'light' : 'dark')}
             aria-label={dark ? 'Váltás világos módra' : 'Váltás sötét módra'}
           >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {user ? (
-            <Button asChild className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
-              <Link to="/dashboard">Dashboard</Link>
-            </Button>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 h-9 transition-opacity hover:opacity-90"
+              style={btnStyle}
+            >
+              Dashboard
+            </Link>
           ) : (
             <>
-              <Button variant="ghost" asChild>
-                <Link to="/auth">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Bejelentkezés
-                </Link>
-              </Button>
-              <Button asChild className="bg-gradient-to-r from-primary to-accent hover:opacity-90">
-                <Link to="/solo-register">Regisztráció</Link>
-              </Button>
+              <Link
+                to="/auth"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 h-9 transition-opacity hover:opacity-90"
+                style={btnStyle}
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Bejelentkezés
+              </Link>
+              <Link
+                to="/solo-register"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 h-9 transition-opacity hover:opacity-90"
+                style={btnStyle}
+              >
+                Regisztráció
+              </Link>
             </>
           )}
         </div>
@@ -72,7 +78,7 @@ const Index = () => {
 
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-20 pb-24 max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground/80 to-primary bg-clip-text text-transparent leading-tight mb-6">
+        <h1 className={`text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-6 ${dark ? 'hero-title-dark' : 'hero-title-light'}`}>
           Az okos fogorvosi<br />dokumentációs rendszer
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mb-10">
@@ -80,15 +86,21 @@ const Index = () => {
           AI-alapú segítség – egyetlen letisztult felületen.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" asChild className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-base px-8">
-            <Link to="/solo-register">
-              Kezdem ingyen
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild className="border-primary/30 hover:bg-primary/5 text-base px-8">
-            <Link to="/auth">Már van fiókom</Link>
-          </Button>
+          <Link
+            to="/solo-register"
+            className="inline-flex items-center justify-center rounded-md text-base font-medium px-8 py-3 transition-opacity hover:opacity-90"
+            style={btnStyle}
+          >
+            Kezdem ingyen
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+          <Link
+            to="/auth"
+            className="inline-flex items-center justify-center rounded-md text-base font-medium px-8 py-3 transition-opacity hover:opacity-90"
+            style={btnStyle}
+          >
+            Már van fiókom
+          </Link>
         </div>
       </section>
 

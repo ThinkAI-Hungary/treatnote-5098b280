@@ -102,6 +102,8 @@ export default function KlinikaAdmin() {
   const currentUserId = authUser?.id;
   const navigate = useNavigate();
   const { profile } = useProfile();
+  // Solo companies don't have members — they're single-doctor practices
+  const isSoloCompany = !!profile?.is_solo;
   // Use profile telephely to scope the Flexi connection check.
   // The more authoritative activeTelephelyId (from useKlinikaData) is declared below.
   const profileTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
@@ -183,19 +185,26 @@ export default function KlinikaAdmin() {
   const validTabs = ['users', 'kezelesi-szabalyok', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
-    return tabParam && validTabs.includes(tabParam)
+    const defaultTab = isSoloCompany ? 'kezelesi-szabalyok' : 'users';
+    return tabParam && validTabs.includes(tabParam) && !(isSoloCompany && tabParam === 'users')
       ? tabParam
-      : 'users';
+      : defaultTab;
   });
 
   // Sync tab from URL param on mount and when URL changes
+  // Solo users must not land on the 'users' tab
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     console.log("KlinikaAdmin synced activeTab from URL:", tabParam);
     if (tabParam && validTabs.includes(tabParam)) {
-      setActiveTab(tabParam);
+      if (isSoloCompany && tabParam === 'users') {
+        setActiveTab('kezelesi-szabalyok');
+        setSearchParams({ tab: 'kezelesi-szabalyok' });
+      } else {
+        setActiveTab(tabParam);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, isSoloCompany]);
 
   // Update URL when tab changes
   const handleTabChange = useCallback((value: string) => {
@@ -767,13 +776,15 @@ export default function KlinikaAdmin() {
         {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
-            <TabsTrigger
-              value="users"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-            >
-              <Users className="h-4 w-4" />
-              Tagok
-            </TabsTrigger>
+            {!isSoloCompany && (
+              <TabsTrigger
+                value="users"
+                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+              >
+                <Users className="h-4 w-4" />
+                Tagok
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="kezelesi-szabalyok"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
@@ -1217,6 +1228,7 @@ export default function KlinikaAdmin() {
                 telephelyId={telephelyId}
                 companyName={companyName}
                 users={users}
+                isSolo={isSoloCompany}
               />
             </TabsContent>
           </div>

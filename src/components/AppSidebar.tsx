@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import { subscribeToRulesChanges } from '@/lib/rulesEvents';
 import { subscribeToMembershipChanges } from '@/lib/telephelyEvents';
+import { subscribeToLicenseChanges } from '@/lib/licenseEvents';
 import { useNotifications } from '@/hooks/useNotifications';
 
 
@@ -98,7 +99,11 @@ function StaticMenuItem({
         <HoverCard openDelay={0} closeDelay={200}>
           <HoverCardTrigger asChild>
             <div
-              className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5 text-sm w-full rounded-md"
+              onClick={onDisabledClick}
+              className={cn(
+                'flex items-center gap-2 opacity-50 px-2 py-1.5 text-sm w-full rounded-md',
+                onDisabledClick ? 'cursor-pointer hover:opacity-75 transition-opacity' : 'cursor-not-allowed'
+              )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.title}</span>}
@@ -179,6 +184,10 @@ export function AppSidebar() {
   // Track when protected items first become visible so we can animate them in
   const prevShowProtectedRef = useRef(false);
   const [menuAnimKey, setMenuAnimKey] = useState(0);
+
+  // Solo: check if the current user has an active paid license
+  const isSolo = !!(profile as any)?.is_solo;
+  const [hasActiveLicense, setHasActiveLicense] = useState(false);
 
   // Shimmer lifecycle: show immediately when loading starts, fade out gracefully when loading stops
   useEffect(() => {
@@ -275,6 +284,71 @@ export function AppSidebar() {
   const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const depsInitialLoadRef = useRef(true);
+
+  // Solo license check + realtime subscription so Hangfelvétel gate updates
+  // immediately when a license is bought, expires, or is terminated.
+  // We check by assigned_user_id + company_id only (not telephely_id) because:
+  //   1. solo companies typically have one telephely, so the scope is equivalent
+  //   2. the license's telephely_id may not always match current_telephely_id exactly
+  // Realtime uses company_id filter (stable; telephely_id=null after termination isn't stable).
+  useEffect(() => {
+    if (!user || !isSolo) return;
+    const companyId = profile?.company_id;
+    const checkLicense = async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from('licenses')
+        .select('id, expires_at')
+        .eq('assigned_user_id', user.id)
+        .eq('status', 'assigned')
+        .neq('license_type', 'trial')
+        .limit(1);
+      const row = (data ?? [])[0];
+      setHasActiveLicense(!!row && (row.expires_at === null || row.expires_at > now));
+    };
+    checkLicense();
+    if (!companyId) return;
+    const channel = supabase
+      .channel(`sidebar-license-${companyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'licenses', filter: `company_id=eq.${companyId}` }, () => checkLicense())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, isSolo, profile?.company_id]);
+
+  // Immediately re-check license when ElofizetesTab fires the cancel event
+  // (before the Stripe webhook updates the DB)
+  useEffect(() => {
+    if (!user || !isSolo) return;
+    const recheck = async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from('licenses')
+        .select('id, expires_at')
+        .eq('assigned_user_id', user.id)
+        .eq('status', 'assigned')
+        .neq('license_type', 'trial')
+        .limit(1);
+      const row = (data ?? [])[0];
+      setHasActiveLicense(!!row && (row.expires_at === null || row.expires_at > now));
+    };
+    return subscribeToLicenseChanges(recheck);
+  }, [user, isSolo]);
+
+  // Launch Stripe checkout for solo users without a license
+  const handleBuySoloLicense = useCallback(async () => {
+    const companyId = profile?.company_id;
+    const telephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
+    if (!companyId) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { company_id: companyId, price_id: 'price_1T8u7qDG9IVOU80s98QkFIo6', seats: 1, telephely_id: telephelyId },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error('Hiba a fizetési oldal megnyitásakor: ' + (err.message || 'Ismeretlen hiba'));
+    }
+  }, [profile]);
 
   // Fetch treatment_rules count for the active telephely
   useEffect(() => {
@@ -653,7 +727,20 @@ export function AppSidebar() {
   );
 
   // Build disabled content based on what's missing (in priority order: Domain → Flexi → Próba → Szótár → Rules)
-  const buildHangfelvételDisabledContent = (reason: 'domain' | 'flexi' | 'proba' | 'szotar' | 'rules') => {
+  const buildHangfelvételDisabledContent = (reason: 'domain' | 'flexi' | 'proba' | 'szotar' | 'rules' | 'license') => {
+    if (reason === 'license') {
+      return (
+        <p className="text-sm">
+          <button
+            onClick={handleBuySoloLicense}
+            className="underline text-primary hover:text-primary/80 font-medium"
+          >
+            Vásároljon licenset a hangfelvétel használatához.
+          </button>
+        </p>
+      );
+    }
+
     if (reason === 'domain') {
       if (isKlinikaAdmin || isAdmin) {
         return (
@@ -775,6 +862,14 @@ export function AppSidebar() {
       return { isDisabled: false };
     }
 
+    // Solo shortcut: only gate on license, skip all other checks
+    if (isSolo) {
+      if (!hasActiveLicense) {
+        return { isDisabled: true, disabledContent: buildHangfelvételDisabledContent('license') };
+      }
+      return { isDisabled: false };
+    }
+
     // 1. Check Domain first
     if (item.requiresSzotar && !szotarLoading && !adminsLoading && !hasFlexiDomain) {
       return {
@@ -882,8 +977,23 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => {
-                // Hangfelvétel: hide entirely when deps incomplete
                 if (item.requiresFlexi || item.requiresSzotar) {
+                  // Solo: always show, gated only on license
+                  if (isSolo) {
+                    const { isDisabled, disabledContent } = getHangfelvételDisabledState(item);
+                    return (
+                      <StaticMenuItem
+                        key={`${item.title}-solo`}
+                        item={item}
+                        collapsed={collapsed}
+                        tourId={(item as any).tourId}
+                        isDisabled={isDisabled}
+                        disabledContent={disabledContent}
+                        onDisabledClick={isDisabled ? handleBuySoloLicense : undefined}
+                      />
+                    );
+                  }
+                  // Non-solo: hide entirely when onboarding incomplete
                   if (!showProtectedItems) return null;
                   return (
                     <StaticMenuItem

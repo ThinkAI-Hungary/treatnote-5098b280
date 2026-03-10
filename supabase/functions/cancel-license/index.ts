@@ -36,8 +36,21 @@ serve(async (req) => {
         const { data: { user }, error: userError } = await userClient.auth.getUser(token);
         if (userError || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-        const { company_id, license_ids, immediately = false, reactivate = false } = await req.json();
-        if (!company_id || !license_ids?.length) return new Response(JSON.stringify({ error: "Missing company_id or license_ids" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const body = await req.json();
+        const { company_id, immediately = false } = body;
+
+        // Support two calling conventions:
+        // NEW: { cancel_ids: string[], reactivate_ids: string[] }  — unified atomic call from executeTransaction
+        // OLD: { license_ids: string[], reactivate: boolean }       — legacy per-license cancel
+        const cancel_ids: string[] = body.cancel_ids ?? (body.reactivate ? [] : (body.license_ids ?? []));
+        const reactivate_ids: string[] = body.reactivate_ids ?? (body.reactivate ? (body.license_ids ?? []) : []);
+
+        if (!company_id || (cancel_ids.length === 0 && reactivate_ids.length === 0)) {
+            return new Response(JSON.stringify({ error: "Missing company_id or no license IDs provided" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const allLicenseIds = [...new Set([...cancel_ids, ...reactivate_ids])];
+
 
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -54,7 +67,7 @@ serve(async (req) => {
             .from("licenses")
             .select("id, stripe_subscription_item_id, stripe_subscription_id, status")
             .eq("company_id", company_id)
-            .in("id", license_ids);
+            .in("id", allLicenseIds);
 
         if (licErr || !licenses?.length) return new Response(JSON.stringify({ error: "Licenses not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -75,9 +88,9 @@ serve(async (req) => {
                         reactivate_ids: []
                     };
                 }
-                if (reactivate) {
+                if (reactivate_ids.includes(lic.id)) {
                     itemGroups[lic.stripe_subscription_item_id].reactivate_ids.push(lic.id);
-                } else {
+                } else if (cancel_ids.includes(lic.id)) {
                     itemGroups[lic.stripe_subscription_item_id].cancel_ids.push(lic.id);
                 }
             } else {
@@ -88,65 +101,65 @@ serve(async (req) => {
         // 2. Process Stripe Item Groups
         for (const [itemId, group] of Object.entries(itemGroups)) {
             try {
-                // If reactivating, we just update local DB to assigned, since we handled quantity reductions immediately previously.
                 if (group.reactivate_ids.length > 0) {
-                    // In the new model, cancellations are immediate. If they want to reactivate, they conceptually need to buy anew, 
-                    // but the frontend UI "Visszavonás" handles staged cart changes before execution.
-                    // If it reaches the backend, we basically have to reinstate the seat by increasing quantity.
-                    const { data: itemData } = await stripe.subscriptionItems.retrieve(itemId);
-                    if (itemData) {
-                        await stripe.subscriptionItems.update(itemId, {
-                            quantity: (itemData.quantity || 0) + group.reactivate_ids.length,
-                            proration_behavior: "create_prorations"
-                        });
-                    }
-
+                    // Reactivating: clear cancel_at_period_end flag in DB
                     for (const lId of group.reactivate_ids) {
                         await serviceClient.from("licenses").update({
-                            status: "assigned",
+                            cancel_at_period_end: false,
                             updated_at: new Date().toISOString(),
                         }).eq("id", lId);
-                        results.push({ id: lId, action: "reactivated_quantity_increased" });
+                        results.push({ id: lId, action: "reactivated" });
                     }
                 }
 
                 if (group.cancel_ids.length > 0) {
-                    // Count active licenses in DB for this item
-                    const { data: activeLicenses } = await serviceClient
-                        .from("licenses")
-                        .select("id")
-                        .eq("company_id", company_id)
-                        .eq("stripe_subscription_item_id", itemId)
-                        .in("status", ["available", "assigned"]);
+                    if (immediately) {
+                        // ── Immediate cancellation ──────────────────────────────
+                        // Reduce Stripe quantity now and disable licenses immediately.
+                        const { data: activeLicenses } = await serviceClient
+                            .from("licenses")
+                            .select("id")
+                            .eq("company_id", company_id)
+                            .eq("stripe_subscription_item_id", itemId)
+                            .in("status", ["available", "assigned"]);
 
-                    const totalActive = activeLicenses?.length || 0;
-                    const newQuantity = Math.max(0, totalActive - group.cancel_ids.length);
+                        const totalActive = activeLicenses?.length || 0;
+                        const newQuantity = Math.max(0, totalActive - group.cancel_ids.length);
 
-                    if (newQuantity <= 0) {
-                        // Delete the item completely
-                        await stripe.subscriptionItems.del(itemId, { proration_behavior: "create_prorations" });
+                        if (newQuantity <= 0) {
+                            await stripe.subscriptionItems.del(itemId, { proration_behavior: "create_prorations" });
+                        } else {
+                            await stripe.subscriptionItems.update(itemId, {
+                                quantity: newQuantity,
+                                proration_behavior: "create_prorations"
+                            });
+                        }
+
+                        for (const lId of group.cancel_ids) {
+                            await serviceClient.from("licenses").update({
+                                status: "disabled",
+                                assigned_user_id: null,
+                                cancel_at_period_end: false,
+                                updated_at: new Date().toISOString(),
+                            }).eq("id", lId);
+                            results.push({ id: lId, action: "cancelled_immediately" });
+                        }
                     } else {
-                        // Reduce quantity
-                        await stripe.subscriptionItems.update(itemId, {
-                            quantity: newQuantity,
-                            proration_behavior: "create_prorations"
-                        });
-                    }
-
-                    // Update local DB instantly
-                    for (const lId of group.cancel_ids) {
-                        await serviceClient.from("licenses").update({
-                            status: "disabled",
-                            assigned_user_id: null,
-                            updated_at: new Date().toISOString(),
-                        }).eq("id", lId);
-                        results.push({ id: lId, action: "cancelled_quantity_reduced" });
+                        // ── Period-end cancellation ─────────────────────────────
+                        // Just mark the license — keep it active until billing period ends.
+                        // Do NOT touch Stripe quantity yet.
+                        for (const lId of group.cancel_ids) {
+                            await serviceClient.from("licenses").update({
+                                cancel_at_period_end: true,
+                                updated_at: new Date().toISOString(),
+                            }).eq("id", lId);
+                            results.push({ id: lId, action: "marked_cancel_at_period_end" });
+                        }
                     }
                 }
 
             } catch (e: any) {
                 console.error("Stripe item update failed:", e);
-                // Mark all IDs in this group as errored
                 const allGroupIds = [...group.cancel_ids, ...group.reactivate_ids];
                 for (const lId of allGroupIds) {
                     results.push({ id: lId, action: "error", error: e?.message });
@@ -157,19 +170,26 @@ serve(async (req) => {
         // 3. Process Local Only Licenses (no Stripe ID attached)
         for (const lId of localOnlyIds) {
             try {
-                if (reactivate) {
+                if (reactivate_ids.includes(lId)) {
                     await serviceClient.from("licenses").update({
-                        status: "assigned",
+                        cancel_at_period_end: false,
                         updated_at: new Date().toISOString(),
                     }).eq("id", lId);
                     results.push({ id: lId, action: "reactivated_local" });
-                } else {
+                } else if (immediately) {
                     await serviceClient.from("licenses").update({
                         status: "disabled",
                         assigned_user_id: null,
+                        cancel_at_period_end: false,
                         updated_at: new Date().toISOString(),
                     }).eq("id", lId);
-                    results.push({ id: lId, action: "cancelled_local" });
+                    results.push({ id: lId, action: "cancelled_immediately_local" });
+                } else {
+                    await serviceClient.from("licenses").update({
+                        cancel_at_period_end: true,
+                        updated_at: new Date().toISOString(),
+                    }).eq("id", lId);
+                    results.push({ id: lId, action: "marked_cancel_at_period_end_local" });
                 }
             } catch (e: any) {
                 results.push({ id: lId, action: "error", error: e?.message });
