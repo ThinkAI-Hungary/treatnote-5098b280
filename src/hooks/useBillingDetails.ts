@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const MONTHLY_PRICE_ID = 'price_1TA9kXDG9IVOU80sve6uDycw';
+const MONTHLY_PRICE_ID = 'price_1TABODDG9IVOU80sYHim2VsD';
 
 export interface PaymentMethod {
     id: string;

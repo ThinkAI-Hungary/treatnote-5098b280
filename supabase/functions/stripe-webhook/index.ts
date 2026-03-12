@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
+const MONTHLY_PRICE_ID = "price_1TABODDG9IVOU80sYHim2VsD";
 // Yearly licenses are no longer supported. YEARLY_PRICE_ID kept as a constant only to
 // allow graceful handling of any stray Stripe events, but is excluded from KNOWN_PRICES.
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";

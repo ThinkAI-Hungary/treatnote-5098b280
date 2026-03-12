@@ -341,7 +341,7 @@ export function AppSidebar() {
     if (!companyId) return;
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { company_id: companyId, price_id: 'price_1TA9kXDG9IVOU80sve6uDycw', seats: 1, telephely_id: telephelyId },
+        body: { company_id: companyId, price_id: 'price_1TABODDG9IVOU80sYHim2VsD', seats: 1, telephely_id: telephelyId },
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
