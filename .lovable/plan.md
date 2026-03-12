@@ -1,73 +1,35 @@
 
 
-# Onboarding Tour / Tooltip elrejtese mobilon
+# Fix: Clear Test-Mode Stripe Customer ID
 
-## Cel
+## Problem
+The `companies` table still holds `stripe_customer_id = 'cus_TxAtduBd2WBosH'` from test mode. The `create-checkout-session` edge function reuses this ID, but it doesn't exist in Stripe live mode.
 
-Mobil nezetben (768px alatt) az onboarding tour es a TourHelpButton ne jelenjen meg, hogy ne zavarja a felhasznalot a kisebb kepernyokon.
+## Solution
+Run a single SQL migration to clear all test-mode Stripe metadata from the `companies` table:
 
-## Megoldas
-
-Egyetlen fajl modositasa szukseges: `src/hooks/useOnboardingTour.ts`
-
-### Valtozasok
-
-**`src/hooks/useOnboardingTour.ts`**:
-- Importalni a `useIsMobile` hookot a `src/hooks/use-mobile.tsx` fajlbol
-- Ha `isMobile === true`:
-  - `showTour` mindig `false` marad (az auto-show logika nem indul el)
-  - `startTour` nem csinal semmit (a TourHelpButton kattintasa nem inditja el a turt)
-- A visszaadott objektumba felvenni egy `isMobile` mezo is, hogy a TourHelpButton-t a hivo komponensekben el lehessen rejteni
-
-**Hivo komponensek** (pl. `KlinikaAdmin.tsx`, `Dashboard.tsx`, `Profile.tsx`, `VoiceRecording.tsx`):
-- A `TourHelpButton`-t feltetelesen renderelni: csak akkor jelenjen meg, ha nem mobil nezet
-- Ezt a `useOnboardingTour`-bol visszakapott `isMobile` ertekkel vagy kulon `useIsMobile()` hivassal oldhatjuk meg
-
-## Technikai reszletek
-
-A `useOnboardingTour` hook-ban:
-
-```text
-import { useIsMobile } from '@/hooks/use-mobile';
-
-export function useOnboardingTour(...) {
-  const isMobile = useIsMobile();
-
-  // Az auto-show effect-ben: ha isMobile, ne induljon el
-  useEffect(() => {
-    if (!checkedInitial || !isEligible || isMobile) return;
-    ...
-  }, [checkedInitial, autoShowForNewUsers, isNewUser, hasSeenTour, isEligible, isMobile]);
-
-  const startTour = useCallback(() => {
-    if (isMobile) return;  // mobilon nem indul
-    setShowTour(true);
-  }, [isMobile]);
-
-  return { showTour, startTour, completeTour, skipTour, isNewUser, hasSeenTour, isMobile };
-}
+```sql
+UPDATE companies
+SET stripe_customer_id = NULL,
+    stripe_subscription_id = NULL,
+    stripe_subscription_item_id = NULL,
+    subscription_status = 'inactive',
+    subscription_price_id = NULL,
+    seats = 0,
+    current_period_end = NULL,
+    cancel_at_period_end = false
+WHERE stripe_customer_id LIKE 'cus_%';
 ```
 
-A hivo komponensekben:
+This forces the edge function to create a **new** live-mode Stripe customer on the next checkout attempt. No code changes needed — the `create-checkout-session` function already handles the "no customer yet" path.
 
-```text
-const { showTour, startTour, ..., isMobile } = useOnboardingTour({...});
-
-// A renderben:
-{!isMobile && <TourHelpButton onClick={startTour} />}
+## Also clear test licenses
+```sql
+DELETE FROM licenses WHERE license_type = 'paid';
 ```
 
-## Erintett fajlok
+Test-mode licenses reference test subscriptions that no longer exist.
 
-| Fajl | Valtozas |
-|------|----------|
-| `src/hooks/useOnboardingTour.ts` | `useIsMobile` hozzaadasa, mobil guard az auto-show-ra es startTour-ra, `isMobile` visszaadasa |
-| `src/pages/KlinikaAdmin.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/Dashboard.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/Profile.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/VoiceRecording.tsx` | TourHelpButton felteteles renderelese |
-
-## Kockazat
-
-Alacsony -- csak felteteles logika hozzaadasa, meglevo mukodes nem valtozik desktop-on.
+## Risk
+Low. Only affects test-mode billing data. Company records, users, and all non-billing data are untouched.
 
