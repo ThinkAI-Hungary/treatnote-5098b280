@@ -34,8 +34,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 SUPABASE_URL = "https://bpjzgapmoyhtgryglcke.supabase.co"
 SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwanpnYXBtb3lodGdyeWdsY2tlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMxMDI4MywiZXhwIjoyMDgwODg2MjgzfQ.uBOJ6vZyjryFNULweNFecPdY4ZjslVjsl3HCXiSOI2E"
 
-OPENAI_API_KEY = "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"
-OPENAI_MODEL   = "gpt-4.1"
+CAPSOLVER_API_KEY = "CAP-3ECFF88172E05B522EEA9F0F6176C8D85C96C21C8388B1666F00EA4CF7E47C71"
 
 DEMO_URL = "https://www.google.com/recaptcha/api2/demo"
 
@@ -213,9 +212,21 @@ def _peek_challenge(page, has_challenge: bool) -> dict:
     # ── Screenshot ────────────────────────────────────────────────────────
     try:
         frame = page.frame_locator(CHALLENGE_IFRAME)
-        screenshot_bytes = frame.locator(GRID_SELECTOR).screenshot()
+        img_src = frame.locator('.rc-image-tile-wrapper img').first.get_attribute('src')
+        if not img_src:
+            raise Exception("No image src found")
+        if img_src.startswith('/'):
+            img_src = "https://www.google.com" + img_src
+            
+        import requests
+        session = requests.Session()
+        for cookie in page.context.cookies():
+            session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
+            
+        img_res = session.get(img_src, timeout=10)
+        screenshot_bytes = img_res.content
     except Exception as e:
-        raise RuntimeError(f"Screenshot failed: {e}")
+        raise RuntimeError(f"Payload extraction failed: {e}")
 
     return {
         "challenge_text": challenge_text,
@@ -336,10 +347,13 @@ def _fetch_lessons(challenge_text: str, grid_size: int) -> str:
 
 
 def _ai_solve(storage_path: str, challenge_text: str, grid_size: int) -> list:
-    """Download grid image from Supabase, call GPT-4.1, return list of tile numbers."""
+    """Download grid image from Supabase, send to Capsolver, return list of 1-indexed tile numbers."""
     import base64
 
     # Download image
+    if not storage_path.endswith('.png'):
+        storage_path += '.png'
+        
     dl_req = urllib.request.Request(
         f"{SUPABASE_URL}/storage/v1/object/captcha-grids/{storage_path}",
         headers={
@@ -347,46 +361,62 @@ def _ai_solve(storage_path: str, challenge_text: str, grid_size: int) -> list:
             "apikey": SUPABASE_SERVICE_KEY,
         })
     img_bytes = urllib.request.urlopen(dl_req, timeout=10).read()
-    img_b64 = base64.b64encode(img_bytes).decode()
+    img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
-    grid_cols = 3 if grid_size == 9 else 4
-    lessons = _fetch_lessons(challenge_text, grid_size)
-
-    system_prompt = (
-        f"You are solving a {grid_cols}x{grid_cols} reCAPTCHA image grid. "
-        f"Tiles are numbered 1-{grid_size} left-to-right, top-to-bottom.\n"
-        f"Task: {challenge_text}{lessons}\n"
-        "Reply ONLY with a JSON array of tile numbers that match the description. "
-        "Example: [1,4,7] or [] if none match."
-    )
-
-    req_body = {
-        "model": OPENAI_MODEL,
-        "max_tokens": 80,
-        "messages": [{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": system_prompt},
-                {"type": "image_url",
-                 "image_url": {"url": f"data:image/png;base64,{img_b64}", "detail": "high"}},
-            ]
-        }]
+    # Map Hungarian categories to English Google /m/ identifiers for Capsolver
+    cat = _parse_category(challenge_text).lower()
+    mapping = {
+        "lámpa": "/m/015qff",
+        "gyalogátkelő": "/m/015qbp",
+        "tűzcsap": "/m/01pns0",
+        "lépcső": "/m/01lynh",
+        "híd": "/m/015kr",
+        "busz": "/m/01bjv",          # Match before auto
+        "motor": "/m/04_sv",         # Match before kerekpar
+        "kerékpár": "/m/0199g",
+        "autó": "/m/0k4j",
+        "hajó": "/m/019jd",
+        "kémény": "/m/01jk_4",
+        "pálma": "/m/0cdl1",
+        "hegy": "/m/09d_r",
+        "traktor": "/m/0130jx",
     }
-    gpt_req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
-        data=json.dumps(req_body).encode(),
-        headers={
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json",
+    question = cat
+    for k, v in mapping.items():
+        if k in cat:
+            question = v
+            break
+
+    payload = {
+        "clientKey": CAPSOLVER_API_KEY,
+        "task": {
+            "type": "ReCaptchaV2Classification",
+            "image": img_b64,
+            "question": question
         }
+    }
+
+    req = urllib.request.Request(
+        "https://api.capsolver.com/createTask",
+        data=json.dumps(payload).encode('utf-8'),
+        headers={"Content-Type": "application/json"}
     )
-    gpt_resp = urllib.request.urlopen(gpt_req, timeout=30)
-    gpt_data = json.loads(gpt_resp.read().decode())
-    text = gpt_data["choices"][0]["message"]["content"].strip()
-    m = _re.search(r'\[([0-9,\s]*)\]', text)
-    if m:
-        nums = [int(x.strip()) for x in m.group(1).split(',') if x.strip().isdigit()]
-        return sorted(n for n in nums if 1 <= n <= grid_size)
+
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        data = json.loads(resp.read().decode('utf-8'))
+
+        if data.get("errorId") == 0 and data.get("status") == "ready":
+            solution = data.get("solution", {})
+            objects = solution.get("objects", [])
+            # Capsolver returns 0-indexed tile coordinates, we need 1-indexed for the UI/DB
+            return sorted([n + 1 for n in objects])
+
+        print(f"[FEEDER] Capsolver response error/not ready: {data}")
+    except Exception as e:
+        err_msg = e.read().decode('utf-8') if hasattr(e, 'read') else str(e)
+        print(f"[FEEDER] Capsolver API Request failed: {err_msg}")
+
     return []
 
 

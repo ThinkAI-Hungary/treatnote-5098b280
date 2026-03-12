@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 
-const MONTHLY_PRICE_ID = "price_1T8u7qDG9IVOU80s98QkFIo6";
+const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
 
 serve(async () => {
     const supabase = createClient(

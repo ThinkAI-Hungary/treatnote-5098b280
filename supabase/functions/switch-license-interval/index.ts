@@ -7,7 +7,7 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MONTHLY_PRICE_ID = "price_1Sz1XkDG9IVOU80stgzB49Nq";
+const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
 const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
 
 /**
