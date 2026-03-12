@@ -268,7 +268,7 @@ export default function Billing() {
 
   async function handleSwitchPlan() {
     if (!companyId || !details) return;
-    const newPriceId = details.subscription.price_id === PRICE_IDS.monthly ? PRICE_IDS.yearly : PRICE_IDS.monthly;
+    const newPriceId = PRICE_IDS.monthly;
     setActionLoading(true);
     try {
       await switchPlan(companyId, newPriceId);
