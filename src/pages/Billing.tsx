@@ -348,7 +348,7 @@ export default function Billing() {
   const isActive = sub?.status === 'active' || sub?.status === 'trialing';
   const isPastDue = sub?.status === 'past_due';
   const isCancelPending = sub?.cancel_at_period_end;
-  const isYearly = sub?.price_id === PRICE_IDS.yearly;
+  const isYearly = false;
   const prices = details?.prices;
 
   return (
