@@ -5,19 +5,14 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Publishable key is public/safe to embed — avoids stale Supabase secret issues
+const LIVE_PUBLISHABLE_KEY = "pk_live_51Qs3EADG9IVOU80szgaUNBt0syctsIeBDhWqOH4hQYdvcMvc6LtFJ907TajX2g7VlFu0p53c8Q3RsiPwWZCl4dWg00CNwbQczf";
+
 serve(async (req) => {
     if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-    const publishableKey = Deno.env.get("STRIPE_PUBLISHABLE_KEY");
-    if (!publishableKey) {
-        return new Response(
-            JSON.stringify({ error: "STRIPE_PUBLISHABLE_KEY not configured" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-    }
-
     return new Response(
-        JSON.stringify({ publishable_key: publishableKey }),
+        JSON.stringify({ publishable_key: LIVE_PUBLISHABLE_KEY }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 });
