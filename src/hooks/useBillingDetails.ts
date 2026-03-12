@@ -34,7 +34,7 @@ export interface BillingDetails {
     };
 }
 
-export const PRICE_IDS = { monthly: MONTHLY_PRICE_ID, yearly: YEARLY_PRICE_ID };
+export const PRICE_IDS = { monthly: MONTHLY_PRICE_ID };
 
 async function invokeWithAuth(name: string, options: { body?: Record<string, unknown>; method?: string; params?: Record<string, string> } = {}) {
     const { data: sessionData } = await supabase.auth.getSession();

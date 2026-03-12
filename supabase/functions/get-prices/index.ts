@@ -24,10 +24,7 @@ serve(async (req) => {
   try {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
 
-    const [monthlyPrice, yearlyPrice] = await Promise.all([
-      stripe.prices.retrieve(MONTHLY_PRICE_ID),
-      stripe.prices.retrieve(YEARLY_PRICE_ID),
-    ]);
+    const monthlyPrice = await stripe.prices.retrieve(MONTHLY_PRICE_ID);
 
     return new Response(JSON.stringify({
       monthly: {
@@ -36,12 +33,7 @@ serve(async (req) => {
         currency: monthlyPrice.currency,
         interval: monthlyPrice.recurring?.interval,
       },
-      yearly: {
-        price_id: yearlyPrice.id,
-        unit_amount: yearlyPrice.unit_amount,
-        currency: yearlyPrice.currency,
-        interval: yearlyPrice.recurring?.interval,
-      },
+      yearly: null,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

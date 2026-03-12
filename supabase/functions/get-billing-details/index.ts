@@ -58,15 +58,12 @@ serve(async (req) => {
 
         const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
 
-        // Fetch prices in parallel
-        const [monthlyPrice, yearlyPrice] = await Promise.all([
-            stripe.prices.retrieve(MONTHLY_PRICE_ID),
-            stripe.prices.retrieve(YEARLY_PRICE_ID),
-        ]);
+        // Fetch monthly price
+        const monthlyPrice = await stripe.prices.retrieve(MONTHLY_PRICE_ID);
 
         const prices = {
             monthly: { price_id: monthlyPrice.id, unit_amount: monthlyPrice.unit_amount, currency: monthlyPrice.currency },
-            yearly: { price_id: yearlyPrice.id, unit_amount: yearlyPrice.unit_amount, currency: yearlyPrice.currency },
+            yearly: null,
         };
 
         const customerId = (company as any)?.stripe_customer_id;

@@ -41,7 +41,8 @@ serve(async (req) => {
         if (!company_id || !license_ids?.length || !interval) return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         if (interval !== "monthly" && interval !== "yearly") return new Response(JSON.stringify({ error: "interval must be 'monthly' or 'yearly'" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-        const newPriceId = interval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+        if (interval === "yearly") return new Response(JSON.stringify({ error: "Yearly billing is not available yet" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const newPriceId = MONTHLY_PRICE_ID;
 
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 

@@ -75,7 +75,13 @@ serve(async (req) => {
 
     // ── Mode A: Per-license interval switch (license_ids + interval provided) ──
     if (license_ids?.length && interval) {
-      const newPriceId = interval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+      if (interval === "yearly") {
+        return new Response(JSON.stringify({ error: "Yearly billing is not available yet" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const newPriceId = MONTHLY_PRICE_ID;
       if (!VALID_PRICES.includes(newPriceId)) {
         return new Response(JSON.stringify({ error: "Invalid interval" }), {
           status: 400,
