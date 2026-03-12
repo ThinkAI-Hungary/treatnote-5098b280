@@ -236,7 +236,7 @@ export default function Billing() {
     if (!companyId || !details) return;
     setActionLoading(true);
     try {
-      const priceId = selectedPlan === 'yearly' ? PRICE_IDS.yearly : PRICE_IDS.monthly;
+      const priceId = PRICE_IDS.monthly;
       const data = await createEmbeddedCheckout(companyId, telephelyId || "", priceId, seatCount);
       if (data?.client_secret) {
         setCheckoutClientSecret(data.client_secret);
