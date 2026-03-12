@@ -30,7 +30,7 @@ export interface BillingDetails {
     } | null;
     prices: {
         monthly: { price_id: string; unit_amount: number; currency: string };
-        yearly: { price_id: string; unit_amount: number; currency: string };
+        yearly: { price_id: string; unit_amount: number; currency: string } | null;
     };
 }
 
