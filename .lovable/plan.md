@@ -1,73 +1,91 @@
 
 
-# Onboarding Tour / Tooltip elrejtese mobilon
+# Fix Stripe Live Mode Migration
 
-## Cel
+## Root Cause
 
-Mobil nezetben (768px alatt) az onboarding tour es a TourHelpButton ne jelenjen meg, hogy ne zavarja a felhasznalot a kisebb kepernyokon.
+The `get-billing-details` and `get-prices` edge functions crash because they try to `stripe.prices.retrieve(YEARLY_PRICE_ID)` — but the yearly price ID (`price_1SzFbZDG9IVOU80soy18oPwM`) does not exist in Stripe live mode. This causes an unhandled Stripe error that manifests as the "Deno.core.runMicrotasks()" crash in the logs.
 
-## Megoldas
+## Required Changes
 
-Egyetlen fajl modositasa szukseges: `src/hooks/useOnboardingTour.ts`
+### 1. Update Supabase Secrets (manual step)
 
-### Valtozasok
+Three secrets need updating in [Supabase Edge Function settings](https://supabase.com/dashboard/project/bpjzgapmoyhtgryglcke/settings/functions):
 
-**`src/hooks/useOnboardingTour.ts`**:
-- Importalni a `useIsMobile` hookot a `src/hooks/use-mobile.tsx` fajlbol
-- Ha `isMobile === true`:
-  - `showTour` mindig `false` marad (az auto-show logika nem indul el)
-  - `startTour` nem csinal semmit (a TourHelpButton kattintasa nem inditja el a turt)
-- A visszaadott objektumba felvenni egy `isMobile` mezo is, hogy a TourHelpButton-t a hivo komponensekben el lehessen rejteni
+| Secret | New Value |
+|--------|-----------|
+| `STRIPE_SECRET_KEY` | Your `sk_live_...` key |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_live_51Qs3EADG9IVOU80szgaUNBt0syctsIeBDhWqOH4hQYdvcMvc6LtFJ907TajX2g7VlFu0p53c8Q3RsiPwWZCl4dWg00CNwbQczf` |
+| `STRIPE_WEBHOOK_SIGNING_SECRET` | `whsec_lVM0VM299KUMnflVp1nn3tc9JdXpvjOL` |
 
-**Hivo komponensek** (pl. `KlinikaAdmin.tsx`, `Dashboard.tsx`, `Profile.tsx`, `VoiceRecording.tsx`):
-- A `TourHelpButton`-t feltetelesen renderelni: csak akkor jelenjen meg, ha nem mobil nezet
-- Ezt a `useOnboardingTour`-bol visszakapott `isMobile` ertekkel vagy kulon `useIsMobile()` hivassal oldhatjuk meg
+### 2. Fix `get-billing-details/index.ts`
 
-## Technikai reszletek
-
-A `useOnboardingTour` hook-ban:
+Remove or make the yearly price retrieval optional. Since yearly is not used, skip it entirely and return a null/placeholder for `prices.yearly`:
 
 ```text
-import { useIsMobile } from '@/hooks/use-mobile';
+// Replace the parallel price fetch (lines 63-71):
+const monthlyPrice = await stripe.prices.retrieve(MONTHLY_PRICE_ID);
 
-export function useOnboardingTour(...) {
-  const isMobile = useIsMobile();
-
-  // Az auto-show effect-ben: ha isMobile, ne induljon el
-  useEffect(() => {
-    if (!checkedInitial || !isEligible || isMobile) return;
-    ...
-  }, [checkedInitial, autoShowForNewUsers, isNewUser, hasSeenTour, isEligible, isMobile]);
-
-  const startTour = useCallback(() => {
-    if (isMobile) return;  // mobilon nem indul
-    setShowTour(true);
-  }, [isMobile]);
-
-  return { showTour, startTour, completeTour, skipTour, isNewUser, hasSeenTour, isMobile };
-}
+const prices = {
+    monthly: { price_id: monthlyPrice.id, unit_amount: monthlyPrice.unit_amount, currency: monthlyPrice.currency },
+    yearly: null,
+};
 ```
 
-A hivo komponensekben:
+### 3. Fix `get-prices/index.ts`
+
+Same issue — remove yearly retrieval:
 
 ```text
-const { showTour, startTour, ..., isMobile } = useOnboardingTour({...});
+// Replace the parallel fetch (lines 30-46):
+const monthlyPrice = await stripe.prices.retrieve(MONTHLY_PRICE_ID);
 
-// A renderben:
-{!isMobile && <TourHelpButton onClick={startTour} />}
+return new Response(JSON.stringify({
+    monthly: {
+        price_id: monthlyPrice.id,
+        unit_amount: monthlyPrice.unit_amount,
+        currency: monthlyPrice.currency,
+        interval: monthlyPrice.recurring?.interval,
+    },
+    yearly: null,
+}), ...);
 ```
 
-## Erintett fajlok
+### 4. Fix `create-checkout-session/index.ts`
 
-| Fajl | Valtozas |
-|------|----------|
-| `src/hooks/useOnboardingTour.ts` | `useIsMobile` hozzaadasa, mobil guard az auto-show-ra es startTour-ra, `isMobile` visszaadasa |
-| `src/pages/KlinikaAdmin.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/Dashboard.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/Profile.tsx` | TourHelpButton felteteles renderelese |
-| `src/pages/VoiceRecording.tsx` | TourHelpButton felteteles renderelese |
+Remove `YEARLY_PRICE_ID` from `VALID_PRICES` (line 14):
 
-## Kockazat
+```text
+const VALID_PRICES = [MONTHLY_PRICE_ID];
+```
 
-Alacsony -- csak felteteles logika hozzaadasa, meglevo mukodes nem valtozik desktop-on.
+### 5. Fix `useBillingDetails.ts` (frontend)
+
+Remove the hardcoded `YEARLY_PRICE_ID` and update the `BillingDetails` type to allow `prices.yearly` to be null:
+
+```text
+prices: {
+    monthly: { price_id: string; unit_amount: number; currency: string };
+    yearly: { price_id: string; unit_amount: number; currency: string } | null;
+};
+```
+
+### 6. Fix `switch-plan/index.ts` and `switch-license-interval/index.ts`
+
+These reference the yearly price ID for interval switching. Since yearly is disabled, add a guard that returns an error if yearly is requested.
+
+## Files to modify
+
+| File | Change |
+|------|--------|
+| `supabase/functions/get-billing-details/index.ts` | Skip yearly price retrieval |
+| `supabase/functions/get-prices/index.ts` | Skip yearly price retrieval |
+| `supabase/functions/create-checkout-session/index.ts` | Remove yearly from VALID_PRICES |
+| `src/hooks/useBillingDetails.ts` | Allow yearly to be null, remove hardcoded yearly ID |
+| `supabase/functions/switch-plan/index.ts` | Guard against yearly requests |
+| `supabase/functions/switch-license-interval/index.ts` | Guard against yearly requests |
+
+## Risk
+
+Low — removing an unused price path. Monthly billing continues working unchanged. The critical fix is the `get-billing-details` crash which blocks the entire Elofizetes tab.
 
