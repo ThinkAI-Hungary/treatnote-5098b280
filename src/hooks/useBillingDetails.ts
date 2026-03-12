@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 const MONTHLY_PRICE_ID = 'price_1TA9kXDG9IVOU80sve6uDycw';
-const YEARLY_PRICE_ID = 'price_1SzFbZDG9IVOU80soy18oPwM';
 
 export interface PaymentMethod {
     id: string;
@@ -31,11 +30,11 @@ export interface BillingDetails {
     } | null;
     prices: {
         monthly: { price_id: string; unit_amount: number; currency: string };
-        yearly: { price_id: string; unit_amount: number; currency: string };
+        yearly: { price_id: string; unit_amount: number; currency: string } | null;
     };
 }
 
-export const PRICE_IDS = { monthly: MONTHLY_PRICE_ID, yearly: YEARLY_PRICE_ID };
+export const PRICE_IDS = { monthly: MONTHLY_PRICE_ID };
 
 async function invokeWithAuth(name: string, options: { body?: Record<string, unknown>; method?: string; params?: Record<string, string> } = {}) {
     const { data: sessionData } = await supabase.auth.getSession();

@@ -236,7 +236,7 @@ export default function Billing() {
     if (!companyId || !details) return;
     setActionLoading(true);
     try {
-      const priceId = selectedPlan === 'yearly' ? PRICE_IDS.yearly : PRICE_IDS.monthly;
+      const priceId = PRICE_IDS.monthly;
       const data = await createEmbeddedCheckout(companyId, telephelyId || "", priceId, seatCount);
       if (data?.client_secret) {
         setCheckoutClientSecret(data.client_secret);
@@ -268,7 +268,7 @@ export default function Billing() {
 
   async function handleSwitchPlan() {
     if (!companyId || !details) return;
-    const newPriceId = details.subscription.price_id === PRICE_IDS.monthly ? PRICE_IDS.yearly : PRICE_IDS.monthly;
+    const newPriceId = PRICE_IDS.monthly;
     setActionLoading(true);
     try {
       await switchPlan(companyId, newPriceId);
@@ -348,7 +348,7 @@ export default function Billing() {
   const isActive = sub?.status === 'active' || sub?.status === 'trialing';
   const isPastDue = sub?.status === 'past_due';
   const isCancelPending = sub?.cancel_at_period_end;
-  const isYearly = sub?.price_id === PRICE_IDS.yearly;
+  const isYearly = false;
   const prices = details?.prices;
 
   return (

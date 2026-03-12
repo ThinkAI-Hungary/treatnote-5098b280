@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
-const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
 
 /**
  * switch-license-interval
@@ -42,7 +41,8 @@ serve(async (req) => {
         if (!company_id || !license_ids?.length || !interval) return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         if (interval !== "monthly" && interval !== "yearly") return new Response(JSON.stringify({ error: "interval must be 'monthly' or 'yearly'" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-        const newPriceId = interval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+        if (interval === "yearly") return new Response(JSON.stringify({ error: "Yearly billing is not available yet" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        const newPriceId = MONTHLY_PRICE_ID;
 
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 

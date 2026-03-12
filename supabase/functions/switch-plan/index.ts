@@ -8,8 +8,7 @@ const corsHeaders = {
 };
 
 const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
-const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
-const VALID_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
+const VALID_PRICES = [MONTHLY_PRICE_ID];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -76,7 +75,13 @@ serve(async (req) => {
 
     // ── Mode A: Per-license interval switch (license_ids + interval provided) ──
     if (license_ids?.length && interval) {
-      const newPriceId = interval === "yearly" ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+      if (interval === "yearly") {
+        return new Response(JSON.stringify({ error: "Yearly billing is not available yet" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const newPriceId = MONTHLY_PRICE_ID;
       if (!VALID_PRICES.includes(newPriceId)) {
         return new Response(JSON.stringify({ error: "Invalid interval" }), {
           status: 400,

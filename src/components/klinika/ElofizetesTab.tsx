@@ -236,7 +236,7 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
     setActionLoading(true);
     setActionError(null);
     try {
-      const priceId = type === 'monthly' ? PRICE_IDS.monthly : PRICE_IDS.yearly;
+      const priceId = PRICE_IDS.monthly;
       const seats = type === 'monthly' ? monthlySeats : yearlySeats;
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;

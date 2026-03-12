@@ -8,8 +8,7 @@ const corsHeaders = {
 };
 
 const MONTHLY_PRICE_ID = "price_1TA9kXDG9IVOU80sve6uDycw";
-const YEARLY_PRICE_ID = "price_1SzFbZDG9IVOU80soy18oPwM";
-const VALID_PRICES = [MONTHLY_PRICE_ID, YEARLY_PRICE_ID];
+const VALID_PRICES = [MONTHLY_PRICE_ID];
 const MAX_SEATS = 500;
 
 serve(async (req) => {
