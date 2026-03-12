@@ -174,6 +174,93 @@ export type Database = {
           },
         ]
       }
+      captcha_lessons: {
+        Row: {
+          category: string
+          grid_size: number
+          id: string
+          lesson_rules: string
+          source_count: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          grid_size: number
+          id?: string
+          lesson_rules: string
+          source_count?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          grid_size?: number
+          id?: string
+          lesson_rules?: string
+          source_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      captcha_vector: {
+        Row: {
+          ai_error_analysis: string | null
+          ai_final_tiles: number[]
+          ai_phase1_tiles: number[] | null
+          ai_phase2_tiles: number[] | null
+          analysis_done_at: string | null
+          attempt_round: number
+          challenge_text: string
+          challenge_type: string | null
+          created_at: string
+          domain: string
+          grid_screenshot_url: string | null
+          grid_size: number
+          human_tiles: number[] | null
+          id: string
+          notes: string | null
+          reviewed_at: string | null
+          session_id: string
+        }
+        Insert: {
+          ai_error_analysis?: string | null
+          ai_final_tiles: number[]
+          ai_phase1_tiles?: number[] | null
+          ai_phase2_tiles?: number[] | null
+          analysis_done_at?: string | null
+          attempt_round: number
+          challenge_text: string
+          challenge_type?: string | null
+          created_at?: string
+          domain: string
+          grid_screenshot_url?: string | null
+          grid_size: number
+          human_tiles?: number[] | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          session_id: string
+        }
+        Update: {
+          ai_error_analysis?: string | null
+          ai_final_tiles?: number[]
+          ai_phase1_tiles?: number[] | null
+          ai_phase2_tiles?: number[] | null
+          analysis_done_at?: string | null
+          attempt_round?: number
+          challenge_text?: string
+          challenge_type?: string | null
+          created_at?: string
+          domain?: string
+          grid_screenshot_url?: string | null
+          grid_size?: number
+          human_tiles?: number[] | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           cancel_at_period_end: boolean
@@ -766,6 +853,7 @@ export type Database = {
         Row: {
           assigned_user_id: string | null
           billing_interval: string
+          cancel_at_period_end: boolean
           company_id: string
           created_at: string
           expires_at: string | null
@@ -780,6 +868,7 @@ export type Database = {
         Insert: {
           assigned_user_id?: string | null
           billing_interval?: string
+          cancel_at_period_end?: boolean
           company_id: string
           created_at?: string
           expires_at?: string | null
@@ -794,6 +883,7 @@ export type Database = {
         Update: {
           assigned_user_id?: string | null
           billing_interval?: string
+          cancel_at_period_end?: boolean
           company_id?: string
           created_at?: string
           expires_at?: string | null
@@ -811,6 +901,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
             referencedColumns: ["id"]
           },
         ]
@@ -1780,6 +1877,18 @@ export type Database = {
       }
       col_type: { Args: { p_col: string; p_table: unknown }; Returns: string }
       count_bno_codes_without_embeddings: { Args: never; Returns: number }
+      create_licenses_for_item: {
+        Args: {
+          p_billing_interval: string
+          p_company_id: string
+          p_expires_at: string
+          p_item_id: string
+          p_sub_id: string
+          p_target_count: number
+          p_telephely_id: string
+        }
+        Returns: number
+      }
       get_bno_codes_without_embeddings: {
         Args: { p_limit?: number }
         Returns: {
@@ -1866,37 +1975,37 @@ export type Database = {
         }[]
       }
       match_treatment_embedding:
-      | {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          p_clinic_id?: string
-          p_source_types?: string[]
-          query_embedding: string
-        }
-        Returns: {
-          matched_text: string
-          rule_name: string
-          similarity: number
-          source_type: string
-          treatment_rule_id: string
-        }[]
-      }
-      | {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          p_clinic_id?: string
-          query_embedding: string
-        }
-        Returns: {
-          matched_text: string
-          rule_name: string
-          similarity: number
-          source_type: string
-          treatment_rule_id: string
-        }[]
-      }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              p_source_types?: string[]
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
       policy_count: { Args: { p_table: unknown }; Returns: number }
       rls_enabled: { Args: { p_table: unknown }; Returns: boolean }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
@@ -1954,116 +2063,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
