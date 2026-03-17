@@ -60,7 +60,7 @@ serve(async (req) => {
     // Fetch user context BEFORE rate limiting (we need the user profile to identify the limit)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('company_id, current_telephely_id, full_name, is_solo, api_urls')
+      .select('company_id, current_telephely_id, full_name, is_solo')
       .eq('user_id', userId)
       .single();
 

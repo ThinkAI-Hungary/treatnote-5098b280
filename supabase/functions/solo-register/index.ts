@@ -132,11 +132,8 @@ serve(async (req) => {
         }
 
         const origin = req.headers.get("origin") || "";
-        // Use APP_URL secret if set; otherwise use request origin only if it's not localhost.
-        // If origin is localhost and no APP_URL is configured, omit emailRedirectTo so
-        // Supabase falls back to the Site URL configured in Authentication → URL Configuration.
-        const appUrl = Deno.env.get("APP_URL") ||
-            (!origin.includes("localhost") && !origin.includes("127.0.0.1") ? origin : null);
+        // Use APP_URL secret if set; otherwise use request origin explicitly
+        const appUrl = Deno.env.get("APP_URL") || (origin ? origin : null);
 
         const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
             email, password,
