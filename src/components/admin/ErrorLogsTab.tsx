@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -88,6 +88,16 @@ export function ErrorLogsTab() {
         const interval = setInterval(fetchLogs, 30000);
         return () => clearInterval(interval);
     }, [fetchLogs]);
+
+    const groupedLogs = useMemo(() => {
+        const groups: Record<string, ErrorLog[]> = {};
+        for (const log of logs) {
+            const key = log.summary || log.script_name || 'Ismeretlen hiba';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(log);
+        }
+        return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+    }, [logs]);
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
@@ -309,14 +319,21 @@ export function ErrorLogsTab() {
                         <p className="text-sm mt-1">Minden rendben fut!</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        {logs.map((log) => {
-                            const isExpanded = expandedIds.has(log.id);
-                            const severity = SEVERITY_CONFIG[log.severity] || SEVERITY_CONFIG.error;
-                            const isCopied = copiedId === log.id;
+                    <div className="space-y-8">
+                        {groupedLogs.map(([groupName, groupLogs]) => (
+                            <div key={groupName} className="space-y-3">
+                                <div className="flex items-center gap-3 border-b border-primary/10 pb-2">
+                                     <h3 className="text-base font-semibold text-foreground/90">{groupName}</h3>
+                                     <Badge variant="outline" className="text-xs bg-primary/5">{groupLogs.length} eset</Badge>
+                                </div>
+                                <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-primary/20">
+                                    {groupLogs.map((log) => {
+                                        const isExpanded = expandedIds.has(log.id);
+                                        const severity = SEVERITY_CONFIG[log.severity] || SEVERITY_CONFIG.error;
+                                        const isCopied = copiedId === log.id;
 
-                            return (
-                                <div
+                                        return (
+                                            <div
                                     key={log.id}
                                     className="border border-primary/10 rounded-lg overflow-hidden bg-card/50 hover:bg-card/80 transition-colors"
                                 >
@@ -483,6 +500,9 @@ export function ErrorLogsTab() {
                                 </div>
                             );
                         })}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </AnimatedCard>

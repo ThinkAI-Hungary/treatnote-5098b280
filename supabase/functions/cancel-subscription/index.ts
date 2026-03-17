@@ -12,7 +12,7 @@ serve(async (req) => {
 
     try {
         const authHeader = req.headers.get("Authorization");
-        if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!authHeader) return new Response(JSON.stringify({ error: "Hiányzó bejelentkezési token. Kérjük, jelentkezzen be újra." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -22,20 +22,20 @@ serve(async (req) => {
         const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
         const token = authHeader.replace("Bearer ", "");
         const { data: { user }, error: userError } = await userClient.auth.getUser(token);
-        if (userError || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (userError || !user) return new Response(JSON.stringify({ error: "Érvénytelen vagy lejárt token. Kérjük, jelentkezzen be újra." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const { company_id, immediately = false, reactivate = false } = await req.json();
-        if (!company_id) return new Response(JSON.stringify({ error: "Missing company_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!company_id) return new Response(JSON.stringify({ error: "Hiányzó cég azonosító. Kérjük, töltse újra az oldalt." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
         // Authorization check
         const { data: hasKlinikaAdmin } = await serviceClient.rpc("has_role", { _user_id: user.id, _role: "klinika_admin" });
         const { data: hasAdmin } = await serviceClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
-        if (!hasKlinikaAdmin && !hasAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!hasKlinikaAdmin && !hasAdmin) return new Response(JSON.stringify({ error: "Nincs jogosultsága az előfizetés kezeléséhez. Klinika Admin vagy Admin jogosultság szükséges." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const { data: profile } = await serviceClient.from("profiles").select("company_id").eq("user_id", user.id).single();
-        if (!profile || profile.company_id !== company_id) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!profile || profile.company_id !== company_id) return new Response(JSON.stringify({ error: "Nincs jogosultsága ehhez a céghez." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const { data: company } = await serviceClient
             .from("companies")
@@ -51,7 +51,7 @@ serve(async (req) => {
             .single();
 
         const subscriptionId = (companyFull as any)?.stripe_subscription_id;
-        if (!subscriptionId) return new Response(JSON.stringify({ error: "No active subscription" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (!subscriptionId) return new Response(JSON.stringify({ error: "Nincs aktív Stripe előfizetés. Először vásároljon előfizetést." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
         const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
 
@@ -89,6 +89,6 @@ serve(async (req) => {
 
     } catch (err) {
         console.error("Error in cancel-subscription:", err);
-        return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Belső hiba az előfizetés lemondásakor. Kérjük, próbálja újra, vagy lépjen kapcsolatba az ügyfélszolgálattal." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 });

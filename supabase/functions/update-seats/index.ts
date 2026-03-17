@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Hiányzó bejelentkezési token. Kérjük, jelentkezzen be újra." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -34,7 +34,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await userClient.auth.getUser(token);
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+      return new Response(JSON.stringify({ error: "Érvénytelen vagy lejárt token. Kérjük, jelentkezzen be újra." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -44,7 +44,7 @@ serve(async (req) => {
     const { company_id, new_seats } = await req.json();
 
     if (!company_id || typeof new_seats !== "number" || new_seats < 1 || new_seats > MAX_SEATS) {
-      return new Response(JSON.stringify({ error: "Invalid input" }), {
+      return new Response(JSON.stringify({ error: "Érvénytelen licencszám. Az értéknek 1 és 500 közé kell esnie." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -56,7 +56,7 @@ serve(async (req) => {
     const { data: hasKlinikaAdmin } = await serviceClient.rpc("has_role", { _user_id: userId, _role: "klinika_admin" });
     const { data: hasAdmin } = await serviceClient.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!hasKlinikaAdmin && !hasAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: klinika_admin or admin role required" }), {
+      return new Response(JSON.stringify({ error: "Nincs jogosultsága a licencek kezeléséhez. Klinika Admin vagy Admin jogosultság szükséges." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -64,7 +64,7 @@ serve(async (req) => {
 
     const { data: profile } = await serviceClient.from("profiles").select("company_id").eq("user_id", userId).single();
     if (!profile || profile.company_id !== company_id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      return new Response(JSON.stringify({ error: "Nincs jogosultsága ehhez a céghez." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -78,7 +78,7 @@ serve(async (req) => {
       .single();
 
     if (!company || !company.stripe_subscription_item_id || company.subscription_status !== "active") {
-      return new Response(JSON.stringify({ error: "No active subscription found" }), {
+      return new Response(JSON.stringify({ error: "Nincs aktív Stripe előfizetés a módosításhoz." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -92,7 +92,7 @@ serve(async (req) => {
 
     if (memberCount !== null && new_seats < memberCount) {
       return new Response(JSON.stringify({
-        error: `Cannot reduce seats below active members (${memberCount})`,
+        error: `Nem lehet a licencek számát az aktív tagok száma alá csökkenteni. Jelenleg ${memberCount} aktív tag van.`
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -112,7 +112,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("Error updating seats:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Belső hiba a licencek számának módosításakor. Kérjük, próbálja újra." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

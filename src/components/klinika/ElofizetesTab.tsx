@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   CreditCard, LayoutDashboard, Receipt, ShieldCheck,
   Minus, Plus, ExternalLink, RefreshCw, AlertCircle,
-  Copy, CheckCircle2, ChevronDown, Calendar, TrendingUp, Users, AlertTriangle,
+  Copy, CheckCircle2, ChevronDown, Calendar, TrendingUp, Users, AlertTriangle, Loader2
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -551,8 +551,8 @@ export function ElofizetesTab({ companyId, telephelyId, companyName, users: klin
   if (loading && !details) {
     return (
       <AnimatedCard>
-        <CardContent className="flex items-center justify-center py-8">
-          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
       </AnimatedCard>
     );
@@ -1131,9 +1131,6 @@ function LicenseManagementTable({
               // The CheckoutModal's onSuccess callback will trigger onRefresh when done.
               skipRefresh = true;
               return;
-            } else if (data?.updated) {
-              // Seat update applied in-place on existing subscription — no checkout needed
-              // Fall through to success handling below
             } else {
               throw new Error("Nem sikerült elindítani a fizetést.");
             }
@@ -1379,16 +1376,16 @@ function LicenseManagementTable({
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10 ring-1 ring-destructive/20">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
-                <DialogTitle className="text-base">Licenc azonnali lemondása</DialogTitle>
+                <DialogTitle className="text-base">Kiválasztott licenc(ek) azonnali lemondása</DialogTitle>
               </div>
               <DialogDescription className="text-sm leading-relaxed pl-[52px]">
-                Biztosan azonnal le kívánja mondani az előfizetést?
+                Biztosan azonnal le kívánja mondani a kiválasztott licenc(ek)et?
               </DialogDescription>
             </DialogHeader>
             <div className="mx-4 my-1 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               Ez a művelet{' '}
               <span className="font-semibold">visszavonhatatlan</span>{' '}
-              — az előfizetés azonnal megszűnik és a licencek törlésre kerülnek!
+              — a kiválasztott licencek azonnal törlésre kerülnek!
             </div>
             <DialogFooter className="gap-2 sm:gap-2">
               <Button
@@ -1405,11 +1402,16 @@ function LicenseManagementTable({
                 disabled={bulkLoading}
                 onClick={async () => {
                   if (!companyId) return;
+                  if (selected.size === 0) {
+                      toast.error("Nincs licenc kiválasztva.");
+                      return;
+                  }
                   setShowCancelConfirm(false);
                   setBulkLoading(true);
                   try {
-                    await cancelSubscription(companyId, { immediately: true });
-                    toast.success('Előfizetés azonnal lemondva.');
+                    await cancelLicense(companyId, Array.from(selected), { immediately: true });
+                    toast.success('Kiválasztott licenc(ek) azonnal lemondva.');
+                    setSelected(new Set());
                     onRefresh();
                   } catch (e: any) { toast.error(e.message); }
                   finally { setBulkLoading(false); }
@@ -1418,7 +1420,7 @@ function LicenseManagementTable({
                 {bulkLoading ? (
                   <><RefreshCw className="h-3 w-3 animate-spin mr-1.5" /> Feldolgozás...</>
                 ) : (
-                  'Igen, azonnal lemondok'
+                  'Igen, azonnal lemondom'
                 )}
               </Button>
             </DialogFooter>

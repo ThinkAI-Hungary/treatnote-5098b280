@@ -104,8 +104,12 @@ export function KezelesiSzabalyokTab({
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'upload'>('list');
 
   // Sort state
-  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sortColumn, setSortColumn] = useState<SortColumn>(() => {
+    return (localStorage.getItem('ksz-sort-col') as SortColumn) || 'name';
+  });
+  const [sortDir, setSortDir] = useState<SortDir>(() => {
+    return (localStorage.getItem('ksz-sort-dir') as SortDir) || 'asc';
+  });
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -392,10 +396,14 @@ export function KezelesiSzabalyokTab({
 
   const toggleSort = (column: SortColumn) => {
     if (sortColumn === column) {
-      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+      const newDir = sortDir === 'asc' ? 'desc' : 'asc';
+      setSortDir(newDir);
+      localStorage.setItem('ksz-sort-dir', newDir);
     } else {
       setSortColumn(column);
       setSortDir('asc');
+      localStorage.setItem('ksz-sort-col', column);
+      localStorage.setItem('ksz-sort-dir', 'asc');
     }
   };
 
@@ -1036,6 +1044,9 @@ export function KezelesiSzabalyokTab({
           <TabsContent value="list" className="mt-4 space-y-4">
             {/* Filters */}
             <div data-tour="ksz-search" className="flex gap-4">
+              <GalaxyButton size="icon" onClick={() => loadRules()} title="Frissítés" className="flex-shrink-0">
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              </GalaxyButton>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input

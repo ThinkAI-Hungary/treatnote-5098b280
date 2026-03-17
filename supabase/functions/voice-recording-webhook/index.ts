@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logErrorToDatabase } from "../_shared/logger.ts";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,18 +46,54 @@ serve(async (req) => {
     const timestamp = formData.get("timestamp") as string;
     const filename = formData.get("filename") as string;
     const userId = formData.get("user_id") as string;
-    const companyId = formData.get("company_id") as string;
-    const telephelyId = formData.get("telephely_id") as string;
     const paciensId = formData.get("PaciensID") as string;
 
     if (!audio || !mode) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: audio and mode" }),
+        JSON.stringify({ error: "Hiányzó kötelező mezők: hangfájl és mód" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch user context BEFORE rate limiting (we need the user profile to identify the limit)
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('company_id, current_telephely_id, full_name, is_solo, api_urls')
+      .eq('user_id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Profile not found:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Felhasználói profil nem található." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const companyId = profile.company_id;
+    const telephelyId = profile.current_telephely_id;
+    
+    // ── Rate Limiting ─────────────────────────────────────────────────────
+    // 10 requests per 15 minutes limit per user
+    const rateLimit = await checkRateLimit(supabaseAdmin, userId, 'voice-recording-webhook', 10, 15);
+    
+    if (!rateLimit.allowed) {
+      await logErrorToDatabase(supabaseAdmin, {
+          script_name: 'voice-recording-webhook',
+          summary: 'Rate limit átlépve',
+          full_log: `Túl sok kérés a webhookra. Engedélyezve: 10 / 15 perc.`,
+          user_id: userId,
+          company_id: companyId,
+          telephely_id: telephelyId,
+          severity: 'warning'
+      });
+      return new Response(
+          JSON.stringify({ error: "Túl sok hangfelvétel kérés indult ebből a fiókból. Kérjük, várjon 15 percet, majd próbálja újra." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Clean up stale jobs (processing for more than 10 minutes)
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -232,8 +270,16 @@ serve(async (req) => {
 
     if (jobError || !jobData) {
       console.error("Failed to create job:", jobError);
+      await logErrorToDatabase(supabaseAdmin, {
+        script_name: 'voice-recording-webhook',
+        summary: 'Feldolgozási sor (job) létrehozása sikertelen',
+        full_log: jobError || 'Nincs hibaüzenet',
+        user_id: userId,
+        company_id: companyId,
+        telephely_id: telephelyId
+      });
       return new Response(
-        JSON.stringify({ error: "Failed to create job" }),
+        JSON.stringify({ error: "Belső hiba: nem sikerült a feldolgozási sort létrehozni. Kérjük, próbálja újra." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -253,14 +299,24 @@ serve(async (req) => {
     }
 
     if (!webhookUrl) {
+      await logErrorToDatabase(supabaseAdmin, {
+        script_name: 'voice-recording-webhook',
+        summary: 'Hiányzó Webhook URL konfiguráció',
+        full_log: `Az n8n webhook URL nincs beállítva ehhez a módhoz: ${mode}`,
+        user_id: userId,
+        company_id: companyId,
+        telephely_id: telephelyId,
+        severity: 'error'
+      });
+      
       // Mark job as error if no webhook URL
       await supabaseAdmin
         .from('voice_jobs')
-        .update({ status: 'error', error: `No webhook URL configured for mode: ${mode}`, completed_at: new Date().toISOString() })
+        .update({ status: 'error', error: `Az n8n webhook URL nincs beállítva ehhez a módhoz: ${mode}`, completed_at: new Date().toISOString() })
         .eq('id', jobId);
 
       return new Response(
-        JSON.stringify({ error: `No webhook URL configured for mode: ${mode}` }),
+        JSON.stringify({ error: `Az n8n webhook URL nincs beállítva ehhez a módhoz: ${mode}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -329,8 +385,18 @@ serve(async (req) => {
         console.log(`[Job ${jobId}] Completed successfully`);
       } catch (webhookError) {
         console.error(`[Job ${jobId}] Webhook error:`, webhookError);
+        
+        await logErrorToDatabase(supabaseAdmin, {
+          script_name: 'voice-recording-webhook',
+          summary: 'Az n8n webhook értesítése sikertelen',
+          full_log: webhookError instanceof Error ? webhookError : String(webhookError),
+          user_id: userId,
+          company_id: companyId,
+          telephely_id: telephelyId,
+          metadata: { jobId, webhookUrl, mode }
+        });
 
-        const errorMessage = webhookError instanceof Error ? webhookError.message : 'Unknown webhook error';
+        const errorMessage = webhookError instanceof Error ? webhookError.message : 'Ismeretlen webhook hiba';
         await supabaseAdmin
           .from('voice_jobs')
           .update({
@@ -363,7 +429,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in voice-recording-webhook function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Ismeretlen hiba történt a hangfelvétel feldolgozásakor." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

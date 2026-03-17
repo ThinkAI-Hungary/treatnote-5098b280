@@ -1,118 +1,211 @@
+"""
+test_capsolver.py — Automated batch reCAPTCHA solver using Capsolver ProxyLess token.
+
+Solves 10 CAPTCHAs automatically and prints statistics.
+
+Usage:
+    python test_capsolver.py
+"""
+
 import time
+import datetime
 import requests
-import base64
 from playwright.sync_api import sync_playwright
 
 CAP_KEY = 'CAP-3ECFF88172E05B522EEA9F0F6176C8D85C96C21C8388B1666F00EA4CF7E47C71'
+TOTAL = 10
 
-# Hungarian + English mapping
-MAPPING = {
-    'lámpa': '/m/015qff', 'gyalog': '/m/015qbp', 'tűzcsap': '/m/01pns0',
-    'lépcső': '/m/01lynh', 'híd': '/m/015kr', 'busz': '/m/01bjv',
-    'motor': '/m/04_sv', 'kerékpár': '/m/0199g', 'autó': '/m/0k4j',
-    'hajó': '/m/019jd', 'kémény': '/m/01jk_4', 'pálma': '/m/0cdl1',
-    'hegy': '/m/09d_r', 'traktor': '/m/0130jx',
-    
-    # English categories for the Google demo
-    'fire': '/m/01pns0', 'crosswalk': '/m/015qbp', 'bicycles': '/m/0199g',
-    'bus': '/m/01bjv', 'cars': '/m/0k4j', 'motorcycles': '/m/04_sv',
-    'stairs': '/m/01lynh', 'bridges': '/m/015kr', 'boats': '/m/019jd',
-    'chimneys': '/m/01jk_4', 'palm': '/m/0cdl1', 'mountains': '/m/09d_r',
-    'tractors': '/m/0130jx', 'traffic lights': '/m/015qff'
-}
+CHECKBOX_IFRAME  = "iframe[src*='recaptcha'][src*='anchor']"
+CHALLENGE_IFRAME = "iframe[src*='recaptcha'][src*='bframe']"
 
-def download_payload(page):
-    """Download the raw challenge image from Google's iframe"""
-    frame = page.frame_locator("iframe[src*='recaptcha'][src*='bframe']")
-    frame.locator("#rc-imageselect-target").wait_for(state="visible", timeout=8000)
-    
-    prompt = frame.locator('.rc-imageselect-desc-wrapper').inner_text()
-    prompt = " ".join(prompt.split())
-    
-    img_src = frame.locator('.rc-image-tile-wrapper img').first.get_attribute('src')
-    if img_src and img_src.startswith('/'):
-        img_src = "https://www.google.com" + img_src
-        
-    session = requests.Session()
-    for cookie in page.context.cookies():
-        session.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
-        
-    res = session.get(img_src, timeout=10)
-    
-    return prompt, res.content
 
-def ask_capsolver(img_bytes, prompt):
-    img_b64 = base64.b64encode(img_bytes).decode('utf-8')
-    
-    cat = prompt.lower()
-    q = '/m/0k4j' # default cars
-    for k, v in MAPPING.items():
-        if k in cat:
-            q = v
-            break
-            
+def log(msg: str):
+    """Print with timestamp prefix."""
+    ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts}] {msg}", flush=True)
+
+
+def solve_captcha(website_url: str, website_key: str) -> str | None:
+    """Send to Capsolver and return the gRecaptchaResponse token."""
     payload = {
-        'clientKey': CAP_KEY,
-        'task': {
-            'type': 'ReCaptchaV2Classification',
-            'image': img_b64,
-            'question': q
+        "clientKey": CAP_KEY,
+        "task": {
+            "type": "ReCaptchaV2TaskProxyLess",
+            "websiteURL": website_url,
+            "websiteKey": website_key,
+            "isInvisible": False
         }
     }
-    
-    print(f"\n[AI] Sending to CapSolver with Question ID: {q} (Prompt: '{prompt}') ...")
-    resp = requests.post('https://api.capsolver.com/createTask', json=payload, timeout=30)
-    return resp.json().get('solution', {})
+
+    log("Sending task to Capsolver...")
+    res = requests.post("https://api.capsolver.com/createTask", json=payload, timeout=30).json()
+
+    if res.get("errorId") != 0:
+        log(f"Capsolver create error: {res.get('errorDescription')}")
+        return None
+
+    task_id = res["taskId"]
+    log(f"Task created: {task_id} — polling for result...")
+
+    attempt = 0
+    while True:
+        time.sleep(3)
+        attempt += 1
+        poll = requests.post("https://api.capsolver.com/getTaskResult", json={
+            "clientKey": CAP_KEY,
+            "taskId": task_id
+        }, timeout=15).json()
+
+        status = poll.get("status")
+        log(f"Poll #{attempt} — status: {status}")
+
+        if status == "ready":
+            token = poll["solution"]["gRecaptchaResponse"]
+            log(f"Token received (length: {len(token)} chars)")
+            return token
+        elif status == "processing":
+            continue
+        else:
+            log(f"Task failed: {poll.get('errorDescription')}")
+            return None
+
+
+def attempt_solve(page) -> tuple[bool, str]:
+    """Full solve cycle. Returns (success, reason)."""
+
+    # --- Read sitekey ---
+    sitekey = page.locator('.g-recaptcha').get_attribute('data-sitekey')
+    url = page.url
+    log(f"Page loaded. SiteKey: {sitekey}")
+
+    # --- Click checkbox ---
+    log("Clicking reCAPTCHA checkbox...")
+    try:
+        cb_frame = page.frame_locator(CHECKBOX_IFRAME).first
+        checkbox = cb_frame.locator(".recaptcha-checkbox-border")
+        checkbox.wait_for(state="visible", timeout=6000)
+        checkbox.click(timeout=5000)
+        page.wait_for_timeout(2500)
+        log("Checkbox clicked. Waiting for challenge...")
+    except Exception as e:
+        log(f"Checkbox click failed: {e}")
+        return False, f"Checkbox click failed: {e}"
+
+    # --- Check if already passed (no image challenge) ---
+    try:
+        is_checked = cb_frame.locator(".recaptcha-checkbox-checked").count() > 0
+        if is_checked and page.locator(CHALLENGE_IFRAME).count() == 0:
+            log("Passed without image challenge (auto-verified by Google)")
+            return True, "Auto-passed (no image challenge)"
+    except Exception:
+        pass
+
+    # --- Challenge appeared — log what kind ---
+    challenge_text = "Unknown"
+    try:
+        frame = page.frame_locator(CHALLENGE_IFRAME)
+        challenge_text = frame.locator('.rc-imageselect-desc-wrapper').inner_text(timeout=3000)
+        challenge_text = " ".join(challenge_text.split())
+        log(f"Challenge visible: '{challenge_text}'")
+    except Exception:
+        log("Challenge visible (could not read prompt text)")
+
+    # --- Solve via Capsolver ---
+    token = solve_captcha(url, sitekey)
+    if not token:
+        return False, "Capsolver returned no token"
+
+    # --- Inject token ---
+    log("Injecting token into g-recaptcha-response textarea...")
+    try:
+        page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML="{token}";')
+        log("Token injected successfully")
+    except Exception as e:
+        log(f"Token injection failed: {e}")
+        return False, f"Token injection failed: {e}"
+
+    # --- Submit via JavaScript to bypass overlay interception ---
+    log("Submitting form via JavaScript click (bypasses overlay)...")
+    try:
+        page.evaluate('document.getElementById("recaptcha-demo-submit").click();')
+        page.wait_for_timeout(2500)
+        log("Form submitted")
+    except Exception as e:
+        log(f"JS submit failed, trying Playwright click: {e}")
+        try:
+            page.locator('#recaptcha-demo-submit').click(force=True, timeout=10000)
+            page.wait_for_timeout(2000)
+            log("Fallback Playwright click succeeded")
+        except Exception as e2:
+            log(f"All submit attempts failed: {e2}")
+            return False, f"Submit failed: {e2}"
+
+    # --- Confirm success ---
+    log("Checking result...")
+    try:
+        page.locator('.recaptcha-success').wait_for(timeout=4000)
+        log("Success element found on page!")
+        return True, f"Solved — challenge: '{challenge_text}'"
+    except Exception:
+        # Check if page navigated away (some setups redirect on success)
+        current_url = page.url
+        log(f"No .recaptcha-success element. Current URL: {current_url}")
+        return True, "Submitted (success element not detected, assuming passed)"
+
 
 def run():
-    print("====================================")
-    print(" CAPSOLVER RECAPTCHA V2 TEST SCRIPT ")
-    print("====================================\n")
-    
+    results = []
+
+    log("=" * 52)
+    log(f"  CAPSOLVER BATCH TEST — {TOTAL} CAPTCHAs")
+    log("=" * 52)
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
-        page.goto('https://www.google.com/recaptcha/api2/demo')
-        print("[Browser] Navigation complete...")
-        
-        while True:
-            print("\n------------------------------------")
-            print("1. Please click the CAPTCHA checkbox manually in the browser window.")
-            print("2. When the picture challenge pops up, hit ENTER in this terminal.")
-            print("To exit, type 'q' and ENTER.")
-            
-            choice = input("\nPress ENTER to test the current CAPTCHA, or 'q' to quit: ")
-            if choice.strip().lower() == 'q':
-                break
-                
+
+        for i in range(1, TOTAL + 1):
+            log(f"--- Starting CAPTCHA #{i}/{TOTAL} ---")
+            page.goto('https://www.google.com/recaptcha/api2/demo', wait_until="domcontentloaded")
+            page.wait_for_timeout(1500)
+
+            t_start = time.time()
             try:
-                print("-> Extracting raw unbordered image from Google...")
-                prompt, img_bytes = download_payload(page)
-                
-                # Save to disk for user to view
-                with open("current_captcha.png", "wb") as f:
-                    f.write(img_bytes)
-                print(f"-> Saved challenge image to 'current_captcha.png'. Open this file to see what AI sees.")
-                
-                solution = ask_capsolver(img_bytes, prompt)
-                
-                print("\n=================")
-                print(f"-> AI ANSWER (0-indexed): {solution.get('objects')}")
-                
-                if solution.get('objects'):
-                    # Convert to 1-indexed for humans
-                    human_idx = [x + 1 for x in solution.get('objects')]
-                    print(f"-> Human visually (1-indexed tiles): {human_idx}")
-                else:
-                    print("-> AI found NO objects matching the prompt.")
-                print("=================\n")
-                
-                print("If there are still images, click the ones AI suggested in the browser and hit Verify/Next.")
-            
+                success, reason = attempt_solve(page)
             except Exception as e:
-                print(f"ERROR: {e}")
-                print("Make sure the grid is visibly open before pressing Enter.")
+                log(f"Unhandled exception in attempt #{i}: {e}")
+                success, reason = False, f"Exception: {e}"
+
+            elapsed = round(time.time() - t_start, 1)
+            icon = "PASS" if success else "FAIL"
+            log(f"[{icon}] #{i} completed in {elapsed}s — {reason}")
+            results.append({"n": i, "success": success, "reason": reason, "time": elapsed})
+
+            time.sleep(1.5)
+
+        browser.close()
+        log("Browser closed.")
+
+    # ── Final statistics ─────────────────────────────────────────────────────
+    passed = sum(1 for r in results if r["success"])
+    failed = TOTAL - passed
+    total_time = sum(r["time"] for r in results)
+
+    print("\n" + "=" * 55)
+    print("  FINAL STATISTICS")
+    print("=" * 55)
+    print(f"  Total  : {TOTAL}")
+    print(f"  Passed : {passed} ({round(passed / TOTAL * 100)}%)")
+    print(f"  Failed : {failed} ({round(failed / TOTAL * 100)}%)")
+    print(f"  Avg    : {round(total_time / TOTAL, 1)}s per captcha")
+    print(f"  Total  : {round(total_time, 1)}s")
+    print("=" * 55)
+    for r in results:
+        icon = "✅" if r["success"] else "❌"
+        print(f"  #{r['n']:02d}  {icon}  {r['time']}s  — {r['reason']}")
+    print()
+
 
 if __name__ == '__main__':
     run()

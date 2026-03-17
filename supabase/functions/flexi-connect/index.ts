@@ -55,7 +55,7 @@ serve(async (req) => {
     if (!webhookUrl) {
       console.error('N8N_FLEXI_WEBHOOK_URL not configured');
       return new Response(
-        JSON.stringify({ error: 'Webhook not configured' }),
+        JSON.stringify({ error: 'Az n8n Flexi webhook nincs konfigurálva.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -63,7 +63,7 @@ serve(async (req) => {
     if (!encryptionKey) {
       console.error('FLEXI_ENCRYPTION_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'Encryption key not configured' }),
+        JSON.stringify({ error: 'A titkosítási kulcs nincs beállítva.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -72,7 +72,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
+        JSON.stringify({ error: 'Hiányzó bejelentkezési token. Bejelentkezés szükséges.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -90,7 +90,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.error('User auth error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Invalid user session' }),
+        JSON.stringify({ error: 'Érvénytelen munkamenet. Kérjük, jelentkezzen be újra.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -99,7 +99,7 @@ serve(async (req) => {
 
     if (!flexiEmail || !flexiPassword) {
       return new Response(
-        JSON.stringify({ error: 'Email and password are required' }),
+        JSON.stringify({ error: 'Az email és a jelszó megadása kötelező' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -158,7 +158,7 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error('n8n webhook error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to connect to Flexi-Dent', success: false }),
+        JSON.stringify({ error: 'Nem sikerült kapcsolódni a Flexi-Dent rendszerhez. Próbálja újra.', success: false }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -279,7 +279,7 @@ serve(async (req) => {
     if (insertError) {
       console.error('Error storing flexi auth:', insertError);
       return new Response(
-        JSON.stringify({ error: 'Failed to save credentials', success: false }),
+        JSON.stringify({ error: 'Nem sikerült menteni a Flexi bejelentkezési adatokat. Kérjük, próbálja újra.', success: false }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

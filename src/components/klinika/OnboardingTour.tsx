@@ -18,6 +18,7 @@ export interface TourStep {
   hideSkip?: boolean;   // Hide the Kihagyás (skip) button in the footer
   interactive?: boolean; // Overlay becomes pointer-events-none so spotlight element stays clickable
   showArrows?: boolean;  // Render animated gradient arrows on the sides of the spotlight
+  showTopArrow?: boolean;// Render animated gradient arrow from the top
   displayStep?: number;  // Override the counter numerator (e.g. 1)
   displayTotal?: number; // Override the counter denominator (e.g. 3)
   noScroll?: boolean;    // Don't scroll to element — use its current viewport rect as-is
@@ -410,6 +411,26 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
             </>
           )}
 
+          {/* Directional arrow pointing from the top */}
+          {step.showTopArrow && targetRect && (
+            <motion.div
+              key={`arrow-top-${currentStep}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, y: [0, 8, 0] }}
+              transition={{ opacity: { duration: 0.3 }, y: { duration: 0.9, repeat: Infinity, ease: 'easeInOut' } }}
+              className="fixed z-[9999] pointer-events-none"
+              style={{
+                left: targetRect.left + targetRect.width / 2 - 21,
+                top: targetRect.top - 58,
+                width: 42,
+                height: 42,
+                clipPath: 'polygon(30% 0%, 70% 0%, 70% 55%, 100% 55%, 50% 100%, 0% 55%, 30% 55%)',
+                background: 'linear-gradient(to bottom, hsl(var(--accent)), hsl(var(--primary)))',
+                filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.8))',
+              }}
+            />
+          )}
+
           {/* Tooltip */}
           <motion.div
             ref={tooltipRef}
@@ -454,7 +475,7 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
               <h3 className="font-semibold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 {step.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {step.content}
               </p>
             </div>

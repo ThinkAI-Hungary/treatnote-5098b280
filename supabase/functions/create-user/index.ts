@@ -19,7 +19,7 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+      return new Response(JSON.stringify({ error: "Hiányzó bejelentkezési token. Kérjük, jelentkezzen be újra." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const { data: { user: caller }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Érvénytelen munkamenet. Kérjük, jelentkezzen be újra." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -45,7 +45,7 @@ serve(async (req) => {
     });
 
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
+      return new Response(JSON.stringify({ error: "Ez a művelet csak rendszeradminisztrátor jogosultsággal végezhető el." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,14 +55,14 @@ serve(async (req) => {
     const { email, password, fullName, role, telephely, companyId, telephelyId } = await req.json();
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: "Email/username and password are required" }), {
+      return new Response(JSON.stringify({ error: "Az email cím és a jelszó megadása kötelező." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (password.length < 6) {
-      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+      return new Response(JSON.stringify({ error: "A jelszónak legalább 6 karakter hosszúnak kell lennie." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -221,7 +221,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Ismeretlen hiba történt a felhasználó létrehozásakor.";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

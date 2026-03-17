@@ -19,6 +19,7 @@ import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
 import { notifySzotarDataChanged } from '@/lib/szotarEvents';
+import { cn } from '@/lib/utils';
 import {
   Tooltip,
   TooltipContent,
@@ -548,8 +549,13 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
           <CardContent className="space-y-4">
             {/* Search and Filter Bar */}
             <div className="space-y-3">
-              {/* Search Input */}
-              <div className="relative">
+              <div className="flex gap-4">
+                <GalaxyButton size="icon" onClick={() => loadSzotar()} title="Frissítés" className="flex-shrink-0">
+                  <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                </GalaxyButton>
+
+                {/* Search Input */}
+                <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Keresés a kezelések között..."
@@ -640,6 +646,7 @@ export function SzotarTab({ companyId, telephelyId, companyName, telephelyName }
                   )}
                 </div>
               )}
+              </div>
             </div>
 
             <ScrollArea className="h-[400px] rounded-lg border border-primary/10">

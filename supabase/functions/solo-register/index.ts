@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logErrorToDatabase } from "../_shared/logger.ts";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -118,6 +120,17 @@ serve(async (req) => {
             auth: { autoRefreshToken: false, persistSession: false },
         });
 
+        // ── Rate Limiting ─────────────────────────────────────────────────────
+        const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown-ip";
+        // 3 requests per 60 minutes based on IP
+        const rateLimitResult = await checkRateLimit(supabaseAdmin, clientIp, 'solo-register', 3, 60);
+
+        if (!rateLimitResult.allowed) {
+            return new Response(JSON.stringify({ error: "Túl sok regisztrációs kísérlet ugyanarról az IP címről. Kérjük, próbálja újra később." }), {
+                status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
+
         const origin = req.headers.get("origin") || "";
         // Use APP_URL secret if set; otherwise use request origin only if it's not localhost.
         // If origin is localhost and no APP_URL is configured, omit emailRedirectTo so
@@ -166,6 +179,12 @@ serve(async (req) => {
 
         if (companyError) {
             console.error("Company creation error:", companyError);
+            await logErrorToDatabase(supabaseAdmin, {
+                script_name: 'solo-register',
+                summary: 'Cég létrehozási hiba',
+                full_log: companyError,
+                user_id: userId,
+            });
             await supabaseAdmin.auth.admin.deleteUser(userId);
             return new Response(JSON.stringify({ error: "Hiba a cég létrehozásakor" }), {
                 status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -181,6 +200,13 @@ serve(async (req) => {
 
         if (telephelyError) {
             console.error("Telephely creation error:", telephelyError);
+            await logErrorToDatabase(supabaseAdmin, {
+                script_name: 'solo-register',
+                summary: 'Telephely létrehozási hiba',
+                full_log: telephelyError,
+                user_id: userId,
+                company_id: company.id,
+            });
             await supabaseAdmin.auth.admin.deleteUser(userId);
             await supabaseAdmin.from("companies").delete().eq("id", company.id);
             return new Response(JSON.stringify({ error: "Hiba a telephely létrehozásakor" }), {
@@ -204,6 +230,14 @@ serve(async (req) => {
 
         if (profileError) {
             console.error("Profile upsert error:", profileError);
+            await logErrorToDatabase(supabaseAdmin, {
+                script_name: 'solo-register',
+                summary: 'Profil mentési hiba',
+                full_log: profileError,
+                user_id: userId,
+                company_id: company.id,
+                telephely_id: telephely.id,
+            });
         }
 
         // ── Set role: klinika_admin via telephely_memberships ──────────────────
@@ -218,6 +252,14 @@ serve(async (req) => {
 
         if (membershipError) {
             console.error("Membership error:", membershipError);
+            await logErrorToDatabase(supabaseAdmin, {
+                script_name: 'solo-register',
+                summary: 'Jogosultság beállítási hiba',
+                full_log: membershipError,
+                user_id: userId,
+                company_id: company.id,
+                telephely_id: telephely.id,
+            });
         }
 
         // ── Grant a 14-day trial license ────────────────────────────────────────
@@ -236,6 +278,14 @@ serve(async (req) => {
 
         if (licenseError) {
             console.error("Trial license creation error:", licenseError);
+            await logErrorToDatabase(supabaseAdmin, {
+                script_name: 'solo-register',
+                summary: 'Licenc létrehozási hiba',
+                full_log: licenseError,
+                user_id: userId,
+                company_id: company.id,
+                telephely_id: telephely.id,
+            });
         }
 
         await supabaseAdmin

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, Copy, X, RefreshCw, Pencil, CreditCard
+  Building2, Users, Plus, UserPlus, Trash2, Loader2, Eye, EyeOff, Shield, Mail, Sparkles, Star, FileText, Copy, X, RefreshCw, Pencil, CreditCard, AlertTriangle
 } from 'lucide-react';
 import {
   Select,
@@ -185,10 +185,17 @@ export default function KlinikaAdmin() {
   const validTabs = ['users', 'kezelesi-szabalyok', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
+    const storedTab = localStorage.getItem('klinika-admin-active-tab');
     const defaultTab = isSoloCompany ? 'kezelesi-szabalyok' : 'users';
-    return tabParam && validTabs.includes(tabParam) && !(isSoloCompany && tabParam === 'users')
-      ? tabParam
-      : defaultTab;
+    
+    let initialTab = defaultTab;
+    if (tabParam && validTabs.includes(tabParam)) {
+      initialTab = tabParam;
+    } else if (storedTab && validTabs.includes(storedTab)) {
+      initialTab = storedTab;
+    }
+
+    return (isSoloCompany && initialTab === 'users') ? 'kezelesi-szabalyok' : initialTab;
   });
 
   // Sync tab from URL param on mount and when URL changes
@@ -211,6 +218,7 @@ export default function KlinikaAdmin() {
     console.log("KlinikaAdmin handleTabChange:", value);
     setActiveTab(value);
     setSearchParams({ tab: value });
+    localStorage.setItem('klinika-admin-active-tab', value);
   }, [setSearchParams]);
   // Build tour steps with requiredTab to know which tab each step belongs to
   const tourSteps: TourStep[] = useMemo(() => [

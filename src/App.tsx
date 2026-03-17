@@ -2,7 +2,9 @@ import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -45,6 +47,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: 'REACT_QUERY_OFFLINE_CACHE',
+});
+
 // Wrapper component for authenticated routes - Layout stays mounted
 function AuthenticatedRoutes() {
   return (
@@ -64,7 +71,14 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="klinika-theme">
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider 
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours
+          buster: 'v1.0.1', // change this to bust cache on major app updates
+        }}
+      >
         <TooltipProvider>
           <AuthProvider>
             <Toaster />
@@ -101,7 +115,7 @@ const App = () => {
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ThemeProvider>
   );
 };

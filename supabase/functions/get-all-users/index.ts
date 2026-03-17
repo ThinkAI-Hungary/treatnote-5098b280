@@ -45,7 +45,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.error('Authentication error:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Érvénytelen munkamenet. Kérjük, jelentkezzen be újra.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -59,7 +59,7 @@ serve(async (req) => {
     if (roleError || !isAdmin) {
       console.error('Role check error:', roleError);
       return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin access required' }),
+        JSON.stringify({ error: 'Ez a művelet csak rendszeradminisztrátor jogosultsággal végezhető el.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -70,7 +70,7 @@ serve(async (req) => {
     if (authError) {
       console.error('Error fetching auth users:', authError);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch users' }),
+        JSON.stringify({ error: 'Nem sikerült betölteni a felhasználói listát. Ellenőrizze a Supabase jogosultságokat.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -186,7 +186,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error in get-all-users function:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Ismeretlen hiba történt a felhasználók betöltésekor.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

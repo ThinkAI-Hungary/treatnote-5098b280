@@ -24,7 +24,7 @@ serve(async (req) => {
     if (!authHeader) {
       console.error('No authorization header');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Hiányzó bejelentkezési token. Kérjük, jelentkezzen be újra.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -39,7 +39,7 @@ serve(async (req) => {
     if (userError || !user) {
       console.error('Error getting user:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Érvénytelen munkamenet. Kérjük, jelentkezzen be újra.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -51,7 +51,7 @@ serve(async (req) => {
     if (adminCheckError || !isAdminData) {
       console.error('Admin check failed:', adminCheckError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized - Admin access required' }),
+        JSON.stringify({ error: 'Ez a művelet csak rendszeradminisztrátor jogosultsággal végezhető el.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -61,7 +61,7 @@ serve(async (req) => {
     if (!userId) {
       console.error('No userId provided');
       return new Response(
-        JSON.stringify({ error: 'userId is required' }),
+        JSON.stringify({ error: 'A felhasználó azonosítója (userId) hiányzik.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -187,7 +187,7 @@ serve(async (req) => {
     if (deleteError) {
       console.error('Error deleting user from auth:', deleteError);
       return new Response(
-        JSON.stringify({ error: 'Failed to delete user' }),
+        JSON.stringify({ error: 'Nem sikerült törölni a felhasználót a hósítottás rendszerből. Ellenőrizze a Supabase logokat.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -200,7 +200,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Ismeretlen hiba történt a felhasználó törlésekor.';
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

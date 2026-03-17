@@ -73,7 +73,10 @@ export default function VoiceRecording() {
     {
       target: '[data-tour="vr-mode-select"]',
       title: 'Feldolgozási mód',
-      content: 'Válassza ki, milyen formában szeretné feldolgoztatni a felvett hangot: Kezelési terv vizsgálati jegyzőkönyvet, Státuszfelvétel általános átírást, Ambuláns adatlap pedig ambuláns lapot készít.',
+      content: `Válassza ki, milyen formában szeretné feldolgoztatni a felvett hangot: 
+Kezelési terv: vizsgálati jegyzőkönyvet, 
+Státuszfelvétel: általános leírást, 
+Ambuláns adatlap pedig ambuláns lapot készít.`,
       position: 'right',
     },
     {
@@ -100,6 +103,9 @@ export default function VoiceRecording() {
       content: 'A felvétel elindult! A bal oldali gombbal szüneteltetheti (Pause / Resume). A nagy középső gombbal állítsa le a felvételt a befejezéshez.',
       position: 'bottom',
       interactive: true,
+      hideNext: true,
+      hideSkip: true,
+      showTopArrow: true,
     },
     {
       // Step 4: playback intro — shown automatically after recording stops
@@ -111,7 +117,10 @@ export default function VoiceRecording() {
     {
       target: '[data-tour="vr-verdikt"]',
       title: 'Feldolgozás eredménye',
-      content: 'A feltöltés után itt jelenik meg az eredmény. • Eredeti szöveg: amit Ön felmondótt. • Szabály találatok: a szövegre legjobban értelmezhető szabályok. • Kitöltés: ez kerül be a FlexiDent oldalra olyan formában, ahogy ott is látható.',
+      content: `A feltöltés után itt jelenik meg az eredmény. 
+ Eredeti szöveg: amit Ön felmondott. 
+ Szabály találatok: a szövegre legjobban értelmezhető szabályok. 
+ Kitöltés: ez kerül be a FlexiDent oldalra olyan formában, ahogy ott is látható.`,
       position: 'top',
       interactive: true,
     },

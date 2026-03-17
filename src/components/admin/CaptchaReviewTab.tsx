@@ -10,9 +10,6 @@ import {
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { cn } from '@/lib/utils';
 
-const OPENAI_API_KEY = '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';
-const OPENAI_MODEL = 'gpt-4.1';
-
 // ── Module-level analysis state (survives navigation) ─────────────────────────
 type AnalyzeProgress = { done: number; total: number } | null;
 const _analysis = {
@@ -725,26 +722,16 @@ Max 150 words.`;
         }
 
         try {
-            const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: OPENAI_MODEL,
-                    max_tokens: 400,
-                    messages: [{
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: prompt },
-                            { type: 'image_url', image_url: { url: `data:image/png;base64,${b64}`, detail: 'high' } },
-                        ],
-                    }],
-                }),
+            const { data, error } = await supabase.functions.invoke('analyze-captcha', {
+                body: { prompt, b64 }
             });
-            const json = await resp.json();
-            return json.choices?.[0]?.message?.content?.trim() ?? null;
+
+            if (error) {
+                console.error('Edge Function Error:', error);
+                throw error;
+            }
+
+            return data?.analysis || 'Üres válasz érkezett az elemzőtől.';
         } catch (e) {
             return `Elemzési hiba: ${String(e).slice(0, 100)}`;
         }

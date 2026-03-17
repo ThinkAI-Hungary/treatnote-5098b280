@@ -748,6 +748,12 @@ export default function Admin() {
             </TabsContent>
 
             <TabsContent value="companies" className="space-y-6 mt-0">
+              <div className="flex justify-end mb-4">
+                 <Button variant="outline" size="sm" onClick={() => loadAllData(false)} className="border-primary/20 hover:bg-primary/10">
+                   <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                   Frissítés
+                 </Button>
+              </div>
               <CompanyManagement
                 companies={companies}
                 telephelyek={telephelyek}

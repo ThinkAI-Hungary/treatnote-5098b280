@@ -274,14 +274,14 @@ export default function Dashboard() {
       {
         target: '[data-tour="sidebar-klinika"]',
         title: 'Klinika Admin',
-        content: 'Ezen az oldalon kezelheti a klinika beállításait: szótár, kezelési szabályok, felhasználók és FlexiDent kapcsolat.',
+        content: 'Ezen az oldalon kezelheti a klinika beállításait.',
         position: 'right' as const,
       },
     ] : []),
     {
       target: '[data-tour="sidebar-profile"]',
       title: 'Profil',
-      content: 'A Profil menüpont alatt kezelheti fiókadatait, FlexiDent kapcsolatát és értesítési beállításait.',
+      content: 'A Profil menüpont alatt kezelheti fiókadatait és FlexiDent kapcsolatát.',
       position: 'right',
     },
   ];
