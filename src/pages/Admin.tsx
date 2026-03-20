@@ -17,6 +17,7 @@ import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { CompanyManagement } from '@/components/admin/CompanyManagement';
 import { ErrorLogsTab } from '@/components/admin/ErrorLogsTab';
+import { GlobalHistoryTab } from '@/components/admin/GlobalHistoryTab';
 import { CaptchaReviewTab } from '@/components/admin/CaptchaReviewTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
@@ -571,6 +572,13 @@ export default function Admin() {
               Hibakezelés
             </TabsTrigger>
             <TabsTrigger
+              value="history"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
+            >
+              <FolderTree className="h-4 w-4" />
+              Összes Előzmény
+            </TabsTrigger>
+            <TabsTrigger
               value="captcha"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
             >
@@ -763,6 +771,10 @@ export default function Admin() {
 
             <TabsContent value="errors" className="space-y-6 mt-0">
               <ErrorLogsTab />
+            </TabsContent>
+
+            <TabsContent value="history" className="space-y-6 mt-0">
+              <GlobalHistoryTab users={users} companies={companies} telephelyek={telephelyek} />
             </TabsContent>
 
             <TabsContent value="captcha" className="space-y-6 mt-0">

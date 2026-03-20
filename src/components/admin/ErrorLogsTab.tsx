@@ -5,6 +5,7 @@ import {
     AlertTriangle, ChevronDown, ChevronRight, ChevronLeft, Trash2, Loader2, X,
     RefreshCw, Copy, Check, ImageIcon, Clock, Terminal, Globe, Database,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ export function ErrorLogsTab() {
     const [deleting, setDeleting] = useState(false);
     const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
     const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     // Keyboard navigation for lightbox
     useEffect(() => {
@@ -98,6 +100,15 @@ export function ErrorLogsTab() {
         }
         return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
     }, [logs]);
+
+    const categories = useMemo(() => {
+        return groupedLogs.map(([key]) => key);
+    }, [groupedLogs]);
+
+    const filteredGroups = useMemo(() => {
+        if (selectedCategory === 'all') return groupedLogs;
+        return groupedLogs.filter(([key]) => key === selectedCategory);
+    }, [groupedLogs, selectedCategory]);
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
@@ -288,6 +299,21 @@ export function ErrorLogsTab() {
                         )}
                     </h2>
                     <div className="flex items-center gap-2">
+                        {categories.length > 0 && (
+                            <div className="w-56">
+                                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                    <SelectTrigger className="border-primary/20 h-9">
+                                        <SelectValue placeholder="Minden hiba" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Minden hiba</SelectItem>
+                                        {categories.map(cat => (
+                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         <Button
                             variant="outline"
                             size="sm"
@@ -320,7 +346,7 @@ export function ErrorLogsTab() {
                     </div>
                 ) : (
                     <div className="space-y-8">
-                        {groupedLogs.map(([groupName, groupLogs]) => (
+                        {filteredGroups.map(([groupName, groupLogs]) => (
                             <div key={groupName} className="space-y-3">
                                 <div className="flex items-center gap-3 border-b border-primary/10 pb-2">
                                      <h3 className="text-base font-semibold text-foreground/90">{groupName}</h3>

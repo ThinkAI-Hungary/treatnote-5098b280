@@ -294,25 +294,13 @@ export default function Dashboard() {
     startTour: startDashTour,
     completeTour: completeDashTour,
     skipTour: skipDashTour,
+    hasSeenTour: hasSeenDashTour,
   } = useOnboardingTour({
     tourKey: 'dashboard',
     isEligible: tourDataReady,
-    autoShowForNewUsers: true,
+    autoShowForNewUsers: !allComplete,
     newUserDays: 30,
   });
-
-  // Re-trigger the tour when deps flip to complete in the same session
-  // (page didn't reload, user just finished the last setup step)
-  const prevAllCompleteRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (!tourDataReady) return;
-    if (prevAllCompleteRef.current === false && allComplete === true) {
-      // Small extra delay to let the sidebar menu animate in first
-      const t = setTimeout(() => startDashTour(), 600);
-      return () => clearTimeout(t);
-    }
-    prevAllCompleteRef.current = allComplete;
-  }, [tourDataReady, allComplete, startDashTour]);
 
   // Info button triggers this page's tour
   useEffect(() => {

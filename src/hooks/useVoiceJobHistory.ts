@@ -18,6 +18,8 @@ export interface VoiceJob {
   duration_seconds: number | null;
   created_at: string;
   completed_at: string | null;
+  user_complaint: string | null;
+  user_complaint_date: string | null;
 }
 
 interface UseVoiceJobHistoryReturn {

@@ -1,6 +1,6 @@
 import {
   Clock, CheckCircle2, XCircle, Loader2, Mic, ChevronRight, Trash2,
-  History, FileText, Book, AlertCircle
+  History, FileText, Book, AlertCircle, Filter
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +14,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useState, useRef, useCallback } from 'react';
+import { RuleDetailsPopup } from '@/components/shared/RuleDetailsPopup';
 
 // ─── How many jobs to show in the sidebar before "see more" ───
 const SIDEBAR_CAP = 10;
@@ -51,20 +52,30 @@ function StatusIcon({ status }: { status: VoiceJob['status'] }) {
   }
 }
 
-function parseJobResult(result: unknown): { originalText: string | null; kitoltes: string | null } {
+function parseJobResult(result: unknown): { originalText: string | null; kitoltes: string | null; appliedRules: any[] } {
   try {
     let data: any = result;
     if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch { return { originalText: null, kitoltes: null }; }
+      try { data = JSON.parse(data); } catch { return { originalText: null, kitoltes: null, appliedRules: [] }; }
     }
     if (Array.isArray(data) && data.length > 0) data = data[0];
     if (data && typeof data === 'object' && 'payload' in data) data = (data as any).payload;
+    
+    // Handle n8n wrapping
+    let finalData = data;
+    if (data && typeof data === 'object' && 'result' in data && typeof data.result === 'object') {
+        finalData = data.result;
+    }
+
+    const appliedRules = finalData?.execution_report_human?.talalatok || [];
+
     return {
-      originalText: data?.transcriber?.text ?? null,
-      kitoltes: data?.szoveges_lista ?? null,
+      originalText: finalData?.transcriber?.raw?.text ?? finalData?.transcriber?.text ?? null,
+      kitoltes: finalData?.szoveges_lista ?? null,
+      appliedRules: Array.isArray(appliedRules) ? appliedRules : [],
     };
   } catch {
-    return { originalText: null, kitoltes: null };
+    return { originalText: null, kitoltes: null, appliedRules: [] };
   }
 }
 
@@ -114,7 +125,8 @@ function PreviewPanel({
 }
 
 function PreviewContent({ job }: { job: VoiceJob }) {
-  const { originalText, kitoltes } = parseJobResult(job.result);
+  const { originalText, kitoltes, appliedRules } = parseJobResult(job.result);
+  const [selectedRule, setSelectedRule] = useState<{ id: string; name: string } | null>(null);
 
   if (!originalText && !kitoltes) {
     return (
@@ -169,6 +181,59 @@ function PreviewContent({ job }: { job: VoiceJob }) {
           </pre>
         </div>
       )}
+
+      {/* Applied Rules */}
+      {appliedRules.length > 0 && (
+        <div className="rounded-lg border border-galaxy-purple/20 bg-galaxy-purple/5 dark:bg-transparent overflow-hidden mt-6">
+          <div className="flex items-center gap-1.5 px-3 pt-3 pb-2 border-b border-galaxy-purple/10">
+            <Filter className="h-3.5 w-3.5 text-galaxy-purple flex-shrink-0" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-galaxy-purple">Alkalmazott Szabályok</span>
+          </div>
+          <div className="p-0 overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-galaxy-purple/5 text-muted-foreground border-b border-galaxy-purple/10">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Ssz.</th>
+                  <th className="px-4 py-2 font-medium">Szabály Neve</th>
+                  <th className="px-4 py-2 font-medium">Kontextus</th>
+                  <th className="px-4 py-2 font-medium">Egyezés Oka</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-galaxy-purple/10">
+                {appliedRules.map((t: any, idx: number) => {
+                  const hasRuleId = !!t.eredmeny?.rule_id;
+                  return (
+                    <tr 
+                        key={idx} 
+                        className={cn(
+                            "transition-colors",
+                            hasRuleId ? "hover:bg-galaxy-purple/10 cursor-pointer" : "hover:bg-galaxy-purple/5"
+                        )}
+                        onClick={() => {
+                            if (hasRuleId) {
+                                setSelectedRule({ id: t.eredmeny.rule_id, name: t.eredmeny.rule_name });
+                            }
+                        }}
+                    >
+                      <td className="px-4 py-3 text-muted-foreground font-medium">{t.sorszam || idx + 1}.</td>
+                      <td className="px-4 py-3 font-semibold text-foreground/90">{t.eredmeny?.rule_name || '-'}</td>
+                      <td className="px-4 py-3 text-muted-foreground break-words text-xs min-w-[200px]">{t.context_text || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{t.eredmeny?.mi_alapjan || '-'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      <RuleDetailsPopup 
+          ruleId={selectedRule?.id || ''}
+          ruleName={selectedRule?.name || ''}
+          open={!!selectedRule}
+          onOpenChange={(open) => !open && setSelectedRule(null)}
+      />
     </div>
   );
 }

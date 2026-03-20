@@ -3,7 +3,12 @@ import { Button } from '@/components/ui/button';
 import { X, Loader2, AlertCircle, Book, FileText, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface TreatNotePayload {
   szoveges_lista?: string;
@@ -286,6 +291,68 @@ function TextualListPanel({ text }: { text?: string }) {
   );
 }
 
+// ── Complaint Dialog ──
+function ComplaintDialog({ jobId, hasComplaint, onSubmitted }: { jobId: string, hasComplaint: boolean, onSubmitted: (text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!text.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.rpc('submit_voice_job_complaint', {
+        p_job_id: jobId,
+        p_complaint_text: text.trim()
+      });
+      if (error) throw error;
+      toast.success('Probléma sikeresen bejelentve');
+      setOpen(false);
+      onSubmitted(text.trim());
+      setText('');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Hiba történt a bejelentés során');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="hidden sm:flex text-muted-foreground hover:text-destructive hover:border-destructive/50">
+          <AlertCircle className="mr-2 h-4 w-4" />
+          {hasComplaint ? 'Újabb bejelentés' : 'Probléma bejelentése'}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{hasComplaint ? 'Újabb probléma bejelentése' : 'Milyen problémát tapasztalt?'}</DialogTitle>
+          <DialogDescription>
+            Kérjük írja le, ha a felvétel feldolgozása vagy a szabály felismerés nem volt megfelelő. A bejelentés szövege rögzítésre kerül az eddigi bejelentések mellé, és utólag nem módosítható.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <Textarea
+            placeholder="Kérem röviden írja le a problémát..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="min-h-[100px]"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Mégse</Button>
+          <Button variant="destructive" onClick={handleSubmit} disabled={isSubmitting || !text.trim()}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Küldés
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Main export ──
 interface VerdiktDisplayProps {
   isLoading: boolean;
@@ -295,6 +362,9 @@ interface VerdiktDisplayProps {
   selectedJobPaciensId?: string | null;
   selectedJobError?: string | null;
   selectedJobStatus?: string;
+  jobId?: string | null;
+  userComplaint?: string | null;
+  onComplaintSubmitted?: () => void;
   onClose: () => void;
 }
 
@@ -306,10 +376,19 @@ export function VerdiktDisplay({
   selectedJobPaciensId,
   selectedJobError,
   selectedJobStatus,
+  jobId,
+  userComplaint,
+  onComplaintSubmitted,
   onClose,
 }: VerdiktDisplayProps) {
   const payload = useMemo(() => parsePayload(responseData), [responseData]);
   const isThreePanel = useMemo(() => hasThreePanelData(payload), [payload]);
+  
+  const [localComplaint, setLocalComplaint] = useState<string | null>(userComplaint || null);
+
+  useEffect(() => {
+    setLocalComplaint(userComplaint || null);
+  }, [userComplaint, jobId]);
 
   return (
     <Card className="md:col-span-2 xl:col-span-3 border-primary/20 bg-gradient-to-br from-card/70 to-card backdrop-blur-sm dark:from-card/30 dark:to-card/60 dark:border-sparkle-blue/20">
@@ -330,18 +409,49 @@ export function VerdiktDisplay({
             </CardDescription>
           </div>
         </div>
-        {!isLoading && responseData && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-destructive/10"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {jobId && (
+            <>
+              {localComplaint && (
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 hidden sm:flex font-medium">
+                  <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
+                  Probléma bejelentve
+                </Badge>
+              )}
+              <ComplaintDialog 
+                jobId={jobId} 
+                hasComplaint={!!localComplaint}
+                onSubmitted={(text) => {
+                  const nowStr = new Date().toLocaleString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/-/g, '. ');
+                  const newEntry = `[${nowStr}] ${text}`;
+                  setLocalComplaint(prev => prev ? prev + '\n\n' + newEntry : newEntry);
+                  if (onComplaintSubmitted) onComplaintSubmitted();
+                }} 
+              />
+            </>
+          )}
+          {!isLoading && responseData && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-destructive/10"
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
+        {localComplaint && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-sm">
+            <h4 className="font-semibold text-destructive flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4" />
+              Bejelentett probléma
+            </h4>
+            <p className="text-foreground/90 whitespace-pre-wrap">{localComplaint}</p>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="relative">

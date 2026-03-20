@@ -860,6 +860,11 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                 selectedJobPaciensId={selectedJob?.paciens_id}
                 selectedJobError={selectedJob?.error}
                 selectedJobStatus={selectedJob?.status}
+                jobId={selectedJob?.id || currentJobId}
+                userComplaint={selectedJob?.user_complaint}
+                onComplaintSubmitted={() => {
+                  refetchJobs();
+                }}
                 onClose={() => {
                   if (isDemoVerdiktStep) return; // keep mounted during tour demo
                   if (selectedJob) {
