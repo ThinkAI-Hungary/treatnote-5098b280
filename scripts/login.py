@@ -403,31 +403,91 @@ def bejelentkezes_playwright(aldomain: str, email: str, jelszo: str) -> int:
             page.wait_for_timeout(500)
             screenshot(page, "jelszo_kitoltve")
 
-            # 5. reCAPTCHA — full AI solver
+            # 5. reCAPTCHA — Capsolver token injection
             try:
-                import captcha_solver
-                captcha_solver.set_log_callback(naploz)
-                import time as _captcha_time
-                captcha_result = captcha_solver.solve_recaptcha_v2(
-                    page,
-                    screenshot_callback=screenshot,
-                    domain=aldomain,
-                    session_id=str(int(_captcha_time.time())),
-                    supabase_url=SUPABASE_URL,
-                    supabase_service_key=SUPABASE_SERVICE_KEY,
-                )
-                if captcha_result["solved"]:
-                    naploz("INFO", f"[PLAYWRIGHT] reCAPTCHA megoldva! "
-                           f"(kísérletek: {captcha_result['attempts']}, "
-                           f"skip: {captcha_result['skipped']})")
+                import time as _ct
+                import requests as _req
+
+                CAP_KEY = "CAP-3ECFF88172E05B522EEA9F0F6176C8D85C96C21C8388B1666F00EA4CF7E47C71"
+
+                # Extract sitekey from .g-recaptcha or iframe src
+                _sitekey = None
+                try:
+                    _sitekey = page.get_attribute(".g-recaptcha", "data-sitekey", timeout=3000)
+                except Exception:
+                    pass
+                if not _sitekey:
+                    try:
+                        _iframe_src = page.locator("iframe[src*='recaptcha'][src*='anchor']").first.get_attribute("src", timeout=3000)
+                        if _iframe_src and "k=" in _iframe_src:
+                            import urllib.parse as _up2
+                            _p = _up2.parse_qs(_up2.urlparse(_iframe_src).query)
+                            _sitekey = (_p.get("k") or _p.get("sitekey") or [None])[0]
+                    except Exception:
+                        pass
+
+                if not _sitekey:
+                    naploz("INFO", "[CAPTCHA] Sitekey nem talalhato, captcha atugras")
                 else:
-                    naploz("ERROR", f"[PLAYWRIGHT] reCAPTCHA NEM sikerült "
-                           f"(kísérletek: {captcha_result['attempts']}, "
-                           f"skip: {captcha_result['skipped']})")
-                screenshot(page, "captcha_vege")
+                    naploz("INFO", f"[CAPTCHA] Sitekey: {_sitekey} — Capsolver task inditas...")
+                    _cr = _req.post("https://api.capsolver.com/createTask", json={
+                        "clientKey": CAP_KEY,
+                        "task": {
+                            "type": "ReCaptchaV2TaskProxyLess",
+                            "websiteURL": url,
+                            "websiteKey": _sitekey,
+                            "isInvisible": False,
+                        }
+                    }, timeout=30).json()
+
+                    if _cr.get("errorId") != 0:
+                        naploz("ERROR", f"[CAPTCHA] Capsolver hiba: {_cr.get('errorDescription')}")
+                    else:
+                        _task_id = _cr["taskId"]
+                        naploz("INFO", f"[CAPTCHA] Task: {_task_id} — polling...")
+                        _token = None
+                        _deadline = _ct.time() + 120
+                        _attempt = 0
+                        while _ct.time() < _deadline:
+                            _ct.sleep(3)
+                            _attempt += 1
+                            _pr = _req.post("https://api.capsolver.com/getTaskResult", json={
+                                "clientKey": CAP_KEY, "taskId": _task_id
+                            }, timeout=15).json()
+                            _st = _pr.get("status")
+                            naploz("INFO", f"[CAPTCHA] Poll #{_attempt} — {_st}")
+                            if _st == "ready":
+                                _token = _pr.get("solution", {}).get("gRecaptchaResponse")
+                                break
+                            elif _st != "processing":
+                                naploz("ERROR", f"[CAPTCHA] Task meghiusult: {_pr.get('errorDescription')}")
+                                break
+
+                        if _token:
+                            naploz("INFO", f"[CAPTCHA] Token megerkezett ({len(_token)} char) — injektalas...")
+                            page.evaluate("""(t) => {
+                                document.querySelectorAll('#g-recaptcha-response, [name="g-recaptcha-response"]')
+                                    .forEach(e => { e.innerHTML = t; e.value = t; });
+                                try {
+                                    const cfg = window.___grecaptcha_cfg;
+                                    if (cfg && cfg.clients)
+                                        for (const k of Object.keys(cfg.clients))
+                                            for (const k2 of Object.keys(cfg.clients[k])) {
+                                                const cb = cfg.clients[k][k2];
+                                                if (cb && typeof cb.callback === 'function') cb.callback(t);
+                                            }
+                                } catch(e) {}
+                            }""", _token)
+                            page.wait_for_timeout(2000)
+                            naploz("INFO", "[CAPTCHA] Token injektalva")
+                            screenshot(page, "captcha_megoldva")
+                        else:
+                            naploz("ERROR", "[CAPTCHA] Token nem erkezett meg")
+                            screenshot(page, "captcha_timeout")
+
             except Exception as e:
-                naploz("ERROR", f"[PLAYWRIGHT] CAPTCHA solver hiba: {type(e).__name__}: {str(e)[:200]}")
-                screenshot(page, "captcha_solver_hiba")
+                naploz("ERROR", f"[CAPTCHA] Capsolver hiba: {type(e).__name__}: {str(e)[:200]}")
+                screenshot(page, "captcha_hiba")
 
             # 6. Before login click
             screenshot(page, "login_elott")

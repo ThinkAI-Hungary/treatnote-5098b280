@@ -184,6 +184,10 @@ serve(async (req) => {
         customer: stripeCustomerId,
         line_items: stripeLineItems,
         ui_mode: "embedded",
+        billing_address_collection: "required",
+        tax_id_collection: {
+          enabled: true,
+        },
         return_url: `${origin}/klinika-admin?tab=elofizetes&checkout=success`,
         metadata: {
           company_id,
@@ -210,6 +214,10 @@ serve(async (req) => {
       mode: "subscription",
       customer: stripeCustomerId,
       line_items: stripeLineItems,
+      billing_address_collection: "required",
+      tax_id_collection: {
+        enabled: true,
+      },
       metadata: {
         company_id,
         telephely_id,
