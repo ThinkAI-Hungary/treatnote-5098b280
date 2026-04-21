@@ -1,0 +1,291 @@
+
+--- Case 1
+Trans: (11, 21) Tizenegyes és huszonegyes fogakra Zirconkorona lett ragasztva.
+  Fog 11: ["Korona.Altalanos.Cirkonium_-_Korona"] ()
+  Fog 21: ["Korona.Altalanos.Cirkonium_-_Korona"] ()
+
+--- Case 2
+Trans: (36, 46) Alsó hatosok hiányoznak, rágófelület nélkül.
+  Fog 36: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 46: ["Altalanos.Foghiany"] (hiányzik, rágófelület nélkül)
+
+--- Case 3
+Trans: (24, 25, 26) Huszonnégyestől huszonhatosig implantátumokon fémkerámia híd.
+  Fog 24: ["Implant.Altalanos.IDEGEN","Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 25: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 26: ["Implant.Altalanos.IDEGEN","Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+
+--- Case 4
+Trans: (31-42) Alsó frontfogak sínnezve lettek periodontális okokból, kompozittal.
+  Fog 31: [] (Periodontális sínezés, kompozit sín (31-42 tartomány))
+  Fog 32: [] (Periodontális sínezés, kompozit sín (31-42 tartomány))
+  Fog 41: [] (Periodontális sínezés, kompozit sín (31-42 tartomány))
+  Fog 42: [] (Periodontális sínezés, kompozit sín (31-42 tartomány))
+
+--- Case 5
+Trans: (18, 28) Felső bölcsességfogakat tegnap húzták.
+  Fog 18: ["Altalanos.Foghiany"] (Tegnap húzták)
+  Fog 28: ["Altalanos.Foghiany"] (Tegnap húzták)
+
+--- Case 6
+Trans: (45) Negyvenötös implantátum felszabadítva, gyógyuló csavar behelyezve.
+  Fog 45: ["Implant.Altalanos.IDEGEN"] (Implantátum felszabadítva, gyógyuló csavar behelyezve)
+
+--- Case 7
+Trans: (14) Tizennégyes fog gyökércsatorna tisztítva, CaOH2 paszta, ideiglenes tömés.
+  Fog 14: ["Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"] (gyökérkezelés alatt, CaOH2 paszta)
+
+--- Case 8
+Trans: (22) Huszonkettes fog palatinális felszínén üvegszálas csap és esztétikus tömés.
+  Fog 22: ["Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus"] (üvegszálas csap)
+
+--- Case 9
+Trans: (37) Harminchetes fogra arany onlay.
+  Fog 37: ["Betetek.Onlay.Arany_-_Betetek_Onlay"] ()
+
+--- Case 10
+Trans: Felső fogívben teljes kivehető protézis.
+  Fog 11: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 12: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 13: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 14: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 15: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 16: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 17: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 18: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 21: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 22: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 23: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 24: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 25: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 26: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 27: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 28: ["Altalanos.Foghiany"] (hiányzik)
+
+--- Case 11
+Trans: (48) Negyvennyolcas fogban amalgám tömés, fogbélgyulladás.
+  Fog 48: ["Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam"] (fogbélgyulladás (pulpitis))
+
+--- Case 12
+Trans: (34, 35) Harmincnégyes és harmincötös egyaránt csapos fog előkészített koronával.
+  Fog 34: [] (csapos fog, előkészített korona)
+  Fog 35: [] (csapos fog, előkészített korona)
+
+--- Case 13
+Trans: (14-17) Tizennégyestől tizenhetesig fémkerámia híd, de a tizenhatos hiányzik!
+  Fog 14: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 15: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 16: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 17: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+
+--- Case 14
+Trans: (21, 22) Huszonegyes fogba gyökérkezelést kezdtünk, huszonkettes ideiglenes tömés.
+  Fog 21: [] (gyökércsatorna kezelés alatt)
+  Fog 22: ["Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"] ()
+
+--- Case 15
+Trans: (18) Tizennyolcas bölcsességfog csírahiány.
+  Fog 18: ["Altalanos.Foghiany"] (Csírahiány)
+
+--- Case 16
+Trans: (41-44) Negyvenegyes, negyvenkettes, negyvenhármas, negyvennégyes cirkónium koronák.
+  Fog 41: ["Korona.Altalanos.Cirkonium_-_Korona"] (egybeöntött)
+  Fog 42: ["Korona.Altalanos.Cirkonium_-_Korona"] (egybeöntött)
+  Fog 43: ["Korona.Altalanos.Cirkonium_-_Korona"] (egybeöntött)
+  Fog 44: ["Korona.Altalanos.Cirkonium_-_Korona"] (egybeöntött)
+
+--- Case 17
+Trans: (36) Harminchatos implantátumon csavarozható fémkerámia korona.
+  Fog 36: ["Implant.Altalanos.IDEGEN","Korona.Altalanos.Fem-keramia_-_Korona"] (csavarozható korona)
+
+--- Case 18
+Trans: (31) Harmincegyes fog mobilis, elmozdult, parodontális tasak.
+  Fog 31: [] (mobilis, elmozdult, parodontális tasak)
+
+--- Case 19
+Trans: (13, 23) Tizenhármas és huszonhármas szemfogak kopottak, nyaki szuvasodással.
+  Fog 13: ["Caries.Altalanos.Gingivo_B._-_Caries"] (kopott fog)
+  Fog 23: ["Caries.Altalanos.Gingivo_B._-_Caries"] (kopott fog)
+
+--- Case 20
+Trans: (26) Huszonhatos fog fáj a hidegre, okkluzálisan inlay, a palatinális csücsök letört.
+  Fog 26: ["Betetek.Inlay.Kompozit_-_Betetek_Inlay"] (Palatinális csücsök letört; hidegingerlékenység)
+
+--- Case 21
+Trans: (11, 21) Tizenegyes és huszonegyes fogakra Zirconkorona lett ragasztva.
+  Fog 11: ["Korona.Altalanos.Cirkonium_-_Korona"] ()
+  Fog 21: ["Korona.Altalanos.Cirkonium_-_Korona"] ()
+
+--- Case 22
+Trans: (36, 46) Alsó hatosok hiányoznak, rágófelület nélkül.
+  Fog 36: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 46: ["Altalanos.Foghiany"] (hiányzik, rágófelület nélkül)
+
+--- Case 23
+Trans: (24, 25, 26) Huszonnégyestől huszonhatosig implantátumokon fémkerámia híd.
+  Fog 24: ["Implant.Altalanos.IDEGEN","Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 25: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 26: ["Implant.Altalanos.IDEGEN","Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+
+--- Case 24
+Trans: (31-42) Alsó frontfogak sínnezve lettek periodontális okokból, kompozittal.
+  Fog 31: [] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+  Fog 32: [] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+  Fog 33: [] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+  Fog 41: ["Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+  Fog 42: ["Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+  Fog 43: ["Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"] (Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része))
+
+--- Case 25
+Trans: (18, 28) Felső bölcsességfogakat tegnap húzták.
+  Fog 18: ["Altalanos.Foghiany"] (Tegnap húzták)
+  Fog 28: ["Altalanos.Foghiany"] (Tegnap húzták)
+
+--- Case 26
+Trans: (45) Negyvenötös implantátum felszabadítva, gyógyuló csavar behelyezve.
+  Fog 45: ["Implant.Altalanos.IDEGEN"] (Implantátum felszabadítva, gyógyuló csavar behelyezve)
+
+--- Case 27
+Trans: (14) Tizennégyes fog gyökércsatorna tisztítva, CaOH2 paszta, ideiglenes tömés.
+  Fog 14: ["Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"] (gyökérkezelés alatt, CaOH2 paszta)
+
+--- Case 28
+Trans: (22) Huszonkettes fog palatinális felszínén üvegszálas csap és esztétikus tömés.
+  Fog 22: ["Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus","Altalanos.Parapulpalis_csap"] (üvegszálas csap)
+
+--- Case 29
+Trans: (37) Harminchetes fogra arany onlay.
+  Fog 37: ["Betetek.Onlay.Arany_-_Betetek_Onlay"] ()
+
+--- Case 30
+Trans: Felső fogívben teljes kivehető protézis.
+  Fog 11: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 12: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 13: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 14: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 15: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 16: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 17: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 18: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 21: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 22: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 23: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 24: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 25: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 26: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 27: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 28: ["Altalanos.Foghiany"] (hiányzik)
+
+--- Case 31
+Trans: (16) Tizenhatos fog palatinális gyökere amputálva lett (hemiszekció).
+  Fog 16: [] (Palatinális gyökér amputálva (hemiszekció))
+
+--- Case 32
+Trans: (34, 35) Harmincnégyes és harmincötös fémkerámia leplezett korona, egybeöntve.
+  Fog 34: ["Korona.Altalanos.Fem-keramia_-_Korona"] (egybeöntött)
+  Fog 35: ["Korona.Altalanos.Fem-keramia_-_Korona"] (egybeöntött)
+
+--- Case 33
+Trans: (41, 31) Alsó nagymetszők meglazultak, III. fokú mobilitás.
+  Fog 31: [] (mobilitás 3 fok, nagymetszők meglazultak)
+  Fog 41: [] (mobilitás 3 fok, nagymetszők meglazultak)
+
+--- Case 34
+Trans: (24-27) Bal felső kvadránsban teljes híd, a huszonhatos hiányzik.
+  Fog 24: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 25: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 26: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 27: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+
+--- Case 35
+Trans: (11, 12, 21, 22) Felső négy metszőfogra Ideiglenes műanyag korona.
+  Fog 11: ["Korona.Altalanos.Ideiglenes_-_Korona"] (egybeöntött)
+  Fog 12: ["Korona.Altalanos.Ideiglenes_-_Korona"] (egybeöntött)
+  Fog 21: ["Korona.Altalanos.Ideiglenes_-_Korona"] (egybeöntött)
+  Fog 22: ["Korona.Altalanos.Ideiglenes_-_Korona"] (egybeöntött)
+
+--- Case 36
+Trans: (46) Negyvenhatos fog occlusalis szuvasodás, jelenleg nyitva hagyva (trepanálva).
+  Fog 46: ["Caries.Altalanos.Occlusalis_-_Caries"] (Jelenleg nyitva hagyva (trepanálva))
+
+--- Case 37
+Trans: (38) Harmincnyolcas bölcsességfog félig előtört, pericoronitis.
+  Fog 38: ["Specialis.Altalanos.Impaktalt_fog_-_Specialis"] (Félig előtört, pericoronitis)
+
+--- Case 38
+Trans: (All-on-4) Felső állcsonton négyes All-on-4 implant, a 14, 12, 22, 24 pozíciókban.
+  Fog 11: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 12: ["Implant.Altalanos.IDEGEN"] (teljes protézis implantátumon)
+  Fog 13: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 14: ["Implant.Altalanos.IDEGEN"] (teljes protézis implantátumon)
+  Fog 15: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 16: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 17: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 18: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 21: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 22: ["Implant.Altalanos.IDEGEN"] ()
+  Fog 23: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 24: ["Implant.Altalanos.IDEGEN"] ()
+  Fog 25: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 26: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 27: ["Altalanos.Foghiany"] (hiányzik)
+  Fog 28: ["Altalanos.Foghiany"] (hiányzik)
+
+--- Case 39
+Trans: (43, 44, 45, 46) Alsó fronttól hátra fémkerámia korona a hármason, a többi hídtag fel a hatosig.
+  Fog 43: ["Korona.Altalanos.Fem-keramia_-_Korona","Hid.Altalanos.Fem-keramia_-_Hid"] ()
+  Fog 44: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 45: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+  Fog 46: ["Altalanos.Foghiany","Hid.Altalanos.Fem-keramia_-_Hid"] (hiányzik)
+
+--- Case 40
+Trans: (25) Huszonötös fogból a régi tömés kiesett, másodlagos caries mélyen.
+  Fog 25: ["Caries.Altalanos.Mesialis_-_Caries","Caries.Altalanos.Occlusalis_-_Caries","Caries.Altalanos.Distalis_-_Caries"] (régi tömés hiányzik, másodlagos, mély szuvasodás)
+
+--- Case 41
+Trans: (43, 44) Jobb alsó szemfog és kisőrlő kopott, fognyaki érzékenység.
+  Fog 43: [] (kopott, fognyaki érzékenység)
+  Fog 44: [] (kopott, fognyaki érzékenység)
+
+--- Case 42
+Trans: (27) Huszonhetes fogon nagy kiterjedésű amalgámtömés cseréje szükséges, secunder caries miatt.
+  Fog 27: ["Tomes.Amalgam.Mesialis_-_Tomes_Amalgam","Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam","Tomes.Amalgam.Distalis_-_Tomes_Amalgam","Caries.Altalanos.Mesialis_-_Caries","Caries.Altalanos.Occlusalis_-_Caries","Caries.Altalanos.Distalis_-_Caries"] (szekunder caries, amalgámtömés cseréje szükséges)
+
+--- Case 43
+Trans: (11-21) Diastéma a két nagymetsző között, esztétikai zárás javasolt kompozittal.
+  Fog 11: [] (esztétikai zárás kompozittal (diastéma) tervezett)
+  Fog 21: [] (esztétikai zárás kompozittal (diastéma) terv)
+
+--- Case 44
+Trans: (36) Harminchatos fogból vérzik a pulpa, nyitott kezelés.
+  Fog 36: [] (gyökércsatorna kezelés alatt (nyitott kezelés, pulpavérzés))
+
+--- Case 45
+Trans: (25, 26, 27) Bal felső kvadráns három implantátum, stéges elhorgonyzású protézis.
+  Fog 25: ["Implant.Altalanos.IDEGEN"] (stéges elhorgonyzású implantátumon)
+  Fog 26: ["Implant.Altalanos.IDEGEN"] (stéges elhorgonyzású implantátumon)
+  Fog 27: ["Implant.Altalanos.IDEGEN"] (stéges elhorgonyzású implantátumon)
+
+--- Case 46
+Trans: (12) Tizenkettes fog csapja eltört a gyökérben, eltávolítás lehetetlen.
+  Fog 12: ["Altalanos.Radix"] (Csap eltört a gyökérben, eltávolítás lehetetlen)
+
+--- Case 47
+Trans: (47, 48) Negyvenhetes és negyvennyolcas fog nagyon laza, mozgatható, parodontózis.
+  Fog 47: [] (fokozott mobilitás, parodontózis)
+  Fog 48: [] (fokozott mobilitás, parodontózis)
+
+--- Case 48
+Trans: (34) Harmincnégyes fogra egy héj (veneer) készült e.max-ból.
+  Fog 34: ["Hejak.Altalanos.Hej_-_Hejak"] (e-max héj)
+
+--- Case 49
+Trans: (13, 23) Felső szemfogak csücskei lekopva a bruxizmus miatt.
+  Fog 13: [] (Csücsök lekopva bruxizmus miatt)
+  Fog 23: [] (Csücsök lekopva bruxizmus miatt)
+
+--- Case 50
+Trans: (35-37) Harmincötös és harminchetes pilléreken cirkónium híd, harminchatos a hidtag.
+  Fog 35: ["Korona.Altalanos.Cirkonium_-_Korona","Hid.Altalanos.Cirkonium_-_Hid"] ()
+  Fog 36: ["Altalanos.Foghiany","Hid.Altalanos.Cirkonium_-_Hid"] (hiányzik)
+  Fog 37: ["Korona.Altalanos.Cirkonium_-_Korona","Hid.Altalanos.Cirkonium_-_Hid"] ()

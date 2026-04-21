@@ -1,7 +1,7 @@
 [
   {
-    "id": "5bd4f5de-44ce-457b-979e-7deb918a1710",
-    "raw_audio_text": "(44) Negyvennégyes fog vitalitás teszt negatív, periapikális elváltozással.",
+    "id": "ce487fd0-b880-4153-8516-28183bf5f227",
+    "raw_audio_text": "(35-37) Harmincötös és harminchetes pilléreken cirkónium híd, harminchatos a hidtag.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -52,75 +52,344 @@
         "Megjegyzes": ""
       },
       "31": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "32": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "33": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "34": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "35": {
-        "Megjegyzes": ""
-      },
-      "36": {
-        "Megjegyzes": ""
-      },
-      "37": {
-        "Megjegyzes": ""
-      },
-      "38": {
-        "Megjegyzes": ""
-      },
-      "41": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "42": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "vitalitás negatív, periapikális elváltozás",
-        "Peripacialis_elv.": {
+        "Hid": {
           "Altalanos": {
-            "Granuloma_-_Periapicalis_elv.": true
+            "Cirkonium_-_Hid": true
           }
         },
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
         "active_properties": [
-          "Peripacialis_elv..Altalanos.Granuloma_-_Periapicalis_elv."
+          "Korona.Altalanos.Cirkonium_-_Korona",
+          "Hid.Altalanos.Cirkonium_-_Hid"
         ]
       },
-      "45": {
+      "36": {
+        "Hid": {
+          "Altalanos": {
+            "Cirkonium_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Cirkonium_-_Hid"
+        ]
+      },
+      "37": {
+        "Hid": {
+          "Altalanos": {
+            "Cirkonium_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona",
+          "Hid.Altalanos.Cirkonium_-_Hid"
+        ]
+      },
+      "38": {
         "Megjegyzes": "",
         "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
       },
       "46": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "47": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "48": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:51.929314+00:00"
+    "created_at": "2026-04-21T17:34:55.626489+00:00"
   },
   {
-    "id": "0f2e1ef5-8049-4fb9-8c7d-aa85262b6fcc",
-    "raw_audio_text": "(15) Tizenötös fogra kértünk egy kompozit inlayt, előkészítve.",
+    "id": "1cae951a-7224-4239-8517-3fd10fe72627",
+    "raw_audio_text": "(13, 23) Felső szemfogak csücskei lekopva a bruxizmus miatt.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "Csücsök lekopva bruxizmus miatt",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "Csücsök lekopva bruxizmus miatt",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:34:44.477141+00:00"
+  },
+  {
+    "id": "b3a89baa-11f2-4cee-9169-78eb604c2893",
+    "raw_audio_text": "(34) Harmincnégyes fogra egy héj (veneer) készült e.max-ból.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Hejak": {
+          "Altalanos": {
+            "Hej_-_Hejak": true
+          }
+        },
+        "Megjegyzes": "e-max héj",
+        "active_properties": [
+          "Hejak.Altalanos.Hej_-_Hejak"
+        ]
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:34:28.711894+00:00"
+  },
+  {
+    "id": "631896a2-f342-4a8b-94de-f459d16240ea",
+    "raw_audio_text": "(47, 48) Negyvenhetes és negyvennyolcas fog nagyon laza, mozgatható, parodontózis.",
     "result": {
       "11": {
         "Megjegyzes": "",
@@ -139,15 +408,149 @@
         "active_properties": []
       },
       "15": {
-        "Betetek": {
-          "Inlay": {
-            "Kompozit_-_Betetek_Inlay": true
-          }
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "fokozott mobilitás, parodontózis",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "fokozott mobilitás, parodontózis",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:34:13.397444+00:00"
+  },
+  {
+    "id": "0d94fe46-d57e-452a-b5e5-f6d9fab8ff58",
+    "raw_audio_text": "(12) Tizenkettes fog csapja eltört a gyökérben, eltávolítás lehetetlen.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Altalanos": {
+          "Radix": true
         },
-        "Megjegyzes": "kompozit inlay, előkészítve",
+        "Megjegyzes": "Csap eltört a gyökérben, eltávolítás lehetetlen",
         "active_properties": [
-          "Betetek.Inlay.Kompozit_-_Betetek_Inlay"
+          "Altalanos.Radix"
         ]
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "16": {
         "Megjegyzes": "",
@@ -235,11 +638,144 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:40.860668+00:00"
+    "created_at": "2026-04-21T17:34:02.275226+00:00"
   },
   {
-    "id": "c48280f2-9b54-4e0a-b08d-fd244270c42d",
-    "raw_audio_text": "(37, 38) Harminchetes mély cariesa distalisan, harmincnyolcas bölcsességfog impaktált.",
+    "id": "b8c9ec82-d299-4330-a93c-1ecdf459ed3c",
+    "raw_audio_text": "(25, 26, 27) Bal felső kvadráns három implantátum, stéges elhorgonyzású protézis.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "stéges elhorgonyzású implantátumon",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "26": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "stéges elhorgonyzású implantátumon",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "27": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "stéges elhorgonyzású implantátumon",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:33:49.117977+00:00"
+  },
+  {
+    "id": "50a120fc-ebd4-49de-8e22-b1c04d86dd7a",
+    "raw_audio_text": "(36) Harminchatos fogból vérzik a pulpa, nyitott kezelés.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -310,19 +846,978 @@
         "active_properties": []
       },
       "36": {
-        "Megjegyzes": "",
+        "Megjegyzes": "gyökércsatorna kezelés alatt (nyitott kezelés, pulpavérzés)",
         "active_properties": []
       },
       "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:33:38.013432+00:00"
+  },
+  {
+    "id": "23ba93b9-fe62-426d-adb7-2f2f5c3eba04",
+    "raw_audio_text": "(11-21) Diastéma a két nagymetsző között, esztétikai zárás javasolt kompozittal.",
+    "result": {
+      "11": {
+        "Megjegyzes": "esztétikai zárás kompozittal (diastéma) tervezett",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": "esztétikai zárás kompozittal (diastéma) terv",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:33:24.825378+00:00"
+  },
+  {
+    "id": "70114e4e-b961-4857-9042-67e64416d4a3",
+    "raw_audio_text": "(27) Huszonhetes fogon nagy kiterjedésű amalgámtömés cseréje szükséges, secunder caries miatt.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Tomes": {
+          "Amalgam": {
+            "Distalis_-_Tomes_Amalgam": true,
+            "Mesialis_-_Tomes_Amalgam": true,
+            "Occlusalis_-_Tomes_Amalgam": true
+          }
+        },
         "Caries": {
           "Altalanos": {
-            "Distalis_-_Caries": true
+            "Distalis_-_Caries": true,
+            "Mesialis_-_Caries": true,
+            "Occlusalis_-_Caries": true
           }
         },
-        "Megjegyzes": "mély szuvasodás distalisan",
+        "Megjegyzes": "szekunder caries, amalgámtömés cseréje szükséges",
         "active_properties": [
+          "Tomes.Amalgam.Mesialis_-_Tomes_Amalgam",
+          "Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam",
+          "Tomes.Amalgam.Distalis_-_Tomes_Amalgam",
+          "Caries.Altalanos.Mesialis_-_Caries",
+          "Caries.Altalanos.Occlusalis_-_Caries",
           "Caries.Altalanos.Distalis_-_Caries"
         ]
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:33:15.824229+00:00"
+  },
+  {
+    "id": "2862e31e-ddee-4046-82c3-aa895e001665",
+    "raw_audio_text": "(43, 44) Jobb alsó szemfog és kisőrlő kopott, fognyaki érzékenység.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "kopott, fognyaki érzékenység",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "kopott, fognyaki érzékenység",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:33:04.663614+00:00"
+  },
+  {
+    "id": "1063abd7-ce24-494e-8dee-32b8880160c9",
+    "raw_audio_text": "(25) Huszonötös fogból a régi tömés kiesett, másodlagos caries mélyen.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Caries": {
+          "Altalanos": {
+            "Distalis_-_Caries": true,
+            "Mesialis_-_Caries": true,
+            "Occlusalis_-_Caries": true
+          }
+        },
+        "Megjegyzes": "régi tömés hiányzik, másodlagos, mély szuvasodás",
+        "active_properties": [
+          "Caries.Altalanos.Mesialis_-_Caries",
+          "Caries.Altalanos.Occlusalis_-_Caries",
+          "Caries.Altalanos.Distalis_-_Caries"
+        ]
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:32:40.447685+00:00"
+  },
+  {
+    "id": "a3e1eaa3-b622-47de-998a-036af6fbe563",
+    "raw_audio_text": "(43, 44, 45, 46) Alsó fronttól hátra fémkerámia korona a hármason, a többi hídtag fel a hatosig.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "44": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "45": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "46": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:32:23.07781+00:00"
+  },
+  {
+    "id": "aab86657-867b-4895-97b3-fbb7d08d0de5",
+    "raw_audio_text": "(All-on-4) Felső állcsonton négyes All-on-4 implant, a 14, 12, 22, 24 pozíciókban.",
+    "result": {
+      "11": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "12": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "teljes protézis implantátumon",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "13": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "14": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "teljes protézis implantátumon",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "15": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "16": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "17": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "22": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "23": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "24": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "25": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "26": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "27": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "28": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:32:03.462978+00:00"
+  },
+  {
+    "id": "7a67bad3-ca10-4d1b-bfbd-703220a57831",
+    "raw_audio_text": "(38) Harmincnyolcas bölcsességfog félig előtört, pericoronitis.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "38": {
         "Specialis": {
@@ -330,7 +1825,7 @@
             "Impaktalt_fog_-_Specialis": true
           }
         },
-        "Megjegyzes": "",
+        "Megjegyzes": "Félig előtört, pericoronitis",
         "active_properties": [
           "Specialis.Altalanos.Impaktalt_fog_-_Specialis"
         ]
@@ -361,32 +1856,152 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:31.842928+00:00"
+    "created_at": "2026-04-21T17:31:54.07023+00:00"
   },
   {
-    "id": "83122390-db39-4573-88a0-86ace0092f00",
-    "raw_audio_text": "(11) Tizenegyes fog trauma miatt letört incizálisan, ideiglenes tömés.",
+    "id": "f70c65b3-45bc-4131-ba19-0c2a70a5dc6f",
+    "raw_audio_text": "(46) Negyvenhatos fog occlusalis szuvasodás, jelenleg nyitva hagyva (trepanálva).",
     "result": {
       "11": {
-        "Tomes": {
-          "Ideiglenes": {
-            "Incizalis_-_Tomes_Ideiglenes": true
-          }
-        },
-        "Letort_fog": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Caries": {
           "Altalanos": {
-            "Incizalis_-_Letort_fog": true
+            "Occlusalis_-_Caries": true
           }
         },
-        "Megjegyzes": "Trauma miatt incizálisan letört",
+        "Megjegyzes": "Jelenleg nyitva hagyva (trepanálva)",
         "active_properties": [
-          "Tomes.Ideiglenes.Incizalis_-_Tomes_Ideiglenes",
-          "Letort_fog.Altalanos.Incizalis_-_Letort_fog"
+          "Caries.Altalanos.Occlusalis_-_Caries"
+        ]
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:31:42.731518+00:00"
+  },
+  {
+    "id": "44e2b35f-29a4-4ebd-b290-64b01cd18e1a",
+    "raw_audio_text": "(11, 12, 21, 22) Felső négy metszőfogra Ideiglenes műanyag korona.",
+    "result": {
+      "11": {
+        "Korona": {
+          "Altalanos": {
+            "Ideiglenes_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Ideiglenes_-_Korona"
         ]
       },
       "12": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Korona": {
+          "Altalanos": {
+            "Ideiglenes_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Ideiglenes_-_Korona"
+        ]
       },
       "13": {
         "Megjegyzes": "",
@@ -413,28 +2028,50 @@
         "active_properties": []
       },
       "21": {
-        "Megjegyzes": ""
+        "Korona": {
+          "Altalanos": {
+            "Ideiglenes_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Ideiglenes_-_Korona"
+        ]
       },
       "22": {
-        "Megjegyzes": ""
+        "Korona": {
+          "Altalanos": {
+            "Ideiglenes_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Ideiglenes_-_Korona"
+        ]
       },
       "23": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "24": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "25": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "26": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "27": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "28": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "31": {
         "Megjegyzes": ""
@@ -486,11 +2123,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:22.896545+00:00"
+    "created_at": "2026-04-21T17:31:24.984425+00:00"
   },
   {
-    "id": "773f04e9-4cf6-4386-b451-c755c2d32e20",
-    "raw_audio_text": "(24, 25, 26) Huszonnégyes és huszonhatos fém kerámia híd pillérei, huszonötös a hídtag.",
+    "id": "74d05933-ec1a-4b77-8121-814009c704f3",
+    "raw_audio_text": "(24-27) Bal felső kvadránsban teljes híd, a huszonhatos hiányzik.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -546,6 +2183,23 @@
         ]
       },
       "25": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "26": {
         "Hid": {
           "Altalanos": {
             "Fem-keramia_-_Hid": true
@@ -560,7 +2214,7 @@
           "Hid.Altalanos.Fem-keramia_-_Hid"
         ]
       },
-      "26": {
+      "27": {
         "Hid": {
           "Altalanos": {
             "Fem-keramia_-_Hid": true
@@ -576,10 +2230,6 @@
           "Korona.Altalanos.Fem-keramia_-_Korona",
           "Hid.Altalanos.Fem-keramia_-_Hid"
         ]
-      },
-      "27": {
-        "Megjegyzes": "",
-        "active_properties": []
       },
       "28": {
         "Megjegyzes": "",
@@ -635,11 +2285,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:11.886665+00:00"
+    "created_at": "2026-04-21T17:31:08.962153+00:00"
   },
   {
-    "id": "8409600b-d4fb-45e2-a7b9-48321798cd7a",
-    "raw_audio_text": "(45) Negyvenötös fognál komplett radix, extrakció javasolt.",
+    "id": "9b424900-518a-4bb4-9f6b-4a3b067515bf",
+    "raw_audio_text": "(41, 31) Alsó nagymetszők meglazultak, III. fokú mobilitás.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -690,31 +2340,39 @@
         "Megjegyzes": ""
       },
       "31": {
-        "Megjegyzes": ""
+        "Megjegyzes": "mobilitás 3 fok, nagymetszők meglazultak",
+        "active_properties": []
       },
       "32": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "33": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "34": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "35": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "36": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "37": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "38": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "41": {
-        "Megjegyzes": "",
+        "Megjegyzes": "mobilitás 3 fok, nagymetszők meglazultak",
         "active_properties": []
       },
       "42": {
@@ -730,13 +2388,8 @@
         "active_properties": []
       },
       "45": {
-        "Altalanos": {
-          "Radix": true
-        },
-        "Megjegyzes": "extractio javasolt",
-        "active_properties": [
-          "Altalanos.Radix"
-        ]
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "46": {
         "Megjegyzes": "",
@@ -752,11 +2405,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:39:02.801414+00:00"
+    "created_at": "2026-04-21T17:30:55.670263+00:00"
   },
   {
-    "id": "75e5df51-2b1a-440b-854c-79bafb291dc4",
-    "raw_audio_text": "(21, 22) Huszonegyes és huszonkettes egybeöntött fémkerámia korona, huszonkettes szuvas meziálisan.",
+    "id": "d630c43f-646a-45e8-8a16-61fac3da06f4",
+    "raw_audio_text": "(34, 35) Harmincnégyes és harmincötös fémkerámia leplezett korona, egybeöntve.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -783,6 +2436,42 @@
         "Megjegyzes": ""
       },
       "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
         "Korona": {
           "Altalanos": {
             "Fem-keramia_-_Korona": true
@@ -793,12 +2482,7 @@
           "Korona.Altalanos.Fem-keramia_-_Korona"
         ]
       },
-      "22": {
-        "Caries": {
-          "Altalanos": {
-            "Mesialis_-_Caries": true
-          }
-        },
+      "35": {
         "Korona": {
           "Altalanos": {
             "Fem-keramia_-_Korona": true
@@ -806,33 +2490,108 @@
         },
         "Megjegyzes": "egybeöntött",
         "active_properties": [
-          "Korona.Altalanos.Fem-keramia_-_Korona",
-          "Caries.Altalanos.Mesialis_-_Caries"
+          "Korona.Altalanos.Fem-keramia_-_Korona"
         ]
       },
-      "23": {
+      "36": {
         "Megjegyzes": "",
         "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:30:44.547745+00:00"
+  },
+  {
+    "id": "80dc7a32-4f9a-4f04-bfc0-bffdbe4bc149",
+    "raw_audio_text": "(16) Tizenhatos fog palatinális gyökere amputálva lett (hemiszekció).",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "Palatinális gyökér amputálva (hemiszekció)",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
       },
       "24": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "25": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "26": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "27": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "28": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "31": {
         "Megjegyzes": ""
@@ -884,11 +2643,211 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:38:53.915092+00:00"
+    "created_at": "2026-04-21T17:30:33.3102+00:00"
   },
   {
-    "id": "c1ff30d7-2d0d-4c2c-874a-7f89471eb05b",
-    "raw_audio_text": "(36) Harminchatos pozícióban egy Straumann implantátum.",
+    "id": "bbe11397-be01-4e94-b7cd-44d449d74f2a",
+    "raw_audio_text": "Felső fogívben teljes kivehető protézis.",
+    "result": {
+      "11": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "12": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "13": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "14": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "15": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "16": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "17": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "22": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "23": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "24": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "25": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "26": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "27": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "28": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:30:03.127481+00:00"
+  },
+  {
+    "id": "6242565b-f661-4394-9058-af351f799f1c",
+    "raw_audio_text": "(37) Harminchetes fogra arany onlay.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -959,19 +2918,19 @@
         "active_properties": []
       },
       "36": {
-        "Implant": {
-          "Altalanos": {
-            "Straumann": true
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Betetek": {
+          "Onlay": {
+            "Arany_-_Betetek_Onlay": true
           }
         },
         "Megjegyzes": "",
         "active_properties": [
-          "Implant.Altalanos.Straumann"
+          "Betetek.Onlay.Arany_-_Betetek_Onlay"
         ]
-      },
-      "37": {
-        "Megjegyzes": "",
-        "active_properties": []
       },
       "38": {
         "Megjegyzes": "",
@@ -1003,11 +2962,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:38:44.831999+00:00"
+    "created_at": "2026-04-21T17:29:52.77188+00:00"
   },
   {
-    "id": "953d6a6f-306a-4a9e-9097-7298af35543c",
-    "raw_audio_text": "(41, 42) Negyvenegyes és negyvenkettes fog hiányzik.",
+    "id": "55177022-87da-4289-a4d2-d1840f09b0f6",
+    "raw_audio_text": "(22) Huszonkettes fog palatinális felszínén üvegszálas csap és esztétikus tömés.",
     "result": {
       "11": {
         "Megjegyzes": ""
@@ -1034,422 +2993,47 @@
         "Megjegyzes": ""
       },
       "21": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "22": {
-        "Megjegyzes": ""
-      },
-      "23": {
-        "Megjegyzes": ""
-      },
-      "24": {
-        "Megjegyzes": ""
-      },
-      "25": {
-        "Megjegyzes": ""
-      },
-      "26": {
-        "Megjegyzes": ""
-      },
-      "27": {
-        "Megjegyzes": ""
-      },
-      "28": {
-        "Megjegyzes": ""
-      },
-      "31": {
-        "Megjegyzes": ""
-      },
-      "32": {
-        "Megjegyzes": ""
-      },
-      "33": {
-        "Megjegyzes": ""
-      },
-      "34": {
-        "Megjegyzes": ""
-      },
-      "35": {
-        "Megjegyzes": ""
-      },
-      "36": {
-        "Megjegyzes": ""
-      },
-      "37": {
-        "Megjegyzes": ""
-      },
-      "38": {
-        "Megjegyzes": ""
-      },
-      "41": {
-        "Altalanos": {
-          "Foghiany": true
-        },
-        "Megjegyzes": "hiányzik",
-        "active_properties": [
-          "Altalanos.Foghiany"
-        ]
-      },
-      "42": {
-        "Altalanos": {
-          "Foghiany": true
-        },
-        "Megjegyzes": "hiányzik",
-        "active_properties": [
-          "Altalanos.Foghiany"
-        ]
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "45": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "46": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "47": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "48": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:38:35.845427+00:00"
-  },
-  {
-    "id": "40416491-2a3a-413e-8933-f2ab52a64880",
-    "raw_audio_text": "(14) Tizennégyes fog gyökérkezelve, esztétikus tömés okluzálisan és disztálisan.",
-    "result": {
-      "11": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
         "Tomes": {
           "Esztetikus": {
-            "Distalis_-_Tomes_Esztetikus": true,
-            "Occlusalis_-_Tomes_Esztetikus": true
+            "Pal_Ling_-_Tomes_Esztetikus": true
           }
         },
-        "Megjegyzes": "gyökértömött",
-        "Gyokertomes": {
-          "Vegleges": {
-            "Ossz._gyoker_-_Gyokertomes_Vegleges": true
-          }
-        },
-        "active_properties": [
-          "Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges",
-          "Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus",
-          "Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus"
-        ]
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": ""
-      },
-      "22": {
-        "Megjegyzes": ""
-      },
-      "23": {
-        "Megjegyzes": ""
-      },
-      "24": {
-        "Megjegyzes": ""
-      },
-      "25": {
-        "Megjegyzes": ""
-      },
-      "26": {
-        "Megjegyzes": ""
-      },
-      "27": {
-        "Megjegyzes": ""
-      },
-      "28": {
-        "Megjegyzes": ""
-      },
-      "31": {
-        "Megjegyzes": ""
-      },
-      "32": {
-        "Megjegyzes": ""
-      },
-      "33": {
-        "Megjegyzes": ""
-      },
-      "34": {
-        "Megjegyzes": ""
-      },
-      "35": {
-        "Megjegyzes": ""
-      },
-      "36": {
-        "Megjegyzes": ""
-      },
-      "37": {
-        "Megjegyzes": ""
-      },
-      "38": {
-        "Megjegyzes": ""
-      },
-      "41": {
-        "Megjegyzes": ""
-      },
-      "42": {
-        "Megjegyzes": ""
-      },
-      "43": {
-        "Megjegyzes": ""
-      },
-      "44": {
-        "Megjegyzes": ""
-      },
-      "45": {
-        "Megjegyzes": ""
-      },
-      "46": {
-        "Megjegyzes": ""
-      },
-      "47": {
-        "Megjegyzes": ""
-      },
-      "48": {
-        "Megjegyzes": ""
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:38:26.91277+00:00"
-  },
-  {
-    "id": "3c44cd04-b326-46f0-9416-2097984bb0cd",
-    "raw_audio_text": "(41, 42) Negyvenegyes és negyvenkettes fog hiányzik.",
-    "result": {
-      "11": {
-        "Megjegyzes": ""
-      },
-      "12": {
-        "Megjegyzes": ""
-      },
-      "13": {
-        "Megjegyzes": ""
-      },
-      "14": {
-        "Megjegyzes": ""
-      },
-      "15": {
-        "Megjegyzes": ""
-      },
-      "16": {
-        "Megjegyzes": ""
-      },
-      "17": {
-        "Megjegyzes": ""
-      },
-      "18": {
-        "Megjegyzes": ""
-      },
-      "21": {
-        "Megjegyzes": ""
-      },
-      "22": {
-        "Megjegyzes": ""
-      },
-      "23": {
-        "Megjegyzes": ""
-      },
-      "24": {
-        "Megjegyzes": ""
-      },
-      "25": {
-        "Megjegyzes": ""
-      },
-      "26": {
-        "Megjegyzes": ""
-      },
-      "27": {
-        "Megjegyzes": ""
-      },
-      "28": {
-        "Megjegyzes": ""
-      },
-      "31": {
-        "Megjegyzes": ""
-      },
-      "32": {
-        "Megjegyzes": ""
-      },
-      "33": {
-        "Megjegyzes": ""
-      },
-      "34": {
-        "Megjegyzes": ""
-      },
-      "35": {
-        "Megjegyzes": ""
-      },
-      "36": {
-        "Megjegyzes": ""
-      },
-      "37": {
-        "Megjegyzes": ""
-      },
-      "38": {
-        "Megjegyzes": ""
-      },
-      "41": {
         "Altalanos": {
-          "Foghiany": true
+          "Parapulpalis_csap": true
         },
-        "Megjegyzes": "hiányzik",
+        "Megjegyzes": "üvegszálas csap",
         "active_properties": [
-          "Altalanos.Foghiany"
+          "Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus",
+          "Altalanos.Parapulpalis_csap"
         ]
-      },
-      "42": {
-        "Altalanos": {
-          "Foghiany": true
-        },
-        "Megjegyzes": "hiányzik",
-        "active_properties": [
-          "Altalanos.Foghiany"
-        ]
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "45": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "46": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "47": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "48": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:38:06.514547+00:00"
-  },
-  {
-    "id": "6be2dc2b-2193-43d0-95f0-d1d3c64b2386",
-    "raw_audio_text": "(14) Tizennégyes fog gyökérkezelve, esztétikus tömés okluzálisan és disztálisan.",
-    "result": {
-      "11": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Tomes": {
-          "Esztetikus": {
-            "Distalis_-_Tomes_Esztetikus": true,
-            "Occlusalis_-_Tomes_Esztetikus": true
-          }
-        },
-        "Megjegyzes": "gyökértömött",
-        "Gyokertomes": {
-          "Vegleges": {
-            "Ossz._gyoker_-_Gyokertomes_Vegleges": true
-          }
-        },
-        "active_properties": [
-          "Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus",
-          "Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus",
-          "Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges"
-        ]
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": ""
-      },
-      "22": {
-        "Megjegyzes": ""
       },
       "23": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "24": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "25": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "26": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "27": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "28": {
-        "Megjegyzes": ""
+        "Megjegyzes": "",
+        "active_properties": []
       },
       "31": {
         "Megjegyzes": ""
@@ -1501,11 +3085,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:37:55.403188+00:00"
+    "created_at": "2026-04-21T17:29:43.880834+00:00"
   },
   {
-    "id": "6664d8c4-ece7-44fa-895b-9306a19a0c6d",
-    "raw_audio_text": "(14) Tizennégyes fog gyökérkezelve, esztétikus tömés okluzálisan és disztálisan.",
+    "id": "dd8ec7aa-230d-4fae-b23f-5b9a66445508",
+    "raw_audio_text": "(14) Tizennégyes fog gyökércsatorna tisztítva, CaOH2 paszta, ideiglenes tömés.",
     "result": {
       "11": {
         "Megjegyzes": "",
@@ -1520,557 +3104,15 @@
         "active_properties": []
       },
       "14": {
-        "Tomes": {
-          "Esztetikus": {
-            "Distalis_-_Tomes_Esztetikus": true,
-            "Occlusalis_-_Tomes_Esztetikus": true
-          }
-        },
-        "Megjegyzes": "gyökértömött",
-        "Gyokertomes": {
-          "Vegleges": {
-            "Ossz._gyoker_-_Gyokertomes_Vegleges": true
-          }
-        },
-        "active_properties": [
-          "Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges",
-          "Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus",
-          "Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus"
-        ]
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": ""
-      },
-      "22": {
-        "Megjegyzes": ""
-      },
-      "23": {
-        "Megjegyzes": ""
-      },
-      "24": {
-        "Megjegyzes": ""
-      },
-      "25": {
-        "Megjegyzes": ""
-      },
-      "26": {
-        "Megjegyzes": ""
-      },
-      "27": {
-        "Megjegyzes": ""
-      },
-      "28": {
-        "Megjegyzes": ""
-      },
-      "31": {
-        "Megjegyzes": ""
-      },
-      "32": {
-        "Megjegyzes": ""
-      },
-      "33": {
-        "Megjegyzes": ""
-      },
-      "34": {
-        "Megjegyzes": ""
-      },
-      "35": {
-        "Megjegyzes": ""
-      },
-      "36": {
-        "Megjegyzes": ""
-      },
-      "37": {
-        "Megjegyzes": ""
-      },
-      "38": {
-        "Megjegyzes": ""
-      },
-      "41": {
-        "Megjegyzes": ""
-      },
-      "42": {
-        "Megjegyzes": ""
-      },
-      "43": {
-        "Megjegyzes": ""
-      },
-      "44": {
-        "Megjegyzes": ""
-      },
-      "45": {
-        "Megjegyzes": ""
-      },
-      "46": {
-        "Megjegyzes": ""
-      },
-      "47": {
-        "Megjegyzes": ""
-      },
-      "48": {
-        "Megjegyzes": ""
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:37:31.063624+00:00"
-  },
-  {
-    "id": "f2645b4d-f521-4c77-80c0-44995096a2cb",
-    "raw_audio_text": "(44) Negyvennégyes fog vitalitás teszt negatív, periapikális elváltozással.",
-    "result": {
-      "11": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "22": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "23": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "24": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "25": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "26": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "27": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "28": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "31": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "32": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "33": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "34": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "35": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "36": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "37": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "38": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "41": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "42": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "Vitalitás teszt negatív, periapikális elváltozással.",
-        "active_properties": []
-      },
-      "45": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "46": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "47": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "48": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:36:49.97921+00:00"
-  },
-  {
-    "id": "5f66ef0a-3b2a-4e12-8c96-3cbbb1812acf",
-    "raw_audio_text": "(15) Tizenötös fogra kértünk egy kompozit inlayt, előkészítve.",
-    "result": {
-      "11": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "15": {
-        "Megjegyzes": "kompozit inlay előkészítve",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "22": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "23": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "24": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "25": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "26": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "27": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "28": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "31": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "32": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "33": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "34": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "35": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "36": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "37": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "38": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "41": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "42": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "45": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "46": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "47": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "48": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:36:39.34368+00:00"
-  },
-  {
-    "id": "08774d9a-a7f8-40b8-8026-30c116be665d",
-    "raw_audio_text": "(37, 38) Harminchetes mély cariesa distalisan, harmincnyolcas bölcsességfog impaktált.",
-    "result": {
-      "11": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "22": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "23": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "24": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "25": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "26": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "27": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "28": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "31": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "32": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "33": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "34": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "35": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "36": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "37": {
-        "Caries": {
-          "Altalanos": {
-            "D": true
-          }
-        },
-        "Megjegyzes": "",
-        "active_properties": [
-          "Caries.Altalanos.D"
-        ]
-      },
-      "38": {
-        "Megjegyzes": "impaktált bölcsességfog",
-        "active_properties": []
-      },
-      "41": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "42": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "43": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "44": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "45": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "46": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "47": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "48": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "Megjegyzes_fo": ""
-    },
-    "created_at": "2026-04-20T20:36:29.891986+00:00"
-  },
-  {
-    "id": "2924c7c7-adfc-4957-8afc-49f7ca825047",
-    "raw_audio_text": "(11) Tizenegyes fog trauma miatt letört incizálisan, ideiglenes tömés.",
-    "result": {
-      "11": {
         "Tomes": {
           "Ideiglenes": {
-            "Incisalis": true
+            "Occlusalis_-_Tomes_Ideiglenes": true
           }
         },
-        "Megjegyzes": "Trauma miatt incizálisan letört, ideiglenes tömés.",
+        "Megjegyzes": "gyökérkezelés alatt, CaOH2 paszta",
         "active_properties": [
-          "Tomes.Ideiglenes.Incisalis"
+          "Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"
         ]
-      },
-      "12": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Megjegyzes": "",
-        "active_properties": []
       },
       "15": {
         "Megjegyzes": "",
@@ -2089,68 +3131,156 @@
         "active_properties": []
       },
       "21": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "22": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "23": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "24": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "25": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "26": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "27": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "28": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "31": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "32": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "33": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "34": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "35": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "36": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "37": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "38": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:29:32.872525+00:00"
+  },
+  {
+    "id": "ff243bc2-60e6-4cf9-9b04-644178415865",
+    "raw_audio_text": "(45) Negyvenötös implantátum felszabadítva, gyógyuló csavar behelyezve.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
       },
       "41": {
         "Megjegyzes": "",
@@ -2169,8 +3299,15 @@
         "active_properties": []
       },
       "45": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "Implantátum felszabadítva, gyógyuló csavar behelyezve",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
       },
       "46": {
         "Megjegyzes": "",
@@ -2186,11 +3323,11 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:36:20.405708+00:00"
+    "created_at": "2026-04-21T17:29:23.693967+00:00"
   },
   {
-    "id": "1ba53663-54e2-46d7-8bc4-56d1c6c8db00",
-    "raw_audio_text": "(24, 25, 26) Huszonnégyes és huszonhatos fém kerámia híd pillérei, huszonötös a hídtag.",
+    "id": "788aca3e-2ad6-4f8f-9027-22def920ce58",
+    "raw_audio_text": "(18, 28) Felső bölcsességfogakat tegnap húzták.",
     "result": {
       "11": {
         "Megjegyzes": "",
@@ -2221,8 +3358,271 @@
         "active_properties": []
       },
       "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "Tegnap húzták",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
         "Megjegyzes": "",
         "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "Tegnap húzták",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:29:10.383553+00:00"
+  },
+  {
+    "id": "65ce4f86-7125-4922-b1b0-60d1f93cf516",
+    "raw_audio_text": "(31-42) Alsó frontfogak sínnezve lettek periodontális okokból, kompozittal.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Tomes": {
+          "Esztetikus": {
+            "Eszt._tomes_(alt.)_-_Tomes_Esztetikus": true
+          }
+        },
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": [
+          "Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"
+        ]
+      },
+      "42": {
+        "Tomes": {
+          "Esztetikus": {
+            "Eszt._tomes_(alt.)_-_Tomes_Esztetikus": true
+          }
+        },
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": [
+          "Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"
+        ]
+      },
+      "43": {
+        "Tomes": {
+          "Esztetikus": {
+            "Eszt._tomes_(alt.)_-_Tomes_Esztetikus": true
+          }
+        },
+        "Megjegyzes": "Periodontális okból sínnezve, kompozittal rögzítve (31-42 sín része)",
+        "active_properties": [
+          "Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus"
+        ]
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:28:44.619093+00:00"
+  },
+  {
+    "id": "91feb64c-66b1-449e-af00-32c5eb3a4f8b",
+    "raw_audio_text": "(24, 25, 26) Huszonnégyestől huszonhatosig implantátumokon fémkerámia híd.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
       },
       "21": {
         "Megjegyzes": "",
@@ -2239,50 +3639,62 @@
       "24": {
         "Hid": {
           "Altalanos": {
-            "Piller": true
+            "Fem-keramia_-_Hid": true
           }
         },
         "Korona": {
           "Altalanos": {
-            "FemKeramia": true
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
           }
         },
         "Megjegyzes": "",
         "active_properties": [
-          "Korona.Altalanos.FemKeramia",
-          "Hid.Altalanos.Piller"
+          "Implant.Altalanos.IDEGEN",
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
         ]
       },
       "25": {
         "Hid": {
           "Altalanos": {
-            "Hidtag": true
+            "Fem-keramia_-_Hid": true
           }
         },
         "Altalanos": {
           "Foghiany": true
         },
-        "Megjegyzes": "",
+        "Megjegyzes": "hiányzik",
         "active_properties": [
           "Altalanos.Foghiany",
-          "Hid.Altalanos.Hidtag"
+          "Hid.Altalanos.Fem-keramia_-_Hid"
         ]
       },
       "26": {
         "Hid": {
           "Altalanos": {
-            "Piller": true
+            "Fem-keramia_-_Hid": true
           }
         },
         "Korona": {
           "Altalanos": {
-            "FemKeramia": true
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
           }
         },
         "Megjegyzes": "",
         "active_properties": [
-          "Korona.Altalanos.FemKeramia",
-          "Hid.Altalanos.Piller"
+          "Implant.Altalanos.IDEGEN",
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
         ]
       },
       "27": {
@@ -2292,6 +3704,110 @@
       "28": {
         "Megjegyzes": "",
         "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T17:28:31.360561+00:00"
+  },
+  {
+    "id": "abfacfa2-9d52-42f4-aef2-58604fc64a1b",
+    "raw_audio_text": "(36, 46) Alsó hatosok hiányoznak, rágófelület nélkül.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
       },
       "31": {
         "Megjegyzes": "",
@@ -2314,8 +3830,13 @@
         "active_properties": []
       },
       "36": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
       },
       "37": {
         "Megjegyzes": "",
@@ -2346,8 +3867,13 @@
         "active_properties": []
       },
       "46": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik, rágófelület nélkül",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
       },
       "47": {
         "Megjegyzes": "",
@@ -2359,15 +3885,22 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:36:09.031846+00:00"
+    "created_at": "2026-04-21T17:28:18.170316+00:00"
   },
   {
-    "id": "802886a1-8cd0-4887-a8fc-a8e83a0b8651",
-    "raw_audio_text": "(45) Negyvenötös fognál komplett radix, extrakció javasolt.",
+    "id": "47cdac34-8315-4012-88ee-41f6e42b05dc",
+    "raw_audio_text": "(11, 21) Tizenegyes és huszonegyes fogakra Zirconkorona lett ragasztva.",
     "result": {
       "11": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
         "Megjegyzes": "",
-        "active_properties": []
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
       },
       "12": {
         "Megjegyzes": "",
@@ -2398,8 +3931,15 @@
         "active_properties": []
       },
       "21": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
         "Megjegyzes": "",
-        "active_properties": []
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
       },
       "22": {
         "Megjegyzes": "",
@@ -2430,76 +3970,179 @@
         "active_properties": []
       },
       "31": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "32": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "33": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "34": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "35": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "36": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "37": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "38": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "41": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "42": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "43": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "44": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "45": {
-        "Megjegyzes": "Komplett radix, extrakció javasolt.",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "46": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "47": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "48": {
-        "Megjegyzes": "",
-        "active_properties": []
+        "Megjegyzes": ""
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:36:01.537195+00:00"
+    "created_at": "2026-04-21T17:28:02.391776+00:00"
   },
   {
-    "id": "38ff5362-67a6-456e-b690-35cbf65e55ef",
-    "raw_audio_text": "(21, 22) Huszonegyes és huszonkettes egybeöntött fémkerámia korona, huszonkettes szuvas meziálisan.",
+    "id": "ce1284c7-5746-45e0-9469-987dc8c3aa36",
+    "raw_audio_text": "(26) Huszonhatos fog fáj a hidegre, okkluzálisan inlay, a palatinális csücsök letört.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Betetek": {
+          "Inlay": {
+            "Kompozit_-_Betetek_Inlay": true
+          }
+        },
+        "Megjegyzes": "Palatinális csücsök letört; hidegingerlékenység",
+        "active_properties": [
+          "Betetek.Inlay.Kompozit_-_Betetek_Inlay"
+        ]
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:59:42.575441+00:00"
+  },
+  {
+    "id": "36eb9bc2-1e6f-4e98-84b3-b706ec92b428",
+    "raw_audio_text": "(13, 23) Tizenhármas és huszonhármas szemfogak kopottak, nyaki szuvasodással.",
     "result": {
       "11": {
         "Megjegyzes": "",
@@ -2510,55 +4153,1533 @@
         "active_properties": []
       },
       "13": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "14": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "15": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "16": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "17": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "18": {
-        "Megjegyzes": "",
-        "active_properties": []
-      },
-      "21": {
-        "Korona": {
-          "Altalanos": {
-            "FemKeramia": true
-          }
-        },
-        "Megjegyzes": "egybeöntött",
-        "active_properties": [
-          "Korona.Altalanos.FemKeramia"
-        ]
-      },
-      "22": {
         "Caries": {
           "Altalanos": {
-            "M": true
+            "Gingivo_B._-_Caries": true
           }
         },
+        "Megjegyzes": "kopott fog",
+        "active_properties": [
+          "Caries.Altalanos.Gingivo_B._-_Caries"
+        ]
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Caries": {
+          "Altalanos": {
+            "Gingivo_B._-_Caries": true
+          }
+        },
+        "Megjegyzes": "kopott fog",
+        "active_properties": [
+          "Caries.Altalanos.Gingivo_B._-_Caries"
+        ]
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:59:25.353177+00:00"
+  },
+  {
+    "id": "2e430456-9a07-4be9-b0f0-db536d11eba2",
+    "raw_audio_text": "(31) Harmincegyes fog mobilis, elmozdult, parodontális tasak.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "mobilis, elmozdult, parodontális tasak",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:59:12.210101+00:00"
+  },
+  {
+    "id": "31d4f977-2636-4d85-b261-82e19d1ac23d",
+    "raw_audio_text": "(36) Harminchatos implantátumon csavarozható fémkerámia korona.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
         "Korona": {
           "Altalanos": {
-            "FemKeramia": true
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "csavarozható korona",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN",
+          "Korona.Altalanos.Fem-keramia_-_Korona"
+        ]
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:59:03.230087+00:00"
+  },
+  {
+    "id": "ef86fecd-08b9-48a9-aca9-3126a343be64",
+    "raw_audio_text": "(41-44) Negyvenegyes, negyvenkettes, negyvenhármas, negyvennégyes cirkónium koronák.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
           }
         },
         "Megjegyzes": "egybeöntött",
         "active_properties": [
-          "Korona.Altalanos.FemKeramia",
-          "Caries.Altalanos.M"
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "42": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "43": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "44": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "egybeöntött",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:58:45.805378+00:00"
+  },
+  {
+    "id": "7907e11c-ffb4-440f-81d8-218c26e5c079",
+    "raw_audio_text": "(18) Tizennyolcas bölcsességfog csírahiány.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "Csírahiány",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:58:36.727188+00:00"
+  },
+  {
+    "id": "1242c667-9501-442e-8b1b-7baad8d0df86",
+    "raw_audio_text": "(21, 22) Huszonegyes fogba gyökérkezelést kezdtünk, huszonkettes ideiglenes tömés.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "gyökércsatorna kezelés alatt",
+        "active_properties": []
+      },
+      "22": {
+        "Tomes": {
+          "Ideiglenes": {
+            "Occlusalis_-_Tomes_Ideiglenes": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"
+        ]
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:58:27.692093+00:00"
+  },
+  {
+    "id": "f35a3e96-f508-487c-b524-4c28fb9eddf0",
+    "raw_audio_text": "(14-17) Tizennégyestől tizenhetesig fémkerámia híd, de a tizenhatos hiányzik!",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "15": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "16": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "17": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:58:10.301665+00:00"
+  },
+  {
+    "id": "f65cbe82-a620-494d-90f6-67fa136abaa8",
+    "raw_audio_text": "(34, 35) Harmincnégyes és harmincötös egyaránt csapos fog előkészített koronával.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "csapos fog, előkészített korona",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "csapos fog, előkészített korona",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:57:56.972642+00:00"
+  },
+  {
+    "id": "49ab9421-6800-46d8-ab15-c1c3df8a4878",
+    "raw_audio_text": "(48) Negyvennyolcas fogban amalgám tömés, fogbélgyulladás.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Tomes": {
+          "Amalgam": {
+            "Occlusalis_-_Tomes_Amalgam": true
+          }
+        },
+        "Megjegyzes": "fogbélgyulladás (pulpitis)",
+        "active_properties": [
+          "Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam"
+        ]
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-21T09:57:45.464621+00:00"
+  },
+  {
+    "id": "8160db8e-148f-420d-abdf-ca4ceb3b0591",
+    "raw_audio_text": "Felső fogívben teljes kivehető protézis.",
+    "result": {
+      "11": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "12": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "13": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "14": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "15": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "16": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "17": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "22": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "23": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "24": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "25": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "26": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "27": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "28": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:48:31.131759+00:00"
+  },
+  {
+    "id": "953865e1-5a93-49ed-8386-dab3cdc67a2f",
+    "raw_audio_text": "(37) Harminchetes fogra arany onlay.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Betetek": {
+          "Onlay": {
+            "Arany_-_Betetek_Onlay": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Betetek.Onlay.Arany_-_Betetek_Onlay"
+        ]
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:48:22.225794+00:00"
+  },
+  {
+    "id": "61545be8-427d-432f-a794-a0b7656918a3",
+    "raw_audio_text": "(22) Huszonkettes fog palatinális felszínén üvegszálas csap és esztétikus tömés.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Tomes": {
+          "Esztetikus": {
+            "Pal_Ling_-_Tomes_Esztetikus": true
+          }
+        },
+        "Megjegyzes": "üvegszálas csap",
+        "active_properties": [
+          "Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus"
         ]
       },
       "23": {
@@ -2651,6 +5772,935 @@
       },
       "Megjegyzes_fo": ""
     },
-    "created_at": "2026-04-20T20:35:51.804386+00:00"
+    "created_at": "2026-04-20T20:48:08.235937+00:00"
+  },
+  {
+    "id": "e0178216-f41b-4b7c-8b5d-8bf60bd9f650",
+    "raw_audio_text": "(14) Tizennégyes fog gyökércsatorna tisztítva, CaOH2 paszta, ideiglenes tömés.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Tomes": {
+          "Ideiglenes": {
+            "Occlusalis_-_Tomes_Ideiglenes": true
+          }
+        },
+        "Megjegyzes": "gyökérkezelés alatt, CaOH2 paszta",
+        "active_properties": [
+          "Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes"
+        ]
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:59.383408+00:00"
+  },
+  {
+    "id": "74c0b81a-ecc8-4c5b-a4d8-e8986909ff40",
+    "raw_audio_text": "(45) Negyvenötös implantátum felszabadítva, gyógyuló csavar behelyezve.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "Implantátum felszabadítva, gyógyuló csavar behelyezve",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN"
+        ]
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:50.548971+00:00"
+  },
+  {
+    "id": "5e51c60c-cbdd-4df2-aac2-c8df8013d21f",
+    "raw_audio_text": "(18, 28) Felső bölcsességfogakat tegnap húzták.",
+    "result": {
+      "11": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "Tegnap húzták",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "Tegnap húzták",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:39.557849+00:00"
+  },
+  {
+    "id": "7e45470b-ca44-4ad5-a934-a47c7b9cbe5c",
+    "raw_audio_text": "(31-42) Alsó frontfogak sínnezve lettek periodontális okokból, kompozittal.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "Periodontális sínezés, kompozit sín (31-42 tartomány)",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "Periodontális sínezés, kompozit sín (31-42 tartomány)",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "Periodontális sínezés, kompozit sín (31-42 tartomány)",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "Periodontális sínezés, kompozit sín (31-42 tartomány)",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:24.448076+00:00"
+  },
+  {
+    "id": "692663ba-c0fa-419c-997b-a105659992db",
+    "raw_audio_text": "(24, 25, 26) Huszonnégyestől huszonhatosig implantátumokon fémkerámia híd.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN",
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "25": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "26": {
+        "Hid": {
+          "Altalanos": {
+            "Fem-keramia_-_Hid": true
+          }
+        },
+        "Korona": {
+          "Altalanos": {
+            "Fem-keramia_-_Korona": true
+          }
+        },
+        "Implant": {
+          "Altalanos": {
+            "IDEGEN": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Implant.Altalanos.IDEGEN",
+          "Korona.Altalanos.Fem-keramia_-_Korona",
+          "Hid.Altalanos.Fem-keramia_-_Hid"
+        ]
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": ""
+      },
+      "32": {
+        "Megjegyzes": ""
+      },
+      "33": {
+        "Megjegyzes": ""
+      },
+      "34": {
+        "Megjegyzes": ""
+      },
+      "35": {
+        "Megjegyzes": ""
+      },
+      "36": {
+        "Megjegyzes": ""
+      },
+      "37": {
+        "Megjegyzes": ""
+      },
+      "38": {
+        "Megjegyzes": ""
+      },
+      "41": {
+        "Megjegyzes": ""
+      },
+      "42": {
+        "Megjegyzes": ""
+      },
+      "43": {
+        "Megjegyzes": ""
+      },
+      "44": {
+        "Megjegyzes": ""
+      },
+      "45": {
+        "Megjegyzes": ""
+      },
+      "46": {
+        "Megjegyzes": ""
+      },
+      "47": {
+        "Megjegyzes": ""
+      },
+      "48": {
+        "Megjegyzes": ""
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:11.36545+00:00"
+  },
+  {
+    "id": "2357f8f5-09f2-490a-beeb-bf4dda91ab71",
+    "raw_audio_text": "(36, 46) Alsó hatosok hiányoznak, rágófelület nélkül.",
+    "result": {
+      "11": {
+        "Megjegyzes": ""
+      },
+      "12": {
+        "Megjegyzes": ""
+      },
+      "13": {
+        "Megjegyzes": ""
+      },
+      "14": {
+        "Megjegyzes": ""
+      },
+      "15": {
+        "Megjegyzes": ""
+      },
+      "16": {
+        "Megjegyzes": ""
+      },
+      "17": {
+        "Megjegyzes": ""
+      },
+      "18": {
+        "Megjegyzes": ""
+      },
+      "21": {
+        "Megjegyzes": ""
+      },
+      "22": {
+        "Megjegyzes": ""
+      },
+      "23": {
+        "Megjegyzes": ""
+      },
+      "24": {
+        "Megjegyzes": ""
+      },
+      "25": {
+        "Megjegyzes": ""
+      },
+      "26": {
+        "Megjegyzes": ""
+      },
+      "27": {
+        "Megjegyzes": ""
+      },
+      "28": {
+        "Megjegyzes": ""
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Altalanos": {
+          "Foghiany": true
+        },
+        "Megjegyzes": "hiányzik, rágófelület nélkül",
+        "active_properties": [
+          "Altalanos.Foghiany"
+        ]
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:47:00.304266+00:00"
+  },
+  {
+    "id": "c24e9808-4832-48e9-bf20-8becf3656103",
+    "raw_audio_text": "(11, 21) Tizenegyes és huszonegyes fogakra Zirconkorona lett ragasztva.",
+    "result": {
+      "11": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "12": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "13": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "14": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "15": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "16": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "17": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "18": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "21": {
+        "Korona": {
+          "Altalanos": {
+            "Cirkonium_-_Korona": true
+          }
+        },
+        "Megjegyzes": "",
+        "active_properties": [
+          "Korona.Altalanos.Cirkonium_-_Korona"
+        ]
+      },
+      "22": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "23": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "24": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "25": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "26": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "27": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "28": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "31": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "32": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "33": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "34": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "35": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "36": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "37": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "38": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "41": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "42": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "43": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "44": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "45": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "46": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "47": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "48": {
+        "Megjegyzes": "",
+        "active_properties": []
+      },
+      "Megjegyzes_fo": ""
+    },
+    "created_at": "2026-04-20T20:46:45.123515+00:00"
   }
 ]

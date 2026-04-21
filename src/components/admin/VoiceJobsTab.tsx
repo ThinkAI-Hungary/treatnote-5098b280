@@ -29,9 +29,20 @@ interface VoiceJob {
     trace_logs?: Array<{ timestamp: string, node: string, status: 'processing' | 'completed' | 'error', details?: any }>;
     raw_audio_text?: string | null;
     claude_cleaned_text?: string | null;
+    claude_cleaned_text?: string | null;
+    trace_info?: any;
     // joined fields
     users?: { full_name: string; email: string };
     companies?: { name: string };
+    
+    // Virtual fields
+    job_type: 'native' | 'legacy';
+    complaints?: Array<{
+        id: string;
+        complaint_text: string;
+        created_at: string;
+        users?: { full_name: string };
+    }>;
 }
 
 const STATUS_CONFIG = {
@@ -45,23 +56,77 @@ export function VoiceJobsTab() {
     const [loading, setLoading] = useState(true);
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string, type: 'native' | 'legacy' } | null>(null);
     const [deleting, setDeleting] = useState(false);
+    
+    const [filterSource, setFilterSource] = useState<'all' | 'native' | 'legacy'>('all');
 
     const fetchJobs = useCallback(async () => {
         setLoading(true);
-        // Removed joins since foreign keys might not be defined
-        const { data, error } = await supabase
-            .from('native_voice_jobs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(100);
+        try {
+            const [nativeRes, legacyRes] = await Promise.all([
+                supabase
+                    .from('native_voice_jobs')
+                    .select('*, users:user_id(full_name, email), companies:company_id(name)')
+                    .order('created_at', { ascending: false })
+                    .limit(100),
+                supabase
+                    .from('voice_jobs')
+                    .select('*, users:user_id(full_name, email), companies:company_id(name)')
+                    .order('created_at', { ascending: false })
+                    .limit(100)
+            ]);
 
-        if (error) {
+            if (nativeRes.error) console.error(nativeRes.error);
+            if (legacyRes.error) console.error(legacyRes.error);
+
+            const nativeData = (nativeRes.data || []).map(j => ({ ...j, job_type: 'native' as const, type: j.mode || 'ismeretlen' }));
+            const legacyData = (legacyRes.data || []).map(j => ({ ...j, job_type: 'legacy' as const, type: j.mode || 'ismeretlen' }));
+
+            let merged = [...nativeData, ...legacyData].sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+
+            // Fetch complaints for these jobs
+            const jobIds = merged.map(j => j.id);
+            let complaintsByJob: Record<string, any[]> = {};
+            if (jobIds.length > 0) {
+                // Supabase .in() has a limit, chunking to 100 max safe
+                const topIds = jobIds.slice(0, 150);
+                const { data: compData } = await supabase
+                    .from('voice_job_complaints')
+                    .select('*, users:created_by(full_name)')
+                    .in('job_id', topIds)
+                    .order('created_at', { ascending: true });
+                
+                if (compData) {
+                    compData.forEach(c => {
+                        if (!complaintsByJob[c.job_id]) complaintsByJob[c.job_id] = [];
+                        complaintsByJob[c.job_id].push(c);
+                    });
+                }
+            }
+
+            // Assign complaints
+            merged = merged.map(j => ({ ...j, complaints: complaintsByJob[j.id] || [] }));
+
+            // For legacy, convert user_complaint column to an attached complaint object if no new array exists
+            merged = merged.map(j => {
+                if (j.job_type === 'legacy' && (j as any).user_complaint && j.complaints.length === 0) {
+                    j.complaints = [{
+                        id: 'legacy-complaint',
+                        complaint_text: (j as any).user_complaint,
+                        created_at: (j as any).user_complaint_date || j.created_at,
+                        users: { full_name: 'Ismeretlen (Régi)' }
+                    }];
+                }
+                return j;
+            });
+
+            setJobs(merged as unknown as VoiceJob[]);
+        } catch (e) {
+            console.error(e);
             toast.error('Hiba a napló betöltésekor');
-            console.error(error);
-        } else {
-            setJobs((data as VoiceJob[]) || []);
         }
         setLoading(false);
     }, []);
@@ -89,19 +154,21 @@ export function VoiceJobsTab() {
         if (!deleteTarget) return;
         setDeleting(true);
 
+        const tableName = deleteTarget.type === 'native' ? 'native_voice_jobs' : 'voice_jobs';
+
         const { error } = await supabase
-            .from('native_voice_jobs')
+            .from(tableName)
             .delete()
-            .eq('id', deleteTarget);
+            .eq('id', deleteTarget.id);
 
         if (error) {
             toast.error('Törlés sikertelen');
         } else {
             toast.success('Rögzítés törölve');
-            setJobs(prev => prev.filter(j => j.id !== deleteTarget));
+            setJobs(prev => prev.filter(j => j.id !== deleteTarget.id));
             setExpandedIds(prev => {
                 const next = new Set(prev);
-                next.delete(deleteTarget);
+                next.delete(deleteTarget.id);
                 return next;
             });
         }
@@ -120,13 +187,12 @@ export function VoiceJobsTab() {
         });
     };
 
-    const getAudioPath = (job: VoiceJob) => {
-        if (!job.audio_url) return null;
-        // The audio_url is typically a storage path like 'voice-recordings/filename.webm'
-        // Let's create a public URL or use it directly if it's already a full URL
-        if (job.audio_url.startsWith('http')) return job.audio_url;
+    const getAudioPath = (job: any) => {
+        const url = job.audio_url || job.audio_filename;
+        if (!url) return null;
+        if (url.startsWith('http')) return url;
         
-        const { data } = supabase.storage.from('voice-recordings').getPublicUrl(job.audio_url);
+        const { data } = supabase.storage.from('voice-recordings').getPublicUrl(url);
         return data.publicUrl;
     };
 
@@ -155,12 +221,32 @@ export function VoiceJobsTab() {
                         )}
                     </h2>
                     <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-muted/50 p-1 rounded-md border text-sm">
+                            <button
+                                onClick={() => setFilterSource('all')}
+                                className={cn("px-3 py-1 rounded-sm whitespace-nowrap transition-colors", filterSource === 'all' && "bg-background shadow-sm text-foreground")}
+                            >
+                                Összes
+                            </button>
+                            <button
+                                onClick={() => setFilterSource('native')}
+                                className={cn("px-3 py-1 rounded-sm whitespace-nowrap transition-colors", filterSource === 'native' && "bg-background shadow-sm text-foreground")}
+                            >
+                                Natív Elemzések
+                            </button>
+                            <button
+                                onClick={() => setFilterSource('legacy')}
+                                className={cn("px-3 py-1 rounded-sm whitespace-nowrap transition-colors", filterSource === 'legacy' && "bg-background shadow-sm text-foreground")}
+                            >
+                                FlexiDent Elemzések
+                            </button>
+                        </div>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={fetchJobs}
                             disabled={loading}
-                            className="border-primary/20 hover:bg-primary/10"
+                            className="border-primary/20 hover:bg-primary/10 ml-2"
                         >
                             <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
                             Frissítés
@@ -176,7 +262,7 @@ export function VoiceJobsTab() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {jobs.map((job) => {
+                        {jobs.filter(j => filterSource === 'all' || j.job_type === filterSource).map((job) => {
                             const isExpanded = expandedIds.has(job.id);
                             const statusConf = STATUS_CONFIG[job.status] || STATUS_CONFIG.error;
                             const typeLabel = job.type === 'statuszfelvetel' ? 'Státuszfelvétel' : (job.type === 'kezelest_terv' ? 'Kezelési Terv' : job.type);
@@ -213,7 +299,20 @@ export function VoiceJobsTab() {
                                             {statusConf.label}
                                         </Badge>
 
-                                        <span className="font-medium flex-1 text-primary capitalize">{typeLabel}</span>
+                                        <span className="font-medium flex-1 text-primary capitalize flex items-center gap-2">
+                                            {typeLabel}
+                                            {job.job_type === 'legacy' ? (
+                                                <Badge variant="outline" className="text-[10px] uppercase bg-orange-500/10 text-orange-400 border-orange-500/20">FlexiDent</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[10px] uppercase bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Natív</Badge>
+                                            )}
+                                        </span>
+
+                                        {Boolean(job.complaints && job.complaints.length > 0) && (
+                                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 ml-2 hidden sm:flex font-medium">
+                                                Hibabejelentés ({job.complaints!.length})
+                                            </Badge>
+                                        )}
 
                                         {job.users && (
                                             <span className="hidden md:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
@@ -260,7 +359,7 @@ export function VoiceJobsTab() {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    onClick={() => { setDeleteTarget(job.id); setDeleteConfirmOpen(true); }}
+                                                    onClick={() => { setDeleteTarget({ id: job.id, type: job.job_type }); setDeleteConfirmOpen(true); }}
                                                     className="border-red-500/20 hover:bg-red-500/10 text-red-400"
                                                 >
                                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -269,7 +368,7 @@ export function VoiceJobsTab() {
                                             </div>
 
                                             {/* Audio playback */}
-                                            {job.audio_url ? (
+                                            {getAudioPath(job) ? (
                                                 <div className="bg-muted/50 p-4 rounded-lg border">
                                                     <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                                                         <Mic className="h-4 w-4 text-primary" /> Rögzített Hang
@@ -279,6 +378,31 @@ export function VoiceJobsTab() {
                                             ) : (
                                                 <div className="text-xs text-muted-foreground italic bg-muted/50 p-3 rounded border inline-block">
                                                     Nincs csatolt hangfájl (vagy nem lett elmentve).
+                                                </div>
+                                            )}
+
+                                            {/* Complaints */}
+                                            {job.complaints && job.complaints.length > 0 && (
+                                                <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-lg">
+                                                    <h4 className="text-sm font-bold text-destructive mb-3 flex items-center gap-2">
+                                                        <XCircle className="h-4 w-4" /> Felhasználói Hibabejelentések ({job.complaints.length})
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        {job.complaints.map((c, i) => (
+                                                            <div key={i} className="bg-background/80 rounded p-3 text-xs border border-destructive/10">
+                                                                <div className="flex items-center gap-2 mb-1 text-muted-foreground font-medium">
+                                                                    <span>{new Date(c.created_at).toLocaleString('hu-HU')}</span>
+                                                                    {c.users?.full_name && (
+                                                                        <>
+                                                                            <span>•</span>
+                                                                            <span>{c.users.full_name}</span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-foreground whitespace-pre-wrap">{c.complaint_text}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
 

@@ -294,7 +294,7 @@ function TextualListPanel({ text }: { text?: string }) {
 }
 
 // ── Complaint Dialog ──
-function ComplaintDialog({ jobId, hasComplaint, onSubmitted }: { jobId: string, hasComplaint: boolean, onSubmitted: (text: string) => void }) {
+function ComplaintDialog({ jobId, jobType, hasComplaint, onSubmitted }: { jobId: string, jobType: string, hasComplaint: boolean, onSubmitted: () => void }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -303,14 +303,17 @@ function ComplaintDialog({ jobId, hasComplaint, onSubmitted }: { jobId: string, 
     if (!text.trim()) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.rpc('submit_voice_job_complaint', {
-        p_job_id: jobId,
-        p_complaint_text: text.trim()
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('voice_job_complaints').insert({
+        job_id: jobId,
+        job_type: jobType || 'native',
+        complaint_text: text.trim(),
+        created_by: user?.id,
       });
       if (error) throw error;
       toast.success('Probléma sikeresen bejelentve');
       setOpen(false);
-      onSubmitted(text.trim());
+      onSubmitted();
       setText('');
     } catch (err: any) {
       console.error(err);
@@ -365,7 +368,7 @@ interface VerdiktDisplayProps {
   selectedJobError?: string | null;
   selectedJobStatus?: string;
   jobId?: string;
-  userComplaint?: string | null;
+  jobType?: 'legacy' | 'native';
   progressPercent?: number | null;
   progressMessage?: string | null;
   rawAudioText?: string | null;
@@ -377,6 +380,7 @@ interface VerdiktDisplayProps {
 }
 
 import { isVoxisJob } from '@/lib/voxisUtils';
+import { TreatnoteReviewPanel } from '../patients/dental-chart/TreatnoteReviewPanel';
 
 export function VerdiktDisplay({
   isLoading,
@@ -387,7 +391,7 @@ export function VerdiktDisplay({
   selectedJobError,
   selectedJobStatus,
   jobId,
-  userComplaint,
+  jobType,
   progressPercent,
   progressMessage,
   rawAudioText,
@@ -404,11 +408,38 @@ export function VerdiktDisplay({
     return selectedJobMode;
   }, [selectedJobMode, responseData]);
 
-  const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis', [payload, effectiveJobMode]);
+  const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis' || effectiveJobMode === 'treatnote', [payload, effectiveJobMode]);
   
-  const [localComplaint, setLocalComplaint] = useState<string | null>(userComplaint || null);
-
+  const [complaints, setComplaints] = useState<{ id: string; complaint_text: string, created_at: string, users?: { full_name: string } }[]>([]);
   const [localProgress, setLocalProgress] = useState(0);
+
+  const fetchComplaints = async () => {
+    if (!jobId) return;
+    try {
+      const { data, error } = await supabase
+        .from('voice_job_complaints')
+        .select(`
+          id,
+          complaint_text,
+          created_at,
+          users:created_by (
+            full_name
+          )
+        `)
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: true });
+        
+      if (!error && data) {
+        setComplaints(data);
+      }
+    } catch (e) {
+      console.error('Error fetching complaints', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [jobId]);
 
   // Reset progress when a new job starts or gets selected
   useEffect(() => {
@@ -463,10 +494,6 @@ export function VerdiktDisplay({
     ? (progressMessage || getProgressMessage(displayPercent))
     : (progressMessage || 'Kérjük, várjon amíg az AI elemzi a felvételt.');
 
-  useEffect(() => {
-    setLocalComplaint(userComplaint || null);
-  }, [userComplaint, jobId]);
-
   return (
     <Card className="md:col-span-2 xl:col-span-3 border-primary/20 bg-gradient-to-t from-card/70 to-card backdrop-blur-sm dark:from-card/30 dark:to-card/60 dark:border-sparkle-blue/20">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
@@ -480,7 +507,7 @@ export function VerdiktDisplay({
             </CardTitle>
             <CardDescription>
               {isSelectedJob
-                ? `${effectiveJobMode === 'voxis' ? 'STÁTUSZFELVÉTEL' : (effectiveJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
+                ? `${effectiveJobMode === 'voxis' ? 'STÁTUSZFELVÉTEL' : effectiveJobMode === 'treatnote' ? 'KEZELÉSI TERV' : (effectiveJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
                 : 'A feldolgozás eredménye'
               }
             </CardDescription>
@@ -489,19 +516,18 @@ export function VerdiktDisplay({
         <div className="flex items-center gap-2">
           {jobId && (
             <>
-              {localComplaint && (
+              {complaints.length > 0 && (
                 <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 hidden sm:flex font-medium">
                   <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
-                  Probléma bejelentve
+                  {complaints.length} probléma bejelentve
                 </Badge>
               )}
               <ComplaintDialog 
                 jobId={jobId} 
-                hasComplaint={!!localComplaint}
-                onSubmitted={(text) => {
-                  const nowStr = new Date().toLocaleString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/-/g, '. ');
-                  const newEntry = `[${nowStr}] ${text}`;
-                  setLocalComplaint(prev => prev ? prev + '\n\n' + newEntry : newEntry);
+                jobType={jobType || 'native'}
+                hasComplaint={complaints.length > 0}
+                onSubmitted={() => {
+                  fetchComplaints();
                   if (onComplaintSubmitted) onComplaintSubmitted();
                 }} 
               />
@@ -520,13 +546,26 @@ export function VerdiktDisplay({
         </div>
       </CardHeader>
       <CardContent>
-        {localComplaint && (
-          <div className="mb-6 p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-sm">
+        {complaints.length > 0 && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-sm space-y-3">
             <h4 className="font-semibold text-destructive flex items-center gap-2 mb-1">
               <AlertCircle className="h-4 w-4" />
-              Bejelentett probléma
+              Bejelentett problémák ({complaints.length})
             </h4>
-            <p className="text-foreground/90 whitespace-pre-wrap">{localComplaint}</p>
+            {complaints.map((c, i) => (
+              <div key={c.id || i} className="bg-destructive/10 rounded p-3 border border-destructive/20">
+                <div className="flex items-center gap-2 mb-1 opacity-70 text-[11px] font-medium">
+                  <span>{new Date(c.created_at).toLocaleString('hu-HU')}</span>
+                  {c.users?.full_name && (
+                    <>
+                      <span>•</span>
+                      <span>{c.users.full_name}</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{c.complaint_text}</p>
+              </div>
+            ))}
           </div>
         )}
         {isLoading ? (
@@ -581,16 +620,23 @@ export function VerdiktDisplay({
             </TabsList>
             <div className="mt-4">
               <TabsContent value="original">
-                <OriginalTextPanel text={effectiveJobMode === 'voxis' ? (rawAudioText || claudeCleanedText || payload?.kezdeti_szoveg || payload?.tisztitott_szoveg) : payload?.transcriber?.text} />
+                <OriginalTextPanel text={rawAudioText || claudeCleanedText || payload?.kezdeti_szoveg || payload?.tisztitott_szoveg || payload?.transcriber?.text} />
               </TabsContent>
               {effectiveJobMode !== 'voxis' && (
                 <TabsContent value="semantic">
-                  <SemanticMatcherPanel report={payload?.execution_report_human} />
+                  <SemanticMatcherPanel report={responseData?.execution_report_human || payload?.execution_report_human} />
                 </TabsContent>
               )}
               <TabsContent value="textual">
                 {effectiveJobMode === 'voxis' && voxisReviewPanelNode ? (
                   voxisReviewPanelNode
+                ) : effectiveJobMode === 'treatnote' && jobId && selectedJobPaciensId ? (
+                  <TreatnoteReviewPanel
+                    jobId={jobId}
+                    patientId={selectedJobPaciensId}
+                    resultJson={payload}
+                    isNewest={true}
+                  />
                 ) : (
                   <TextualListPanel text={effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) : payload?.szoveges_lista} />
                 )}

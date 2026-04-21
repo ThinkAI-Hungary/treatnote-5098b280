@@ -63,18 +63,29 @@ const defs = {
     "properties": {
       "active_properties": {
         "type": "array",
-        "items": {
-          "type": "string",
-          "enum": TOOTH_ENUM_VALUES
-        },
+        "items": { "type": "string", "enum": TOOTH_ENUM_VALUES },
         "description": "Lista a TRUE értékű property-k teljes path-járól az enum-ból válogatva"
       },
       "Megjegyzes": {
         "type": "string",
         "description": "Szabad szavas megjegyzés az adott foghoz (pl. klinikai észrevétel, terv)."
-      }
+      },
+      "Mobilitas": { "type": ["number", "null"], "description": "Mobilitás foka (0, 1, 2, 3)" },
+      "Tasakmelyseg_mm": { "type": ["number", "null"], "description": "Tasakmélység milliméterben" },
+      "Inyvisszahuzodas_mm": { "type": ["number", "null"], "description": "Ínyvisszahúzódás milliméterben" },
+      "Kopogtatas_erzekeny": { "type": ["boolean", "null"], "description": "Kopogtatás-érzékeny-e a fog?" },
+      "Erzekenyseg": { "type": ["string", "null"], "description": "Érzékenység (pl. Hideg, Meleg, Ráharapás)" },
+      "Periapikalis_elvaltozas": { "type": ["boolean", "null"], "description": "Látható periapikális elváltozás?" },
+      "Egyeb_jelek": { "type": ["array", "null"], "items": { "type": "string" }, "description": "Kopás, erózió, stb. felsorolása" },
+      "Protetika_tipusa": { "type": ["string", "null"], "description": "Protetika típusa (pl. Monolit Cirkon)" },
+      "Anyag": { "type": ["string", "null"], "description": "Protetika anyaga" },
+      "Fogszin": { "type": ["string", "null"], "description": "Fogszín (pl. A2, A3)" },
+      "Implant_rendszer": { "type": ["string", "null"], "description": "Implantátum rendszere (pl. Straumann BLX)" },
+      "Implant_atmero_mm": { "type": ["number", "null"], "description": "Implantátum átmérője milliméterben" },
+      "Implant_hossz_mm": { "type": ["number", "null"], "description": "Implantátum hossza milliméterben" },
+      "Beultetes_datuma": { "type": ["string", "null"], "description": "Beültetés dátuma" }
     },
-    "required": ["active_properties", "Megjegyzes"],
+    "required": ["active_properties", "Megjegyzes", "Mobilitas", "Tasakmelyseg_mm", "Inyvisszahuzodas_mm", "Kopogtatas_erzekeny", "Erzekenyseg", "Periapikalis_elvaltozas", "Egyeb_jelek", "Protetika_tipusa", "Anyag", "Fogszin", "Implant_rendszer", "Implant_atmero_mm", "Implant_hossz_mm", "Beultetes_datuma"],
     "additionalProperties": false
   }
 };
@@ -111,6 +122,16 @@ FONETIKUS SZINONIMÁK (MINDIG fordítsd le, de őrizd meg a típust!)
 - "bongreft" -> csontpótlás
 - "illé", "inlé", "porcelánillé" -> inlay
 - "imex", "lmex" -> "e-max, emax"
+
+FELÜLETEK FONETIKUS KORREKCIÓJA ÉS RAGJAI (KRITIKUS!):
+A beszédfelismerő gyakran elírja ezeket vagy ragozva hangzanak el. Minden alábbi hangzást MINDIG fordíts a standard felület nevére, és rendeld hozzá a töméshez/szuvasodáshoz!
+- okkluzális: "okkulzárisan", "okkuzálisan", "okluzál", "okluzó", "rágófelszín" -> occlusalis
+- meziális: "meziálisan", "meziál", "mesiál", "méziál", "mezialisan" -> mesialis
+- disztális: "disztálisan", "disztál", "distális", "diszálisan" -> distalis
+- bukkális: "bukkálisan", "bukkál", "bukálisan", "bükkál" -> buccalis
+- palatinális: "palatinálisan", "palatinál", "szájpadlás felé", "palatinális" -> pal_ling
+- lingvális: "lingválisan", "lingvál", "nyelvi felé", "linguálisan" -> pal_ling
+- gingivális/nyaki: "cervikálisan", "cervikál", "nyaki", "nyakilag", "gingiválisan" -> gingivo_b
 
 Töröld: köszönések, "hát", "szóval", "ugye", admin beszélgetés
 Tartsd: MINDEN klinikai adat (fogszám, állapot, tömés, korona, híd, allergia, panasz)
@@ -327,12 +348,22 @@ További információk (ha vannak):
 Korona: [anyag (fém-kerámia/cirkónium/préskerámia/aranykerámia/fém/ideiglenes) + korona] - MINDIG ÍRNI, HA VAN!
 Híd: [anyag + hidtag VAGY híd része] - MINDIG ÍRNI, HA HÍDHOZ TARTOZIK!
 Egybeöntött: [igen] - csak egybeöntött koronáknál (nincs hiányzó fog)
-Szuvasodás: [hely - M/D/O/B/L/P vagy kombinációk: MOD, OD, MO]
-Tömés: [típus (esztétikus/amalgám/ideiglenes/arany/csonkfelépítés/inlay/onlay/overlay/héj) + hely]
+Szuvasodás: [hely - M/D/O/B/L/P vagy kombinációk: MOD, OD, MO] - FELÜLET FONTOS: keress határozószókat a szövegben ehhez a foghoz (pl. "okkulzárisan", "meziálisan", "nyakilag" -> ez mind felület!)
+Tömés: [típus (esztétikus/amalgám/ideiglenes/arany/csonkfelépítés/inlay/onlay/overlay/héj) + hely] - FELÜLET FONTOS: ha a szövegben pl. "okkulzárisan tömött" vagy "meziálisan tömve" hangzik el, feltétlen jelöld be a felületet (O, M, stb.)!
 Gyökérkezelés: [gyökértömött/gyökércsatorna kezelés alatt/stb]
 Barázdazárás: [van]
 Mobilitás: [0/1/2/3 fok]
-Periapikális elváltozás: [leírás]
+Tasakmélység: [érték mm-ben]
+Ínyvisszahúzódás: [érték mm-ben]
+Kopogtatásra érzékeny: [igen/nem]
+Érzékenység: [hideg/meleg/ráharapás/stb]
+Periapikális elváltozás: [igen/leírás]
+Egyéb jelek: [kopás/erózió/stb]
+Implantátum rendszer: [típus, pl. Straumann]
+Implantátum átmérő: [érték mm-ben]
+Implantátum hossz: [érték mm-ben]
+Beültetés dátuma: [dátum]
+Fogszín: [szín]
 Kezelési terv: [kihúzandó/koronázandó/barázdazárás/stb]
 Megjegyzés: [bármilyen egyéb info]
 
@@ -1154,6 +1185,16 @@ export async function processVoxisInternally(jobId: string, audioBuffer: File | 
       }
       const note = typeof toothData?.Megjegyzes === 'string' ? toothData.Megjegyzes.trim() : "";
       result[toothNum].Megjegyzes = note;
+
+      // Ensure all other specifically extracted parameters (like Mobilitas, etc) are copied verbatim
+      const ignoredKeys = ['active_properties', 'Megjegyzes'];
+      if (toothData && typeof toothData === 'object') {
+        for (const key of Object.keys(toothData)) {
+          if (!ignoredKeys.includes(key) && toothData[key] !== undefined && toothData[key] !== null) {
+            result[toothNum][key] = toothData[key];
+          }
+        }
+      }
     }
     return result;
   }
@@ -1299,23 +1340,40 @@ SZABÁLYOK:
 - Híd hidtag: active_properties tartalmazza az Altalanos.Foghiany + a Hid.Altalanos.* értéket
 - Tömés: active_properties tartalmazza a megfelelő Tomes.*.* felület enum értéket
 - Szuvasodás: active_properties tartalmazza a megfelelő Caries.Altalanos.* felület enum értéket
-- Gyökértömés: active_properties tartalmazza a Gyokertomes.Vegleges.* értékeket
+- Gyökértömés (véges): active_properties tartalmazza a Gyokertomes.Vegleges.* értékeket
+- Gyökérkezelés alatt (trepanált, nyitva, CaOH2, ideiglenes gyökértöméssel): active_properties tartalmazza a "Gyokertomes.Ideiglenes.Ossz._gyoker_-_Gyokertomes_Ideiglenes" értéket
+- Hemiszekció vagy gyökér amputáció: active_properties tartalmazza az "Altalanos.Rezekalt_fog" értéket
 - Megjegyzes: szabad szöveges megjegyzés az adott foghoz
 
-HEURISZTIKA:
+HEURISZTIKA ES FELÜLETEK (KRITIKUS!):
 - Ha a szöveg NEM említi az adott fogat → active_properties: [], Megjegyzes: ""
 - Ha a szöveg azt mondja "hiányzik" → ["Altalanos.Foghiany"]
 - Fém-kerámia korona → ["Korona.Altalanos.Fem-keramia_-_Korona"]
-- Cirkónium korona → ["Korona.Altalanos.Cirkonium_-_Korona"]
-- Fém-kerámia híd pillér → ["Korona.Altalanos.Fem-keramia_-_Korona", "Hid.Altalanos.Fem-keramia_-_Hid"]
-- Fém-kerámia hidtag → ["Altalanos.Foghiany", "Hid.Altalanos.Fem-keramia_-_Hid"]
+- Híd hidtag → ["Altalanos.Foghiany", "Hid.Altalanos.Fem-keramia_-_Hid"]
+- Ha TÖMÉS vagy SZUVASODÁS kerül említésre, LÉTEZIK HASONLÓ ALAK LELHETŐ A KÖVETKEZŐKRE: "okkulzárisan", "meziálisan", "disztálisan", "bukkálisan", "palatinálisan", "nyakilag". EZEK FELÜLETEK! 
+  Példa: "okkulzárisan tömött" EBBEN A FOGBAN -> "Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus". 
+  Példa: "kettes felületű szuvasodás" -> "Caries.Altalanos.Gyok._caries_2_-_Caries" VAGY helyi felszín szerinti enum.
+  CSAK AKKOR rendelj egy felületet egy foghoz, ha a mondat egyértelműen EHHEZ a foghoz köti.
 - MOD esztétikus tömés → ["Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus", "Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus", "Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus"]
+- Amalgám tömés okkluzálisan → ["Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam"]
 
 MEGJEGYZÉS MEZŐ HASZNÁLATA:
-- Klinikai info amit az enum nem fed le (pl. mobilitás, fájdalom, kezelési terv)
+- Klinikai info amit az enum nem fed le szépen (pl. sínezés, fogbélgyulladás, kezelési terv) -> keruljon át ide a megjegyzésekbe!
 - "gyökértömött" ha gyökérkezelés történt
 - "egybeöntött" ha egybeöntött koronák
-- Üresen hagyd ("") ha nincs extra info`;
+
+ÚJ SPECIFIKUS MEZŐK:
+- A JSON sémában szereplő új mezőket (Mobilitas, Tasakmelyseg_mm, Implant_rendszer stb.) töltsd ki, ha a szövegben elhangzanak!
+- Példa: "Kettes mobilitás" -> Mobilitas: 2
+- Példa: "Tasakmélység 4 milliméter" -> Tasakmelyseg_mm: 4
+- Példa: "Kopogtatásra érzékeny" -> Kopogtatas_erzekeny: true
+- Példa: "Hidegre érzékeny" -> Erzekenyseg: "Hideg"
+- Példa: "Látható periapikális elváltozás" -> Periapikalis_elvaltozas: true
+- Példa: "Straumann BLX implantátum" -> Implant_rendszer: "Straumann BLX"
+- FONTOS: A "Fogszin" mezőt standard VITA fogszínkódokra kell leképezned! (A1, A2, A3, A3.5, A4, B1, B2, C1, D2 stb.) Például "3-as fogszín" vagy "A 3-as" esetén az érték "A3" legyen.
+- FONTOS: A "Beultetes_datuma" mező értékét KÖTELEZŐEN ISO 8601 dátumformátummá (YYYY-MM-DD) alakítsd át! (pl. "2004. április 6." -> "2004-04-06")
+- Csak a konkrétan elhangzott adatokat rögzítsd, amit nem mondanak, azt hagyd null-on vagy üresen!
+- Üresen hagyd ("") a Megjegyzést ha nincs extra info`;
 
     for (const qc of quadrantConfig) {
       const chunk = chunks[qc.key];

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { WheelDatePicker } from '@/components/ui/wheel-date-picker';
 import { ToothModel } from './types';
 import { DENTAL_STATUSES, SURFACES } from './constants';
 
@@ -447,7 +448,11 @@ export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }:
             </div>
             <div className="space-y-2">
               <Label>Beültetés dátuma</Label>
-              <Input type="date" value={data.implant_date || ''} onChange={(e) => setData({...data, implant_date: e.target.value || null})} />
+              <WheelDatePicker 
+                value={data.implant_date || null} 
+                onChange={(d) => setData({...data, implant_date: d})} 
+                placeholder="Válasszon dátumot..." 
+              />
             </div>
           </div>
 

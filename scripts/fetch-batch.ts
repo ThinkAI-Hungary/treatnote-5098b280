@@ -17,7 +17,7 @@ async function run() {
     .select('id, raw_audio_text, result, created_at')
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(50);
     
   if (error) {
     console.error(error);

@@ -1,12 +1,12 @@
 import { DENTAL_STATUSES } from './constants';
 import { ToothModel } from './types';
 
-// Helps map string segments to 'O', 'M', 'D', 'V'/B', 'L'/P'
+// Helps map string segments to 'O', 'M', 'D', 'V'/B', 'L'/P', 'C'
 const surfaceMap: Record<string, string> = {
   'Mesialis': 'M',
   'Occlusalis': 'O',
   'Distalis': 'D',
-  'Gingivo_B.': 'V',
+  'Gingivo_B.': 'C',
   'Buccalis': 'V',
   'Pal_Ling': 'L',
   'Incizalis': 'O', 
@@ -144,10 +144,9 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
       }
 
       // Try to extract surface from the path (e.g. Tomes.Esztetikus.Occlusalis...)
-      const parts = propPath.split(/[\.-]/);
-      for (const part of parts) {
-         if (surfaceMap[part]) {
-           surfaceSet.add(surfaceMap[part]);
+      for (const [key, val] of Object.entries(surfaceMap)) {
+         if (propPath.includes(key)) {
+           surfaceSet.add(val);
          }
       }
     }
@@ -185,19 +184,49 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
 
     let finalStatus = newStatuses.length > 0 ? newStatuses.join(',') : (existing.status || 'healthy');
     
-    // Sort surfaces M O D V L and separate by comma for legacy array compatibility
-    const finalSurfaces = Array.from(surfaceSet).sort((a,b) => "MODVL".indexOf(a) - "MODVL".indexOf(b)).join(',') || null;
+    // Sort surfaces M O D V L C and separate by comma for legacy array compatibility
+    const finalSurfaces = Array.from(surfaceSet).sort((a,b) => "MODVLC".indexOf(a) - "MODVLC".indexOf(b)).join(',') || null;
 
     // Clean up notes (remove trailing spaces, backticks, fix visual bug)
     let cleanNotes = String(aiData.Megjegyzes || '').replace(/[`]/g, '').trim();
 
-    // Only update if there's actually a change (or a note)
-    if (aiData.active_properties.length > 0 || cleanNotes) {
+    // Check if we have specific clinical data
+    const hasSpecificData = aiData.Mobilitas !== undefined || 
+                            aiData.Tasakmelyseg_mm !== undefined || 
+                            aiData.Inyvisszahuzodas_mm !== undefined ||
+                            aiData.Kopogtatas_erzekeny !== undefined ||
+                            aiData.Erzekenyseg !== undefined ||
+                            aiData.Periapikalis_elvaltozas !== undefined ||
+                            aiData.Egyeb_jelek !== undefined ||
+                            aiData.Protetika_tipusa !== undefined ||
+                            aiData.Anyag !== undefined ||
+                            aiData.Fogszin !== undefined ||
+                            aiData.Implant_rendszer !== undefined ||
+                            aiData.Implant_atmero_mm !== undefined ||
+                            aiData.Implant_hossz_mm !== undefined ||
+                            aiData.Beultetes_datuma !== undefined;
+
+    // Only update if there's actually a change (or a note or specific data)
+    if (aiData.active_properties.length > 0 || cleanNotes || hasSpecificData) {
       updates.push({
         ...existing,
         status: finalStatus !== 'healthy' ? finalStatus : existing.status,
         surfaces: finalSurfaces || existing.surfaces,
-        notes: cleanNotes ? cleanNotes : existing.notes
+        notes: cleanNotes ? cleanNotes : existing.notes,
+        mobility: aiData.Mobilitas ?? existing.mobility,
+        pocket_depth_mm: aiData.Tasakmelyseg_mm ?? existing.pocket_depth_mm,
+        gum_recession_mm: aiData.Inyvisszahuzodas_mm ?? existing.gum_recession_mm,
+        percussion_sensitive: aiData.Kopogtatas_erzekeny ?? existing.percussion_sensitive,
+        sensitivity: aiData.Erzekenyseg ?? existing.sensitivity,
+        periapical_lesion: aiData.Periapikalis_elvaltozas ?? existing.periapical_lesion,
+        dental_signs: aiData.Egyeb_jelek ?? existing.dental_signs,
+        prosthetic_type: aiData.Protetika_tipusa ?? existing.prosthetic_type,
+        prosthetic_material: aiData.Anyag ?? existing.prosthetic_material,
+        prosthetic_shade: aiData.Fogszin ?? existing.prosthetic_shade,
+        implant_system: aiData.Implant_rendszer ?? existing.implant_system,
+        implant_diameter: aiData.Implant_atmero_mm ?? existing.implant_diameter,
+        implant_length: aiData.Implant_hossz_mm ?? existing.implant_length,
+        implant_date: aiData.Beultetes_datuma ?? existing.implant_date,
       });
     }
   }

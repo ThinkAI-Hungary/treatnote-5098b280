@@ -1,0 +1,223 @@
+{
+  "11": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "12": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "13": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "14": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "15": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "16": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "17": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "18": {
+    "Caries": {
+      "Altalanos": {
+        "Occlusalis_-_Caries": true
+      }
+    },
+    "Korona": {
+      "Altalanos": {
+        "Cirkonium_-_Korona": true
+      }
+    },
+    "Fogszin": "3-as",
+    "Implant": {
+      "Altalanos": {
+        "Straumann": true
+      }
+    },
+    "Mobilitas": 2,
+    "Megjegyzes": "kezelési terv: tömés szükséges",
+    "Egyeb_jelek": [
+      "erózió"
+    ],
+    "Erzekenyseg": "Hideg",
+    "Tasakmelyseg_mm": 2,
+    "Beultetes_datuma": "2004. április 6.",
+    "Implant_hossz_mm": 2,
+    "Implant_rendszer": "Straumann",
+    "Implant_atmero_mm": 6,
+    "active_properties": [
+      "Implant.Altalanos.Straumann",
+      "Korona.Altalanos.Cirkonium_-_Korona",
+      "Caries.Altalanos.Occlusalis_-_Caries"
+    ],
+    "Inyvisszahuzodas_mm": 1,
+    "Kopogtatas_erzekeny": true,
+    "Periapikalis_elvaltozas": true
+  },
+  "21": {
+    "Hid": {
+      "Altalanos": {
+        "Fem-keramia_-_Hid": true
+      }
+    },
+    "Korona": {
+      "Altalanos": {
+        "Fem-keramia_-_Korona": true
+      }
+    },
+    "Megjegyzes": "",
+    "active_properties": [
+      "Korona.Altalanos.Fem-keramia_-_Korona",
+      "Hid.Altalanos.Fem-keramia_-_Hid"
+    ]
+  },
+  "22": {
+    "Hid": {
+      "Altalanos": {
+        "Fem-keramia_-_Hid": true
+      }
+    },
+    "Altalanos": {
+      "Foghiany": true
+    },
+    "Megjegyzes": "hiányzik",
+    "active_properties": [
+      "Altalanos.Foghiany",
+      "Hid.Altalanos.Fem-keramia_-_Hid"
+    ]
+  },
+  "23": {
+    "Hid": {
+      "Altalanos": {
+        "Fem-keramia_-_Hid": true
+      }
+    },
+    "Altalanos": {
+      "Foghiany": true
+    },
+    "Megjegyzes": "hiányzik",
+    "active_properties": [
+      "Altalanos.Foghiany",
+      "Hid.Altalanos.Fem-keramia_-_Hid"
+    ]
+  },
+  "24": {
+    "Hid": {
+      "Altalanos": {
+        "Fem-keramia_-_Hid": true
+      }
+    },
+    "Altalanos": {
+      "Foghiany": true
+    },
+    "Megjegyzes": "hiányzik",
+    "active_properties": [
+      "Altalanos.Foghiany",
+      "Hid.Altalanos.Fem-keramia_-_Hid"
+    ]
+  },
+  "25": {
+    "Hid": {
+      "Altalanos": {
+        "Fem-keramia_-_Hid": true
+      }
+    },
+    "Korona": {
+      "Altalanos": {
+        "Fem-keramia_-_Korona": true
+      }
+    },
+    "Megjegyzes": "",
+    "active_properties": [
+      "Korona.Altalanos.Fem-keramia_-_Korona",
+      "Hid.Altalanos.Fem-keramia_-_Hid"
+    ]
+  },
+  "26": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "27": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "28": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "31": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "32": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "33": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "34": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "35": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "36": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "37": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "38": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "41": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "42": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "43": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "44": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "45": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "46": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "47": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "48": {
+    "Megjegyzes": "",
+    "active_properties": []
+  },
+  "Megjegyzes_fo": ""
+}

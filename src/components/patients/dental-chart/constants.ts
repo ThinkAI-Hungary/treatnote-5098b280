@@ -8,7 +8,8 @@ export const SURFACES = [
   { id: 'O', label: 'Occlusal' },
   { id: 'D', label: 'Distal' },
   { id: 'V', label: 'Vestibular' },
-  { id: 'L', label: 'Lingual / Palatal' }
+  { id: 'L', label: 'Lingual / Palatal' },
+  { id: 'C', label: 'Cervical / Gingival' }
 ];
 
 export const ADULT_TEETH = {
