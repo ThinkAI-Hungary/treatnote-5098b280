@@ -1,3 +1,5 @@
+// @ts-ignore
+import fixWebmDuration from 'fix-webm-duration';
 import { useState, useRef, useCallback } from 'react';
 
 interface UseVoiceRecorderOptions {
@@ -73,15 +75,7 @@ export function useVoiceRecorder({
         },
       });
 
-      // Determine best supported format
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-          ? 'audio/mp4'
-          : 'audio/webm';
-
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
         audioBitsPerSecond: 128000,
       });
 
@@ -106,15 +100,29 @@ export function useVoiceRecorder({
         clearTimer();
 
         // Create blob
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        setAudioBlob(blob);
-
-        // Create URL for playback
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-
-        // Callback
-        onRecordingComplete?.(blob, total);
+        const rawBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
+        
+        // Fix duration if it's a WebM blob, ensuring cross-browser playback
+        if (mediaRecorder.mimeType.includes('webm')) {
+          fixWebmDuration(rawBlob, total * 1000, { logger: false }).then((fixedBlob: Blob) => {
+            setAudioBlob(fixedBlob);
+            const url = URL.createObjectURL(fixedBlob);
+            setAudioUrl(url);
+            onRecordingComplete?.(fixedBlob, total);
+          }).catch((err: any) => {
+            console.error('Failed to fix WebM duration', err);
+            // Fallback to raw blob
+            setAudioBlob(rawBlob);
+            const url = URL.createObjectURL(rawBlob);
+            setAudioUrl(url);
+            onRecordingComplete?.(rawBlob, total);
+          });
+        } else {
+          setAudioBlob(rawBlob);
+          const url = URL.createObjectURL(rawBlob);
+          setAudioUrl(url);
+          onRecordingComplete?.(rawBlob, total);
+        }
       };
 
       mediaRecorder.onerror = (event) => {
@@ -123,7 +131,7 @@ export function useVoiceRecorder({
       };
 
       // Start recording
-      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorder.start(); // Collect single chunk to avoid WebM duration bugs
       setIsRecording(true);
       setIsPaused(false);
 

@@ -47,6 +47,7 @@ serve(async (req) => {
     const filename = formData.get("filename") as string;
     const userId = formData.get("user_id") as string;
     const paciensId = formData.get("PaciensID") as string;
+    const treatnotePatientId = formData.get("treatnote_patient_id") as string;
 
     if (!audio || !mode) {
       return new Response(
@@ -261,6 +262,7 @@ serve(async (req) => {
         telephely_id: telephelyId || null,
         mode,
         paciens_id: paciensId || null,
+        treatnote_patient_id: treatnotePatientId || null,
         status: 'processing',
         audio_filename: finalFilename,
         duration_seconds: estimatedDuration,
@@ -334,6 +336,9 @@ serve(async (req) => {
     webhookFormData.append("flexi_pw", decryptedFlexiPw);
     webhookFormData.append("szabalyok", JSON.stringify(szabalyokData));
     webhookFormData.append("PaciensID", paciensId);
+    if (treatnotePatientId) {
+      webhookFormData.append("treatnote_patient_id", treatnotePatientId);
+    }
     webhookFormData.append("job_id", jobId);
 
     if (mode === "treatnote" && treatmentRulesData.length > 0) {

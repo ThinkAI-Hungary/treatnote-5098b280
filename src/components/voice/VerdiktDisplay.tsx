@@ -6,14 +6,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMemo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface TreatNotePayload {
   szoveges_lista?: string;
   transcriber?: { text?: string };
   execution_report_human?: ExecutionReportHuman;
+  kezdeti_szoveg?: string;
+  tisztitott_szoveg?: string;
   // Legacy fields
   link?: string;
   osszesitett?: unknown;
@@ -362,11 +364,19 @@ interface VerdiktDisplayProps {
   selectedJobPaciensId?: string | null;
   selectedJobError?: string | null;
   selectedJobStatus?: string;
-  jobId?: string | null;
+  jobId?: string;
   userComplaint?: string | null;
+  progressPercent?: number | null;
+  progressMessage?: string | null;
+  rawAudioText?: string | null;
+  claudeCleanedText?: string | null;
   onComplaintSubmitted?: () => void;
   onClose: () => void;
+  onTerminate?: () => void;
+  voxisReviewPanelNode?: React.ReactNode;
 }
+
+import { isVoxisJob } from '@/lib/voxisUtils';
 
 export function VerdiktDisplay({
   isLoading,
@@ -378,20 +388,87 @@ export function VerdiktDisplay({
   selectedJobStatus,
   jobId,
   userComplaint,
+  progressPercent,
+  progressMessage,
+  rawAudioText,
+  claudeCleanedText,
   onComplaintSubmitted,
   onClose,
+  onTerminate,
+  voxisReviewPanelNode,
 }: VerdiktDisplayProps) {
   const payload = useMemo(() => parsePayload(responseData), [responseData]);
-  const isThreePanel = useMemo(() => hasThreePanelData(payload), [payload]);
+
+  const effectiveJobMode = useMemo(() => {
+    if (isVoxisJob(selectedJobMode, responseData)) return 'voxis';
+    return selectedJobMode;
+  }, [selectedJobMode, responseData]);
+
+  const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis', [payload, effectiveJobMode]);
   
   const [localComplaint, setLocalComplaint] = useState<string | null>(userComplaint || null);
+
+  const [localProgress, setLocalProgress] = useState(0);
+
+  // Reset progress when a new job starts or gets selected
+  useEffect(() => {
+    if (isLoading) {
+      setLocalProgress(Math.max(5, progressPercent || 0));
+    } else {
+      setLocalProgress(progressPercent === 100 || selectedJobStatus === 'completed' ? 100 : (progressPercent || 0));
+    }
+  }, [jobId, isLoading, selectedJobStatus]);
+
+  // Sync with DB provided progress if it jumps ahead
+  useEffect(() => {
+    if (progressPercent && progressPercent > localProgress) {
+      setLocalProgress(progressPercent);
+    }
+  }, [progressPercent, localProgress]);
+
+  // Calculate smooth local progress to provide realistic feedback
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLocalProgress((prev) => {
+          // Target ~15 seconds processing time (3% every 500ms = 15 secs to 90%)
+          let step = 3.0;
+          if (prev > 80) step = 1.0;
+          if (prev > 90) step = 0.3;
+          if (prev > 96) step = 0.05;
+          
+          const next = prev + step;
+          return next > 98 ? 98 : next;
+        });
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, [isLoading]);
+
+  // 10-step message ladder based on the current percent (Fallback if no active backend message)
+  const getProgressMessage = (percent: number) => {
+    if (percent < 12) return "Hangfelvétel előkészítése és biztonságos titkosítása...";
+    if (percent < 25) return "Küldés a neurális AI beszédfelismerő motorba...";
+    if (percent < 38) return "Szakorvosi hanganyag elemzése és szöveggé alakítása...";
+    if (percent < 50) return "Nyers átirat fogadása és nyelvi tisztítása...";
+    if (percent < 65) return "Klinikai mondatok, panaszok és kifejezések kinyerése...";
+    if (percent < 78) return "Fogállapotok vizuális kvadránsokká térképezése...";
+    if (percent < 88) return "Változások generálása és kontextuális szabályok ellenőrzése...";
+    if (percent < 96) return "Státusz adatbázis és végeredmény formázása...";
+    return "Adatok mentése a kartonba és szinkronizáció...";
+  };
+
+  const displayPercent = Math.floor(localProgress);
+  const displayMessage = isLoading 
+    ? (progressMessage || getProgressMessage(displayPercent))
+    : (progressMessage || 'Kérjük, várjon amíg az AI elemzi a felvételt.');
 
   useEffect(() => {
     setLocalComplaint(userComplaint || null);
   }, [userComplaint, jobId]);
 
   return (
-    <Card className="md:col-span-2 xl:col-span-3 border-primary/20 bg-gradient-to-br from-card/70 to-card backdrop-blur-sm dark:from-card/30 dark:to-card/60 dark:border-sparkle-blue/20">
+    <Card className="md:col-span-2 xl:col-span-3 border-primary/20 bg-gradient-to-t from-card/70 to-card backdrop-blur-sm dark:from-card/30 dark:to-card/60 dark:border-sparkle-blue/20">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
@@ -403,7 +480,7 @@ export function VerdiktDisplay({
             </CardTitle>
             <CardDescription>
               {isSelectedJob
-                ? `${(selectedJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
+                ? `${effectiveJobMode === 'voxis' ? 'STÁTUSZFELVÉTEL' : (effectiveJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
                 : 'A feldolgozás eredménye'
               }
             </CardDescription>
@@ -453,12 +530,39 @@ export function VerdiktDisplay({
           </div>
         )}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="relative">
-              <Loader2 className="h-10 w-10 animate-spin text-sparkle-blue" />
-              <div className="absolute inset-0 h-10 w-10 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
+          <div className="flex flex-col items-center justify-center py-12 px-6 max-w-md mx-auto">
+            <div className="relative mb-6">
+              <Loader2 className="h-12 w-12 animate-spin text-sparkle-blue" />
+              <div className="absolute inset-0 h-12 w-12 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
             </div>
-            <p className="text-muted-foreground text-center mt-4">Feldolgozás folyamatban...</p>
+            
+            <h3 className="text-lg font-semibold text-foreground mb-2 text-center">
+              Feldolgozás folyamatban...
+            </h3>
+            
+            <p className="text-sm text-muted-foreground text-center mb-6 h-10 flex items-center justify-center">
+              {displayMessage}
+            </p>
+            
+            <div className="w-full space-y-2">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground w-full px-1">
+                <span>Folyamat</span>
+                <span>{displayPercent}%</span>
+              </div>
+              <Progress value={localProgress} className="h-2 w-full" />
+            </div>
+
+            {onTerminate && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onTerminate} 
+                className="w-full mt-4 text-destructive hover:bg-destructive/10"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Várakozás megszakítása
+              </Button>
+            )}
           </div>
         ) : selectedJobStatus === 'error' ? (
           <div className="flex flex-col items-center justify-center py-12 text-destructive">
@@ -467,24 +571,29 @@ export function VerdiktDisplay({
             <p className="text-sm text-muted-foreground mt-2">{selectedJobError}</p>
           </div>
         ) : isThreePanel ? (
-          <Tabs defaultValue="original" className="w-full">
+          <Tabs defaultValue={effectiveJobMode === 'voxis' ? 'textual' : 'original'} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="original">Eredeti szöveg</TabsTrigger>
-              <TabsTrigger value="semantic">Szabály találatok</TabsTrigger>
+              {effectiveJobMode !== 'voxis' && (
+                <TabsTrigger value="semantic">Szabály találatok</TabsTrigger>
+              )}
               <TabsTrigger value="textual">Kitöltés</TabsTrigger>
             </TabsList>
-            {/* All panels occupy the same grid cell. The tallest one sets
-                the container height; inactive panels are invisible but still
-                participate in layout, preventing page jumps. */}
-            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
-              <TabsContent value="original" forceMount className="data-[state=inactive]:invisible">
-                <OriginalTextPanel text={payload?.transcriber?.text} />
+            <div className="mt-4">
+              <TabsContent value="original">
+                <OriginalTextPanel text={effectiveJobMode === 'voxis' ? (rawAudioText || claudeCleanedText || payload?.kezdeti_szoveg || payload?.tisztitott_szoveg) : payload?.transcriber?.text} />
               </TabsContent>
-              <TabsContent value="semantic" forceMount className="data-[state=inactive]:invisible">
-                <SemanticMatcherPanel report={payload?.execution_report_human} />
-              </TabsContent>
-              <TabsContent value="textual" forceMount className="data-[state=inactive]:invisible">
-                <TextualListPanel text={payload?.szoveges_lista} />
+              {effectiveJobMode !== 'voxis' && (
+                <TabsContent value="semantic">
+                  <SemanticMatcherPanel report={payload?.execution_report_human} />
+                </TabsContent>
+              )}
+              <TabsContent value="textual">
+                {effectiveJobMode === 'voxis' && voxisReviewPanelNode ? (
+                  voxisReviewPanelNode
+                ) : (
+                  <TextualListPanel text={effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) : payload?.szoveges_lista} />
+                )}
               </TabsContent>
             </div>
           </Tabs>
@@ -496,6 +605,8 @@ export function VerdiktDisplay({
           </div>
         )}
       </CardContent>
+      {/* Portal target for VoxisReviewPanel global save button */}
+      <div id="voxis-save-portal"></div>
     </Card>
   );
 }

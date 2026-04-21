@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -87,6 +88,7 @@ interface ProfileData {
   telephely_id: string | null;
   telephely_name: string | null;
   flexi_domain: string | null;
+  voice_recording_preference: 'flexident' | 'treatnote_native' | null;
 }
 
 const Profile = () => {
@@ -108,6 +110,7 @@ const Profile = () => {
     telephely_id: null,
     telephely_name: null,
     flexi_domain: null,
+    voice_recording_preference: null,
   });
 
   useEffect(() => {
@@ -154,7 +157,7 @@ const Profile = () => {
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, company_id, telephely_id, current_telephely_id')
+      .select('full_name, phone, company_id, telephely_id, current_telephely_id, voice_recording_preference')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -220,6 +223,7 @@ const Profile = () => {
         telephely_id: resolvedTelephelyId,
         telephely_name: telephelyName,
         flexi_domain: flexiDomain,
+        voice_recording_preference: data.voice_recording_preference as any || 'treatnote_native',
       });
       return resolvedTelephelyId;
     }
@@ -301,6 +305,27 @@ const Profile = () => {
     }
 
     setLoading(false);
+  };
+
+  const handleVoicePrefChange = async (val: string) => {
+    if (!user) return;
+    
+    // Optimistic update
+    setProfile({ ...profile, voice_recording_preference: val as any });
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        voice_recording_preference: val,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+      
+    if (error) {
+      toast.error('Hiba a beállítás mentésekor: ' + error.message);
+    } else {
+      toast.success('Hangfelvétel beállítás elmentve');
+    }
   };
 
   const {
@@ -519,6 +544,39 @@ const Profile = () => {
               Flexi hozzácsatolás
             </Button>
           )}
+          
+          <div className="mt-6 pt-6 border-t">
+            <h4 className="text-sm font-medium mb-4">Hangfelvétel beállítások</h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Alapértelmezett hangfelvétel mód a Páciens Profilban</Label>
+                <Select
+                  disabled={!flexiAuth}
+                  value={(!flexiAuth ? 'treatnote_native' : profile.voice_recording_preference) || 'treatnote_native'}
+                  onValueChange={handleVoicePrefChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Válasszon módot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="treatnote_native">Beépített (Native) Rendszer</SelectItem>
+                    <SelectItem value="flexident" disabled={!flexiAuth}>
+                      Flexi-Dent integrált (Hagyományos)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {!flexiAuth ? (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Mivel nincs Flexi-Dent fiókja csatlakoztatva, csak a beépített hangfelvétel rendszer használható.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Döntse el, melyik rendszert szeretné használni alapesetben a Pácienslapon. Javasoljuk a Beépített Rendszert.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

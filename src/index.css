@@ -219,6 +219,33 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 }
 
+/* Custom Purple Scrollbar specific for high-fidelity areas */
+@layer utilities {
+  .custom-scrollbar-purple::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+  .custom-scrollbar-purple::-webkit-scrollbar-track {
+    background: transparent !important;
+    margin-block: 4px; /* Gives some spacing at the top/bottom */
+  }
+  .custom-scrollbar-purple::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.4) !important;
+    border-radius: 9999px !important;
+    border: 2px solid transparent !important;
+    background-clip: content-box !important;
+  }
+  .custom-scrollbar-purple::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.6) !important;
+    border: 1px solid transparent !important;
+    background-clip: content-box !important;
+  }
+  .custom-scrollbar-purple {
+    scrollbar-width: thin !important;
+    scrollbar-color: hsl(var(--primary) / 0.4) transparent !important;
+  }
+}
+
 /* Galaxy animations */
 @layer utilities {
   .galaxy-card {

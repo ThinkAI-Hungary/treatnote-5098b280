@@ -1,0 +1,938 @@
+{
+  "name": "Treatnote - determinisztikus_beiro",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/speech-to-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_e1720b56c54fe47521a43eb67b4fcce8005ea938523d7f93"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model_id",
+              "value": "scribe_v1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language_code",
+              "value": "hu"
+            },
+            {
+              "name": "diarize",
+              "value": "true"
+            },
+            {
+              "name": "timestamp_granularity",
+              "value": "word"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3872,
+        -400
+      ],
+      "id": "135abb39-46ed-4b65-8ba0-ddaacbd8b9d2",
+      "name": "TRANSCRIBER",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "4wHdNjeXEhOX9KTC",
+          "name": "Unnamed credential"
+        },
+        "httpHeaderAuth": {
+          "id": "L7nKhLAzXCatOwoI",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -3680,
+        -48
+      ],
+      "id": "10933516-53e8-467d-9c45-4d3a20f8cb4d",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "command": "=printf '%s' '{{ JSON.stringify($json.eseteik_szurve) }}' \\\n| TREATNOTE_DEBUG=1 python3 /data/playground/TreatNote/SCRIPTS/treatnote.py \\\n\"{{ $('Webhook1').item.json.body.flexi_domain }}\" \\\n\"{{ $('Webhook1').item.json.body.flexi_username }}\" \\\n\"{{ $('Webhook1').item.json.body.flexi_pw }}\" \\\n\"{{ $('Webhook1').item.json.body.PaciensID }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        64
+      ],
+      "id": "31a6a2bb-e23b-46ea-805c-4404e0537b8e",
+      "name": "Execute Command1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dolgozd fel az alábbi szöveget:\n\n{{ $('TRANSCRIBER').item.json.text }}",
+        "options": {
+          "systemMessage": "=Te egy fogászati asszisztens vagy, aki a fogorvos diktálásából strukturált kezelési tervet készít.\n\nRÉSZ: GONDOLATMENET\nMielőtt a JSON kimenetet generálnád, MINDIG írj egy rövid gondolatmenetet.\nMit elemezz:\n- Kezelések felsorolása: Milyen beavatkozásokat említett a fogorvos?\n- Fogak azonosítása: Mely fogszámokra vonatkozik az adott kezelés?\n- JELZŐK MEGŐRZÉSE: Ha a kezelésnek van típusa (pl. \"direkt\" héj, \"ideiglenes\" korona), azt NE hagyd el!\n- Korrekciók detektálása: Van-e \"bocsánat\", \"mégsem\", \"nem, inkább\" kifejezés? Ha igen, az előző tételt töröld.\n- Összetett kezelések felismerése: All-on-4, All-on-6, körhíd?\n- Kategorizálás: Melyik kategóriába tartozik az adott kezelés?\n\nRÉSZ: SEMANTIKUS KERESÉS OPTIMALIZÁLÁS (KIEMELT FONTOSSÁGÚ!)\nA célunk, hogy a kimeneted alapján egy AI kereső megtalálja a hivatalos árlista elemet.\nEzért a \"kezelesek\" listában a megnevezéseket BŐVÍTSD KI szakmai szinonimákkal, ha a diktálás túl rövid volt.\n\nSZABÁLYOK A BŐVÍTÉSHEZ:\n1. Szakmai szinonimák hozzáadása:\n   - Ha elhangzik: \"húzás\" vagy \"kivétel\" -> Írd ezt: \"fogeltávolítás extractio\"\n   - Ha elhangzik: \"tömés\" -> Írd ezt: \"esztétikus kompozit tömés\" (ha nem hangzott el más anyag)\n   - Ha elhangzik: \"gyökérkezelés\" -> Írd ezt: \"mikroszkópos gyökérkezelés trepanálás\" (ha a kontextus nem zárja ki)\n   - Ha elhangzik: \"csiszolás\" -> Írd ezt: \"preparálás csonk-előkészítés\"\n\n2. Kontextus beépítése a kezelés nevébe:\n   Ne csak a főnevet írd be!\n   - ROSSZ: \"korona\"\n   - JÓ: \"fémkerámia korona pillér\" (ha hídról van szó) vagy \"cirkon korona\"\n   \n3. Ne találj ki olyat, ami nincs ott!\n   Csak a szakmai megfeleltetést végezd el, ne adj hozzá extra kezelést (pl. ne írj \"csapot\", ha nem hangzott el).\n\nRÉSZ: FONETIKUS SZINONIMÁK (MINDIG fordítsd le, de őrizd meg a típust!)\n- \"ólomfort\", \"all on for\" -> All-on-4\n- \"ólomszix\", \"all on szix\" -> All-on-6\n- \"inplant\", \"implánt\" -> implantátum\n- \"szinuszlift\" -> sinuslift\n- \"ekstrakció\" -> extractio\n- \"ábátment\" -> abutment/felépítő fej\n- \"vinyír\" -> héj (vagy direkt héj, ha úgy hangzott el!)\n- \"ímídiet lóding\" -> immediate loading\n- \"bongreft\" -> csontpótlás\n- \"illé\", \"inlé\", \"porcelánillé\" -> inlay\n- \"imex\", \"lmex\" -> \"e-max, emax\"\n\nRÉSZ: KATEGÓRIÁK ÉS KEZELÉSEK (Referencia lista)\nszajsebeszet: extractio, bölcsességfog, resectio, cisztektómia\nimplantacio: implantátum beültetés, All-on-4 implantáció, All-on-6 implantáció, immediate loading, csontpótlás, sinuslift\nkonzervalo_fogaszat: tömés, kompozit tömés, gyökérkezelés, felépítés, onlay\nfogpotlastan:\n- korona (cirkon, fémkerámia, ideiglenes)\n- híd, pillér, hídtag\n- implantátum korona\n- All-on-4 végleges híd\n- All-on-6 végleges híd\n- inlay, onlay, öntött tömés\n- héj (veneer), direkt héj, porcelán héj\n- fogsor (kivehető, részleges, teljes)\ndentalhigienia: depurálás, polírozás\nparodontologia: kürett\nvizsgalatok_es_modelezesek: röntgen, CT, konzultáció, mock up, modellezés\n\nRÉSZ: EGYÉB SZABÁLYOK (Szigorúan betartandó!)\n\nPONTOSSÁG SZABÁLY (KRITIKUS!):\nA \"kezelesek\" listába NE általánosított kategóriát írj, hanem a pontos elhangzott típust!\n- Helytelen: \"héj (veneer)\" (ha direkt héj hangzott el)\n  Helyes: \"direkt héj\"\n- Helytelen: \"tömés\" (ha kompozit tömés hangzott el)\n  Helyes: \"kompozit tömés\"\n- Helytelen: \"tömés\" (ha öntött tömés/inlay hangzott el)\n  Helyes: \"öntött tömés\" vagy \"inlay\"\n\nAUTOMATIKUS VARRATSZEDÉS:\nSOHA NE generálj JSON bejegyzést \"varratszedés\"-ről, kivéve ha extrém utasítás van.\n\nAll-on-4/6 Állcsontok:\nHasználd a \"FELSO_ALLCSONT\" és \"ALSO_ALLCSONT\" jelölést.\n\nTERÜLET-ALAPÚ KEZELÉSEK (parodontológia, dentálhigiénia, teljes szájra vonatkozó kezelések):\nHa a kezelés nem egy konkrét fogra, hanem kvadránsra, állcsontra vagy az egész szájra vonatkozik\n(pl. \"kürett mind a négy kvadránsban\", \"teljes parodontológiai kezelés\", \"depurálás az egész fogsoron\"),\nakkor KÖTELEZŐEN adj meg reprezentatív fogakat a fogak mezőben, kvadránsonként egyet-egyet:\n- Jobb felső kvadráns: 16\n- Bal felső kvadráns: 26\n- Bal alsó kvadráns: 36\n- Jobb alsó kvadráns: 46\nHa csak egy vagy két kvadránsra vonatkozik, csak azokat írd be.\nPélda teljes paro kimenet:\n{\"kategoria\": \"parodontologia\", \"fogak\": [{\"fog\": \"16\", \"hidtag\": null}, {\"fog\": \"26\", \"hidtag\": null}, {\"fog\": \"36\", \"hidtag\": null}, {\"fog\": \"46\", \"hidtag\": null}], \"kezelesek\": [\"zárt kürett\"], \"eredeti_szoveg\": \"kürett mind a négy kvadránsban\"}\n\nKorrekciók:\nHa a doki azt mondja \"bocsánat, mégsem\", töröld az előző tételt.\n\nHIDTAG SZABÁLYOK (MÓDOSÍTOTT – fogankénti szerepkör)\nA \"fogak\" mező NEM sima lista, hanem fog-objektumok listája.\nMinden fog objektum így néz ki:\n{\"fog\": \"37\", \"hidtag\": null}\n\n5.1. ÚJ alapértelmezés (kritikus):\nHa a diktálásban NINCS hídra/pillérre/ponticra utalás, és a kezelési fogalom sem híd/pillér/pontic jellegű,\nakkor az adott fog hidtag értéke legyen NULL (nem \"all\").\n\n5.2. Mikor NEM lehet NULL:\nHa bármelyik feltétel teljesül, kötelező hidtag szerepet adni:\n- A diktálásban szerepel: \"híd\", \"hídtag\", \"pontic\", \"közbenső tag\", \"pótfog\", \"pillér\", \"pillérfog\", \"pillérkorona\"\n- VAGY a kezelés típusa híd/pillér/korona jellegű (pl. \"híd\", \"hídtag\", \"pontic\", \"korona\", \"pillérkorona\", \"implantátum korona\")\n\n5.3. Lehetséges értékek:\n- null\n- \"pontic_only\"\n- \"pillar_only\"\n\n5.4. pontic_only:\nHa a diktálás szerint a fog csak hídtag/pontic/közbenső tag (pl. \"hídtag\", \"pontic\", \"közbenső tag\", \"pótfog\"),\nakkor az adott fog hidtag = \"pontic_only\".\n\n5.5. pillar_only:\nHa a diktálás szerint a fog pillérfog vagy koronát kap (pl. \"pillér\", \"pillérkorona\", \"korona\", \"implantátum korona\"),\nakkor az adott fog hidtag = \"pillar_only\".\n\n5.6. Korlátozás a tételekben (kritikus):\n- Ha egy fog hidtag = \"pontic_only\", akkor az a fog csak olyan kezelési tételben szerepelhet,\n  ami kifejezetten pontic/hídtag jellegű (pl. \"hídtag\", \"pontic\", \"közbenső tag\").\n- Ha egy fog hidtag = \"pillar_only\", akkor az a fog csak olyan kezelési tételben szerepelhet,\n  ami pillér/korona jellegű (pl. \"korona\", \"pillérkorona\", \"implantátum korona\").\n\n5.7. Ellentmondás kezelése:\nHa ugyanarra a fogra pontic és pillér/korona is elhangzik, akkor bontsd külön tételekre,\nés alkalmazd a korrekciós szabályt (bocsánat/mégsem) a végső döntéshez.\n\n5.6. HÍD EGYSÉGES KEZELÉSE (kritikus):\nHa a kezelés híd, akkor az összes érintett fogat (pilléreket ÉS hídtagokat) EGYETLEN tételben szerepeltesd.\n- A hidtag mező továbbra is jelölje a szerepet (pillar_only / pontic_only)\n- A kezelesek mezőbe írd be a tagszámot is, pl.: \"cirkon híd 3 tagú\", \"fémkerámia híd 4 tagú\"\n- A tagszámot számold össze: pillérek + ponticok száma\n\nPélda helyes kimenet 3 tagú hídra:\n{\n  \"kategoria\": \"fogpotlastan\",\n  \"fogak\": [\n    {\"fog\": \"44\", \"hidtag\": \"pillar_only\"},\n    {\"fog\": \"45\", \"hidtag\": \"pontic_only\"},\n    {\"fog\": \"46\", \"hidtag\": \"pillar_only\"}\n  ],\n  \"kezelesek\": [\"cirkon híd 3 tagú\"],\n  \"eredeti_szoveg\": \"jobb alsó ötös fogát cirkon híddal pótlom a szomszédos fogak lecsiszolásával\"\n}\n\nRÉSZ: JSON KIMENET FORMÁTUM (VIZITMENTES)\nA kimenet egy listát tartalmaz, ahol minden elem egy strukturált kezelési tétel.\n\nKÖTELEZŐ FORMÁTUM:\n{\n\"tetel_lista\": [\n  {\n    \"kategoria\": \"szajsebeszet\",\n    \"fogak\": [\n      {\"fog\": \"11\", \"hidtag\": null},\n      {\"fog\": \"12\", \"hidtag\": null}\n    ],\n    \"kezelesek\": [\"extractio\"],\n    \"eredeti_szoveg\": \"szöveg\"\n  },\n  {\n    \"kategoria\": \"fogpotlastan\",\n    \"fogak\": [\n      {\"fog\": \"37\", \"hidtag\": \"pillar_only\"}\n    ],\n    \"kezelesek\": [\"cirkon korona\"],\n    \"eredeti_szoveg\": \"szöveg\"\n  },\n  {\n    \"kategoria\": \"fogpotlastan\",\n    \"fogak\": [\n      {\"fog\": \"21\", \"hidtag\": null}\n    ],\n    \"kezelesek\": [\"direkt héj\"],\n    \"eredeti_szoveg\": \"Bal egyes fog direkt héj\"\n  }\n]\n}\n\nRÉSZ: KIMENET STRUKTÚRA\nA válaszod MINDIG tartalmazzon:\n- GONDOLATMENET szekciót (szöveges elemzés)\n- JSON kimenetet ``` jelek között\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -3040,
+        -112
+      ],
+      "id": "35962468-3459-4bd2-bbc7-13d66826d4d9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -3040,
+        96
+      ],
+      "id": "867b338c-7015-486f-8c18-3cab924ee9be",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "apeJVrkj31SjvSIR",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\nn8n Code node (Run once for all items)\n\nMit ad vissza:\n- json.link: a complex-offers URL (mindig megpróbálja kinyerni)\n- json.osszesitett: vizit -> kezelések -> fogak (rendezve)\n- json.szoveges_lista: emberi szemnek kész szöveges lista (Vizit -> Kezelés -> Fog struktúrában)\n\nFeltételezés:\n- input itemekben: item.json.stdout (string)\n*/\n\nfunction kinyerComplexOfferLink(stdout, beagyazott) {\n  // 1) Preferált: beágyazott JSON \"url\"\n  if (beagyazott && typeof beagyazott.url === \"string\" && beagyazott.url.indexOf(\"/hu/patients/cardboard/complex-offers\") !== -1) {\n    return beagyazott.url.trim();\n  }\n\n  // 2) Regex a stdout-ból (kifejezetten ezt az útvonalat keressük)\n  var re = /https:\\/\\/[\\w\\.\\-]+\\/hu\\/patients\\/cardboard\\/complex-offers\\?id=[0-9]+/g;\n  var m = stdout.match(re);\n  if (m && m.length > 0) return m[m.length - 1].trim(); // utolsó előfordulás\n\n  // 3) Ha valamiért más formában van, próbáljuk lazábban: tartalmazza a \"complex-offers?id=\"\n  var idx = stdout.lastIndexOf(\"complex-offers?id=\");\n  if (idx >= 0) {\n    // visszafelé keressük a \"https://\" elejét\n    var start = stdout.lastIndexOf(\"https://\", idx);\n    if (start >= 0) {\n      var darab = stdout.slice(start);\n      // vágás whitespace/idézőjel mentén\n      var vege = darab.search(/[\\s\"]/);\n      if (vege > 0) return darab.slice(0, vege).trim();\n      return darab.trim();\n    }\n  }\n\n  return null;\n}\n\nfunction kinyerBeagyazottJson(stdout) {\n  var jel = '{\"ok\"';\n  var idx = stdout.lastIndexOf(jel);\n  if (idx < 0) return null;\n\n  var resz = stdout.slice(idx).trim();\n  try {\n    return JSON.parse(resz);\n  } catch (_) {\n    var utolsoKapcs = resz.lastIndexOf(\"}\");\n    if (utolsoKapcs >= 0) {\n      var vagott = resz.slice(0, utolsoKapcs + 1);\n      try { return JSON.parse(vagott); } catch (e2) { return null; }\n    }\n    return null;\n  }\n}\n\nfunction normalizalBejegyzes(x) {\n  return {\n    vizit_index: (x && x.vizit_index != null) ? Number(x.vizit_index) : null,\n    fog: (x && x.fog != null) ? String(x.fog).trim() : null,\n    kezeles: (x && x.kezeles != null) ? String(x.kezeles).trim() : null\n  };\n}\n\nfunction deduplikalBejegyzesek(lista) {\n  var latott = Object.create(null);\n  var ki = [];\n  for (var i = 0; i < lista.length; i++) {\n    var x = normalizalBejegyzes(lista[i]);\n    if (x.vizit_index == null || !x.fog || !x.kezeles) continue;\n    var kulcs = x.vizit_index + \"|\" + x.fog + \"|\" + x.kezeles;\n    if (latott[kulcs]) continue;\n    latott[kulcs] = true;\n    ki.push(x);\n  }\n  return ki;\n}\n\nfunction kinyerKezelesOkLogbol(stdout) {\n  var sorok = stdout.split(/\\r?\\n/);\n\n  var aktualisVizit = null;\n  var aktualisFog = null;\n  var bement = [];\n\n  var reFog = /Fog:\\s*([0-9]+)\\s*\\(vizit_index=([0-9]+)\\)/;\n  var reKezelesOk = /Kezelés OK:\\s*(.+)$/;\n\n  for (var i = 0; i < sorok.length; i++) {\n    var s = sorok[i];\n\n    var mFog = s.match(reFog);\n    if (mFog) {\n      aktualisFog = String(mFog[1]).trim();\n      aktualisVizit = Number(mFog[2]);\n      continue;\n    }\n\n    var mOk = s.match(reKezelesOk);\n    if (mOk) {\n      bement.push({\n        vizit_index: aktualisVizit,\n        fog: aktualisFog,\n        kezeles: String(mOk[1]).trim()\n      });\n    }\n  }\n\n  return deduplikalBejegyzesek(bement);\n}\n\n// MÓDOSÍTOTT FÜGGVÉNY: Kezelés alapú csoportosítás\nfunction osszesit(osszesitett, bement) {\n  for (var i = 0; i < bement.length; i++) {\n    var x = bement[i];\n    osszesitett.bement_db++;\n\n    var vKulcs = String(x.vizit_index);\n    if (!osszesitett.vizitek[vKulcs]) osszesitett.vizitek[vKulcs] = { kezelesek: {} };\n\n    var vizit = osszesitett.vizitek[vKulcs];\n    var kKulcs = String(x.kezeles);\n    \n    // Ha még nincs ilyen kezelés ebben a vizitben, létrehozzuk\n    if (!vizit.kezelesek[kKulcs]) vizit.kezelesek[kKulcs] = { fogak: [] };\n\n    // Hozzáadjuk a fogat a kezeléshez\n    vizit.kezelesek[kKulcs].fogak.push(x.fog);\n  }\n\n  // Rendezés olvashatóság miatt (Vizit -> Kezelés -> Fogak)\n  var vizitKulcsok = Object.keys(osszesitett.vizitek).sort(function (a, b) { return Number(a) - Number(b); });\n  var ujVizitek = {};\n  for (var vi = 0; vi < vizitKulcsok.length; vi++) {\n    var vk = vizitKulcsok[vi];\n    var vizit = osszesitett.vizitek[vk];\n    \n    // Kezelések rendezése ABC sorrendben\n    var kezelesKulcsok = Object.keys(vizit.kezelesek).sort(function (a, b) { return a.localeCompare(b); });\n\n    var ujKezelesek = {};\n    for (var ki = 0; ki < kezelesKulcsok.length; ki++) {\n      var kk = kezelesKulcsok[ki];\n      // Fogak rendezése számsorrendben\n      var fogak = vizit.kezelesek[kk].fogak.slice().sort(function (a, b) { return Number(a) - Number(b); });\n      ujKezelesek[kk] = { fogak: fogak };\n    }\n    ujVizitek[vk] = { kezelesek: ujKezelesek };\n  }\n  osszesitett.vizitek = ujVizitek;\n}\n\n// MÓDOSÍTOTT FÜGGVÉNY: Szöveges lista generálása az új struktúrából\nfunction szovegesListaKeszit(link, osszesitett) {\n  var sorok = [];\n  sorok.push(\"A kitöltés értékét itt tudja megtekinteni: \" + (link || \"\"));\n  sorok.push(\"\");\n\n  var vizitKulcsok = Object.keys(osszesitett.vizitek || {}).sort(function (a, b) { return Number(a) - Number(b); });\n  if (vizitKulcsok.length === 0) {\n    sorok.push(\"Nincs kinyerhető Select2 bement adat.\");\n    return sorok.join(\"\\n\");\n  }\n\n  for (var vi = 0; vi < vizitKulcsok.length; vi++) {\n    var vk = vizitKulcsok[vi];\n    sorok.push(\"Vizit: \" + vk);\n\n    var vizit = osszesitett.vizitek[vk];\n    var kezelesKulcsok = Object.keys((vizit && vizit.kezelesek) ? vizit.kezelesek : {}).sort(function (a, b) { return a.localeCompare(b); });\n\n    if (kezelesKulcsok.length === 0) {\n      sorok.push(\"\\tNincs kezelés adat.\");\n      continue;\n    }\n\n    for (var ki = 0; ki < kezelesKulcsok.length; ki++) {\n      var kk = kezelesKulcsok[ki];\n      sorok.push(\"\\tKezelés: \" + kk);\n\n      var fogak = vizit.kezelesek[kk].fogak || [];\n      if (fogak.length === 0) {\n        sorok.push(\"\\t\\t- (nincs fog)\");\n        continue;\n      }\n\n      for (var fi = 0; fi < fogak.length; fi++) {\n        sorok.push(\"\\t\\t- Fog: \" + fogak[fi]);\n      }\n    }\n\n    sorok.push(\"\");\n  }\n\n  return sorok.join(\"\\n\").trim() + \"\\n\";\n}\n\nvar inputItems = $input.all();\n\nvar eredmeny = {\n  link: null,\n  futasok: [],\n  osszesitett: {\n    bement_db: 0,\n    vizitek: {}\n  },\n  szoveges_lista: \"\"\n};\n\nfor (var i = 0; i < inputItems.length; i++) {\n  var item = inputItems[i] || {};\n  var j = item.json || {};\n  var stdout = String(j.stdout || \"\");\n\n  var beagyazott = kinyerBeagyazottJson(stdout);\n\n  // Link kinyerés: ha még nincs, próbáljuk ebből a futásból\n  if (!eredmeny.link) {\n    var link = kinyerComplexOfferLink(stdout, beagyazott);\n    if (link) eredmeny.link = link;\n  }\n\n  var futas = {\n    index: i,\n    exitCode: j.exitCode,\n    select2: {\n      forras: null,\n      bement: []\n    }\n  };\n\n  if (beagyazott && beagyazott.report && Array.isArray(beagyazott.report.bement)) {\n    futas.select2.forras = \"report.bement\";\n    futas.select2.bement = deduplikalBejegyzesek(beagyazott.report.bement);\n  } else {\n    futas.select2.forras = \"log:Kezelés OK\";\n    futas.select2.bement = kinyerKezelesOkLogbol(stdout);\n  }\n\n  eredmeny.futasok.push(futas);\n  osszesit(eredmeny.osszesitett, futas.select2.bement);\n}\n\n// Szöveges lista a végére\neredmeny.szoveges_lista = szovegesListaKeszit(eredmeny.link, eredmeny.osszesitett);\n\nreturn [{ json: eredmeny }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        64
+      ],
+      "id": "dfda6087-1e7e-4928-a540-8e651a98a188",
+      "name": "valasziro1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================================\n// SCALING PROCESSOR - Treatnote flow (WITH ARCH PROTOCOL SUPPORT)\n// ==========================================================\n// SUPPORTS:\n// - Regular per_tooth / per_case scaling\n// - All-on-4 / All-on-6 fixed protocols\n// - FELSO_ALLCSONT / ALSO_ALLCSONT arch identifiers\n// ==========================================================\n\n// ============ CONFIG ============\nconst DEBUG = true;\n\n// ============ ARCH PROTOCOL DEFINITIONS ============\n\nconst ARCH_TEETH = {\n    // All teeth in upper arch (for extractions)\n    FELSO_ALLCSONT: [\"18\", \"17\", \"16\", \"15\", \"14\", \"13\", \"12\", \"11\", \"21\", \"22\", \"23\", \"24\", \"25\", \"26\", \"27\", \"28\"],\n    // All teeth in lower arch (for extractions)\n    ALSO_ALLCSONT: [\"48\", \"47\", \"46\", \"45\", \"44\", \"43\", \"42\", \"41\", \"31\", \"32\", \"33\", \"34\", \"35\", \"36\", \"37\", \"38\"]\n};\n\nconst FIXED_PILLAR_POSITIONS = {\n    \"all-on-4\": {\n        FELSO_ALLCSONT: [\"14\", \"12\", \"22\", \"24\"],\n        ALSO_ALLCSONT: [\"44\", \"42\", \"32\", \"34\"]\n    },\n    \"all-on-6\": {\n        FELSO_ALLCSONT: [\"15\", \"13\", \"11\", \"21\", \"23\", \"25\"],\n        ALSO_ALLCSONT: [\"45\", \"43\", \"41\", \"31\", \"33\", \"35\"]\n    }\n};\n\n// Representative teeth for per_case items on arch\nconst ARCH_REPRESENTATIVE_TOOTH = {\n    FELSO_ALLCSONT: \"11\",\n    ALSO_ALLCSONT: \"41\"\n};\n\n// Keywords to detect extraction treatments\nconst EXTRACTION_KEYWORDS = [\"extractio\", \"fogeltávolítás\", \"foghúzás\", \"húzás\", \"eltávolítás\"];\n\n// Keywords to detect implant treatments (per_tooth items that use fixed positions)\nconst IMPLANT_KEYWORDS = [\"implant\", \"beültetés\", \"fogbeültetés\", \"multiunit\", \"adapter\", \"gyógyulási sapka\", \"healing\", \"felépítőfej\", \"abutment\"];\n\n// ============ HELPER FUNCTIONS ============\n\nfunction debug(msg, data) {\n    if (!DEBUG) return;\n    const dataStr = data !== undefined ? JSON.stringify(data).substring(0, 300) : '';\n    console.log(`[SCALING] ${msg} ${dataStr}`);\n}\n\nfunction normalizalSzoveg(s) {\n    if (s === null || typeof s === \"undefined\") return \"\";\n    return String(s).replace(/\\s+/g, \" \").trim().toLowerCase();\n}\n\nfunction normalizalHidtag(h) {\n    if (h === null || h === undefined) return null;\n    const t = normalizalSzoveg(h);\n    if (!t) return null;\n    return t.replace(/[\\s\\-]+/g, \"_\").replace(/_+/g, \"_\");\n}\n\nfunction normalizalTargetToothType(s) {\n    if (s === null || typeof s === \"undefined\") return null;\n    const t = normalizalSzoveg(s);\n    if (!t || t === \"all\") return null;\n    return t.replace(/[\\s\\-]+/g, \"_\").replace(/_+/g, \"_\");\n}\n\nfunction fogObjektumNormalizal(x) {\n    if (typeof x === \"string\" || typeof x === \"number\") {\n        return { fog: String(x).trim(), hidtag: null };\n    }\n    if (x && typeof x === \"object\" && !Array.isArray(x)) {\n        const fogErtek = x.fog ?? x.fogszam ?? x.value ?? \"\";\n        const hidtagErtek = x.hidtag ?? x.hidTag ?? null;\n        return { fog: String(fogErtek).trim(), hidtag: normalizalHidtag(hidtagErtek) };\n    }\n    return { fog: \"\", hidtag: null };\n}\n\n// ============ ARCH PROTOCOL DETECTION ============\n\nfunction isArchIdentifier(fog) {\n    return fog === \"FELSO_ALLCSONT\" || fog === \"ALSO_ALLCSONT\";\n}\n\nfunction detectProtocolType(kezelesekList, ruleName) {\n    // Check in rule name and treatment texts for All-on-4 or All-on-6\n    const allTexts = [\n        normalizalSzoveg(ruleName || \"\"),\n        ...kezelesekList.map(k => normalizalSzoveg(typeof k === \"string\" ? k : (k.kezeles_szoveg || k.name || \"\")))\n    ].join(\" \");\n    \n    if (allTexts.includes(\"all-on-6\") || allTexts.includes(\"allon6\") || allTexts.includes(\"all on 6\")) {\n        return \"all-on-6\";\n    }\n    if (allTexts.includes(\"all-on-4\") || allTexts.includes(\"allon4\") || allTexts.includes(\"all on 4\")) {\n        return \"all-on-4\";\n    }\n    return null;\n}\n\nfunction isExtractionTreatment(itemName) {\n    const normalized = normalizalSzoveg(itemName);\n    return EXTRACTION_KEYWORDS.some(kw => normalized.includes(kw));\n}\n\nfunction isImplantRelatedTreatment(itemName) {\n    const normalized = normalizalSzoveg(itemName);\n    return IMPLANT_KEYWORDS.some(kw => normalized.includes(kw));\n}\n\n// ============ EXPAND ARCH TO TEETH ============\n\nfunction expandArchToTeeth(archId, protocolType, itemName, scaling) {\n    // Case 1: Extraction → all teeth in arch\n    if (isExtractionTreatment(itemName)) {\n        debug(`Expanding ${archId} for extraction → all arch teeth`);\n        return ARCH_TEETH[archId].map(fog => ({ fog, hidtag: null }));\n    }\n    \n    // Case 2: per_tooth + implant-related + has protocol → fixed pillar positions\n    if (scaling === \"per_tooth\" && protocolType && isImplantRelatedTreatment(itemName)) {\n        const positions = FIXED_PILLAR_POSITIONS[protocolType]?.[archId];\n        if (positions) {\n            debug(`Expanding ${archId} for ${protocolType} implant → fixed positions`, positions);\n            return positions.map(fog => ({ fog, hidtag: \"pillar_only\" }));\n        }\n    }\n    \n    // Case 3: per_tooth without protocol match → can't expand, use representative\n    if (scaling === \"per_tooth\") {\n        debug(`Warning: per_tooth on arch without protocol match, using representative tooth`);\n        return [{ fog: ARCH_REPRESENTATIVE_TOOTH[archId], hidtag: null }];\n    }\n    \n    // Case 4: per_case → representative tooth\n    debug(`Using representative tooth for per_case on ${archId}`);\n    return [{ fog: ARCH_REPRESENTATIVE_TOOTH[archId], hidtag: null }];\n}\n\n// ============ PER_CASE REPRESENTATIVE TOOTH ============\nfunction perCaseReprezentativFog(index) {\n    const mod = ((index % 4) + 4) % 4;\n    return String(11 + mod * 10);\n}\n\n// ============ HIDTAG FILTER ============\nfunction hidtagKompatibilis(fogHidtag, itemTargetToothType) {\n    const normalizedTarget = normalizalTargetToothType(itemTargetToothType);\n    const normalizedHidtag = normalizalHidtag(fogHidtag);\n    \n    if (normalizedTarget === null) return true;\n    if (normalizedHidtag === null) return true;\n    \n    return normalizedHidtag === normalizedTarget;\n}\n\n// ============ MAIN PROCESSING ============\n\nconst inputData = $input.first().json;\nconst tetelLista = inputData.tetel_lista || [];\n\nlet treatmentRules = [];\ntry {\n    treatmentRules = $('JSON_tisztito').first().json.treatment_rules || [];\n} catch (e) {\n    debug(\"Nincs JSON_tisztito node, hidtag filtering skip\");\n}\n\ndebug(`Processing ${tetelLista.length} tételek`);\n\n// ============ 1. STRUKTÚRA ELŐKÉSZÍTÉSE ============\n\nconst vizitek = {};\nlet globalisIdSzamlalo = 1;\nconst perCaseCsoportok = new Map();\n\nfor (const tetel of tetelLista) {\n    const kategoria = tetel.kategoria || \"egyeb\";\n    const rawFogak = Array.isArray(tetel.fogak) ? tetel.fogak.map(fogObjektumNormalizal).filter(f => f.fog) : [];\n    const kezelesek = Array.isArray(tetel.kezelesek) ? tetel.kezelesek : [];\n    \n    // Detect protocol type for this tétel\n    const protocolType = detectProtocolType(kezelesek, tetel.rule_name);\n    if (protocolType) {\n        debug(`Detected protocol: ${protocolType} for tétel`, { kategoria, fogak: rawFogak });\n    }\n    \n    for (const kezeles of kezelesek) {\n        if (!kezeles || typeof kezeles !== \"object\") continue;\n        \n        const ruleItems = Array.isArray(kezeles.rule_items) ? kezeles.rule_items : [];\n        const nincsTalalat = kezeles.nincs_talalat === true;\n        \n        // If no match or no rule_items, use fallback\n        if (nincsTalalat || ruleItems.length === 0) {\n            const name = kezeles.rule_name || kezeles.kezeles_szoveg || \"\";\n            const visitKey = \"vizit_1\";\n            \n            // Expand arch identifiers for fallback too\n            let expandedFogak = [];\n            for (const f of rawFogak) {\n                if (isArchIdentifier(f.fog)) {\n                    expandedFogak.push(...expandArchToTeeth(f.fog, protocolType, name, \"per_case\"));\n                } else {\n                    expandedFogak.push(f);\n                }\n            }\n            \n            if (!vizitek[visitKey]) vizitek[visitKey] = {};\n            if (!vizitek[visitKey][kategoria]) vizitek[visitKey][kategoria] = [];\n            \n            vizitek[visitKey][kategoria].push({\n                __id: globalisIdSzamlalo++,\n                fogak: expandedFogak.length > 0 ? expandedFogak : [{ fog: \"11\", hidtag: null }],\n                fogak_eredeti: rawFogak.map(f => ({ ...f })),\n                kezelesek: [{\n                    name,\n                    quantity: 1,\n                    scaling: \"per_case\",\n                    talalat: false\n                }]\n            });\n            continue;\n        }\n        \n        // Process rule_items\n        for (const item of ruleItems) {\n            const visitNum = item.visit_number || 1;\n            const visitKey = `vizit_${visitNum}`;\n            const itemName = item.name || \"\";\n            const scaling = item.scaling || \"per_case\";\n            const quantity = parseInt(item.quantity) || 1;\n            const targetToothType = item.target_tooth_type || \"all\";\n            \n            // ============ ARCH EXPANSION LOGIC ============\n            let processedFogak = [];\n            \n            for (const f of rawFogak) {\n                if (isArchIdentifier(f.fog)) {\n                    // Expand arch identifier based on context\n                    const expanded = expandArchToTeeth(f.fog, protocolType, itemName, scaling);\n                    processedFogak.push(...expanded);\n                } else {\n                    processedFogak.push({ ...f });\n                }\n            }\n            \n            // Apply hidtag filtering\n            let filteredFogak = processedFogak.filter(f => hidtagKompatibilis(f.hidtag, targetToothType));\n            \n            // If no compatible teeth and per_tooth, skip\n            if (filteredFogak.length === 0 && scaling === \"per_tooth\") {\n                debug(`Skipping \"${itemName}\" - no compatible teeth for ${targetToothType}`);\n                continue;\n            }\n            \n            // Auto-fill hidtag if target specifies it\n            const normalizedTarget = normalizalTargetToothType(targetToothType);\n            if (normalizedTarget) {\n                filteredFogak = filteredFogak.map(f => ({\n                    ...f,\n                    hidtag: f.hidtag || normalizedTarget\n                }));\n            }\n            \n            if (!vizitek[visitKey]) vizitek[visitKey] = {};\n            if (!vizitek[visitKey][kategoria]) vizitek[visitKey][kategoria] = [];\n            \n            const bejegyzes = {\n                __id: globalisIdSzamlalo++,\n                fogak: filteredFogak.map(f => ({ ...f })),\n                fogak_eredeti: rawFogak.map(f => ({ ...f })),\n                kezelesek: [{\n                    name: itemName,\n                    quantity,\n                    scaling,\n                    target_tooth_type: targetToothType,\n                    talalat: true\n                }]\n            };\n            \n            vizitek[visitKey][kategoria].push(bejegyzes);\n            \n            // per_case tracking\n            if (scaling === \"per_case\") {\n                const kulcs = normalizalSzoveg(itemName);\n                if (!perCaseCsoportok.has(kulcs)) {\n                    perCaseCsoportok.set(kulcs, { allowed: quantity, elemek: [] });\n                } else {\n                    const existing = perCaseCsoportok.get(kulcs);\n                    existing.allowed = Math.max(existing.allowed, quantity);\n                }\n                \n                const maxFog = filteredFogak.reduce((max, f) => {\n                    const n = parseInt(f.fog);\n                    return (!isNaN(n) && n > max) ? n : max;\n                }, -Infinity);\n                \n                perCaseCsoportok.get(kulcs).elemek.push({\n                    id: bejegyzes.__id,\n                    maxFog: maxFog === -Infinity ? 0 : maxFog\n                });\n            }\n        }\n    }\n}\n\n// ============ 2. PER_CASE LIMIT ============\n\nconst megtartandoIds = new Set();\nconst perCaseIdToFog = new Map();\n\nfor (const [kulcs, adat] of perCaseCsoportok.entries()) {\n    const rendezett = adat.elemek.slice().sort((a, b) => {\n        if (b.maxFog !== a.maxFog) return b.maxFog - a.maxFog;\n        return a.id - b.id;\n    });\n    \n    const kivalasztott = rendezett.slice(0, adat.allowed);\n    \n    for (let i = 0; i < kivalasztott.length; i++) {\n        megtartandoIds.add(kivalasztott[i].id);\n        perCaseIdToFog.set(kivalasztott[i].id, perCaseReprezentativFog(i));\n    }\n}\n\n// Filter per_case items\nfor (const vizitKey of Object.keys(vizitek)) {\n    const vizit = vizitek[vizitKey];\n    \n    for (const szakterulet of Object.keys(vizit)) {\n        const lista = vizit[szakterulet];\n        const ujLista = [];\n        \n        for (const bejegyzes of lista) {\n            const kezeles = bejegyzes.kezelesek?.[0];\n            if (!kezeles) {\n                ujLista.push(bejegyzes);\n                continue;\n            }\n            \n            if (kezeles.scaling !== \"per_case\") {\n                ujLista.push(bejegyzes);\n                continue;\n            }\n            \n            if (kezeles.talalat === false) {\n                ujLista.push(bejegyzes);\n                continue;\n            }\n            \n            if (megtartandoIds.has(bejegyzes.__id)) {\n                const ujFog = perCaseIdToFog.get(bejegyzes.__id);\n                if (ujFog) {\n                    bejegyzes.fogak = [{ fog: ujFog, hidtag: null }];\n                }\n                ujLista.push(bejegyzes);\n            }\n        }\n        \n        vizit[szakterulet] = ujLista;\n    }\n}\n\n// ============ 3. PER_TOOTH DEDUPE ============\n\nfor (const vizitKey of Object.keys(vizitek)) {\n    const vizit = vizitek[vizitKey];\n    \n    for (const szakterulet of Object.keys(vizit)) {\n        const lista = vizit[szakterulet];\n        const ujLista = [];\n        \n        for (const bejegyzes of lista) {\n            const kezeles = bejegyzes.kezelesek?.[0];\n            if (!kezeles || kezeles.scaling !== \"per_tooth\") {\n                ujLista.push(bejegyzes);\n                continue;\n            }\n            \n            const latott = new Set();\n            const maradoFogak = [];\n            \n            for (const f of (bejegyzes.fogak || [])) {\n                const kulcs = `${f.fog}|${f.hidtag || ''}`;\n                if (!latott.has(kulcs)) {\n                    latott.add(kulcs);\n                    maradoFogak.push(f);\n                }\n            }\n            \n            if (maradoFogak.length > 0) {\n                bejegyzes.fogak = maradoFogak;\n                ujLista.push(bejegyzes);\n            }\n        }\n        \n        vizit[szakterulet] = ujLista;\n    }\n}\n\n// ============ 4. FLAT VISIT LIST ============\n\nlet laposVizitek = [];\n\nfor (const vizitKey of Object.keys(vizitek).sort()) {\n    const vizit = vizitek[vizitKey];\n    const vizitSzam = parseInt(vizitKey.split(\"_\")[1]) || 1;\n    \n    for (const szakterulet of Object.keys(vizit)) {\n        for (const bejegyzes of vizit[szakterulet]) {\n            const kezeles = bejegyzes.kezelesek?.[0];\n            const itemName = kezeles?.name || \"\";\n            \n            const fogLista = bejegyzes.fogak || [];\n            \n            if (fogLista.length === 0) {\n                laposVizitek.push({\n                    vizit: vizitSzam,\n                    szakterulet,\n                    fog: \"11\",\n                    hidtag: null,\n                    name: itemName,\n                    quantity: kezeles?.quantity || 1,\n                    scaling: kezeles?.scaling || \"per_case\",\n                    talalat: kezeles?.talalat ?? true\n                });\n            } else {\n                for (const fog of fogLista) {\n                    laposVizitek.push({\n                        vizit: vizitSzam,\n                        szakterulet,\n                        fog: fog.fog,\n                        hidtag: fog.hidtag,\n                        name: itemName,\n                        quantity: kezeles?.quantity || 1,\n                        scaling: kezeles?.scaling || \"per_case\",\n                        talalat: kezeles?.talalat ?? true\n                    });\n                }\n            }\n        }\n    }\n}\n\n\n\n// ============ PASS A: CROSS-ITEM DEDUPLICATION ============\n{\n    const EXTRACT_KW = [\"extractio\", \"fogeltávolítás\", \"foghúzás\", \"húzás\", \"eltávolítás\"];\n    const IMPLANT_KW = [\"implantáció\", \"fogbeültetés\", \"implantátum beül\", \"implant beül\"];\n    const MULTIUNIT_KW = [\"multiunit\", \"adapter\"];\n    const HEALING_KW = [\"gyógyulási sapka\", \"healing cap\", \"healing abutment\"];\n    const ABUTMENT_KW2 = [\"abutment\", \"felépítő fej\", \"felépítmény\"];\n    const CROWN_KW = [\"korona\", \"crown\"];\n    const BRIDGE_KW = [\"híd\", \"bridge\"];\n    const XRAY_KW = [\"röntgen\", \"x-ray\", \"panoráma\", \"cbct\"];\n    const SURGPREP_KW = [\"műtéti előkészítés\", \"surgical prep\"];\n    const SINUS_KW = [\"sinus\", \"arcüreg\", \"szinusz\", \"sinuslift\"];\n\n    function treatmentCategory(name) {\n        const n = normalizalSzoveg(name);\n        if (EXTRACT_KW.some(k => n.includes(k))) return \"extraction\";\n        if (IMPLANT_KW.some(k => n.includes(k))) return \"implant_insertion\";\n        if (MULTIUNIT_KW.some(k => n.includes(k))) return \"multiunit\";\n        if (HEALING_KW.some(k => n.includes(k))) return \"healing_cap\";\n        if (ABUTMENT_KW2.some(k => n.includes(k))) return \"abutment\";\n        if (SINUS_KW.some(k => n.includes(k))) return \"sinus_lift\";\n        if (XRAY_KW.some(k => n.includes(k))) return \"xray\";\n        if (SURGPREP_KW.some(k => n.includes(k))) return \"surgical_prep\";\n        if (BRIDGE_KW.some(k => n.includes(k))) return \"bridge\";\n        if (CROWN_KW.some(k => n.includes(k))) return \"crown\";\n        return \"other_\" + n.substring(0, 40);\n    }\n\n    const seen = new Set();\n    const beforeCount = laposVizitek.length;\n    laposVizitek = laposVizitek.filter(v => {\n        const cat = treatmentCategory(v.name);\n        if (cat.startsWith(\"other_\")) return true;\n        const key = `${v.vizit}|${v.fog}|${cat}`;\n        if (seen.has(key)) return false;\n        seen.add(key);\n        return true;\n    });\n    if (DEBUG && laposVizitek.length < beforeCount) {\n        debug(`Pass A: removed ${beforeCount - laposVizitek.length} duplicate rows`);\n    }\n}\n\n// ============ PASS B: SEQUENCE VALIDATION ============\n{\n    const RESTORE_KW = [\"korona\", \"crown\", \"tömés\", \"filling\", \"kompozit\", \"preparál\",\n        \"héj\", \"veneer\", \"gyökérkezel\", \"trepanál\", \"lenyomat\"];\n    const EXTRACT_KW2 = [\"extractio\", \"fogeltávolítás\", \"foghúzás\", \"húzás\", \"eltávolítás\"];\n    const IMPLANT_KW2 = [\"implant\"];\n    const CROWN_KW2 = [\"korona\", \"crown\"];\n    const HCAP_KW2 = [\"gyógyulási sapka\", \"healing cap\", \"ínyformáz\"];\n\n    function isRestorative(n) { return RESTORE_KW.some(k => normalizalSzoveg(n).includes(k)); }\n    function isExtractB(n) { return EXTRACT_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n    function hasImplantB(n) { return IMPLANT_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n    function isCrownB(n) { return CROWN_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n    function isHealCapB(n) { return HCAP_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n\n    const toothRows = new Map();\n    for (let i = 0; i < laposVizitek.length; i++) {\n        const fog = laposVizitek[i].fog;\n        if (!toothRows.has(fog)) toothRows.set(fog, []);\n        toothRows.get(fog).push(i);\n    }\n\n    const removeIdx = new Set();\n\n    for (const [fog, indices] of toothRows) {\n        const sorted = indices.slice().sort((a, b) => laposVizitek[a].vizit - laposVizitek[b].vizit);\n        let extracted = false;\n        let implanted = false;\n        let crownDeliveredVizit = null;\n\n        for (const idx of sorted) {\n            const row = laposVizitek[idx];\n            const name = row.name;\n            if (isExtractB(name)) { extracted = true; implanted = false; }\n            if (hasImplantB(name)) { implanted = true; }\n            if (extracted && !implanted && isRestorative(name) && !hasImplantB(name)) {\n                removeIdx.add(idx);\n            }\n            if (isCrownB(name)) {\n                if (crownDeliveredVizit === null) crownDeliveredVizit = row.vizit;\n            }\n            if (crownDeliveredVizit !== null && row.vizit > crownDeliveredVizit && isHealCapB(name)) {\n                removeIdx.add(idx);\n            }\n        }\n    }\n\n    if (removeIdx.size > 0) {\n        const beforeCount = laposVizitek.length;\n        laposVizitek = laposVizitek.filter((_, i) => !removeIdx.has(i));\n        if (DEBUG) debug(`Pass B: removed ${beforeCount - laposVizitek.length} sequence-invalid rows`);\n    }\n}\n\n// ============ PASS C: POSITION & QUANTITY FILTERING ============\n{\n    const SINUS_KW2 = [\"sinus\", \"arcüreg\", \"szinusz\", \"sinuslift\"];\n    const XRAY_KW2 = [\"röntgen\", \"x-ray\", \"panoráma\", \"cbct\"];\n    const SURGPREP_KW2 = [\"műtéti előkészítés\", \"surgical prep\"];\n\n    function isSinusC(n) { return SINUS_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n    function isXrayC(n) { return XRAY_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n    function isSurgPrepC(n) { return SURGPREP_KW2.some(k => normalizalSzoveg(n).includes(k)); }\n\n    const removeIdx = new Set();\n\n    for (let i = 0; i < laposVizitek.length; i++) {\n        const v = laposVizitek[i];\n        if (isSinusC(v.name)) {\n            const fogNum = parseInt(v.fog);\n            if (!isNaN(fogNum)) {\n                const pos = fogNum % 10;\n                const quad = Math.floor(fogNum / 10);\n                if (quad > 2 || pos < 4) removeIdx.add(i);\n            }\n        }\n    }\n\n    let xrayCount = 0;\n    for (let i = 0; i < laposVizitek.length; i++) {\n        if (removeIdx.has(i)) continue;\n        if (isXrayC(laposVizitek[i].name)) {\n            xrayCount++;\n            if (xrayCount > 2) removeIdx.add(i);\n        }\n    }\n\n    let surgPrepCount = 0;\n    for (let i = 0; i < laposVizitek.length; i++) {\n        if (removeIdx.has(i)) continue;\n        if (isSurgPrepC(laposVizitek[i].name)) {\n            surgPrepCount++;\n            if (surgPrepCount > 2) removeIdx.add(i);\n        }\n    }\n\n    if (removeIdx.size > 0) {\n        const beforeCount = laposVizitek.length;\n        laposVizitek = laposVizitek.filter((_, i) => !removeIdx.has(i));\n        if (DEBUG) debug(`Pass C: removed ${beforeCount - laposVizitek.length} position/quantity-invalid rows`);\n    }\n}\n\n\n// ============ PASS D: BRAND CONSISTENCY FILTER ============\n// Safety: only filter brand-specific items (implants, abutments) — not prosthetics\n// that just happen to mention a brand name in their rule title.\n// Safety: never remove ALL rows — a wrong-brand match is better than empty output.\n{\n    const BRAND_MAP = {\n        \"nobel\": [\"nobel\", \"nobel-biocare\", \"nobel biocare\"],\n        \"alpha_bio\": [\"alpha bio\", \"alpha-bio\", \"alphabio\"],\n        \"straumann\": [\"straumann\"],\n        \"megagen\": [\"megagen\"],\n        \"osstem\": [\"osstem\"],\n        \"biomet\": [\"biomet\", \"zimmer\", \"zimvie\"],\n        \"bredent\": [\"bredent\"],\n        \"dentium\": [\"dentium\"],\n        \"mis\": [\"mis implant\", \"mis \"],\n    };\n\n\n    // Keywords indicating the row is a brand-specific implant item (worth filtering)\n    const BRAND_SPECIFIC_KW = [\"implantáció\", \"implantátum beül\", \"implant beül\",\n        \"fogbeültetés\", \"fixture\", \"abutment\", \"felépítő fej\", \"felépítmény\",\n        \"multiunit\", \"adapter\", \"gyógyulási sapka\", \"healing\"];\n\n    function isBrandSpecificItem(name) {\n        const n = normalizalSzoveg(name || \"\");\n        return BRAND_SPECIFIC_KW.some(kw => n.includes(kw));\n    }\n\n    let inputText = \"\";\n    for (const tetel of tetelLista) {\n        if (tetel.eredeti_szoveg) inputText += \" \" + tetel.eredeti_szoveg;\n    }\n\n    const inputLower = normalizalSzoveg(inputText);\n    const detectedBrands = [];\n    for (const [brandKey, keywords] of Object.entries(BRAND_MAP)) {\n        if (keywords.some(kw => inputLower.includes(kw))) {\n            detectedBrands.push(brandKey);\n        }\n    }\n\n    if (detectedBrands.length > 0) {\n        const filtered = laposVizitek.filter(v => {\n            const nameLower = normalizalSzoveg(v.name || \"\");\n            // Only apply brand filter to brand-specific items (implants, abutments)\n            if (!isBrandSpecificItem(nameLower)) return true;\n            for (const [brandKey, keywords] of Object.entries(BRAND_MAP)) {\n                if (detectedBrands.includes(brandKey)) continue;\n                if (keywords.some(kw => nameLower.includes(kw))) {\n                    return false;\n                }\n            }\n            return true;\n        });\n\n        // Safety: never remove ALL rows\n        if (filtered.length > 0) {\n            if (DEBUG && filtered.length < laposVizitek.length) {\n                debug(`Pass D: removed ${laposVizitek.length - filtered.length} brand-mismatched rows (input brands: ${detectedBrands.join(\", \")})`);\n            }\n            laposVizitek = filtered;\n        } else if (DEBUG) {\n            debug(`Pass D: brand filter would remove ALL rows — skipping filter (input brands: ${detectedBrands.join(\", \")})`);\n        }\n    }\n}\n\n// ============ PASS E: CROSS-VISIT IMPLANT DEDUPLICATION ============\n{\n    const IMPLANT_INSERT_KW = [\"implantáció\", \"implantátum beül\", \"implant beül\",\n        \"fogbeültetés\", \"fixture\", \"implantátum műtéti\"];\n\n    function isImplantInsertion(name) {\n        const n = normalizalSzoveg(name || \"\");\n        return IMPLANT_INSERT_KW.some(k => n.includes(k));\n    }\n\n    const toothFirstImplantVizit = new Map();\n    for (const v of laposVizitek) {\n        if (isImplantInsertion(v.name)) {\n            const existing = toothFirstImplantVizit.get(v.fog);\n            if (existing === undefined || v.vizit < existing) {\n                toothFirstImplantVizit.set(v.fog, v.vizit);\n            }\n        }\n    }\n\n    const beforeCount = laposVizitek.length;\n    laposVizitek = laposVizitek.filter(v => {\n        if (!isImplantInsertion(v.name)) return true;\n        return v.vizit === toothFirstImplantVizit.get(v.fog);\n    });\n\n    if (DEBUG && laposVizitek.length < beforeCount) {\n        debug(`Pass E: removed ${beforeCount - laposVizitek.length} duplicate implant rows (cross-visit dedup)`);\n    }\n}\n\n\n// ============ PASS F: VISIT RESEQUENCING ============\n{\n    const PHASE_KW = {\n        DIAGNOSTIC:              [\"röntgen\", \"x-ray\", \"panoráma\", \"cbct\", \"ct felvétel\", \"konzultáció\", \"vizsgálat\"],\n        PARODONTOLOGY:           [\"parodont\", \"kürett\", \"depurálás\", \"fogkő\", \"tasakmélység\", \"scaling\", \"root planing\"],\n        EXTRACTION:              [\"extractio\", \"foghúzás\", \"fogeltávolítás\", \"húzás\", \"eltávolítás\", \"bölcsességfog\"],\n        BONE_AUGMENTATION:       [\"sinus\", \"arcüreg\", \"szinusz\", \"sinuslift\", \"csontpótlás\", \"bone graft\", \"augmentáció\", \"membrán\"],\n        IMPLANT_SURGICAL:        [\"implantáció\", \"implantátum beül\", \"implant beül\", \"fogbeültetés\", \"fixture\"],\n        IMPLANT_PROSTHETIC_PREP: [\"gyógyulási sapka\", \"healing cap\", \"healing abutment\", \"abutment\", \"felépítő fej\", \"felépítmény\", \"multiunit\", \"implant felszabadít\", \"ínyformáz\"],\n        PROSTHETIC_PREP:         [\"lenyomat\", \"szken\", \"scan\", \"preparálás\", \"preparáció\"],\n        PROSTHETIC_DELIVERY:     [\"korona\", \"crown\", \"híd\", \"bridge\", \"héj\", \"veneer\", \"fogsor\", \"protézis\"],\n        CONSERVATIVE:            [\"tömés\", \"filling\", \"gyökérkezel\", \"trepanál\", \"kompozit\", \"endodont\"],\n        SUPPORT:                 [\"műtéti előkészítés\", \"surgical prep\", \"sterili\"],\n    };\n\n    const PHASE_PRIORITY = {\n        DIAGNOSTIC: 0, PARODONTOLOGY: 1, EXTRACTION: 2,\n        BONE_AUGMENTATION: 3, IMPLANT_SURGICAL: 4,\n        IMPLANT_PROSTHETIC_PREP: 5, PROSTHETIC_PREP: 6,\n        PROSTHETIC_DELIVERY: 7, CONSERVATIVE: -1, SUPPORT: -1\n    };\n\n    const SURGICAL_PHASES = new Set([\"EXTRACTION\", \"BONE_AUGMENTATION\", \"IMPLANT_SURGICAL\"]);\n\n    function classifyPhase(name) {\n        const n = normalizalSzoveg(name || \"\");\n        for (const [phase, keywords] of Object.entries(PHASE_KW)) {\n            if (keywords.some(kw => n.includes(kw))) return phase;\n        }\n        return \"OTHER\";\n    }\n\n    for (const v of laposVizitek) { v._phase = classifyPhase(v.name); }\n\n    const visitMap = new Map();\n    for (const v of laposVizitek) {\n        if (!visitMap.has(v.vizit)) visitMap.set(v.vizit, []);\n        visitMap.get(v.vizit).push(v);\n    }\n\n    let splitCount = 0;\n\n    for (const [vizitNum, rows] of visitMap) {\n        const phases = new Set(rows.map(r => r._phase));\n\n        // R1: PARODONTOLOGY + SURGICAL in same visit\n        const hasParo = phases.has(\"PARODONTOLOGY\");\n        const hasSurgical = [...phases].some(p => SURGICAL_PHASES.has(p));\n        if (hasParo && hasSurgical) {\n            for (const r of rows) {\n                if (r._phase === \"PARODONTOLOGY\") {\n                    r._offset = -0.5;\n                    splitCount++;\n                }\n            }\n        }\n\n        // R3: IMPLANT_SURGICAL + PROSTHETIC_DELIVERY on same tooth\n        if (phases.has(\"IMPLANT_SURGICAL\") && phases.has(\"PROSTHETIC_DELIVERY\")) {\n            const implantTeeth = new Set(rows.filter(r => r._phase === \"IMPLANT_SURGICAL\").map(r => r.fog));\n            for (const r of rows) {\n                if (r._phase === \"PROSTHETIC_DELIVERY\" && implantTeeth.has(r.fog)) {\n                    r._offset = 0.5;\n                    splitCount++;\n                }\n            }\n        }\n    }\n\n    // --- R4: EXTRACTION + PROSTHETIC on same tooth (cross-visit) ---\n    // When a tooth has both extraction and prosthetic prep/delivery,\n    // and the prosthetic visit is at or before the extraction visit,\n    // bump the prosthetic work to after the latest phase for that tooth\n    // (typically after implant insertion).\n    {\n        // Build per-tooth phase timelines\n        const toothPhases = new Map(); // fog → [{vizit, phase, index}]\n        for (let i = 0; i < laposVizitek.length; i++) {\n            const v = laposVizitek[i];\n            const fog = v.fog;\n            if (!fog || fog === \"FELSO_ALLCSONT\" || fog === \"ALSO_ALLCSONT\") continue;\n            if (!toothPhases.has(fog)) toothPhases.set(fog, []);\n            toothPhases.get(fog).push({ vizit: v.vizit, phase: v._phase, index: i });\n        }\n\n        for (const [fog, entries] of toothPhases) {\n            const extractionEntries = entries.filter(e => e.phase === \"EXTRACTION\");\n            if (extractionEntries.length === 0) continue;\n\n            const extractionVizit = Math.min(...extractionEntries.map(e => e.vizit));\n            const implantEntries = entries.filter(e => e.phase === \"IMPLANT_SURGICAL\");\n            const hasImplant = implantEntries.length > 0;\n\n            // Find prosthetic work on this tooth that's at or before extraction\n            const prostheticPhases = [\"PROSTHETIC_PREP\", \"PROSTHETIC_DELIVERY\"];\n            const conflictingProsthetics = entries.filter(e =>\n                prostheticPhases.includes(e.phase) && e.vizit <= extractionVizit\n            );\n\n            if (conflictingProsthetics.length > 0) {\n                // Determine the target visit: after implant if present, otherwise after extraction\n                let targetOffset;\n                if (hasImplant) {\n                    const implantVizit = Math.max(...implantEntries.map(e => e.vizit));\n                    targetOffset = (vizitNum) => implantVizit - vizitNum + 0.5;\n                } else {\n                    targetOffset = (vizitNum) => extractionVizit - vizitNum + 0.5;\n                }\n\n                for (const entry of conflictingProsthetics) {\n                    const v = laposVizitek[entry.index];\n                    v._offset = targetOffset(v.vizit);\n                    splitCount++;\n                }\n            }\n        }\n    }\n\n    if (splitCount > 0) {\n        for (const v of laposVizitek) {\n            v._effectiveVizit = v.vizit + (v._offset || 0);\n        }\n\n        laposVizitek.sort((a, b) => {\n            if (a._effectiveVizit !== b._effectiveVizit) return a._effectiveVizit - b._effectiveVizit;\n            const pa = PHASE_PRIORITY[a._phase] ?? 99;\n            const pb = PHASE_PRIORITY[b._phase] ?? 99;\n            return pa - pb;\n        });\n\n        let currentVizit = 0;\n        let lastEffective = null;\n        for (const v of laposVizitek) {\n            if (v._effectiveVizit !== lastEffective) {\n                currentVizit++;\n                lastEffective = v._effectiveVizit;\n            }\n            v.vizit = currentVizit;\n        }\n\n        if (DEBUG) {\n            debug(`Pass F: resequenced ${splitCount} items across visits (incompatible phase separation)`);\n        }\n    }\n\n    for (const v of laposVizitek) {\n        delete v._phase;\n        delete v._offset;\n        delete v._effectiveVizit;\n    }\n}\n\n// ============ POST-PASS DEDUP ============\\n// After all passes (especially Pass F renumbering), re-run same-visit/same-tooth\\n// dedup to catch collisions created by visit reassignment.\\n{\\n    const IMPLANT_INS_KW = [\"implantáció\", \"fogbeültetés\", \"implantátum beül\", \"implant beül\"];\\n    const EXTRACT_DKW = [\"extractio\", \"fogeltávolítás\", \"foghúzás\", \"húzás\", \"eltávolítás\"];\\n    const CROWN_DKW = [\"korona\", \"crown\"];\\n    const HEALING_DKW = [\"gyógyulási sapka\", \"healing cap\"];\\n    const ABUTMENT_DKW = [\"abutment\", \"felépítő fej\", \"felépítmény\", \"multiunit\"];\\n\\n    function dedupCategory(name) {\\n        const n = normalizalSzoveg(name);\\n        if (EXTRACT_DKW.some(k => n.includes(k))) return \"extraction\";\\n        if (IMPLANT_INS_KW.some(k => n.includes(k))) return \"implant\";\\n        if (HEALING_DKW.some(k => n.includes(k))) return \"healing_cap\";\\n        if (ABUTMENT_DKW.some(k => n.includes(k))) return \"abutment\";\\n        if (CROWN_DKW.some(k => n.includes(k))) return \"crown\";\\n        return null;\\n    }\\n\\n    const seen = new Set();\\n    const beforeCount = laposVizitek.length;\\n    laposVizitek = laposVizitek.filter(v => {\\n        const cat = dedupCategory(v.name);\\n        if (!cat) return true;\\n        const key = `${v.vizit}|${v.fog}|${cat}`;\\n        if (seen.has(key)) return false;\\n        seen.add(key);\\n        return true;\\n    });\\n\\n    if (DEBUG && laposVizitek.length < beforeCount) {\\n        debug(`Post-pass dedup: removed ${beforeCount - laposVizitek.length} same-visit/tooth/category duplicates`);\\n    }\\n}\\n\\n// ============ 5. CLEANUP ============\n\nfor (const vizitKey of Object.keys(vizitek)) {\n    const vizit = vizitek[vizitKey];\n    for (const szakterulet of Object.keys(vizit)) {\n        for (const bejegyzes of vizit[szakterulet]) {\n            delete bejegyzes.__id;\n        }\n    }\n}\n\n// ============ 6. OUTPUT ============\n\nconst kimenet = {\n    vizitek: laposVizitek,\n    meta: {\n        tetel_szam: tetelLista.length,\n        vizit_szam: laposVizitek.length\n    }\n};\n\nconst payload_json = JSON.stringify(kimenet);\nconst payload_b64 = Buffer.from(payload_json, \"utf8\").toString(\"base64\");\n\ndebug(`Output: ${laposVizitek.length} vizitek`);\n\nreturn [{\n    json: {\n        ...kimenet,\n        payload_json,\n        payload_b64,\n        eseteik_szurve: [kimenet]\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2176,
+        64
+      ],
+      "id": "fb6beefc-f1a6-4701-9279-c3ed45948158",
+      "name": "scaling_processor_node"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================================\n// SEMANTIC MATCHER - DEEP DEBUG EDITION (JAVÍTOTT)\n// + ALAPSZABÁLY OVERRIDE + AKTÍV FILTER\n// ==========================================================\n\n// ============ CONFIG ============\nconst SUPABASE_URL = \"https://bpjzgapmoyhtgryglcke.supabase.co\";\nconst SUPABASE_API_KEY = \"sb_secret_gRiwdPwnR3BcA6zo1a8XXQ_Z7bJr8Vn\";\nconst OPENAI_API_KEY = \"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\";\n\nconst SIMILARITY_THRESHOLD = 0.60;\nconst HIGH_CONFIDENCE_THRESHOLD = 0.82;\nconst ALAPSZABALY_TOLERANCE = 0.04;\nconst EMBEDDING_MODEL = \"text-embedding-3-large\";\n\nconst DEBUG = true;\nconst debug_log = []; // Szöveges log\nconst detailed_report = []; // Strukturált, mély elemzés\n\n// ============ HELPER FUNCTIONS ============\n\nfunction log(msg, data) {\n    if (!DEBUG) return;\n    const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');\n    let dataStr = \"\";\n    if (data !== undefined) {\n        try {\n            dataStr = typeof data === 'object' ? \" | \" + JSON.stringify(data).substring(0, 200) + \"...\" : \" | \" + String(data);\n        } catch (e) { dataStr = \" | [Circular/Complex Data]\"; }\n    }\n    const entry = `[${timestamp}] ${msg}${dataStr}`;\n    console.log(entry);\n    debug_log.push(entry);\n}\n\nasync function apiCall(name, options) {\n    log(`>>> API CALL: ${name}`);\n    try {\n        const response = await this.helpers.httpRequest({ ...options, json: true });\n        log(`<<< API OK: ${name}`, Array.isArray(response) ? `${response.length} items` : \"Object\");\n        return response;\n    } catch (error) {\n        const errDetail = error.response ? JSON.stringify(error.response.data) : error.message;\n        log(`!!! API ERROR: ${name}`, errDetail);\n        return null;\n    }\n}\n\nfunction extractSortedRuleItems(rule) {\n    if (!rule || !rule.rule_visits) return [];\n    const items = [];\n    const visits = Array.isArray(rule.rule_visits) ? rule.rule_visits : [];\n    for (const visit of visits) {\n        const vNum = parseInt(visit.visit_number) || 1;\n        const rItems = Array.isArray(visit.rule_items) ? visit.rule_items : [];\n        for (const item of rItems) {\n            items.push({\n                visit_number: vNum,\n                name: item.name,\n                unit: item.unit || \"db\",\n                scaling: item.scaling || \"per_case\",\n                quantity: parseInt(item.quantity) || 1,\n                target_tooth_type: item.target_tooth_type || \"all\"\n            });\n        }\n    }\n    return items.sort((a, b) => a.visit_number - b.visit_number);\n}\n\n// ============ MAIN LOGIC ============\n\nconst inputData = $input.first().json;\nconst tetelLista = inputData.tetel_lista || [];\n// Telephely ID biztonságos kinyerése\nlet telephelyId = null;\ntry {\n    telephelyId = $('Webhook1').first().json.body.telephely_id;\n} catch (e) {\n    log(\"WARN: Nem sikerült a Webhook1-ből kinyerni a telephely_id-t.\");\n}\n\nlog(`START: Semantic Matcher indul. Tételek száma: ${tetelLista.length}`);\n\n// 1. Szövegek előkészítése\nconst kezelesTexts = [];\nconst kezelesMap = [];\n\nfor (let ti = 0; ti < tetelLista.length; ti++) {\n    const tetel = tetelLista[ti];\n    const eredetiSzoveg = tetel.eredeti_szoveg || \"\";\n    const kezelesek = Array.isArray(tetel.kezelesek) ? tetel.kezelesek : [];\n\n    for (let ki = 0; ki < kezelesek.length; ki++) {\n        const k = kezelesek[ki];\n        let rawText = typeof k === 'string' ? k : (k.kezeles_szoveg || k.name || String(k));\n\n        if (rawText && rawText.trim()) {\n            // Context enhancement\n            let usedText = rawText.trim();\n            if (eredetiSzoveg) {\n                usedText = `${usedText} | Kontextus: ${eredetiSzoveg}`;\n            }\n\n            kezelesTexts.push(usedText);\n            kezelesMap.push({\n                id: `T${ti}_K${ki}`,\n                tetelIndex: ti,\n                kezelesIndex: ki,\n                originalText: rawText.trim(),\n                usedText: usedText\n            });\n        }\n    }\n}\n\nif (kezelesTexts.length === 0) {\n    return [{ json: { ...inputData, _debug: \"Nincs feldolgozandó szöveg.\" } }];\n}\n\n// 2. OpenAI Embedding Generálás\nlog(`EMBEDDING: ${kezelesTexts.length} db szöveg küldése OpenAI-nak...`);\nconst embeddingRes = await apiCall.call(this, \"OpenAI_Embeddings\", {\n    method: \"POST\",\n    url: \"https://api.openai.com/v1/embeddings\",\n    headers: { \"Authorization\": `Bearer ${OPENAI_API_KEY}` },\n    body: { model: EMBEDDING_MODEL, input: kezelesTexts }\n});\n\nif (!embeddingRes || !embeddingRes.data) {\n    throw new Error(\"OpenAI Embedding hiba - üres válasz.\");\n}\n\nconst embeddings = embeddingRes.data.map(d => d.embedding);\nlog(\"EMBEDDING: Sikeres generálás.\");\n\n// 3. Matching & Logic Processing\nconst ruleCache = new Map();\nconst updatedTetelLista = JSON.parse(JSON.stringify(tetelLista));\nlet matchedCount = 0;\n\n// Helper: fetch rule details with caching\nasync function fetchRuleDetails(ruleId) {\n    if (ruleCache.has(ruleId)) return ruleCache.get(ruleId);\n    const ruleData = await apiCall.call(this, `GetRule_${ruleId}`, {\n        method: \"GET\",\n        url: `${SUPABASE_URL}/rest/v1/treatment_rules?id=eq.${ruleId}&select=*,rule_visits(*,rule_items(*))`,\n        headers: { \"apikey\": SUPABASE_API_KEY, \"Authorization\": `Bearer ${SUPABASE_API_KEY}` }\n    });\n    if (ruleData && ruleData.length > 0) {\n        ruleCache.set(ruleId, ruleData[0]);\n        return ruleData[0];\n    }\n    return null;\n}\n\nfor (let i = 0; i < kezelesMap.length; i++) {\n    const mapItem = kezelesMap[i];\n    const embedding = embeddings[i];\n\n    // Részletes riport objektum ehhez a tételhez\n    const itemReport = {\n        id: mapItem.id,\n        input_text: mapItem.originalText,\n        context_text: mapItem.usedText,\n        steps: []\n    };\n\n    log(`MATCHING [${i + 1}/${kezelesMap.length}]: \"${mapItem.originalText}\"`);\n\n    // --- A) PRIMARY SEARCH (Klinika specifikus) ---\n    let bestMatch = null;\n    let matchSource = null;\n    let decisionReason = \"\";\n\n    let matches = await apiCall.call(this, `Primary_RPC`, {\n        method: \"POST\",\n        url: `${SUPABASE_URL}/rest/v1/rpc/match_treatment_embedding`,\n        headers: { \"apikey\": SUPABASE_API_KEY, \"Authorization\": `Bearer ${SUPABASE_API_KEY}` },\n        body: {\n            query_embedding: `[${embedding.join(',')}]`,\n            match_threshold: SIMILARITY_THRESHOLD,\n            match_count: 5,\n            p_clinic_id: telephelyId,\n            p_source_types: ['semantic_description']\n        }\n    });\n\n    if (matches && matches.length > 0) {\n        // Fetch rule details for all candidates to check aktiv + alapszabaly\n        let activeCandidates = [];\n        for (const candidate of matches) {\n            const ruleDetail = await fetchRuleDetails.call(this, candidate.treatment_rule_id);\n            if (ruleDetail && ruleDetail.aktiv !== false) {\n                activeCandidates.push({ ...candidate, _ruleDetail: ruleDetail });\n            } else {\n                log(`  -> Kiszűrve (aktiv=false): ${candidate.rule_name}`);\n            }\n        }\n\n        if (activeCandidates.length > 0) {\n            bestMatch = activeCandidates[0];\n            matchSource = \"primary\";\n\n            // --- ALAPSZABÁLY OVERRIDE ---\n            const bestRule = bestMatch._ruleDetail;\n            if (bestRule.alapszabaly === true && activeCandidates.length > 1) {\n                const bestSim = bestMatch.similarity;\n                log(`  -> Alapszabály match: ${bestMatch.rule_name} (sim=${bestSim}). Checking for custom override...`);\n\n                for (let j = 1; j < activeCandidates.length; j++) {\n                    const altCandidate = activeCandidates[j];\n                    const altRule = altCandidate._ruleDetail;\n                    const simDiff = bestSim - altCandidate.similarity;\n\n                    if (altRule.alapszabaly === false && simDiff <= ALAPSZABALY_TOLERANCE) {\n                        log(`  -> OVERRIDE: Custom rule \"${altCandidate.rule_name}\" (sim=${altCandidate.similarity}, diff=${simDiff.toFixed(4)}) preferred over alapszabály.`);\n                        bestMatch = altCandidate;\n                        decisionReason = `Custom rule override: \"${altCandidate.rule_name}\" (sim=${altCandidate.similarity.toFixed(4)}, diff=${simDiff.toFixed(4)}) preferred over alapszabály \"${activeCandidates[0].rule_name}\" (sim=${bestSim.toFixed(4)})`;\n                        matchSource = \"primary_custom_override\";\n                        break;\n                    }\n                }\n\n                if (matchSource !== \"primary_custom_override\") {\n                    decisionReason = `Alapszabály match (no close custom rule found): \"${bestMatch.rule_name}\" (sim=${bestMatch.similarity.toFixed(4)})`;\n                }\n            } else {\n                decisionReason = `Primary találat (Sim: ${bestMatch.similarity.toFixed(4)}) > Küszöb (${SIMILARITY_THRESHOLD})`;\n            }\n\n            itemReport.steps.push({\n                type: \"primary_search\",\n                status: \"HIT\",\n                candidate_name: bestMatch.rule_name,\n                similarity: bestMatch.similarity,\n                threshold: SIMILARITY_THRESHOLD,\n                alapszabaly_override: matchSource === \"primary_custom_override\",\n                all_candidates: activeCandidates.map(c => ({\n                    name: c.rule_name,\n                    similarity: c.similarity,\n                    alapszabaly: c._ruleDetail?.alapszabaly || false\n                }))\n            });\n            log(`  -> Primary Találat: ${bestMatch.rule_name} (${bestMatch.similarity})`);\n        }\n    }\n\n    if (!bestMatch) {\n        itemReport.steps.push({\n            type: \"primary_search\",\n            status: \"MISS\",\n            reason: \"Nincs találat vagy similarity < threshold\"\n        });\n        log(`  -> Primary: Nincs megfelelő találat.`);\n\n        // --- B) FALLBACK SEARCH (Szótár / Globális) ---\n        log(`  -> Fallback indítása...`);\n\n        let fallbackMatches = await apiCall.call(this, `Fallback_RPC`, {\n            method: \"POST\",\n            url: `${SUPABASE_URL}/rest/v1/rpc/match_szotar_embedding`,\n            headers: { \"apikey\": SUPABASE_API_KEY, \"Authorization\": `Bearer ${SUPABASE_API_KEY}` },\n            body: {\n                query_embedding: `[${embedding.join(',')}]`,\n                match_threshold: SIMILARITY_THRESHOLD,\n                match_count: 1,\n                p_telephely_id: telephelyId,\n                p_source_types: ['name']\n            }\n        });\n\n        if (fallbackMatches && fallbackMatches.length > 0) {\n            const candidate = fallbackMatches[0];\n            itemReport.steps.push({\n                type: \"fallback_search\",\n                status: \"HIT\",\n                candidate_name: candidate.rule_name || \"Szótár elem\",\n                similarity: candidate.similarity,\n                threshold: SIMILARITY_THRESHOLD\n            });\n\n            bestMatch = candidate;\n            matchSource = \"fallback\";\n            decisionReason = `Fallback találat (Sim: ${candidate.similarity.toFixed(4)})`;\n            log(`  -> Fallback Találat: ${candidate.rule_name} (${candidate.similarity})`);\n        } else {\n            itemReport.steps.push({\n                type: \"fallback_search\",\n                status: \"MISS\",\n                reason: \"Fallbackben sem volt elég erős találat.\"\n            });\n            decisionReason = \"Nincs találat egyik adatbázisban sem.\";\n            log(`  -> Fallback: Nincs találat.`);\n        }\n    }\n\n    // --- Eredmény beírása a JSON-ba ---\n    const tetel = updatedTetelLista[mapItem.tetelIndex];\n    let kezeles = tetel.kezelesek[mapItem.kezelesIndex];\n\n    // Normalizálás objektummá ha string volt\n    if (typeof kezeles === 'string') {\n        kezeles = { kezeles_szoveg: kezeles };\n        tetel.kezelesek[mapItem.kezelesIndex] = kezeles;\n    }\n\n    if (bestMatch) {\n        const ruleId = bestMatch.treatment_rule_id;\n\n        // Rule details already fetched and cached during matching\n        const cachedRule = ruleCache.get(ruleId) || bestMatch._ruleDetail;\n\n        kezeles.rule_id = ruleId;\n        kezeles.rule_name = bestMatch.rule_name || cachedRule?.name;\n        kezeles.rule_items = extractSortedRuleItems(cachedRule);\n        kezeles.nincs_talalat = false;\n\n        // Debug infók a kimeneti objektumba is\n        kezeles.semantic_match = {\n            matched: true,\n            similarity: bestMatch.similarity,\n            source: matchSource,\n            decision: decisionReason,\n            alapszabaly: cachedRule?.alapszabaly || false\n        };\n\n        itemReport.final_outcome = {\n            status: \"MATCHED\",\n            rule_name: kezeles.rule_name,\n            rule_id: ruleId,\n            alapszabaly: cachedRule?.alapszabaly || false\n        };\n        matchedCount++;\n    } else {\n        kezeles.nincs_talalat = true;\n        kezeles.rule_items = [];\n        kezeles.semantic_match = {\n            matched: false,\n            decision: decisionReason\n        };\n\n        itemReport.final_outcome = {\n            status: \"UNMATCHED\",\n            reason: decisionReason\n        };\n    }\n\n    detailed_report.push(itemReport);\n}\n\nconst stats = {\n    total: kezelesMap.length,\n    matched: matchedCount,\n    match_rate: ((matchedCount / kezelesMap.length) * 100).toFixed(1) + \"%\"\n};\n\nlog(\"DONE. Statisztika:\", stats);\n\nreturn [{\n    json: {\n        ...inputData,\n        tetel_lista: updatedTetelLista,\n        _execution_report: detailed_report,\n        _semantic_match_stats: stats,\n        _debug_log: debug_log\n    }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        32
+      ],
+      "id": "d5e058cc-782b-4cb8-86d9-85fa3e0f7611",
+      "name": "semantic_matcher"
+    },
+    {
+      "parameters": {
+        "jsCode": "\"use strict\";\n\n/* ---------------- VÁLTOZÓK ---------------- */\nconst Debug = false;\n\n// Melyik mezőben jön a hosszú szöveg? (pl. \"output\")\nconst BemenetiMezoNev = \"output\";\n\n// Ha true: hiba esetén is ad vissza itemet hiba mezőkkel.\n// Ha false: hiba esetén eldobja és megáll a node.\nconst HibavalFolytat = false;\n\n/* ---------------- SEGÉDFÜGGVÉNYEK ---------------- */\nfunction debugUzenet(szoveg) {\n  if (Debug) console.log(\"[DEBUG] \" + szoveg);\n}\n\nfunction jsonReszKinyerese(szoveg) {\n  if (typeof szoveg !== \"string\") {\n    throw new TypeError(\"A bemenetnek stringnek kell lennie.\");\n  }\n\n  // 1) Preferált: ```json ... ``` blokk\n  const fenceRegex = /```json\\s*([\\s\\S]*?)\\s*```/i;\n  const fenceMatch = szoveg.match(fenceRegex);\n  if (fenceMatch && fenceMatch[1]) {\n    const jelolt = fenceMatch[1].trim();\n    debugUzenet(\"JSON kódfence megtalálva, hossz: \" + jelolt.length);\n    JSON.parse(jelolt); // validál\n    return jelolt;\n  }\n\n  // 2) Fallback: első kiegyensúlyozott { ... } blokk\n  debugUzenet(\"Nincs JSON kódfence, fallback keresés indul.\");\n\n  const start = szoveg.indexOf(\"{\");\n  if (start === -1) throw new Error(\"Nem található JSON kezdete ('{').\");\n\n  let i = start;\n  let melyseg = 0;\n  let inString = false;\n  let escape = false;\n\n  for (; i < szoveg.length; i++) {\n    const ch = szoveg[i];\n\n    if (inString) {\n      if (escape) escape = false;\n      else if (ch === \"\\\\\") escape = true;\n      else if (ch === '\"') inString = false;\n      continue;\n    }\n\n    if (ch === '\"') {\n      inString = true;\n      continue;\n    }\n\n    if (ch === \"{\") {\n      melyseg++;\n      continue;\n    }\n\n    if (ch === \"}\") {\n      melyseg--;\n      if (melyseg === 0) {\n        const kivagott = szoveg.slice(start, i + 1).trim();\n        JSON.parse(kivagott); // validál\n        return kivagott;\n      }\n      if (melyseg < 0) throw new Error(\"Hibás bemenet: túl sok '}' karakter.\");\n    }\n  }\n\n  throw new Error(\"Nem található a JSON objektum vége (nincs kiegyensúlyozott '}').\");\n}\n\n/* ---------------- RUN ---------------- */\nconst bemenet = $input.all();\nconst kimenet = [];\n\nfor (const item of bemenet) {\n  try {\n    const szoveg = item.json?.[BemenetiMezoNev];\n\n    if (typeof szoveg !== \"string\" || !szoveg.trim()) {\n      throw new Error(`Hiányzó vagy üres bemenet: item.json.${BemenetiMezoNev}`);\n    }\n\n    const jsonSzoveg = jsonReszKinyerese(szoveg);\n    const jsonObjektum = JSON.parse(jsonSzoveg);\n\n    // CSAK a JSON megy tovább:\n    kimenet.push({ json: jsonObjektum });\n  } catch (e) {\n    const uzenet = e && e.message ? e.message : String(e);\n\n    if (HibavalFolytat) {\n      kimenet.push({\n        json: {\n          hiba: uzenet,\n          bemeneti_mezo: BemenetiMezoNev,\n        },\n      });\n    } else {\n      throw new Error(uzenet);\n    }\n  }\n}\n\nreturn kimenet;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2704,
+        32
+      ],
+      "id": "1a42b286-785f-429c-94e7-8076e7318e57",
+      "name": "json kiszedo"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f6ef94aa-051b-4da7-9d17-8ed3d2fb2d7b",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4192,
+        -48
+      ],
+      "id": "fbe1730f-f954-4802-bf0e-93b9c5bc602a",
+      "name": "Webhook1",
+      "webhookId": "f6ef94aa-051b-4da7-9d17-8ed3d2fb2d7b"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.payload }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -176,
+        -144
+      ],
+      "id": "4fce1a8f-459e-4e74-be04-c043bcae3967",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Használat: tedd ezt a CODE node végére (vagy egy külön Function/Code node-ba),\n// ahol már elérhető az input JSON, amiben benne van az _execution_report.\n// Nem használ Node env-et, nem olvas fájlt, nem require-ol modulokat.\n\nfunction szamBiztonsagos(x) {\n  const n = (typeof x === \"number\") ? x : Number(x);\n  return Number.isFinite(n) ? n : null;\n}\n\nfunction kerek4(x) {\n  const n = szamBiztonsagos(x);\n  if (n === null) return null;\n  return Math.round(n * 10000) / 10000;\n}\n\nfunction lepesKikeres(item, type) {\n  const steps = (item && Array.isArray(item.steps)) ? item.steps : [];\n  for (let i = 0; i < steps.length; i++) {\n    const s = steps[i];\n    if (s && s.type === type) return s;\n  }\n  return null;\n}\n\nfunction jeloltekNormalizalasaEsRendezese(allCandidates) {\n  if (!Array.isArray(allCandidates)) return [];\n  const out = [];\n  for (let i = 0; i < allCandidates.length; i++) {\n    const c = allCandidates[i] || {};\n    const name = c.name != null ? String(c.name) : \"\";\n    if (!name) continue;\n    out.push({\n      name: name,\n      similarity: kerek4(c.similarity),\n      alapszabaly: Boolean(c.alapszabaly)\n    });\n  }\n  out.sort(function (a, b) {\n    const as = (a.similarity == null) ? -1 : a.similarity;\n    const bs = (b.similarity == null) ? -1 : b.similarity;\n    return bs - as;\n  });\n  return out;\n}\n\nfunction itemEmberbarat(item, index) {\n  const primary = lepesKikeres(item, \"primary_search\");\n  const fallback = lepesKikeres(item, \"fallback_search\");\n  const finalOutcome = (item && item.final_outcome) ? item.final_outcome : {};\n  const status = finalOutcome.status || \"UNKNOWN\";\n\n  const primaryHit = primary && primary.status === \"HIT\";\n  const fallbackHit = fallback && fallback.status === \"HIT\";\n\n  const primaryOverride = primary ? Boolean(primary.alapszabaly_override) : false;\n\n  let valasztasModja = \"nincs_talalat\";\n  if (status === \"MATCHED\") {\n    if (primaryOverride) valasztasModja = \"primary_custom_override\";\n    else if (primaryHit) valasztasModja = \"primary\";\n    else if (fallbackHit) valasztasModja = \"fallback\";\n    else valasztasModja = \"ismeretlen_match_ut\";\n  }\n\n  const primaryCandidates = primary ? jeloltekNormalizalasaEsRendezese(primary.all_candidates) : [];\n\n  const primaryChosenName = primaryHit ? (primary.candidate_name || null) : null;\n  const primaryChosenSim = primaryHit ? kerek4(primary.similarity) : null;\n  const primaryThreshold = primary && primary.threshold != null ? kerek4(primary.threshold) : null;\n\n  const fallbackChosenName = fallbackHit ? (fallback.candidate_name || null) : null;\n  const fallbackChosenSim = fallbackHit ? kerek4(fallback.similarity) : null;\n  const fallbackThreshold = fallback && fallback.threshold != null ? kerek4(fallback.threshold) : null;\n\n  const miAlapjan = (function () {\n    if (status !== \"MATCHED\") {\n      const pr = (primary && primary.reason) ? (\"Primary: \" + primary.reason) : \"Primary: MISS\";\n      const fb = (fallback && fallback.reason) ? (\"Fallback: \" + fallback.reason) : \"Fallback: MISS\";\n      return pr + \"; \" + fb;\n    }\n\n    if (valasztasModja === \"primary_custom_override\") {\n      const base = primaryChosenName ? (\"Override, kiválasztva: \" + primaryChosenName) : \"Override\";\n      const sim = (primaryChosenSim != null) ? (\" (sim=\" + primaryChosenSim + \")\") : \"\";\n      return base + sim;\n    }\n\n    if (valasztasModja === \"primary\") {\n      const base = primaryChosenName ? (\"Primary, kiválasztva: \" + primaryChosenName) : \"Primary\";\n      const sim = (primaryChosenSim != null) ? (\" (sim=\" + primaryChosenSim + \")\") : \"\";\n      const thr = (primaryThreshold != null) ? (\", küszöb=\" + primaryThreshold) : \"\";\n      return base + sim + thr;\n    }\n\n    if (valasztasModja === \"fallback\") {\n      const base = fallbackChosenName ? (\"Fallback, kiválasztva: \" + fallbackChosenName) : \"Fallback\";\n      const sim = (fallbackChosenSim != null) ? (\" (sim=\" + fallbackChosenSim + \")\") : \"\";\n      const thr = (fallbackThreshold != null) ? (\", küszöb=\" + fallbackThreshold) : \"\";\n      return base + sim + thr;\n    }\n\n    return \"MATCHED (ismeretlen döntési út)\";\n  })();\n\n  return {\n    sorszam: index + 1,\n    id: item ? (item.id || null) : null,\n    input_text: item ? (item.input_text || null) : null,\n    context_text: item ? (item.context_text || null) : null,\n\n    eredmeny: {\n      status: status,\n      rule_name: finalOutcome.rule_name || null,\n      rule_id: finalOutcome.rule_id || null,\n      alapszabaly: (finalOutcome.alapszabaly == null) ? null : Boolean(finalOutcome.alapszabaly),\n      valasztas_modja: valasztasModja,\n      mi_alapjan: miAlapjan\n    },\n\n    keresek: {\n      primary: {\n        status: primary ? (primary.status || \"N/A\") : \"N/A\",\n        threshold: primaryThreshold,\n        kivalasztott: primaryHit ? {\n          name: primaryChosenName,\n          similarity: primaryChosenSim,\n          alapszabaly_override: primaryOverride\n        } : null,\n        jeloltek: primaryCandidates.length ? primaryCandidates : null\n      },\n      fallback: {\n        status: fallback ? (fallback.status || \"N/A\") : \"N/A\",\n        threshold: fallbackThreshold,\n        kivalasztott: fallbackHit ? {\n          name: fallbackChosenName,\n          similarity: fallbackChosenSim\n        } : null\n      }\n    }\n  };\n}\n\nfunction statEmberbarat(stats, items) {\n  const total = (stats && stats.total != null) ? szamBiztonsagos(stats.total) : (Array.isArray(items) ? items.length : null);\n  const matched = (stats && stats.matched != null) ? szamBiztonsagos(stats.matched) : null;\n  const matchRate = (stats && stats.match_rate != null) ? String(stats.match_rate) : null;\n\n  const sims = [];\n  for (let i = 0; i < items.length; i++) {\n    const it = items[i] || {};\n    const p = it.keresek && it.keresek.primary && it.keresek.primary.kivalasztott ? it.keresek.primary.kivalasztott.similarity : null;\n    const f = it.keresek && it.keresek.fallback && it.keresek.fallback.kivalasztott ? it.keresek.fallback.kivalasztott.similarity : null;\n    const v = (typeof p === \"number\") ? p : ((typeof f === \"number\") ? f : null);\n    if (v != null && Number.isFinite(v)) sims.push(v);\n  }\n\n  sims.sort(function (a, b) { return a - b; });\n\n  let atlag = null;\n  if (sims.length) {\n    let sum = 0;\n    for (let i = 0; i < sims.length; i++) sum += sims[i];\n    atlag = sum / sims.length;\n  }\n\n  let median = null;\n  if (sims.length) {\n    const mid = Math.floor(sims.length / 2);\n    if (sims.length % 2 === 1) median = sims[mid];\n    else median = (sims[mid - 1] + sims[mid]) / 2;\n  }\n\n  return {\n    total: total,\n    matched: matched,\n    match_rate: matchRate,\n    similarity_osszesites: {\n      darab: sims.length,\n      atlag: atlag == null ? null : kerek4(atlag),\n      median: median == null ? null : kerek4(median),\n      min: sims.length ? kerek4(sims[0]) : null,\n      max: sims.length ? kerek4(sims[sims.length - 1]) : null\n    }\n  };\n}\n\nfunction emberbaratJelentesKeszites(input) {\n  const exec = (input && Array.isArray(input._execution_report)) ? input._execution_report : [];\n  const items = [];\n  for (let i = 0; i < exec.length; i++) {\n    items.push(itemEmberbarat(exec[i], i));\n  }\n\n  return {\n    meta: {\n      generator: \"execution_report -> emberbarat_json\",\n      created_at: new Date().toISOString()\n    },\n    statisztika: statEmberbarat(input ? input._semantic_match_stats : null, items),\n    talalatok: items\n  };\n}\n\n// -------------------- RUN --------------------\n// n8n kompatibilis: $input.first().json -> bemenet\nconst bemenet = $input.first().json;\nconst emberbarat = emberbaratJelentesKeszites(bemenet);\n\n// Visszaadjuk úgy, hogy külön mezőbe kerüljön\nreturn [{\n  json: {\n    ...bemenet,\n    _execution_report_human: emberbarat\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        -352
+      ],
+      "id": "96398383-0f40-4889-ba5b-1cd0fe6cb84d",
+      "name": "olvashato_szabaly_talalatok_es_fallbak"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -896,
+        -144
+      ],
+      "id": "36a20df8-95a5-4432-9b29-5ac3b01fa959",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (JS)\n// Kimenetben egyetlen objektum lesz: $json.payload\n// Így bárhol: {{ $json.payload.szoveges_lista }}, {{ $json.payload.transcriber.text }}, {{ $json.payload.execution_report_human }}\n\nconst input = $input.first().json;\n\n// 1) szoveges_lista az aktuális itemből\nconst szovegesLista = input.szoveges_lista ?? null;\n\n// 2) TRANSCRIBER text kinyerése (biztonságosan)\nlet transcriberObj = { text: null };\ntry {\n  const t = $(\"TRANSCRIBER\").first().json;\n  transcriberObj = {\n    text: t?.text ?? null,\n    // ha kell több is a transcriber-ből, ide tedd:\n    // language: t?.language ?? null,\n    // segments: t?.segments ?? null,\n    raw: t ?? null\n  };\n} catch (e) {\n  transcriberObj = { text: null, raw: null };\n}\n\n// 3) execution report human az aktuális itemből\nconst executionReportHuman = input._execution_report_human ?? null;\n\n// EGY OBJECT, amire hivatkozni tudsz\nconst payload = {\n  szoveges_lista: szovegesLista,\n  transcriber: transcriberObj,\n  execution_report_human: executionReportHuman\n};\n\n// Ha azt akarod, hogy tényleg csak ez menjen tovább, és semmi más:\nreturn [{ json: { payload } }];\n\n// Ha meg akarsz tartani minden eredeti mezőt is, akkor ezt használd helyette:\n// return [{ json: { ...input, payload } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        -144
+      ],
+      "id": "45cecf9d-25d3-436d-8de8-684acfa9d3bc",
+      "name": "jsonmerger"
+    }
+  ],
+  "pinData": {
+    "Webhook1": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.thinkaimedical.hu",
+            "user-agent": "Deno/2.1.4 (variant; SupabaseEdgeRuntime/1.70.1)",
+            "content-length": "220970",
+            "accept": "*/*",
+            "accept-encoding": "gzip,br",
+            "accept-language": "*",
+            "content-type": "multipart/form-data; boundary=----6812026613808718175500048553",
+            "via": "2.0 Caddy",
+            "x-forwarded-for": "18.184.43.156",
+            "x-forwarded-host": "n8n.thinkaimedical.hu",
+            "x-forwarded-proto": "https"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "mode": "treatnote",
+            "timestamp": "2026-02-10T18:24:26.648Z",
+            "user_id": "925386ef-6c42-470c-aec4-8deeb938086e",
+            "company_id": "fdb6b71e-2a01-4434-bf5a-af5a4fdd461b",
+            "telephely_id": "79d8df9c-1795-4ef3-ba65-157c6635e9dd",
+            "flexi_domain": "drvolom",
+            "flexi_username": "flexident@flexident.hu",
+            "flexi_pw": "Flexident111",
+            "szabalyok": "[]",
+            "PaciensID": "31377837",
+            "treatment_rules": "[{\"id\":\"53ef361c-2972-4b08-b506-2f8328d95372\",\"name\":\"Állapotfelmérés\",\"category\":\"vizsgalatok_es_modelezesek\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"356ec47e-d165-4ab3-b6bf-ac9809dd2844\",\"rule_items\":[{\"id\":\"96c9f2df-3ef8-4f50-9291-924592006530\",\"name\":\"Első konzultáció panoráma röntgennel\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"ba9f912f-31ee-493a-bf2d-ceba69da006b\",\"name\":\"Cirkon Korona (Szóló)\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"64d77f58-92d3-4ee4-8a21-f5dc6248d764\",\"rule_items\":[{\"id\":\"c49036bd-a0c0-44c3-aba4-c3600d95156a\",\"name\":\"Preparálás\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"7df165a6-7c7a-4493-87e2-355889927427\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"dc39188a-b258-4d2f-80a2-7a6fc2f33d99\",\"name\":\"Hosszútávú ideiglenes korona foganként - labor által készített\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"631d0b61-cdd7-40ef-b6a6-1f23b0c3a4ec\",\"rule_items\":[{\"id\":\"e4729708-4c24-4fc2-b297-42c62f59abcb\",\"name\":\"Vázpróba\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0},{\"id\":\"9fe27d58-587a-4aaa-802e-40a685200a81\",\"rule_items\":[{\"id\":\"7f6fec64-803d-45dd-8c8f-b0c22de5cc03\",\"name\":\"Cirkon korona , Empress, E-max fémmentes korona, hídtag /db\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"5e13120f-8a58-49eb-97ab-26b1514f1199\",\"name\":\"Protetikai munka beragasztása, átadása\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"eea5a879-cfd6-471c-86ef-70cadc282a91\",\"name\":\"Foghúzás (Egyszerű)\",\"category\":\"szajsebeszet\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"2f741fa0-2c64-4e09-adc2-f5ca07e6db7c\",\"rule_items\":[{\"id\":\"a69b7390-b1ae-46c1-804b-2f4edac42065\",\"name\":\"Extractio, fogeltávolítás/db\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"af4f8d21-fd58-48bc-a36b-1a72b266203b\",\"name\":\"Héjkerámia\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"d0038a41-b105-40c2-be5e-5b36c3d0cacf\",\"rule_items\":[{\"id\":\"1f648a6b-ec4c-4eb2-afd6-27a5b4730c2c\",\"name\":\"Számítógépes mosolytervezés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"a775c217-2953-4c5f-8db7-c23cd247553f\",\"name\":\"Fogászati fotózás (dr. Volom András)\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"2cb534e4-737c-4ccf-8f37-9bb69807ac5e\",\"name\":\"Scannelés - 1 fogív\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"},{\"id\":\"1a8f977b-cb2b-426b-a877-4688b5f422d2\",\"name\":\"RSVP ideiglenes héj\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"c06ffa18-9d0f-46bb-a90b-cd37c16f672e\",\"rule_items\":[{\"id\":\"fe84819f-d217-496c-8788-9ac5f16880f3\",\"name\":\"E-max porcelán héj\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"98621aae-bcf7-443b-b6a2-e54c38621feb\",\"name\":\"Cirkonium Híd\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"355cb53f-09c1-4494-8aae-edfac20c5277\",\"rule_items\":[{\"id\":\"93e62dc2-36c7-4770-9dd2-21f1dd0b4f58\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"11f4eae8-9981-4734-9abd-145a0380329e\",\"name\":\"Preparálás\",\"unit\":\"fog\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"95ab1b96-98f3-407d-ac58-002ed9b3e741\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"állcsont\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"},{\"id\":\"62e5d816-58b2-43c1-9f66-ec22f7533100\",\"name\":\"Ideiglenes híd készítés A1, vagy A3-as fóliából, állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"f4f83646-7cb2-42d8-a6c5-ac6383ed7f8b\",\"rule_items\":[{\"id\":\"3a006f61-5f84-41c8-b27f-f66d7abe1c98\",\"name\":\"Vázpróba\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0},{\"id\":\"b24b4120-4113-4f6b-a1dc-bf306309fb32\",\"rule_items\":[{\"id\":\"7508b6b6-5f66-4cb9-a326-d18cd4da104a\",\"name\":\"Cirkon korona , Empress, E-max fémmentes korona, hídtag /db\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"117117f2-80f6-4b06-957c-6656ae73014f\",\"name\":\"Protetikai munka beragasztása, átadása\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"4623a905-34ad-4f33-89b8-4c48c3fa2478\",\"name\":\"Éjszakai Harapásemelő Sín\",\"category\":\"fogszabalyozas\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"0a575b25-8295-40fd-854e-cb1790e46a97\",\"rule_items\":[{\"id\":\"c5ed1f36-a667-4194-9cd6-2eb7195e62ca\",\"name\":\"Tanulmányi lenyomat, állcsontonként alginát lenyomatanyagból\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":2,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"34e0cfa5-2cae-4806-a899-487da5059650\",\"rule_items\":[{\"id\":\"f3cfd9e4-200b-4924-9a5c-7141431bd154\",\"name\":\"Stabilizációs harapásemelő sín - az ár tartalmazza a sín újra készítését 2 alkalommal\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"80f25820-a5e2-49a5-b0d1-899d3f82a166\",\"name\":\"Fogimplantátum beültetés (Műtéti fázis)\",\"category\":\"implantacio\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"bf359d7c-4b14-4642-9281-bcdb2bd17ba3\",\"rule_items\":[{\"id\":\"508b820b-5e46-4e13-ade7-e7b96aad77c1\",\"name\":\"Műtéti előkészítés Hygitech egyszerhasználatos steril takarókkal, műszervédőkkel (a továbbiakban felsorolt kezelésekhez hozzáadandó)\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"58713f4b-2d37-47f3-89e4-410b3ed7220f\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"c7e765d5-d6a4-4057-bcc4-cbc22e4e3224\",\"name\":\"Dentium implantátum 10 év garanciával\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":4}]},{\"id\":\"0956254e-3690-47f9-b558-9150f6805857\",\"name\":\"Implantátum Korona (Protetikai fázis)\",\"category\":\"szajsebeszet\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"b9681528-9c4a-4c63-8d86-ca8864982343\",\"rule_items\":[{\"id\":\"7579dcd5-46c6-41b8-81cc-7f03c3571804\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":14,\"healing_months\":0},{\"id\":\"d7aacc12-de74-419e-81d1-8384f8de87ea\",\"rule_items\":[{\"id\":\"bcd47b02-c0de-4dc4-9eee-7178e680ed1d\",\"name\":\"Felépítő fej (Nobel-Biocare)\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"669b3aad-22b1-4ae6-9892-d44e545c92a8\",\"name\":\"Átmenőcsavaros rögzítésű fém kerámia korona implantátumhoz\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":14,\"healing_months\":0}]},{\"id\":\"9f23fc4b-27ac-4199-8e31-4ee50c72f7df\",\"name\":\"Fogkőeltávolítás\",\"category\":\"dentalhigienia\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"80748b62-bd56-47bc-99b5-7a575311888b\",\"rule_items\":[{\"id\":\"c2fef1b0-6e12-42c5-81b4-62d8a7434047\",\"name\":\"Depurálás - Professzionális fogkőeltávolítás (45 perc) és Prophy Jet polírozás\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"ccf2a0f7-15fe-435c-b2f4-34946da4e611\",\"name\":\"Parodontális zárt kürett\",\"category\":\"parodontologia\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"e0c52eed-268a-4695-bfdb-d00a836c4b71\",\"rule_items\":[{\"id\":\"4033e0bd-8a29-47c2-822b-5e2e45960023\",\"name\":\"Fogágy állapotfelmérés, tasakmérés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"38cc58b1-7b98-44e8-abcd-8cd05aa654c5\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"fab147c3-027c-4d1b-a71f-4a6919e4cf3f\",\"name\":\"Zárt kürett egy állcsont\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"b3f283b5-9e83-4c9d-b2d4-bf5707c8f4ca\",\"rule_items\":[{\"id\":\"c1cdc72e-3507-4072-96be-57969c15df1b\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"60a861de-c462-4d9e-aea0-cc8bf656efc6\",\"name\":\"Zárt kürett egy állcsont\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":1,\"healing_months\":0}]},{\"id\":\"4b551068-2d2e-461a-9445-910d167076f4\",\"name\":\"Inlay\",\"category\":\"konzervalo_fogaszat\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"f41952f2-7ccc-485d-a62f-ea55ab7d17c0\",\"rule_items\":[{\"id\":\"751cbd1e-78d7-41a2-a695-6c0031d28947\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"38da4042-326d-427c-ba0f-abeb36c276a8\",\"name\":\"Preparálás\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"b76fcf47-92c7-4eff-bacd-bd8619c46460\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"},{\"id\":\"e7404e8f-3ab5-4cbb-a579-c3432272273c\",\"name\":\"Ideiglenes tömés üvegionomer tömőanyaggal\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"25b359bc-1bd5-47be-828e-a287d5b759e2\",\"rule_items\":[{\"id\":\"e757b86a-2b67-4937-b4ea-1bc29c025af9\",\"name\":\"Betét -inlay, onlay\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"a3d5312c-78bb-4fd0-91cb-eaad0fa4a2e2\",\"name\":\"Protetikai munka beragasztása, átadása\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"1adda410-eb74-4698-8c15-b70b2daa26f3\",\"name\":\"Mikroszkópos Gyökérkezelés\",\"category\":\"konzervalo_fogaszat\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"02d1f552-1dfb-4e33-ba7a-ced90b07247d\",\"rule_items\":[{\"id\":\"6b83667e-f986-40f5-b61d-19c652f0bebb\",\"name\":\"EndoCT Endodonciai egy fog felvétel 5cm X 5 cm\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"b1d773a1-c2bc-46c3-b05e-7d97b0c66837\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"4a93fd53-4295-454f-9a6a-a0fa4d9c19e3\",\"name\":\"Mikroszkópos gyökérkezelés 1 csatorna első kezelés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"0c8145c2-5e18-4310-a661-a4544787d275\",\"name\":\"Gyökércsatorna átöblítés és gyógyszeres zárás alkalmanként\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"4d04efdf-31d5-4e39-9286-5ea182572a1e\",\"name\":\"Ideiglenes tömés üvegionomer tömőanyaggal\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":4,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"178d434b-68ca-4383-b76e-20eccb6c8dad\",\"rule_items\":[{\"id\":\"c24c4f75-e851-4431-8236-9afdc7416907\",\"name\":\"Gyökércsatorna átöblítés és gyógyszeres zárás alkalmanként\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"90f2f2bd-fdf0-41d7-91be-3128cde41d1a\",\"name\":\"Mikroszkópos gyökérkezelés 1 csatorna 2. kezelés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"ec98375b-4eb9-4346-848c-5d5abde701af\",\"name\":\"PA digitális röntgen felvétel\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"2dd57a60-8914-45f1-af30-9828493a52e7\",\"name\":\"Ideiglenes tömés üvegionomer tömőanyaggal\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"7f2f4322-9469-424c-a0bf-d68876bc7a8e\",\"name\":\"Fém-kerámia Híd\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"c67d5521-49fd-4b86-9b27-3aedf98dadb1\",\"rule_items\":[{\"id\":\"67978c2f-d8a2-49fd-aa0e-53634e713f81\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"b2d99666-2658-4d41-b5d4-a12da64b542d\",\"name\":\"Preparálás\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"7b238e2e-612b-4a97-ad6e-a52c7991486a\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"},{\"id\":\"6ba3ade6-7cf3-49aa-bd82-83ef5f8b81ea\",\"name\":\"Ideiglenes híd készítés A1, vagy A3-as fóliából, állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"60d601f4-f9f8-49c0-aac3-673918283e97\",\"rule_items\":[{\"id\":\"24808273-a919-47ce-8845-a9d4b906fbad\",\"name\":\"Vázpróba\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0},{\"id\":\"02a1ddc8-6ee7-42fc-b81d-ecf135130da7\",\"rule_items\":[{\"id\":\"377a0024-11c8-45dc-8ae6-339101c5a9e5\",\"name\":\"Porcelán borítású fémkorona (nem nemes fémre) vállas előkészítéssel/db\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"99ed6d3c-0f7f-4369-920c-69cef513eb29\",\"name\":\"Protetikai munka beragasztása, átadása\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"8f73db87-88ff-45fa-a9c0-d325586ea7c8\",\"name\":\"Rögzített Fogszabályozó (Felhelyezés)\",\"category\":\"fogszabalyozas\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"ffbefc5f-9305-4241-8bcd-4610c7e8b1fd\",\"rule_items\":[{\"id\":\"9531453d-b446-43d6-94ff-87b4295b22d3\",\"name\":\"Teleröntgen\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"bea22367-b6c1-441f-a6aa-fe89d7aa69d1\",\"name\":\"Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"c271d1a3-d2c8-47fd-9fd8-eea9a073787e\",\"rule_items\":[{\"id\":\"51467c92-6b68-48c0-9cf6-60b4d99cc248\",\"name\":\"Rögzített fém fogszabályozó készülék egy fogívre (nem önligírozó)\",\"unit\":\"fogív\",\"scaling\":\"per_case\",\"quantity\":2,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"a56ba83f-7b45-4bb0-b331-0381b9a088e2\",\"name\":\"Esztétikus Tömés\",\"category\":\"konzervalo_fogaszat\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"f92dd3d6-526e-472f-9314-c9648d9eb588\",\"rule_items\":[{\"id\":\"7ac12df5-7eb9-498a-9882-881e017657fa\",\"name\":\"Számítógépes érzéstelenítés Quick Sleeper készülékkel\",\"unit\":\"alkalom\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"7c13d40a-2451-4a1e-93d0-a54fefc01556\",\"name\":\"Kofferdam\",\"unit\":\"alkalom\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"160cc224-d1dd-46f0-a2fa-1507e748d43b\",\"name\":\"Dental Excellence Biomimetikus Tömés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"d328ee82-f96f-4269-bd0c-a3c1daf3cf5f\",\"name\":\"Barázdazárás\",\"category\":\"konzervalo_fogaszat\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"8587d4d6-0f9e-4c42-b502-1057b9fba94f\",\"rule_items\":[{\"id\":\"15aa9a71-bb1e-4012-9ebe-fc5f6d26abec\",\"name\":\"Barázdazárás (felszíni) kinetikus preparációs (EtchMaster aluminium kerámiaporos tisztítóval) mélytisztítással\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"c0fa9d1b-472e-478d-a3de-bf0401afcb28\",\"name\":\"Gyökérkezelés\",\"category\":\"konzervalo_fogaszat\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"5f6c1d21-0ae3-45ad-b550-5a9700881cd3\",\"rule_items\":[{\"id\":\"2ea5e77c-b0e1-4768-97e6-3f010912dcab\",\"name\":\"PA digitális röntgen felvétel\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"fb8e832d-c7c1-467c-95cd-8b86f237270b\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"8c73be65-969c-48a2-bf30-0d0cd030b4fd\",\"name\":\"Mikroszkópos gyökérkezelés 1 csatorna első kezelés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"279612bd-b0e2-48d6-b3c6-1f1b6995e361\",\"name\":\"Gyökércsatorna átöblítés és gyógyszeres zárás - Dental Excellence\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"f2dc79d4-bf25-4aab-8f57-bfc8c97bfe00\",\"rule_items\":[{\"id\":\"8ca4c547-db89-4df7-9c52-b031b6c5bf28\",\"name\":\"Mikroszkópos gyökérkezelés 1 csatorna 2. kezelés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"4784c837-e61c-4a60-b69e-3f2564d34762\",\"name\":\"PA digitális röntgen felvétel\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"},{\"id\":\"7e391933-008c-4937-a87c-1e7a075d53c9\",\"name\":\"Ideiglenes tömés üvegionomer tömőanyaggal\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"106b1a84-bdd3-4f56-90c8-706edb43f566\",\"name\":\"Fémkerámia Korona (Szóló)\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"d4bc695f-1b32-49a5-a2a8-9ce24b24e7fb\",\"rule_items\":[{\"id\":\"941ff09e-21e9-4ad6-acc7-bb4c9df6ce80\",\"name\":\"ICT érzéstelenítés\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"d76d77e3-ca5a-41aa-a116-851b388a717b\",\"name\":\"Preparálás\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"89f15618-767f-44af-9371-3819678dca2b\",\"name\":\"Lenyomati díj precíziós szilikon lenyomattal állcsontonként\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":2,\"target_tooth_type\":\"all\"},{\"id\":\"17132d73-d99d-410d-8682-9fcd3c60f39f\",\"name\":\"Ideiglenes korona foganként, rendelő által készített\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":3,\"target_tooth_type\":\"pillar_only\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"ded96081-b78a-4286-93a5-c73fd79005d6\",\"rule_items\":[{\"id\":\"b11f5f3b-790b-483d-b6be-fea433985476\",\"name\":\"Vázpróba\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":2,\"display_order\":1,\"duration_days\":7,\"healing_months\":0},{\"id\":\"01799724-6b2a-4696-ac2a-ca459a783e7d\",\"rule_items\":[{\"id\":\"88313b72-ea4e-48cd-bd3a-105d11ef7921\",\"name\":\"Porcelán borítású fémkorona (nem nemes fémre) vállas előkészítéssel/db\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"pillar_only\"},{\"id\":\"53b31e47-1e4e-4837-99f4-5b2bc1baed28\",\"name\":\"Protetikai munka beragasztása, átadása\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":7,\"healing_months\":0}]},{\"id\":\"f262f5a8-2368-4221-9878-7576d54b6259\",\"name\":\"Rendelői Fogfehérítés\",\"category\":\"dentalhigienia\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"fc64c3e8-5201-4741-81a5-f11d6975594c\",\"rule_items\":[{\"id\":\"ca91e68e-2a74-4d56-a183-6edbdad4629e\",\"name\":\"Rendelői fogfehérítés\",\"unit\":\"alkalom\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"eebb0663-2179-46c9-bb54-81a6d98d403c\",\"name\":\"(GRÁTISZ) Otthoni fogfehérítő szett rendelői fogfehérítés mellé\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"b0d4768e-e81d-4df7-b726-9df6eaa3a8ad\",\"name\":\"Veneer héjak (Veneer-lay)\",\"category\":\"fogpotlastan\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"90e235db-cf86-4693-9cda-f83200506857\",\"rule_items\":[{\"id\":\"20a31fa0-4297-447b-8856-e49f222bb4f3\",\"name\":\"Veneer-lay\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":4,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"addcb82b-8e5a-4b8d-9b50-c0e162475a44\",\"name\":\"Mock Up modellezés és digitális tervezés\",\"category\":\"vizsgalatok_es_modelezesek\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"38076a1e-679b-40ca-97eb-f8ea2138b9bd\",\"rule_items\":[{\"id\":\"4ebd498a-7b2f-48b0-9810-3d8e117e04db\",\"name\":\"Koronák, héjak modelezése a szájban tömőanyagból foganként ( Mock-Up)\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":4,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"ef5139df-92a4-47de-846d-0c642ef47f7c\",\"name\":\"scannelés + 3 D nyomtatott minta alsó felső\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":4,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0}]},{\"id\":\"aa940206-5523-47e4-8a23-97f6f2ab0618\",\"name\":\"Állapotfelmérés (SZERKESZTETT)\",\"category\":\"vizsgalatok_es_modelezesek\",\"trigger_words\":[],\"rule_visits\":[{\"id\":\"4dfaf8dd-88c7-4ac0-a644-f70f5a7e2b8f\",\"rule_items\":[{\"id\":\"b41b1dbd-4c16-4abc-bfb7-9733ab60ce41\",\"name\":\"Első konzultáció panoráma röntgennel\",\"unit\":\"db\",\"scaling\":\"per_case\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"},{\"id\":\"b6d50b59-5143-45d6-ac1c-bb44c1328521\",\"name\":\"(GRÁTISZ) Ínyformázó csavar\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":1,\"target_tooth_type\":\"all\"}],\"visit_number\":1,\"display_order\":0,\"duration_days\":0,\"healing_months\":0},{\"id\":\"3737aed5-4936-471a-8626-3df5d5450db4\",\"rule_items\":[],\"visit_number\":2,\"display_order\":1,\"duration_days\":0,\"healing_months\":0},{\"id\":\"38d65b18-c3d0-4323-aeae-04a5b531a0eb\",\"rule_items\":[{\"id\":\"dcdce6aa-9997-4f70-a1d6-f5725a01d688\",\"name\":\"(GRÁTISZ) Varratszedés\",\"unit\":\"db\",\"scaling\":\"per_tooth\",\"quantity\":1,\"display_order\":0,\"target_tooth_type\":\"all\"}],\"visit_number\":3,\"display_order\":2,\"duration_days\":0,\"healing_months\":0}]}]"
+          },
+          "webhookUrl": "https://n8n.thinkaimedical.hu/webhook/f6ef94aa-051b-4da7-9d17-8ed3d2fb2d7b",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "TRANSCRIBER": [
+      {
+        "json": {
+          "language_code": "hun",
+          "language_probability": 1,
+          "text": "A bal felső a test el kell távolítani. A jobb felső négyes az lyukas, a jobb felső ötös azt gyökérkezelni kell. A bal alsó kettestől hetesig pedig fémkerámia koronák.",
+          "words": [
+            {
+              "text": "A",
+              "start": 0.859,
+              "end": 0.879,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 0.879,
+              "end": 0.899,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "bal",
+              "start": 0.899,
+              "end": 1.099,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 1.099,
+              "end": 1.119,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "felső",
+              "start": 1.119,
+              "end": 1.379,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 1.379,
+              "end": 1.44,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "a",
+              "start": 1.44,
+              "end": 1.559,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 1.559,
+              "end": 1.62,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "test",
+              "start": 1.62,
+              "end": 1.679,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 1.679,
+              "end": 1.699,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "el",
+              "start": 1.699,
+              "end": 1.819,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 1.819,
+              "end": 1.839,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "kell",
+              "start": 1.839,
+              "end": 2.019,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.019,
+              "end": 2.039,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "távolítani.",
+              "start": 2.039,
+              "end": 2.679,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.679,
+              "end": 2.759,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "A",
+              "start": 2.759,
+              "end": 2.759,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.759,
+              "end": 2.779,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "jobb",
+              "start": 2.779,
+              "end": 2.979,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.979,
+              "end": 3.019,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "felső",
+              "start": 3.019,
+              "end": 3.459,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 3.459,
+              "end": 3.499,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "négyes",
+              "start": 3.5,
+              "end": 4.078,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.078,
+              "end": 4.099,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "az",
+              "start": 4.099,
+              "end": 4.319,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.319,
+              "end": 4.339,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "lyukas,",
+              "start": 4.339,
+              "end": 4.899,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.899,
+              "end": 4.9,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "a",
+              "start": 4.9,
+              "end": 4.9,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.9,
+              "end": 4.94,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "jobb",
+              "start": 4.94,
+              "end": 5.099,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 5.099,
+              "end": 5.139,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "felső",
+              "start": 5.139,
+              "end": 5.639,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 5.639,
+              "end": 5.679,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "ötös",
+              "start": 5.679,
+              "end": 6.399,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 6.399,
+              "end": 6.499,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "azt",
+              "start": 6.5,
+              "end": 6.799,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 6.799,
+              "end": 7.319,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "gyökérkezelni",
+              "start": 7.319,
+              "end": 8.159,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 8.159,
+              "end": 8.179,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "kell.",
+              "start": 8.179,
+              "end": 8.92,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 8.92,
+              "end": 8.939,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "A",
+              "start": 8.939,
+              "end": 9.059,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 9.059,
+              "end": 9.079,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "bal",
+              "start": 9.079,
+              "end": 9.219,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 9.219,
+              "end": 9.319,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "alsó",
+              "start": 9.319,
+              "end": 9.76,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 9.76,
+              "end": 9.779,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "kettestől",
+              "start": 9.779,
+              "end": 10.3,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 10.3,
+              "end": 10.3,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "hetesig",
+              "start": 10.3,
+              "end": 10.719,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 10.719,
+              "end": 10.779,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "pedig",
+              "start": 10.779,
+              "end": 11,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 11,
+              "end": 11.019,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "fémkerámia",
+              "start": 11.019,
+              "end": 11.6,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 11.6,
+              "end": 11.68,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "koronák.",
+              "start": 11.68,
+              "end": 12.039,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            }
+          ],
+          "transcription_id": "Vx6EMWTWBYpeqfYIe2tU"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "TRANSCRIBER": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command1": {
+      "main": [
+        [
+          {
+            "node": "valasziro1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "json kiszedo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "valasziro1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "semantic_matcher": {
+      "main": [
+        [
+          {
+            "node": "scaling_processor_node",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "olvashato_szabaly_talalatok_es_fallbak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "scaling_processor_node": {
+      "main": [
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "json kiszedo": {
+      "main": [
+        [
+          {
+            "node": "semantic_matcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "TRANSCRIBER",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "olvashato_szabaly_talalatok_es_fallbak": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "jsonmerger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jsonmerger": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b35aeba0-6ae2-4d28-97fa-af111c9c9fe5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a467753d3ff1af68b9841244d5a4bfb1283e2488e4d73b25b266bac76a02aa8b"
+  },
+  "id": "5Y0o4buOEMkt1AVn",
+  "tags": []
+}

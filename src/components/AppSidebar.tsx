@@ -59,6 +59,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 const mainMenuItems = [
   { title: 'Főoldal', url: '/dashboard', icon: Home, tourId: 'nav-dashboard' },
   { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true, tourId: 'nav-hangfelvetel' },
+  { title: 'Páciensek', url: '/patients', icon: User, tourId: 'nav-patients', requiresAdmin: true },
 ];
 
 const secondaryMenuItems: typeof mainMenuItems = [];
@@ -674,7 +675,7 @@ export function AppSidebar() {
             "flex items-center gap-2 py-3",
             collapsed ? "px-2 justify-center" : "px-2"
           )}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
+            <div className="flex select-none h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
               T
             </div>
             {!collapsed && (
@@ -959,7 +960,7 @@ export function AppSidebar() {
           "flex items-center gap-2 py-3",
           collapsed ? "px-2 justify-center" : "px-2"
         )}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
+          <div className="flex select-none h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
             T
           </div>
           {!collapsed && (
@@ -977,6 +978,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => {
+                // For now, Páciensek menu is restricted to admin only per user request
+                if (item.requiresAdmin && !isAdmin) return null;
+
                 if (item.requiresFlexi || item.requiresSzotar) {
                   // Solo: always show, gated only on license
                   if (isSolo) {

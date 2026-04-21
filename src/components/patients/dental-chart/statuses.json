@@ -1,0 +1,728 @@
+[
+  {
+    "id": "missing",
+    "name": "Foghiány",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "milk_tooth",
+    "name": "Tejfog",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "fissure",
+    "name": "Barázdazárás",
+    "group": "Általános",
+    "hasSurfaces": true
+  },
+  {
+    "id": "parapulpal_pin",
+    "name": "Parapulpális csap",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "radix",
+    "name": "Radix",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "resected_tooth",
+    "name": "Lecsiszolt fog",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "resected_tooth_ok",
+    "name": "Rezekált fog",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bone_graft",
+    "name": "Csontpótlás",
+    "group": "Általános",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant",
+    "name": "Implant (általános)",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_nobel",
+    "name": "Nobel - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_alphabio",
+    "name": "AlphaBio - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_foreign",
+    "name": "IDEGEN - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_ankylos",
+    "name": "Ankylos - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_sgs",
+    "name": "SGS - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_straumann",
+    "name": "Straumann - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_astra",
+    "name": "Astra - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_anyridge",
+    "name": "Anyridge - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_nobel_active",
+    "name": "Nobel Active - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_nobel_on1",
+    "name": "Nobel On1 - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_nobel_replace",
+    "name": "Nobel Replace - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_camlog",
+    "name": "Camlog - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_conelog",
+    "name": "Conelog - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_camlog_Isy",
+    "name": "Camlog Isy - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_denti",
+    "name": "Denti - Implant",
+    "group": "Implant",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_abutment",
+    "name": "Felépítmények (általános)",
+    "group": "Felépítmények",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_head",
+    "name": "Általános felépítmény",
+    "group": "Felépítmények",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_bredent_straight",
+    "name": "Bredent Multi unit (egyenes)",
+    "group": "Felépítmények",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_bredent_bent_left",
+    "name": "Bredent Multi unit (szögtört - bal)",
+    "group": "Felépítmények",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_bredent_bent_right",
+    "name": "Bredent Multi unit (szögtört - jobb)",
+    "group": "Felépítmények",
+    "hasSurfaces": false
+  },
+  {
+    "id": "peripacialis",
+    "name": "Periapicalis elváltozás (általános)",
+    "group": "Periapicalis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "granuloma",
+    "name": "Granuloma",
+    "group": "Periapicalis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "cysta",
+    "name": "Cysta",
+    "group": "Periapicalis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "deadroot",
+    "name": "Elhalt gyökér",
+    "group": "Periapicalis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "taproot",
+    "name": "Gyökércsap (általános)",
+    "group": "Gyökércsap",
+    "hasSurfaces": false
+  },
+  {
+    "id": "taproot_ceramic",
+    "name": "Kerámia gyökércsap",
+    "group": "Gyökércsap",
+    "hasSurfaces": false
+  },
+  {
+    "id": "taproot_metal",
+    "name": "Fém gyökércsap",
+    "group": "Gyökércsap",
+    "hasSurfaces": false
+  },
+  {
+    "id": "taproot_fiber",
+    "name": "Üvegszálas gyökércsap",
+    "group": "Gyökércsap",
+    "hasSurfaces": false
+  },
+  {
+    "id": "taproot_composite",
+    "name": "Kompozit gyökércsap",
+    "group": "Gyökércsap",
+    "hasSurfaces": false
+  },
+  {
+    "id": "caries",
+    "name": "Caries",
+    "group": "Caries",
+    "hasSurfaces": true
+  },
+  {
+    "id": "tooth_root_caries",
+    "name": "Gyökér caries",
+    "group": "Caries",
+    "hasSurfaces": false
+  },
+  {
+    "id": "caries_on_crown",
+    "name": "Caries (szekunder)",
+    "group": "Caries (szekunder)",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling",
+    "name": "Tömés (általános)",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling_amalgam",
+    "name": "Amalgám tömés",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling_esthetic",
+    "name": "Esztétikus tömés",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling_esthetic_alt",
+    "name": "Esztétikus tömés (alt.)",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling_temporary",
+    "name": "Ideiglenes tömés",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "filling_gold",
+    "name": "Arany tömés",
+    "group": "Tömés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "corebuildup",
+    "name": "Csonkfelépítés (általános)",
+    "group": "Csonkfelépítés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "corebuildup_cetacmolar",
+    "name": "Cetac-Molar csonkfelépítés",
+    "group": "Csonkfelépítés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "corebuildup_vitremer",
+    "name": "Vitremer csonkfelépítés",
+    "group": "Csonkfelépítés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "corebuildup_composite",
+    "name": "Composite csonkfelépítés",
+    "group": "Csonkfelépítés",
+    "hasSurfaces": true
+  },
+  {
+    "id": "prosthesis",
+    "name": "Protézis (általános)",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_full",
+    "name": "Teljes protézis",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_on_implant_full",
+    "name": "Teljes protézis (implantátumon)",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "pier_abutment",
+    "name": "Stég",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_partial",
+    "name": "Részleges kivehető protézis",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_on_implant_partial",
+    "name": "Részleges kivehető protézis (impl.)",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_replace_needed",
+    "name": "Cserélendő protézis (általános)",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prothesis_full_replace_needed",
+    "name": "Cserélendő teljes protézis",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "prosthesis_removable_replace_needed",
+    "name": "Cserélendő részleges protézis",
+    "group": "Protézis",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown",
+    "name": "Korona (általános)",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_metal_ceramic",
+    "name": "Fém-kerámia korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_zirconium",
+    "name": "Cirkónium korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_pressed_ceramic",
+    "name": "Préskerámia korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_gold_ceramic",
+    "name": "Aranykerámia korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_procera",
+    "name": "Procera korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_procera_temp",
+    "name": "Ideiglenes Procera korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_temporary",
+    "name": "Ideiglenes korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "telescopic_crown",
+    "name": "Teleszkóp korona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_metal",
+    "name": "Fémkorona",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_remove",
+    "name": "Korona eltávolítás",
+    "group": "Korona",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing",
+    "name": "Ideiglenes ragasztás (általános)",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_gold_ceramic",
+    "name": "Ideig. ragasztás - aranykerámia",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_metal_ceramic",
+    "name": "Ideig. ragasztás - fémkerámia",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_metal_crown",
+    "name": "Ideig. ragasztás - fém",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_pressed_ceramic",
+    "name": "Ideig. ragasztás - préskerámia",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_procera",
+    "name": "Ideig. ragasztás - Procera",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "temporary_gluing_zirconium",
+    "name": "Ideig. ragasztás - cirkon",
+    "group": "Ideiglenes ragasztás",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge",
+    "name": "Híd (általános)",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_metal_ceramic",
+    "name": "Fém-kerámia híd",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_zirconium",
+    "name": "Cirkónium híd",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_pressed_ceramic",
+    "name": "Préskerámia híd",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_gold_ceramic",
+    "name": "Aranykerámia híd",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_separation",
+    "name": "Hídelválasztás",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bridge_temporary",
+    "name": "Ideiglenes híd",
+    "group": "Híd",
+    "hasSurfaces": false
+  },
+  {
+    "id": "edge_replacement",
+    "name": "Élpótlás",
+    "group": "Élpótlás",
+    "hasSurfaces": true
+  },
+  {
+    "id": "broken_tooth",
+    "name": "Letört fog",
+    "group": "Letört fog",
+    "hasSurfaces": true
+  },
+  {
+    "id": "rootcanal",
+    "name": "Gyökértömés (általános)",
+    "group": "Gyökértömés",
+    "hasSurfaces": false
+  },
+  {
+    "id": "rootcanal_final",
+    "name": "Végleges gyökértömés",
+    "group": "Gyökértömés",
+    "hasSurfaces": false
+  },
+  {
+    "id": "rootcanal_incomplete",
+    "name": "Inkomplett gyökértömés",
+    "group": "Gyökértömés",
+    "hasSurfaces": false
+  },
+  {
+    "id": "rootcanal_temporary",
+    "name": "Ideiglenes gyökértömés",
+    "group": "Gyökértömés",
+    "hasSurfaces": false
+  },
+  {
+    "id": "retrograde_root_filling",
+    "name": "Retrográd gyökértömés",
+    "group": "Retrográd gyökértömés",
+    "hasSurfaces": false
+  },
+  {
+    "id": "inserts",
+    "name": "Betétek (általános)",
+    "group": "Betétek",
+    "hasSurfaces": false
+  },
+  {
+    "id": "inlay",
+    "name": "Inlay (általános)",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "inlay_gold",
+    "name": "Arany inlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "inlay_composite",
+    "name": "Kompozit inlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "inlay_ceramic",
+    "name": "Kerámia inlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "metal_insert_inlay",
+    "name": "Fémbetét inlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "onlay",
+    "name": "Onlay (általános)",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "onlay_gold",
+    "name": "Arany onlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "onlay_composite",
+    "name": "Kompozit onlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "onlay_ceramic",
+    "name": "Kerámia onlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "metal_insert_onlay",
+    "name": "Fémbetét onlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "overlay",
+    "name": "Overlay (általános)",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "overlay_gold",
+    "name": "Arany overlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "overlay_composite",
+    "name": "Kompozit overlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "overlay_ceramic",
+    "name": "Kerámia overlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "metal_insert_overlay",
+    "name": "Fémbetét overlay",
+    "group": "Betétek",
+    "hasSurfaces": true
+  },
+  {
+    "id": "peels",
+    "name": "Héjak (általános)",
+    "group": "Héjak",
+    "hasSurfaces": false
+  },
+  {
+    "id": "peels_peel",
+    "name": "Héj",
+    "group": "Héjak",
+    "hasSurfaces": false
+  },
+  {
+    "id": "peels_veneer_lay",
+    "name": "Veneer lay",
+    "group": "Héjak",
+    "hasSurfaces": false
+  },
+  {
+    "id": "special",
+    "name": "Speciális (általános)",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "crown_needed",
+    "name": "Koronázandó fog",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "replace_needed",
+    "name": "Cserélendő korona",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "teeth_extraction_mark",
+    "name": "Kihúzandó fog",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "missing_closed",
+    "name": "Záródott foghiány",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_head_screw",
+    "name": "Egyenes csavar",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "implant_head_sphere",
+    "name": "Gömbfejű csavar",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "impacted_tooth",
+    "name": "Impaktált fog",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "plastic_tooth",
+    "name": "Műanyag fog",
+    "group": "Speciális",
+    "hasSurfaces": false
+  },
+  {
+    "id": "bracket",
+    "name": "Brekett",
+    "group": "Speciális",
+    "hasSurfaces": false
+  }
+]

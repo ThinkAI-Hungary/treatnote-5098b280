@@ -19,7 +19,7 @@ import { RuleDetailsPopup } from '@/components/shared/RuleDetailsPopup';
 // ─── How many jobs to show in the sidebar before "see more" ───
 const SIDEBAR_CAP = 10;
 
-interface VoiceJobHistoryProps {
+interface NativeVoiceJobHistoryProps {
   jobs: VoiceJob[];
   isLoading: boolean;
   selectedJobId: string | null;
@@ -69,9 +69,28 @@ function parseJobResult(result: unknown): { originalText: string | null; kitolte
 
     const appliedRules = finalData?.execution_report_human?.talalatok || [];
 
+    let kitoltesStr = finalData?.szoveges_lista ?? null;
+    if (!kitoltesStr && finalData?.MEGJEGYZES_FO !== undefined) {
+      kitoltesStr = `Megjegyzés: ${finalData.MEGJEGYZES_FO}\n\n--- Érintett fogak ---\n`;
+      let foundChange = false;
+      for (let i = 11; i <= 48; i++) {
+        if (finalData[i] && (finalData[i].active_properties?.length > 0 || finalData[i].Megjegyzes)) {
+          foundChange = true;
+          kitoltesStr += `Fog ${i}:\n`;
+          if (finalData[i].active_properties?.length > 0) {
+             kitoltesStr += `  Tulajdonságok: ${finalData[i].active_properties.join(', ')}\n`;
+          }
+          if (finalData[i].Megjegyzes) {
+             kitoltesStr += `  Észrevétel: ${finalData[i].Megjegyzes}\n`;
+          }
+        }
+      }
+      if (!foundChange) kitoltesStr += "Nem lett változás regisztrálva a fogakon.";
+    }
+
     return {
       originalText: finalData?.transcriber?.raw?.text ?? finalData?.transcriber?.text ?? null,
-      kitoltes: finalData?.szoveges_lista ?? null,
+      kitoltes: kitoltesStr,
       appliedRules: Array.isArray(appliedRules) ? appliedRules : [],
     };
   } catch {
@@ -152,7 +171,6 @@ function PreviewContent({ job }: { job: VoiceJob }) {
         </p>
         <p className="text-xs text-muted-foreground">
           {format(new Date(job.created_at), 'yyyy.MM.dd HH:mm')}
-          {job.paciens_id && ` · Páciens #${job.paciens_id}`}
         </p>
       </div>
 
@@ -244,12 +262,15 @@ function HistoryPopup({
   jobs,
   selectedJobId,
   onSelectJob,
+  open,
+  setOpen
 }: {
   jobs: VoiceJob[];
   selectedJobId: string | null;
   onSelectJob: (job: VoiceJob) => void;
+  open: boolean;
+  setOpen: (v: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [hoveredJob, setHoveredJob] = useState<VoiceJob | null>(null);
   // Timeout ref used to debounce clearing the hover so moving to the right panel doesn't flash
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -321,7 +342,7 @@ function HistoryPopup({
                 <div className="space-y-1 p-3">
                   {jobs.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <Mic className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                      <Mic className="h-8 w-8 text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">Még nincs előzmény</p>
                     </div>
                   )}
@@ -346,9 +367,6 @@ function HistoryPopup({
                           <div className="flex items-center gap-2 mb-1">
                             <StatusIcon status={job.status} />
                             <span className="font-medium text-sm">{getModeLabel(job.mode)}</span>
-                            {job.paciens_id && (
-                              <span className="text-xs text-muted-foreground">#{job.paciens_id}</span>
-                            )}
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span>{formatDuration(job.duration_seconds)}</span>
@@ -392,8 +410,9 @@ function HistoryPopup({
 }
 
 // ─── Main export ───
-export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, onJobTerminated }: VoiceJobHistoryProps) {
+export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, onJobTerminated }: NativeVoiceJobHistoryProps) {
   const [terminatingJobId, setTerminatingJobId] = useState<string | null>(null);
+  const [popupOpen, setPopupOpen] = useState(false);
 
   const handleTerminateJob = async (e: React.MouseEvent, job: VoiceJob) => {
     e.stopPropagation();
@@ -447,7 +466,7 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, o
       <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
         {jobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 px-4 text-center py-12">
-            <Mic className="h-8 w-8 text-muted-foreground/30 mb-2" />
+            <Mic className="h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">Még nincs előzmény</p>
           </div>
         ) : (
@@ -479,11 +498,6 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, o
                             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: hu })}
                           </span>
                         </div>
-                        {job.paciens_id && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Páciens: #{job.paciens_id}
-                          </div>
-                        )}
                       </div>
                       {job.status === 'processing' ? (
                         <Button
@@ -522,6 +536,8 @@ export function VoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, o
                 jobs={jobs}
                 selectedJobId={selectedJobId}
                 onSelectJob={onSelectJob}
+                open={popupOpen}
+                setOpen={setPopupOpen}
               />
             </div>
           </>

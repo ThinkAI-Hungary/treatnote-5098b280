@@ -19,6 +19,7 @@ import Auth from "./pages/Auth";
 // Lazy-loaded: code-split so each page JS only loads when needed
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const PatientManagement = lazy(() => import("./pages/PatientManagement"));
+const PatientProfile = lazy(() => import("./pages/PatientProfile"));
 const Appointments = lazy(() => import("./pages/Appointments"));
 const ExaminationsList = lazy(() => import("./pages/ExaminationsList"));
 const DentalCharting = lazy(() => import("./pages/DentalCharting"));
@@ -71,7 +72,7 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="klinika-theme">
-      <PersistQueryClientProvider 
+      <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{
           persister,
@@ -97,6 +98,7 @@ const App = () => {
                 <Route element={<AuthenticatedRoutes />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/patients" element={<PatientManagement />} />
+                  <Route path="/patients/:id" element={<PatientProfile />} />
                   <Route path="/appointments" element={<Appointments />} />
                   <Route path="/examinations" element={<ExaminationsList />} />
                   <Route path="/dental-charting" element={<DentalCharting />} />

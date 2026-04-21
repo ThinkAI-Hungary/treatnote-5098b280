@@ -4,13 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import type { Json } from '@/integrations/supabase/types';
 
-export interface VoiceJob {
+export interface NativeVoiceJob {
   id: string;
   user_id: string;
   company_id: string | null;
   telephely_id: string | null;
   mode: string;
-  paciens_id: string | null;
   treatnote_patient_id: string | null;
   status: 'processing' | 'completed' | 'error';
   result: Json | null;
@@ -19,25 +18,25 @@ export interface VoiceJob {
   duration_seconds: number | null;
   created_at: string;
   completed_at: string | null;
-  user_complaint: string | null;
-  user_complaint_date: string | null;
+  progress_percent: number | null;
+  progress_message: string | null;
 }
 
-interface UseVoiceJobHistoryReturn {
-  jobs: VoiceJob[];
+interface UseNativeVoiceJobHistoryReturn {
+  jobs: NativeVoiceJob[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
-  pollJob: (jobId: string) => Promise<VoiceJob | null>;
+  pollJob: (jobId: string) => Promise<NativeVoiceJob | null>;
 }
 
 const MAX_HISTORY_ITEMS = 50;
 
-export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHistoryReturn {
+export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNativeVoiceJobHistoryReturn {
   const { user } = useAuth();
   const { profile } = useProfile();
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
-  const [jobs, setJobs] = useState<VoiceJob[]>([]);
+  const [jobs, setJobs] = useState<NativeVoiceJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -49,25 +48,25 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
     }
 
     try {
-      // First, delete stale jobs (processing for more than 5 minutes)
+      // Delete stale jobs (processing for more than 10 minutes)
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
       await supabase
-        .from('voice_jobs')
+        .from('native_voice_jobs')
         .delete()
         .eq('user_id', user.id)
         .eq('status', 'processing')
         .lt('created_at', tenMinutesAgo);
 
-      // Then fetch remaining jobs, filtered by active telephely
       let query = supabase
-        .from('voice_jobs')
+        .from('native_voice_jobs')
         .select('*')
         .eq('user_id', user.id);
 
       if (activeTelephelyId) {
         query = query.eq('telephely_id', activeTelephelyId);
       }
+      
       if (treatnotePatientId) {
         query = query.eq('treatnote_patient_id', treatnotePatientId);
       }
@@ -78,29 +77,28 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
 
       if (fetchError) throw fetchError;
 
-      setJobs((data as VoiceJob[]) || []);
+      setJobs((data as NativeVoiceJob[]) || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching voice jobs:', err);
+      console.error('Error fetching native voice jobs:', err);
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
   }, [user, activeTelephelyId, treatnotePatientId]);
 
-  const pollJob = useCallback(async (jobId: string): Promise<VoiceJob | null> => {
+  const pollJob = useCallback(async (jobId: string): Promise<NativeVoiceJob | null> => {
     try {
       const { data, error: fetchError } = await supabase
-        .from('voice_jobs')
+        .from('native_voice_jobs')
         .select('*')
         .eq('id', jobId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      const job = data as VoiceJob;
+      const job = data as NativeVoiceJob;
 
-      // Update local state with the polled job
       setJobs(prev => {
         const existingIndex = prev.findIndex(j => j.id === jobId);
         if (existingIndex >= 0) {
@@ -108,14 +106,13 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
           updated[existingIndex] = job;
           return updated;
         } else {
-          // Add new job at the beginning
           return [job, ...prev].slice(0, MAX_HISTORY_ITEMS);
         }
       });
 
       return job;
     } catch (err) {
-      console.error('Error polling job:', err);
+      console.error('Error polling native job:', err);
       return null;
     }
   }, []);
@@ -124,31 +121,33 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
     fetchJobs();
   }, [fetchJobs]);
 
-  // Subscribe to realtime updates for the user's jobs
   useEffect(() => {
     if (!user) return;
 
+    let filterString = `user_id=eq.${user.id}`;
+
     const channel = supabase
-      .channel('voice_jobs_changes')
+      .channel(`native_voice_jobs_changes_${treatnotePatientId || 'all'}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'voice_jobs',
-          filter: `user_id=eq.${user.id}`,
+          table: 'native_voice_jobs',
+          filter: filterString,
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newJob = payload.new as VoiceJob;
-            // Only add if it belongs to the active telephely and matching patient
-            if (activeTelephelyId && newJob.telephely_id !== activeTelephelyId) return;
-            if (treatnotePatientId && newJob.treatnote_patient_id !== treatnotePatientId) return;
+            const newJob = payload.new as NativeVoiceJob;
+            const matchesTelephely = !activeTelephelyId || newJob.telephely_id === activeTelephelyId;
+            const matchesPatient = !treatnotePatientId || newJob.treatnote_patient_id === treatnotePatientId;
             
-            setJobs(prev => [newJob, ...prev].slice(0, MAX_HISTORY_ITEMS));
+            if (matchesTelephely && matchesPatient) {
+              setJobs(prev => [newJob, ...prev].slice(0, MAX_HISTORY_ITEMS));
+            }
           } else if (payload.eventType === 'UPDATE') {
             setJobs(prev => prev.map(job =>
-              job.id === (payload.new as VoiceJob).id ? (payload.new as VoiceJob) : job
+              job.id === (payload.new as NativeVoiceJob).id ? (payload.new as NativeVoiceJob) : job
             ));
           } else if (payload.eventType === 'DELETE') {
             setJobs(prev => prev.filter(job => job.id !== (payload.old as { id: string }).id));

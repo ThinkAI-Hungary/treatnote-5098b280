@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, Sparkles, Star } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Info, Sparkles, Star, CheckCircle2 } from 'lucide-react';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +14,8 @@ import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
-import { useVoiceJobHistory, VoiceJob } from '@/hooks/useVoiceJobHistory';
+import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
+import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory';
 import { useTheme } from '@/components/ThemeProvider';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
@@ -22,7 +23,9 @@ import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
 import { toast } from 'sonner';
+import { isVoxisJob } from '@/lib/voxisUtils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';
 import { PageLoader } from '@/components/PageLoader';
@@ -30,7 +33,11 @@ import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
 
 type RecordingMode = 'voxis' | 'treatnote' | 'ambulans';
 
-export default function VoiceRecording() {
+interface VoiceRecordingProps {
+  treatnotePatientId?: string;
+}
+
+export default function VoiceRecording({ treatnotePatientId }: VoiceRecordingProps = {}) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -41,7 +48,7 @@ export default function VoiceRecording() {
   const { hasSzotar, flexiDomain, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins } = useKlinikaAdmins();
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
-  const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useVoiceJobHistory();
+  const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useUnifiedVoiceHistory(treatnotePatientId);
   const navigate = useNavigate();
 
   // ── Onboarding tour ──────────────────────────────────────────────────────
@@ -191,6 +198,27 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVerdiktLoading, setIsVerdiktLoading] = useState(false);
+  const [patientFlexidentId, setPatientFlexidentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!treatnotePatientId) return;
+
+    supabase.from('patient_alap_adatok')
+      .select('flexident_id')
+      .eq('id', treatnotePatientId)
+      .single()
+      .then(({ data }) => {
+        if (data?.flexident_id) {
+          setPatientFlexidentId(data.flexident_id);
+          setPaciensId(data.flexident_id);
+          setIsPaciensIdLocked(true);
+        } else {
+          setPatientFlexidentId(null);
+          setPaciensId('');
+          setIsPaciensIdLocked(false);
+        }
+      });
+  }, [treatnotePatientId, setPaciensId, setIsPaciensIdLocked]);
 
   const {
     isRecording,
@@ -308,9 +336,12 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
       const formData = new FormData();
       formData.append('audio', audioBlob, filename);
       formData.append('mode', mode);
-      formData.append('timestamp', timestamp);
       formData.append('filename', filename);
-      formData.append('user_id', user.id);
+      formData.append('PaciensID', paciensId);
+      if (treatnotePatientId) {
+        formData.append('treatnote_patient_id', treatnotePatientId);
+      }
+      if (userId) formData.append('user_id', userId);
       formData.append('company_id', profile?.company_id || '');
       formData.append('telephely_id', (profile as any)?.current_telephely_id || profile?.telephely_id || '');
       formData.append('PaciensID', paciensId);
@@ -334,7 +365,13 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 409 && errorData.active_job_id) {
+          setCurrentJobId(errorData.active_job_id);
+          toast.info('Folytatjuk a folyamatban lévő feldolgozás követését...');
+          resetRecording();
+          return;
+        }
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
@@ -604,31 +641,43 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
 
             {/* Páciens ID input */}
             <div className="space-y-2" data-tour="vr-paciens-id">
-              <div className="flex items-center gap-2">
-                <Label>Páciens ID-ja</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>A Páciens ID megtalálható a "Páciens lista"-ban való szűrést követően az "ID" oszlopban, ezt a sorszámot kell ide beilleszteni arra a páciensre, akinek a felhasználójával dolgozni szeretne.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Label>Páciens ID-ja</Label>
+                  {!treatnotePatientId && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>A Páciens ID megtalálható a "Páciens lista"-ban való szűrést követően az "ID" oszlopban, ezt a sorszámot kell ide beilleszteni arra a páciensre, akinek a felhasználójával dolgozni szeretne.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                {treatnotePatientId && !paciensId && (
+                  <div className="text-xs text-destructive flex items-center gap-1.5 font-medium animate-in fade-in slide-in-from-right-2 duration-300">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Hiányzó FlexiDent ID
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative flex-1">
                   <Input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Páciens ID-ja (# nélkül)"
+                    placeholder={treatnotePatientId ? "Páciens profil tartalmazza az ID-t." : "Páciens ID-ja (# nélkül)"}
                     value={paciensId}
                     onChange={(e) => {
+                      if (treatnotePatientId) return;
                       const value = e.target.value.replace(/\D/g, '');
                       setPaciensId(value);
                     }}
                     onKeyDown={(e) => {
+                      if (treatnotePatientId) return;
                       // Allow control keys
                       if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
                         return;
@@ -642,45 +691,53 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                         e.preventDefault();
                       }
                     }}
-                    disabled={isRecording || isPaciensIdLocked}
-                    className={`transition-all duration-300 ${isPaciensIdLocked ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                    disabled={isRecording || isPaciensIdLocked || !!treatnotePatientId}
+                    className={`transition-all duration-300 ${isPaciensIdLocked || !!treatnotePatientId ? 'bg-muted/50 cursor-not-allowed' : ''} ${treatnotePatientId && !paciensId ? 'border-destructive/50 bg-destructive/5' : ''}`}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <TooltipProvider>
-                    <Tooltip open={isZarolasHovered && !paciensId}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="flex items-center gap-2"
-                          onMouseEnter={() => setIsZarolasHovered(true)}
-                          onMouseLeave={() => setIsZarolasHovered(false)}
-                        >
-                          <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
-                            <Checkbox
-                              ref={checkboxRef}
-                              id="lock-paciens-id"
-                              checked={isPaciensIdLocked}
-                              onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
-                              disabled={isRecording || !paciensId}
-                              className={`transition-all duration-300 relative z-10 ${isCheckboxPulsing ? 'animate-pulse-fade' : ''
-                                }`}
-                            />
-                          </div>
-                          <Label
-                            htmlFor="lock-paciens-id"
-                            className={`text-sm cursor-pointer select-none ${!paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
-                              }`}
+                {treatnotePatientId ? (
+                  paciensId ? (
+                    <div className="flex items-center gap-2 px-3 text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 rounded-md h-10 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+                      <CheckCircle2 className="w-4 h-4" /> Csatolva
+                    </div>
+                  ) : null
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip open={isZarolasHovered && !paciensId}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="flex items-center gap-2"
+                            onMouseEnter={() => setIsZarolasHovered(true)}
+                            onMouseLeave={() => setIsZarolasHovered(false)}
                           >
-                            Zárolás
-                          </Label>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Kérem töltse ki a Páciens ID értéket.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                            <div className={`relative transition-all duration-300 ${isPaciensIdLocked ? 'checkbox-glow-active' : ''}`}>
+                              <Checkbox
+                                ref={checkboxRef}
+                                id="lock-paciens-id"
+                                checked={isPaciensIdLocked}
+                                onCheckedChange={(checked) => setIsPaciensIdLocked(checked === true)}
+                                disabled={isRecording || !paciensId}
+                                className={`transition-all duration-300 relative z-10 ${isCheckboxPulsing ? 'animate-pulse-fade' : ''
+                                  }`}
+                              />
+                            </div>
+                            <Label
+                              htmlFor="lock-paciens-id"
+                              className={`text-sm cursor-pointer select-none ${!paciensId ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                                }`}
+                            >
+                              Zárolás
+                            </Label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Kérem töltse ki a Páciens ID értéket.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -709,14 +766,14 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                 {isRecording && (
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="h-14 w-14 rounded-full"
+                    variant={isRecording ? 'destructive' : 'default'}
+                    className="h-20 w-20 rounded-full primary-btn-gradient dark:bg-gradient-to-br dark:from-[hsl(270_70%_60%)] dark:via-[hsl(250_65%_55%)] dark:to-[hsl(195_85%_50%)] dark:hover:shadow-lg dark:hover:shadow-[hsl(270_70%_60%)/0.4]"
                     onClick={handleTogglePause}
                   >
                     {isPaused ? (
-                      <Play className="h-6 w-6" />
+                      <Play className="h-8 w-8" />
                     ) : (
-                      <Pause className="h-6 w-6" />
+                      <Pause className="h-8 w-8" />
                     )}
                   </Button>
                 )}
@@ -768,18 +825,6 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                     ref={audioRef}
                     src={audioUrl}
                     onEnded={() => setIsPlaying(false)}
-                    onLoadedMetadata={(e) => {
-                      const audio = e.currentTarget;
-                      // MediaRecorder blobs have Infinity duration — force browser to compute real duration
-                      if (audio.duration === Infinity || isNaN(audio.duration)) {
-                        audio.currentTime = 1e101;
-                        const fix = () => {
-                          audio.currentTime = 0;
-                          audio.removeEventListener('timeupdate', fix);
-                        };
-                        audio.addEventListener('timeupdate', fix);
-                      }
-                    }}
                     controls
                     className="w-full h-10 rounded-lg"
                     style={{ colorScheme: 'dark' }}
@@ -800,7 +845,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                   <div
                     className="flex-1"
                     onMouseEnter={() => {
-                      if (!isPaciensIdLocked) {
+                      if (!treatnotePatientId && !isPaciensIdLocked) {
                         setIsCheckboxPulsing(true);
                       }
                     }}
@@ -817,7 +862,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                         color: isDark ? 'white' : 'hsl(262 48% 16%)',
                       }}
                       onClick={handleUpload}
-                      disabled={isUploading || !isPaciensIdLocked}
+                      disabled={isUploading || (treatnotePatientId ? !paciensId : !isPaciensIdLocked)}
                     >
                       {isUploading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -831,7 +876,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
-                <Mic className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                <Mic className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground text-center">
                   Még nincs felvétel.
                   <br />
@@ -862,8 +907,31 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                 selectedJobStatus={selectedJob?.status}
                 jobId={selectedJob?.id || currentJobId}
                 userComplaint={selectedJob?.user_complaint}
+                progressPercent={(selectedJob as any)?.progress_percent || (jobs.find(j => j.id === currentJobId) as any)?.progress_percent}
+                progressMessage={(selectedJob as any)?.progress_message || (jobs.find(j => j.id === currentJobId) as any)?.progress_message}
+                rawAudioText={(selectedJob as any)?.raw_audio_text || (jobs.find(j => j.id === currentJobId) as any)?.raw_audio_text}
+                claudeCleanedText={(selectedJob as any)?.claude_cleaned_text || (jobs.find(j => j.id === currentJobId) as any)?.claude_cleaned_text}
                 onComplaintSubmitted={() => {
                   refetchJobs();
+                }}
+                onTerminate={async () => {
+                  const targetJobId = selectedJob?.id || currentJobId;
+                  if (!targetJobId) return;
+                  const targetJob = jobs.find(j => j.id === targetJobId);
+                  const isNative = targetJob?.isFlexi === false;
+                  const table = isNative ? 'native_voice_jobs' : 'voice_jobs';
+
+                  const { error } = await supabase
+                    .from(table)
+                    .update({ status: 'error', error: 'Megszakítva felhasználó által', completed_at: new Date().toISOString() })
+                    .eq('id', targetJobId);
+
+                  if (error) {
+                    toast.error('Hiba a megszakítás során!');
+                  } else {
+                    toast.info('Feldolgozás megszakítva.');
+                    refetchJobs();
+                  }
                 }}
                 onClose={() => {
                   if (isDemoVerdiktStep) return; // keep mounted during tour demo
@@ -873,6 +941,17 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                     clearVerdikt();
                   }
                 }}
+                voxisReviewPanelNode={
+                  isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result && (selectedJob?.paciens_id || (selectedJob as any)?.treatnote_patient_id) ? (
+                    <VoxisReviewPanel 
+                      patientId={selectedJob?.paciens_id || (selectedJob as any)?.treatnote_patient_id}
+                      resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
+                      jobId={selectedJob.id}
+                    />
+                  ) : isVoxisJob(selectedJob?.mode, selectedJob?.result) ? (
+                    <div className="p-4 text-center text-muted-foreground">Kérem párosítson klienst a megtekintéséhez.</div>
+                  ) : null
+                }
               />
             </div>
           ) : null;

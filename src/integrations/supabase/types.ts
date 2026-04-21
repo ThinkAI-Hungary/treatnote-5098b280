@@ -353,6 +353,102 @@ export type Database = {
           },
         ]
       }
+      dental_chart: {
+        Row: {
+          company_id: string | null
+          dental_signs: Json | null
+          gum_recession_mm: number | null
+          id: string
+          implant_date: string | null
+          implant_diameter: number | null
+          implant_length: number | null
+          implant_system: string | null
+          last_updated_at: string | null
+          mobility: number | null
+          notes: string | null
+          patient_id: string
+          percussion: string | null
+          percussion_sensitive: boolean | null
+          periapical_lesion: boolean | null
+          pocket_depth_mm: number | null
+          prosthetic_material: string | null
+          prosthetic_shade: string | null
+          prosthetic_type: string | null
+          sensitivity: string | null
+          status: string
+          surfaces: string | null
+          tooth_number: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          dental_signs?: Json | null
+          gum_recession_mm?: number | null
+          id?: string
+          implant_date?: string | null
+          implant_diameter?: number | null
+          implant_length?: number | null
+          implant_system?: string | null
+          last_updated_at?: string | null
+          mobility?: number | null
+          notes?: string | null
+          patient_id: string
+          percussion?: string | null
+          percussion_sensitive?: boolean | null
+          periapical_lesion?: boolean | null
+          pocket_depth_mm?: number | null
+          prosthetic_material?: string | null
+          prosthetic_shade?: string | null
+          prosthetic_type?: string | null
+          sensitivity?: string | null
+          status?: string
+          surfaces?: string | null
+          tooth_number: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          dental_signs?: Json | null
+          gum_recession_mm?: number | null
+          id?: string
+          implant_date?: string | null
+          implant_diameter?: number | null
+          implant_length?: number | null
+          implant_system?: string | null
+          last_updated_at?: string | null
+          mobility?: number | null
+          notes?: string | null
+          patient_id?: string
+          percussion?: string | null
+          percussion_sensitive?: boolean | null
+          periapical_lesion?: boolean | null
+          pocket_depth_mm?: number | null
+          prosthetic_material?: string | null
+          prosthetic_shade?: string | null
+          prosthetic_type?: string | null
+          sensitivity?: string | null
+          status?: string
+          surfaces?: string | null
+          tooth_number?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dental_chart_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dental_chart_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnoses: {
         Row: {
           created_at: string
@@ -387,6 +483,7 @@ export type Database = {
       }
       error_logs: {
         Row: {
+          company_id: string | null
           company_name: string | null
           created_at: string | null
           domain: string | null
@@ -397,11 +494,13 @@ export type Database = {
           script_name: string
           severity: string | null
           summary: string
+          telephely_id: string | null
           telephely_name: string | null
           user_id: string | null
           username: string | null
         }
         Insert: {
+          company_id?: string | null
           company_name?: string | null
           created_at?: string | null
           domain?: string | null
@@ -412,11 +511,13 @@ export type Database = {
           script_name: string
           severity?: string | null
           summary: string
+          telephely_id?: string | null
           telephely_name?: string | null
           user_id?: string | null
           username?: string | null
         }
         Update: {
+          company_id?: string | null
           company_name?: string | null
           created_at?: string | null
           domain?: string | null
@@ -427,6 +528,7 @@ export type Database = {
           script_name?: string
           severity?: string | null
           summary?: string
+          telephely_id?: string | null
           telephely_name?: string | null
           user_id?: string | null
           username?: string | null
@@ -912,6 +1014,265 @@ export type Database = {
           },
         ]
       }
+      native_voice_jobs: {
+        Row: {
+          audio_filename: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          treatnote_patient_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode: string
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode?: string
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "native_voice_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "native_voice_jobs_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "native_voice_jobs_treatnote_patient_id_fkey"
+            columns: ["treatnote_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_alap_adatok: {
+        Row: {
+          alapertelmezett_arlista: string | null
+          alapertelmezett_nyelv: string | null
+          anamnezis: Json | null
+          anyja_neve: string | null
+          azonosito_okmany_tipusa: string | null
+          bekuldo_orvos_id: string | null
+          bekuldo_paciens_id: string | null
+          company_id: string
+          created_at: string
+          dentalhigienikus_id: string | null
+          ertekesitesi_statusz: string | null
+          flexident_id: string | null
+          fontos_info_felelem: string | null
+          honnan_ertesult: string | null
+          husegprogram_vege: string | null
+          id: string
+          inaktiv_paciens: boolean | null
+          iranyitoszam: string
+          kapcsolattarto_email: string | null
+          kaphat_email_ertesitot: boolean | null
+          keresztnev: string
+          kezeloorvos_id: string | null
+          marketing_hozzajarulas: boolean | null
+          mit_var_kezelestol: string | null
+          naptar_megjegyzes: string | null
+          nem_ker_levelet: boolean | null
+          nem_kivant_paciens: boolean | null
+          nem_kivant_paciens_ok: string | null
+          neme: string | null
+          orszag: string | null
+          paciens_megszolitasa: string | null
+          szuletesi_hely: string | null
+          szuletesi_ido: string | null
+          szuletesi_keresztnev: string | null
+          szuletesi_vezeteknev: string | null
+          taj_szam: string | null
+          telefon_1_hivoszam: string | null
+          telefon_1_korzet: string | null
+          telefon_1_leiras: string | null
+          telefon_1_orszagkod: string | null
+          telefon_2_hivoszam: string | null
+          telefon_2_korzet: string | null
+          telefon_2_leiras: string | null
+          telefon_2_orszagkod: string | null
+          telefon_3_hivoszam: string | null
+          telefon_3_korzet: string | null
+          telefon_3_leiras: string | null
+          telefon_3_orszagkod: string | null
+          telephely_ids: string[]
+          titulus: string | null
+          updated_at: string
+          user_id: string | null
+          utca_hazszam: string
+          varos: string
+          vezeteknev: string
+        }
+        Insert: {
+          alapertelmezett_arlista?: string | null
+          alapertelmezett_nyelv?: string | null
+          anamnezis?: Json | null
+          anyja_neve?: string | null
+          azonosito_okmany_tipusa?: string | null
+          bekuldo_orvos_id?: string | null
+          bekuldo_paciens_id?: string | null
+          company_id: string
+          created_at?: string
+          dentalhigienikus_id?: string | null
+          ertekesitesi_statusz?: string | null
+          flexident_id?: string | null
+          fontos_info_felelem?: string | null
+          honnan_ertesult?: string | null
+          husegprogram_vege?: string | null
+          id?: string
+          inaktiv_paciens?: boolean | null
+          iranyitoszam: string
+          kapcsolattarto_email?: string | null
+          kaphat_email_ertesitot?: boolean | null
+          keresztnev: string
+          kezeloorvos_id?: string | null
+          marketing_hozzajarulas?: boolean | null
+          mit_var_kezelestol?: string | null
+          naptar_megjegyzes?: string | null
+          nem_ker_levelet?: boolean | null
+          nem_kivant_paciens?: boolean | null
+          nem_kivant_paciens_ok?: string | null
+          neme?: string | null
+          orszag?: string | null
+          paciens_megszolitasa?: string | null
+          szuletesi_hely?: string | null
+          szuletesi_ido?: string | null
+          szuletesi_keresztnev?: string | null
+          szuletesi_vezeteknev?: string | null
+          taj_szam?: string | null
+          telefon_1_hivoszam?: string | null
+          telefon_1_korzet?: string | null
+          telefon_1_leiras?: string | null
+          telefon_1_orszagkod?: string | null
+          telefon_2_hivoszam?: string | null
+          telefon_2_korzet?: string | null
+          telefon_2_leiras?: string | null
+          telefon_2_orszagkod?: string | null
+          telefon_3_hivoszam?: string | null
+          telefon_3_korzet?: string | null
+          telefon_3_leiras?: string | null
+          telefon_3_orszagkod?: string | null
+          telephely_ids?: string[]
+          titulus?: string | null
+          updated_at?: string
+          user_id?: string | null
+          utca_hazszam: string
+          varos: string
+          vezeteknev: string
+        }
+        Update: {
+          alapertelmezett_arlista?: string | null
+          alapertelmezett_nyelv?: string | null
+          anamnezis?: Json | null
+          anyja_neve?: string | null
+          azonosito_okmany_tipusa?: string | null
+          bekuldo_orvos_id?: string | null
+          bekuldo_paciens_id?: string | null
+          company_id?: string
+          created_at?: string
+          dentalhigienikus_id?: string | null
+          ertekesitesi_statusz?: string | null
+          flexident_id?: string | null
+          fontos_info_felelem?: string | null
+          honnan_ertesult?: string | null
+          husegprogram_vege?: string | null
+          id?: string
+          inaktiv_paciens?: boolean | null
+          iranyitoszam?: string
+          kapcsolattarto_email?: string | null
+          kaphat_email_ertesitot?: boolean | null
+          keresztnev?: string
+          kezeloorvos_id?: string | null
+          marketing_hozzajarulas?: boolean | null
+          mit_var_kezelestol?: string | null
+          naptar_megjegyzes?: string | null
+          nem_ker_levelet?: boolean | null
+          nem_kivant_paciens?: boolean | null
+          nem_kivant_paciens_ok?: string | null
+          neme?: string | null
+          orszag?: string | null
+          paciens_megszolitasa?: string | null
+          szuletesi_hely?: string | null
+          szuletesi_ido?: string | null
+          szuletesi_keresztnev?: string | null
+          szuletesi_vezeteknev?: string | null
+          taj_szam?: string | null
+          telefon_1_hivoszam?: string | null
+          telefon_1_korzet?: string | null
+          telefon_1_leiras?: string | null
+          telefon_1_orszagkod?: string | null
+          telefon_2_hivoszam?: string | null
+          telefon_2_korzet?: string | null
+          telefon_2_leiras?: string | null
+          telefon_2_orszagkod?: string | null
+          telefon_3_hivoszam?: string | null
+          telefon_3_korzet?: string | null
+          telefon_3_leiras?: string | null
+          telefon_3_orszagkod?: string | null
+          telephely_ids?: string[]
+          titulus?: string | null
+          updated_at?: string
+          user_id?: string | null
+          utca_hazszam?: string
+          varos?: string
+          vezeteknev?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_alap_adatok_bekuldo_paciens_id_fkey"
+            columns: ["bekuldo_paciens_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_alap_adatok_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           company_id: string | null
@@ -1022,6 +1383,7 @@ export type Database = {
           current_telephely_id: string | null
           full_name: string | null
           id: string
+          is_first_login: boolean
           is_solo: boolean
           phone: string | null
           subscription_amount: number | null
@@ -1033,6 +1395,7 @@ export type Database = {
           telephely_id: string | null
           updated_at: string | null
           user_id: string
+          voice_recording_preference: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1043,6 +1406,7 @@ export type Database = {
           current_telephely_id?: string | null
           full_name?: string | null
           id?: string
+          is_first_login?: boolean
           is_solo?: boolean
           phone?: string | null
           subscription_amount?: number | null
@@ -1054,6 +1418,7 @@ export type Database = {
           telephely_id?: string | null
           updated_at?: string | null
           user_id: string
+          voice_recording_preference?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1064,6 +1429,7 @@ export type Database = {
           current_telephely_id?: string | null
           full_name?: string | null
           id?: string
+          is_first_login?: boolean
           is_solo?: boolean
           phone?: string | null
           subscription_amount?: number | null
@@ -1075,6 +1441,7 @@ export type Database = {
           telephely_id?: string | null
           updated_at?: string | null
           user_id?: string
+          voice_recording_preference?: string | null
         }
         Relationships: [
           {
@@ -1099,6 +1466,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          endpoint: string
+          first_request_time: string | null
+          id: string
+          identifier: string
+          request_count: number | null
+        }
+        Insert: {
+          endpoint: string
+          first_request_time?: string | null
+          id?: string
+          identifier: string
+          request_count?: number | null
+        }
+        Update: {
+          endpoint?: string
+          first_request_time?: string | null
+          id?: string
+          identifier?: string
+          request_count?: number | null
+        }
+        Relationships: []
       }
       rule_generation_jobs: {
         Row: {
@@ -1363,6 +1754,113 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      szamlazz_invoices: {
+        Row: {
+          attempt_count: number
+          company_id: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          raw_response: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_invoice_id: string
+          szamlazz_invoice_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          raw_response?: string | null
+          status?: string
+          stripe_customer_id: string
+          stripe_invoice_id: string
+          szamlazz_invoice_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          raw_response?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_invoice_id?: string
+          szamlazz_invoice_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szamlazz_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szamlazz_received_invoices: {
+        Row: {
+          brutto_vegosszeg: number | null
+          created_at: string
+          fizmod: string | null
+          id: string
+          kelt_datum: string | null
+          penznem: string | null
+          raw_xml: string | null
+          received_at: string
+          szamlaszam: string | null
+          szamlazz_id: string
+          szamlazz_key: string | null
+          teljesites_datum: string | null
+          tipus: string | null
+          updated_at: string
+          vevo_email: string | null
+          vevo_nev: string | null
+        }
+        Insert: {
+          brutto_vegosszeg?: number | null
+          created_at?: string
+          fizmod?: string | null
+          id?: string
+          kelt_datum?: string | null
+          penznem?: string | null
+          raw_xml?: string | null
+          received_at?: string
+          szamlaszam?: string | null
+          szamlazz_id: string
+          szamlazz_key?: string | null
+          teljesites_datum?: string | null
+          tipus?: string | null
+          updated_at?: string
+          vevo_email?: string | null
+          vevo_nev?: string | null
+        }
+        Update: {
+          brutto_vegosszeg?: number | null
+          created_at?: string
+          fizmod?: string | null
+          id?: string
+          kelt_datum?: string | null
+          penznem?: string | null
+          raw_xml?: string | null
+          received_at?: string
+          szamlaszam?: string | null
+          szamlazz_id?: string
+          szamlazz_key?: string | null
+          teljesites_datum?: string | null
+          tipus?: string | null
+          updated_at?: string
+          vevo_email?: string | null
+          vevo_nev?: string | null
+        }
+        Relationships: []
       }
       szotar: {
         Row: {
@@ -1789,6 +2287,9 @@ export type Database = {
           result: Json | null
           status: string
           telephely_id: string | null
+          treatnote_patient_id: string | null
+          user_complaint: string | null
+          user_complaint_date: string | null
           user_id: string
         }
         Insert: {
@@ -1804,6 +2305,9 @@ export type Database = {
           result?: Json | null
           status?: string
           telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_complaint?: string | null
+          user_complaint_date?: string | null
           user_id: string
         }
         Update: {
@@ -1819,7 +2323,87 @@ export type Database = {
           result?: Json | null
           status?: string
           telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_complaint?: string | null
+          user_complaint_date?: string | null
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_jobs_treatnote_patient_id_fkey"
+            columns: ["treatnote_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zombi_profiles: {
+        Row: {
+          avatar_url: string | null
+          can_create_users: boolean | null
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          current_telephely_id: string | null
+          full_name: string | null
+          id: string | null
+          is_first_login: boolean | null
+          is_solo: boolean | null
+          phone: string | null
+          subscription_amount: number | null
+          subscription_end_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
+          subscription_status: string | null
+          telephely: string | null
+          telephely_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          can_create_users?: boolean | null
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_first_login?: boolean | null
+          is_solo?: boolean | null
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          can_create_users?: boolean | null
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_first_login?: boolean | null
+          is_solo?: boolean | null
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1903,6 +2487,38 @@ export type Database = {
           company_name: string
         }[]
       }
+      get_global_voice_jobs: {
+        Args: {
+          p_company_id?: string
+          p_limit?: number
+          p_telephely_id?: string
+          p_user_id?: string
+        }
+        Returns: {
+          audio_filename: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          paciens_id: string | null
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          treatnote_patient_id: string | null
+          user_complaint: string | null
+          user_complaint_date: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "voice_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_any_trigger: { Args: { p_table: unknown }; Returns: boolean }
       has_fk: {
         Args: {
@@ -1926,6 +2542,7 @@ export type Database = {
         Returns: boolean
       }
       has_updated_at_trigger: { Args: { p_table: unknown }; Returns: boolean }
+      mark_first_login_complete: { Args: never; Returns: undefined }
       match_bno_embedding: {
         Args: {
           match_count?: number
@@ -2008,6 +2625,10 @@ export type Database = {
           }
       policy_count: { Args: { p_table: unknown }; Returns: number }
       rls_enabled: { Args: { p_table: unknown }; Returns: boolean }
+      submit_voice_job_complaint: {
+        Args: { p_complaint_text: string; p_job_id: string }
+        Returns: undefined
+      }
       subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
       upsert_bno_embedding: {
         Args: {

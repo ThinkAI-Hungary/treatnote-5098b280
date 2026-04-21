@@ -1,0 +1,556 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+    Mic, ChevronDown, ChevronRight, Trash2, Loader2,
+    RefreshCw, Check, Clock, User, Building, ExternalLink, XCircle
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { AnimatedCard } from '@/components/klinika/AnimatedCard';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+
+interface VoiceJob {
+    id: string;
+    paciens_id: string | null;
+    type: string;
+    audio_url: string | null;
+    status: 'processing' | 'completed' | 'error';
+    progress_percent: number;
+    progress_message: string;
+    company_id: string | null;
+    telephely_id: string | null;
+    user_id: string | null;
+    result: any;
+    error: string | null;
+    created_at: string;
+    completed_at: string | null;
+    trace_logs?: Array<{ timestamp: string, node: string, status: 'processing' | 'completed' | 'error', details?: any }>;
+    raw_audio_text?: string | null;
+    claude_cleaned_text?: string | null;
+    // joined fields
+    users?: { full_name: string; email: string };
+    companies?: { name: string };
+}
+
+const STATUS_CONFIG = {
+    processing: { label: 'Folyamatban', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    completed: { label: 'Sikeres', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    error: { label: 'Hiba', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+};
+
+export function VoiceJobsTab() {
+    const [jobs, setJobs] = useState<VoiceJob[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchJobs = useCallback(async () => {
+        setLoading(true);
+        // Removed joins since foreign keys might not be defined
+        const { data, error } = await supabase
+            .from('native_voice_jobs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        if (error) {
+            toast.error('Hiba a napló betöltésekor');
+            console.error(error);
+        } else {
+            setJobs((data as VoiceJob[]) || []);
+        }
+        setLoading(false);
+    }, []);
+
+    useEffect(() => {
+        fetchJobs();
+    }, [fetchJobs]);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(fetchJobs, 30000);
+        return () => clearInterval(interval);
+    }, [fetchJobs]);
+
+    const toggleExpand = (id: string) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+
+        const { error } = await supabase
+            .from('native_voice_jobs')
+            .delete()
+            .eq('id', deleteTarget);
+
+        if (error) {
+            toast.error('Törlés sikertelen');
+        } else {
+            toast.success('Rögzítés törölve');
+            setJobs(prev => prev.filter(j => j.id !== deleteTarget));
+            setExpandedIds(prev => {
+                const next = new Set(prev);
+                next.delete(deleteTarget);
+                return next;
+            });
+        }
+
+        setDeleting(false);
+        setDeleteConfirmOpen(false);
+        setDeleteTarget(null);
+    };
+
+    const formatDate = (iso: string) => {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleString('hu-HU', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+        });
+    };
+
+    const getAudioPath = (job: VoiceJob) => {
+        if (!job.audio_url) return null;
+        // The audio_url is typically a storage path like 'voice-recordings/filename.webm'
+        // Let's create a public URL or use it directly if it's already a full URL
+        if (job.audio_url.startsWith('http')) return job.audio_url;
+        
+        const { data } = supabase.storage.from('voice-recordings').getPublicUrl(job.audio_url);
+        return data.publicUrl;
+    };
+
+    if (loading && jobs.length === 0) {
+        return (
+            <AnimatedCard>
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="ml-3 text-muted-foreground">Napló betöltése...</span>
+                </div>
+            </AnimatedCard>
+        );
+    }
+
+    return (
+        <>
+            <AnimatedCard>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Mic className="h-5 w-5 text-purple-400" />
+                        Hang Elemzések
+                        {jobs.length > 0 && (
+                            <Badge variant="outline" className="ml-2 border-primary/30">
+                                {jobs.length} elemzés
+                            </Badge>
+                        )}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={fetchJobs}
+                            disabled={loading}
+                            className="border-primary/20 hover:bg-primary/10"
+                        >
+                            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                            Frissítés
+                        </Button>
+                    </div>
+                </div>
+
+                {jobs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <Check className="h-12 w-12 mb-4 text-green-400/50" />
+                        <p className="text-lg font-medium">Nincs elemzési adat</p>
+                        <p className="text-sm mt-1">Még senki sem használt hangfelvételt.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {jobs.map((job) => {
+                            const isExpanded = expandedIds.has(job.id);
+                            const statusConf = STATUS_CONFIG[job.status] || STATUS_CONFIG.error;
+                            const typeLabel = job.type === 'statuszfelvetel' ? 'Státuszfelvétel' : (job.type === 'kezelest_terv' ? 'Kezelési Terv' : job.type);
+
+                            // Dig out strings
+                            const rawAudioText = job.raw_audio_text || job.result?.transcriber?.text || job.result?.transcriber?.raw?.text || 'Nincs adat. (Valószínűleg nem ElevenLabs-ot használt vagy üres)';
+                            const claudeText = job.claude_cleaned_text || job.result?.transcriber?.claude_text || 'Nincs Claude markdown generálva.';
+                            const rawJson = job.result ? JSON.stringify(job.result, null, 2) : '{}';
+                            const traceInfo = job.trace_info || job.result?.trace_info || {};
+                            const hasNewTrace = !!traceInfo.step2_claude_cleaner;
+                            const traceLogs = job.trace_logs || [];
+
+                            const getNodeStatus = (nodeName: string) => {
+                                const states = traceLogs.filter(l => l.node === nodeName);
+                                if (states.length === 0) return null;
+                                return states[states.length - 1].status;
+                            };
+
+                            return (
+                                <div
+                                    key={job.id}
+                                    className="border border-primary/10 rounded-lg overflow-hidden bg-card/50 transition-colors"
+                                >
+                                    <button
+                                        onClick={() => toggleExpand(job.id)}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-card/80"
+                                    >
+                                        {isExpanded
+                                            ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            : <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        }
+
+                                        <Badge className={cn("text-xs border flex-shrink-0 w-24 justify-center", statusConf.color)}>
+                                            {statusConf.label}
+                                        </Badge>
+
+                                        <span className="font-medium flex-1 text-primary capitalize">{typeLabel}</span>
+
+                                        {job.users && (
+                                            <span className="hidden md:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                                <User className="h-3 w-3" />
+                                                {job.users.full_name || job.users.email}
+                                            </span>
+                                        )}
+
+                                        {job.paciens_id && (
+                                            <span className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0 w-32 truncate">
+                                                Páciens: {job.paciens_id}
+                                            </span>
+                                        )}
+
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                            <Clock className="h-3 w-3" />
+                                            {formatDate(job.created_at)}
+                                        </span>
+                                    </button>
+
+                                    {/* Expanded UI */}
+                                    {isExpanded && (
+                                        <div className="border-t border-primary/10 px-4 py-4 space-y-6">
+                                            {/* Top info bar */}
+                                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                                    {(job.companies || job.company_id) && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Building className="h-4 w-4 text-foreground" /> 
+                                                            <span className="font-medium text-foreground">Cég:</span> {job.companies?.name || job.company_id}
+                                                        </span>
+                                                    )}
+                                                    {job.paciens_id && (
+                                                        <span className="flex items-center gap-1">
+                                                            <User className="h-4 w-4 text-foreground" /> 
+                                                            <span className="font-medium text-foreground">Páciens ID:</span> {job.paciens_id}
+                                                        </span>
+                                                    )}
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="font-medium text-foreground">Progress:</span> {job.progress_percent}% ({job.progress_message})
+                                                    </span>
+                                                </div>
+
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => { setDeleteTarget(job.id); setDeleteConfirmOpen(true); }}
+                                                    className="border-red-500/20 hover:bg-red-500/10 text-red-400"
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Törlés
+                                                </Button>
+                                            </div>
+
+                                            {/* Audio playback */}
+                                            {job.audio_url ? (
+                                                <div className="bg-muted/50 p-4 rounded-lg border">
+                                                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                                                        <Mic className="h-4 w-4 text-primary" /> Rögzített Hang
+                                                    </h4>
+                                                    <audio src={getAudioPath(job) || ''} controls className="w-full max-w-md" />
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-muted-foreground italic bg-muted/50 p-3 rounded border inline-block">
+                                                    Nincs csatolt hangfájl (vagy nem lett elmentve).
+                                                </div>
+                                            )}
+
+                                            {/* If Error */}
+                                            {job.error && (
+                                                <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg">
+                                                    <h4 className="text-sm font-bold text-red-400 mb-2 flex items-center gap-2">
+                                                        <XCircle className="h-4 w-4" /> Hibajelentés (Kivétel)
+                                                    </h4>
+                                                    <pre className="text-xs text-red-300 font-mono whitespace-pre-wrap">{job.error}</pre>
+                                                </div>
+                                            )}
+
+                                            {/* Data Pipeline Grid (n8n node style) */}
+                                            <div className="relative pt-2">
+                                                {/* Total Duration Header */}
+                                                {traceInfo.total_duration_ms && (
+                                                    <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 border">
+                                                        <Clock className="h-3.5 w-3.5" />
+                                                        <span>Teljes feldolgozási idő: <span className="font-bold text-foreground">{(traceInfo.total_duration_ms / 1000).toFixed(1)}s</span></span>
+                                                        <span className="text-muted-foreground/60">|</span>
+                                                        <span>Modell: <span className="font-medium text-foreground">{traceInfo.step4_quadrant_extractors?.model || 'gpt-4o'}</span></span>
+                                                        {traceInfo.step6_merge && (
+                                                            <>
+                                                                <span className="text-muted-foreground/60">|</span>
+                                                                <span>Fogak adattal: <span className="font-bold text-foreground">{traceInfo.step6_merge.teeth_with_data || 0}/32</span></span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Vertical line connecting nodes */}
+                                                <div className="absolute top-0 bottom-0 left-6 w-0.5 bg-gradient-to-b from-blue-500/20 via-purple-500/20 to-green-500/20"></div>
+                                                
+                                                <div className="space-y-4">
+                                                    {/* Node 1: ElevenLabs STT */}
+                                                    <div className="relative pl-14">
+                                                        <div className={cn("absolute left-4 top-4 w-4 h-4 rounded-full border-4 border-background outline outline-1 shadow-sm transition-colors", getNodeStatus("1 - ElevenLabs STT") === 'processing' ? 'bg-blue-400 outline-blue-400 animate-pulse' : 'bg-blue-500 outline-blue-500/50')}></div>
+                                                        <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                            <div className="bg-blue-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                {getNodeStatus("1 - ElevenLabs STT") === 'processing' ? (
+                                                                    <Loader2 className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                                                                ) : (
+                                                                    <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                                )}
+                                                                <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300">1. ElevenLabs STT Engine</h4>
+                                                                {traceInfo.step1_elevenlabs?.duration_ms && (
+                                                                    <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-mono">{(traceInfo.step1_elevenlabs.duration_ms / 1000).toFixed(1)}s</span>
+                                                                )}
+                                                            </div>
+                                                            {(rawAudioText || getNodeStatus("1 - ElevenLabs STT")) && (
+                                                                <div className="p-4 text-xs leading-5 text-foreground font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                                                    {getNodeStatus("1 - ElevenLabs STT") === 'processing' ? 'Transcribing...' : rawAudioText}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Node 2: Claude Cleaner */}
+                                                    <div className="relative pl-14">
+                                                        <div className={cn("absolute left-4 top-4 w-4 h-4 rounded-full border-4 border-background outline outline-1 shadow-sm transition-colors", getNodeStatus("2 - AI Tisztítás (Claude)") === 'processing' ? 'bg-purple-400 outline-purple-400 animate-pulse' : 'bg-purple-500 outline-purple-500/50')}></div>
+                                                        <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                            <div className="bg-purple-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                {getNodeStatus("2 - AI Tisztítás (Claude)") === 'processing' ? (
+                                                                    <Loader2 className="h-4 w-4 text-purple-600 dark:text-purple-400 animate-spin" />
+                                                                ) : (
+                                                                    <RefreshCw className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                                )}
+                                                                <h4 className="text-sm font-medium text-purple-700 dark:text-purple-300">2. {traceInfo.step2_claude_cleaner?.model || 'Claude'} Markdown Generator</h4>
+                                                                {traceInfo.step2_claude_cleaner?.duration_ms && (
+                                                                    <span className="ml-auto text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-mono">{(traceInfo.step2_claude_cleaner.duration_ms / 1000).toFixed(1)}s</span>
+                                                                )}
+                                                            </div>
+                                                            {getNodeStatus("2 - AI Tisztítás (Claude)") === 'processing' ? (
+                                                                <div className="p-4 text-xs font-mono text-muted-foreground animate-pulse">Feladat végrehajtása folyamatban...</div>
+                                                            ) : hasNewTrace && traceInfo.step2_claude_cleaner ? (
+                                                                <div className="p-4 space-y-3">
+                                                                    <div className="bg-muted/50 rounded border p-2">
+                                                                        <span className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">Rendszer Prompt (System)</span>
+                                                                        <div className="text-[10px] leading-4 text-foreground font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                                                            {traceInfo.step2_claude_cleaner.system_prompt}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-muted/50 rounded border p-2">
+                                                                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase mb-1 block">Generated Markdown (Output)</span>
+                                                                        <div className="text-[10px] leading-4 text-foreground font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                                                            {traceInfo.step2_claude_cleaner.response}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (claudeText || getNodeStatus("2 - AI Tisztítás (Claude)")) ? (
+                                                                <div className="p-4 text-xs leading-5 text-foreground font-mono whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                                                    {claudeText}
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Node 3: Markdown Splitter */}
+                                                    {(traceInfo.chunks || traceInfo.step3_markdown_splitter?.chunks) && (
+                                                        <div className="relative pl-14">
+                                                            <div className="absolute left-4 top-4 w-4 h-4 rounded-full bg-pink-500 border-4 border-background outline outline-1 outline-pink-500/50 shadow-sm"></div>
+                                                            <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                                <div className="bg-pink-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                    <Loader2 className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                                                                    <h4 className="text-sm font-medium text-pink-700 dark:text-pink-300">3. Markdown Splitter</h4>
+                                                                    {traceInfo.step3_markdown_splitter?.duration_ms != null && (
+                                                                        <span className="ml-auto text-[10px] bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded-full font-mono">{traceInfo.step3_markdown_splitter.duration_ms}ms</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    {Object.entries(traceInfo.step3_markdown_splitter?.chunks || traceInfo.chunks).map(([key, value]) => (
+                                                                        <div key={key} className="bg-muted/50 rounded border p-2">
+                                                                            <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase mb-1 block">{key} Chunk</span>
+                                                                            <div className="text-[10px] leading-4 text-foreground font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                                                                {(value as string) || '<üres>'}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Node 4: Quadrant Extractors (OpenAI Structured Outputs) */}
+                                                    {hasNewTrace && traceInfo.step4_quadrant_extractors && (
+                                                        <div className="relative pl-14">
+                                                            <div className="absolute left-4 top-4 w-4 h-4 rounded-full bg-orange-500 border-4 border-background outline outline-1 outline-orange-500/50 shadow-sm"></div>
+                                                            <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                                <div className="bg-orange-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                    <ExternalLink className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                                                    <h4 className="text-sm font-medium text-orange-700 dark:text-orange-300">4. OpenAI Quadrant Extractors ({traceInfo.step4_quadrant_extractors.model || 'gpt-4o'} {traceInfo.step4_quadrant_extractors.mode === 'structured_outputs' ? '• Structured Outputs' : ''})</h4>
+                                                                    {traceInfo.step4_quadrant_extractors.duration_ms && (
+                                                                        <span className="ml-auto text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-mono">{(traceInfo.step4_quadrant_extractors.duration_ms / 1000).toFixed(1)}s</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    {['q1', 'q2', 'q3', 'q4'].map((q) => {
+                                                                        const extr = traceInfo.step4_quadrant_extractors[q];
+                                                                        if (!extr) return null;
+                                                                        return (
+                                                                            <div key={q} className="bg-muted/50 rounded border p-2">
+                                                                                <div className="flex items-center justify-between mb-1">
+                                                                                    <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase">{q} Extractor</span>
+                                                                                    {extr.duration_ms && (
+                                                                                        <span className="text-[9px] text-muted-foreground font-mono">{(extr.duration_ms / 1000).toFixed(1)}s</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <details className="text-[10px]">
+                                                                                    <summary className="cursor-pointer text-muted-foreground font-semibold hover:text-foreground">Prompt Mutatása ({extr.prompt?.length || 0} msg)</summary>
+                                                                                    <pre className="mt-2 text-[9px] overflow-x-auto whitespace-pre-wrap bg-background p-1 border">{JSON.stringify(extr.prompt, null, 2)}</pre>
+                                                                                </details>
+                                                                                <details className="text-[10px] mt-1">
+                                                                                    <summary className="cursor-pointer text-muted-foreground font-semibold hover:text-foreground">JSON Schema Mutatása</summary>
+                                                                                    <pre className="mt-2 text-[9px] overflow-x-auto whitespace-pre-wrap bg-background p-1 border">{JSON.stringify(extr.schema, null, 2)}</pre>
+                                                                                </details>
+                                                                                <div className="mt-2 text-[10px] leading-4 text-foreground font-mono whitespace-pre-wrap max-h-40 overflow-y-auto bg-background p-1 border">
+                                                                                    {JSON.stringify(extr.output, null, 2)}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Node 5: Sparse → Full Converter (NEW - was missing from old pipeline) */}
+                                                    {hasNewTrace && traceInfo.step5_sparse_to_full && (
+                                                        <div className="relative pl-14">
+                                                            <div className="absolute left-4 top-4 w-4 h-4 rounded-full bg-cyan-500 border-4 border-background outline outline-1 outline-cyan-500/50 shadow-sm"></div>
+                                                            <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                                <div className="bg-cyan-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                    <RefreshCw className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                                                                    <h4 className="text-sm font-medium text-cyan-700 dark:text-cyan-300">5. Sparse → Full Converter</h4>
+                                                                    {traceInfo.step5_sparse_to_full.duration_ms != null && (
+                                                                        <span className="ml-auto text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-mono">{traceInfo.step5_sparse_to_full.duration_ms}ms</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    {['q1', 'q2', 'q3', 'q4'].map((q) => {
+                                                                        const fullData = traceInfo.step5_sparse_to_full[q];
+                                                                        if (!fullData) return null;
+                                                                        const teethKeys = Object.keys(fullData).filter(k => /^\d{2}$/.test(k));
+                                                                        const nonEmptyTeeth = teethKeys.filter(k => {
+                                                                            const t = fullData[k];
+                                                                            return t && (Object.keys(t).length > 1 || (t.Megjegyzes && t.Megjegyzes.length > 0));
+                                                                        });
+                                                                        return (
+                                                                            <div key={q} className="bg-muted/50 rounded border p-2">
+                                                                                <div className="flex items-center justify-between mb-1">
+                                                                                    <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase">{q} Full JSON</span>
+                                                                                    <span className="text-[9px] text-muted-foreground">{nonEmptyTeeth.length}/{teethKeys.length} fognak van adata</span>
+                                                                                </div>
+                                                                                <details className="text-[10px]">
+                                                                                    <summary className="cursor-pointer text-muted-foreground font-semibold hover:text-foreground">Nested JSON Mutatása</summary>
+                                                                                    <pre className="mt-2 text-[9px] overflow-x-auto whitespace-pre-wrap bg-background p-1 border max-h-60 overflow-y-auto">{JSON.stringify(fullData, null, 2)}</pre>
+                                                                                </details>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Node 6: Final Merge */}
+                                                    {hasNewTrace && traceInfo.step6_merge && (
+                                                        <div className="relative pl-14">
+                                                            <div className="absolute left-4 top-4 w-4 h-4 rounded-full bg-emerald-500 border-4 border-background outline outline-1 outline-emerald-500/50 shadow-sm"></div>
+                                                            <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                                <div className="bg-emerald-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                    <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                                    <h4 className="text-sm font-medium text-emerald-700 dark:text-emerald-300">6. Final Merge (Assembly)</h4>
+                                                                    {traceInfo.step6_merge.duration_ms != null && (
+                                                                        <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono">{traceInfo.step6_merge.duration_ms}ms</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="p-4 space-y-3">
+                                                                    <div className="flex flex-wrap gap-4 text-xs">
+                                                                        <div className="bg-muted/50 rounded border px-3 py-2 flex items-center gap-2">
+                                                                            <span className="text-muted-foreground">Fogak összesen:</span>
+                                                                            <span className="font-bold text-foreground">{traceInfo.step6_merge.total_teeth}</span>
+                                                                        </div>
+                                                                        <div className="bg-muted/50 rounded border px-3 py-2 flex items-center gap-2">
+                                                                            <span className="text-muted-foreground">Adattal:</span>
+                                                                            <span className="font-bold text-emerald-400">{traceInfo.step6_merge.teeth_with_data}</span>
+                                                                        </div>
+                                                                        {traceInfo.step6_merge.megjegyzes_fo && (
+                                                                            <div className="bg-muted/50 rounded border px-3 py-2 flex items-center gap-2 flex-1">
+                                                                                <span className="text-muted-foreground">Megjegyzés:</span>
+                                                                                <span className="font-medium text-foreground truncate">{traceInfo.step6_merge.megjegyzes_fo}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Node 7: Final JSON Output */}
+                                                    <div className="relative pl-14">
+                                                        <div className="absolute left-4 top-4 w-4 h-4 rounded-full bg-green-500 border-4 border-background outline outline-1 outline-green-500/50 shadow-sm"></div>
+                                                        <div className="bg-card rounded-lg overflow-hidden border shadow-sm">
+                                                            <div className="bg-green-500/10 px-4 py-2 border-b flex items-center gap-2">
+                                                                <ExternalLink className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                                <h4 className="text-sm font-medium text-green-700 dark:text-green-300">7. Final JSON Data (Result)</h4>
+                                                            </div>
+                                                            <pre className="p-4 bg-muted/30 text-[11px] text-foreground font-mono overflow-auto max-h-96 whitespace-pre-wrap">
+                                                                {rawJson}
+                                                            </pre>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </AnimatedCard>
+
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Rögzítés törlése"
+                description="Biztosan törölni szeretné ezt a hangfelvételes naplót? A generált adat már lementésre kerülhetett a pácienshez, de a log törlődik."
+                onConfirm={handleDelete}
+                variant="danger"
+            />
+        </>
+    );
+}

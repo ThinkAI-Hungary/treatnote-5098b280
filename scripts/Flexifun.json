@@ -1,0 +1,709 @@
+{
+  "name": "Flexifun",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2177ab3b-a3d4-4a82-b0cd-71aecb5fba98",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        1168
+      ],
+      "id": "3bbb36bb-3b86-4dda-84ed-de1078e22292",
+      "name": "Webhook",
+      "webhookId": "2177ab3b-a3d4-4a82-b0cd-71aecb5fba98"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1",
+        "jsonSchema": "{\n  \"title\": \"Fogaszati_sablon_Elso_kvadrans_SPARSE_ENUM\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"11\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"12\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"13\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"14\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"15\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"16\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"17\": { \"$ref\": \"#/$defs/fog_sparse\" },\n    \"18\": { \"$ref\": \"#/$defs/fog_sparse\" }\n  },\n  \"required\": [\"11\",\"12\",\"13\",\"14\",\"15\",\"16\",\"17\",\"18\"],\n  \"additionalProperties\": false,\n  \"$defs\": {\n    \"fog_sparse\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"active_properties\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"Altalanos.Foghiany\",\n              \"Altalanos.Tejfog\",\n              \"Altalanos.Barazdazaras\",\n              \"Altalanos.Parapulpalis_csap\",\n              \"Altalanos.Radix\",\n              \"Altalanos.Lecsiszolt_fog\",\n              \"Altalanos.Rezekalt_fog\",\n              \"Altalanos.Csontpotlas\",\n              \"Implant.Altalanos.Nobel\",\n              \"Implant.Altalanos.AlphaBio\",\n              \"Implant.Altalanos.IDEGEN\",\n              \"Implant.Altalanos.Ankylos\",\n              \"Implant.Altalanos.SGS\",\n              \"Implant.Altalanos.Straumann\",\n              \"Implant.Altalanos.Astra\",\n              \"Implant.Altalanos.Anyridge\",\n              \"Implant.Altalanos.Nobel_Active\",\n              \"Implant.Altalanos.Nobel_On1\",\n              \"Implant.Altalanos.Nobel_Replace\",\n              \"Implant.Altalanos.Camlog\",\n              \"Implant.Altalanos.Conelog\",\n              \"Implant.Altalanos.Camlog_Isy\",\n              \"Implant.Altalanos.Denti\",\n              \"Felepitmenyek.Altalanos.Altalanos_felepitmeny_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(egyenes)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_bal)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_jobb)_-_Implant_Felepitmenyek\",\n              \"Peripacialis_elv..Altalanos.Granuloma_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Elhalt_gyoker_-_Periapicalis_elv.\",\n              \"Gyokercsap.Altalanos.keramia_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.fem_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.uvegszalas_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.Kompozit_-_Gyokercsap\",\n              \"Caries.Altalanos.Mesialis_-_Caries\",\n              \"Caries.Altalanos.Occlusalis_-_Caries\",\n              \"Caries.Altalanos.Distalis_-_Caries\",\n              \"Caries.Altalanos.Gingivo_B._-_Caries\",\n              \"Caries.Altalanos.Buccalis_-_Caries\",\n              \"Caries.Altalanos.Pal_Ling_-_Caries\",\n              \"Caries.Altalanos.Incizalis_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_3_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_2_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_1_-_Caries\",\n              \"Tomes.Amalgam.Mesialis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Distalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Gingivo_B._-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Buccalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Pal_Ling_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Incizalis_-_Tomes_Amalgam\",\n              \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Gingivo_B._-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Buccalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Incizalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\",\n              \"Tomes.Ideiglenes.Mesialis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Distalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Gingivo_B._-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Buccalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Pal_Ling_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Incizalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Arany.Mesialis_-_Tomes_Arany\",\n              \"Tomes.Arany.Occlusalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Distalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Gingivo_B._-_Tomes_Arany\",\n              \"Tomes.Arany.Buccalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Pal_Ling_-_Tomes_Arany\",\n              \"Tomes.Arany.Incizalis_-_Tomes_Arany\",\n              \"Csonkfelepites.Cetac-Molar.Mesialis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Occlusalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Distalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Vitremer.Mesialis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Occlusalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Distalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Composite.Mesialis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Occlusalis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Distalis_-_Csonkfelepites_Composite\",\n              \"Protezis.Altalanos.Teljes_-_Protezis\",\n              \"Protezis.Altalanos.Teljes_(impl.)_-_Protezis\",\n              \"Protezis.Altalanos.Steg_-_Protezis\",\n              \"Protezis.Reszleges_kiveheto.bal_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.kozep_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.jobb_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszlegesen_kiveheto_implant.kozep_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.bal_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.jobb_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_teljes_prot._-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_bal_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_kozep_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_jobb_-_Protezis_Cserelendo_protezis\",\n              \"Korona.Altalanos.Fem-keramia_-_Korona\",\n              \"Korona.Altalanos.Cirkonium_-_Korona\",\n              \"Korona.Altalanos.Preskeramia_-_Korona\",\n              \"Korona.Altalanos.Aranykeramia_-_Korona\",\n              \"Korona.Altalanos.Procera_-_Korona\",\n              \"Korona.Altalanos.Ideig._Procera_-_Korona\",\n              \"Korona.Altalanos.Ideiglenes_-_Korona\",\n              \"Korona.Altalanos.Teleszk._korona_-_Korona\",\n              \"Korona.Altalanos.Femkorona_-_Korona\",\n              \"Korona.Altalanos.404:hu:crown_remove_-_Korona\",\n              \"Korona.Ideiglenes_ragasztas.Aranykeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Femkeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Fem_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Preskeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Procera_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Cirkon_-_Korona_Ideiglenes_ragaszt.\",\n              \"Hid.Altalanos.Fem-keramia_-_Hid\",\n              \"Hid.Altalanos.Cirkonium_-_Hid\",\n              \"Hid.Altalanos.Preskeramia_-_Hid\",\n              \"Hid.Altalanos.Aranykeramia_-_Hid\",\n              \"Hid.Altalanos.Hidelvalasztas_-_Hid\",\n              \"Hid.Altalanos.Ideiglenes_hid_-_Hid\",\n              \"Elpotlas.Altalanos.Mesialis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Incizalis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Distalis_-_Elpotlas\",\n              \"Letort_fog.Altalanos.Mesialis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Incizalis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Distalis_-_Letort_fog\",\n              \"Gyokertomes.Vegleges.M._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.D._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Pal_Ling_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Inkomplett_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Ideiglenes.M._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.D._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Pal_Ling_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Ossz._gyoker_-_Gyokertomes_Ideiglenes\",\n              \"Retrograd_gyokertomes.Altalanos.D._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.M._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Palatinalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Kulonallo_-_Retrograd_gy.tomes\",\n              \"Betetek.Inlay.Arany_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Kompozit_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Keramia_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Fembetet_-_Betetek_Inlay\",\n              \"Betetek.Onlay.Arany_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Kompozit_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Keramia_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Fembetet_-_Betetek_Onlay\",\n              \"Betetek.Overlay.Arany_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Kompozit_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Keramia_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Fembetet_-_Betetek_Overlay\",\n              \"Hejak.Altalanos.Hej_-_Hejak\",\n              \"Hejak.Altalanos.Veneer_lay_-_Hejak\",\n              \"Specialis.Altalanos.Koronazando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Cserel._korona_-_Specialis\",\n              \"Specialis.Altalanos.Kihuzando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Zarodott_fogh._-_Specialis\",\n              \"Specialis.Altalanos.Egyenes_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Gombfeju_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Impaktalt_fog_-_Specialis\",\n              \"Specialis.Altalanos.Muanyag_fog_-_Specialis\",\n              \"Specialis.Altalanos.Brekket_-_Specialis\"\n            ]\n          },\n          \"description\": \"Lista a TRUE értékű property-k teljes path-járól az enum-ból válogatva\"\n        },\n        \"Megjegyzes\": {\n          \"type\": \"string\",\n          \"default\": \"\",\n          \"minLength\": 0,\n          \"maxLength\": 5000,\n          \"description\": \"Szabad szavas megjegyzés az adott foghoz (pl. klinikai észrevétel, terv).\"\n        }\n      },\n      \"required\": [\"active_properties\", \"Megjegyzes\"],\n      \"additionalProperties\": false\n    }\n  }\n}",
+        "text": "=CSAK ENUM PATH-OK az active_properties-ben: Az active_properties tömbben kizárólag az enum-listában szereplő path-ok lehetnek. Nem generálhatsz új path-ot.\n\nCSAK TRUE ÉRTÉKEK: Csak azt a path-ot add meg, ami a transcript alapján biztosan igaz. Ha nincs infó egy fogról → üres tömb.\n\nPATH PÉLDÁK (az enum-ból):\n\nAltalanos.Foghiany\n\nCaries.Altalanos.Mesialis_-_Caries\n\nTomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\n\nKorona.Altalanos.Cirkonium_-_Korona\n\nImplant.Altalanos.Nobel\n\nGLOBÁLIS ÁLLÍTÁSKEZELÉS:\n\nPozitív állítás → path bekerül.\n\nKésőbbi visszavonás („nincs”, „eltávolítva”, „már nem”) → path törlődik.\n\nFelülírás: a későbbi állítás az irányadó.\n\nSZUVASODÁS: Csak explicit „szuvas” / „szuvasodás” / „caries” kifejezésre aktiválódik.\n\nTARTOMÁNYOK: „14-16” → 14, 15, 16 mind ugyanazt kapja.\n\nHEURISZTIKA: Ha egy jelenség egyértelműen tömés meglétét jelenti (pl. „diszkolorált kompozit tömés”), de nem felszínspecifikus, akkor használd:\nTomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus.\n\nMEGJEGYZÉS MEZŐ (ÚJ):\n\nCél: minden olyan, strukturálatlan vagy nem enum-kompatibilis állítást NE vess el, hanem tedd az adott fog „Megjegyzes” mezőjébe szabad szövegként.\n\nMikor kerüljön ide?\n\nha nincs rá megfelelő enum path (pl. „enyhe mobilitás I.”, „hidegre érzékeny”, „elszíneződés”, „mikrorepedés”, „széli záródás kérdéses”, „percussio érzékeny”, „furkáció gyanú” stb.);\n\nha a megfogalmazás nem elég specifikus ahhoz, hogy felszínt válassz (pl. „kompozit tömés elszíneződött”, de felszín nélkül);\n\nbármely egyéb releváns klinikai megfigyelés / betegpanasz, ami nem képezhető le enum path-ra.\n\nFormátum: rövid, tömör mondatok; több információ esetén pontosvesszővel válaszd el (pl. „hidegre érzékeny; régi tömés elszíneződött”).\n\nNe duplikálj: ami bekerült active_properties-be, azt ne ismételd a Megjegyzesben, kivéve ha kiegészítő kontextus (pl. „occlusalis esztétikus tömés; széli elszíneződés” – itt a tömés enum, az elszíneződés megjegyzés).\n\nFoganként külön megjegyzés: minden fog objektumban legyen Megjegyzes mező (ha nincs extra infó, legyen üres string).\n\nMax. terjedelem: törekedj tömörségre (≤ 5000 karakter foganként bőven elég).\n\nDolgozd fel:\n{{ $json.content }}",
+        "temperature": 0,
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-openai-structured-outputs.openAiStructuredOutput",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        736
+      ],
+      "id": "62d244f5-e731-46be-9169-66e8dda87182",
+      "name": "TEETH_Q3",
+      "credentials": {
+        "openAiApi": {
+          "id": "s09v3BTNj5LHdip1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1",
+        "jsonSchema": "{\n\"title\": \"Fogaszati_sablon_Masodik_kvadrans_SPARSE_ENUM\",\n\"type\": \"object\",\n\"properties\": {\n\"21\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"22\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"23\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"24\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"25\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"26\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"27\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"28\": { \"$ref\": \"#/$defs/fog_sparse\" }\n},\n\"required\": [\"21\",\"22\",\"23\",\"24\",\"25\",\"26\",\"27\",\"28\"],\n\"additionalProperties\": false,\n\"$defs\": {\n\"fog_sparse\": {\n\"type\": \"object\",\n\"properties\": {\n\"active_properties\": {\n\"type\": \"array\",\n\"items\": {\n\"type\": \"string\",\n\"enum\": [\n              \"Altalanos.Foghiany\",\n              \"Altalanos.Tejfog\",\n              \"Altalanos.Barazdazaras\",\n              \"Altalanos.Parapulpalis_csap\",\n              \"Altalanos.Radix\",\n              \"Altalanos.Lecsiszolt_fog\",\n              \"Altalanos.Rezekalt_fog\",\n              \"Altalanos.Csontpotlas\",\n              \"Implant.Altalanos.Nobel\",\n              \"Implant.Altalanos.AlphaBio\",\n              \"Implant.Altalanos.IDEGEN\",\n              \"Implant.Altalanos.Ankylos\",\n              \"Implant.Altalanos.SGS\",\n              \"Implant.Altalanos.Straumann\",\n              \"Implant.Altalanos.Astra\",\n              \"Implant.Altalanos.Anyridge\",\n              \"Implant.Altalanos.Nobel_Active\",\n              \"Implant.Altalanos.Nobel_On1\",\n              \"Implant.Altalanos.Nobel_Replace\",\n              \"Implant.Altalanos.Camlog\",\n              \"Implant.Altalanos.Conelog\",\n              \"Implant.Altalanos.Camlog_Isy\",\n              \"Implant.Altalanos.Denti\",\n              \"Felepitmenyek.Altalanos.Altalanos_felepitmeny_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(egyenes)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_bal)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_jobb)_-_Implant_Felepitmenyek\",\n              \"Peripacialis_elv..Altalanos.Granuloma_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Elhalt_gyoker_-_Periapicalis_elv.\",\n              \"Gyokercsap.Altalanos.keramia_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.fem_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.uvegszalas_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.Kompozit_-_Gyokercsap\",\n              \"Caries.Altalanos.Mesialis_-_Caries\",\n              \"Caries.Altalanos.Occlusalis_-_Caries\",\n              \"Caries.Altalanos.Distalis_-_Caries\",\n              \"Caries.Altalanos.Gingivo_B._-_Caries\",\n              \"Caries.Altalanos.Buccalis_-_Caries\",\n              \"Caries.Altalanos.Pal_Ling_-_Caries\",\n              \"Caries.Altalanos.Incizalis_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_3_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_2_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_1_-_Caries\",\n              \"Tomes.Amalgam.Mesialis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Distalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Gingivo_B._-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Buccalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Pal_Ling_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Incizalis_-_Tomes_Amalgam\",\n              \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Gingivo_B._-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Buccalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Incizalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\",\n              \"Tomes.Ideiglenes.Mesialis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Distalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Gingivo_B._-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Buccalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Pal_Ling_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Incizalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Arany.Mesialis_-_Tomes_Arany\",\n              \"Tomes.Arany.Occlusalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Distalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Gingivo_B._-_Tomes_Arany\",\n              \"Tomes.Arany.Buccalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Pal_Ling_-_Tomes_Arany\",\n              \"Tomes.Arany.Incizalis_-_Tomes_Arany\",\n              \"Csonkfelepites.Cetac-Molar.Mesialis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Occlusalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Distalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Vitremer.Mesialis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Occlusalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Distalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Composite.Mesialis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Occlusalis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Distalis_-_Csonkfelepites_Composite\",\n              \"Protezis.Altalanos.Teljes_-_Protezis\",\n              \"Protezis.Altalanos.Teljes_(impl.)_-_Protezis\",\n              \"Protezis.Altalanos.Steg_-_Protezis\",\n              \"Protezis.Reszleges_kiveheto.bal_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.kozep_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.jobb_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszlegesen_kiveheto_implant.kozep_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.bal_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.jobb_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_teljes_prot._-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_bal_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_kozep_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_jobb_-_Protezis_Cserelendo_protezis\",\n              \"Korona.Altalanos.Fem-keramia_-_Korona\",\n              \"Korona.Altalanos.Cirkonium_-_Korona\",\n              \"Korona.Altalanos.Preskeramia_-_Korona\",\n              \"Korona.Altalanos.Aranykeramia_-_Korona\",\n              \"Korona.Altalanos.Procera_-_Korona\",\n              \"Korona.Altalanos.Ideig._Procera_-_Korona\",\n              \"Korona.Altalanos.Ideiglenes_-_Korona\",\n              \"Korona.Altalanos.Teleszk._korona_-_Korona\",\n              \"Korona.Altalanos.Femkorona_-_Korona\",\n              \"Korona.Altalanos.404:hu:crown_remove_-_Korona\",\n              \"Korona.Ideiglenes_ragasztas.Aranykeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Femkeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Fem_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Preskeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Procera_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Cirkon_-_Korona_Ideiglenes_ragaszt.\",\n              \"Hid.Altalanos.Fem-keramia_-_Hid\",\n              \"Hid.Altalanos.Cirkonium_-_Hid\",\n              \"Hid.Altalanos.Preskeramia_-_Hid\",\n              \"Hid.Altalanos.Aranykeramia_-_Hid\",\n              \"Hid.Altalanos.Hidelvalasztas_-_Hid\",\n              \"Hid.Altalanos.Ideiglenes_hid_-_Hid\",\n              \"Elpotlas.Altalanos.Mesialis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Incizalis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Distalis_-_Elpotlas\",\n              \"Letort_fog.Altalanos.Mesialis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Incizalis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Distalis_-_Letort_fog\",\n              \"Gyokertomes.Vegleges.M._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.D._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Pal_Ling_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Inkomplett_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Ideiglenes.M._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.D._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Pal_Ling_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Ossz._gyoker_-_Gyokertomes_Ideiglenes\",\n              \"Retrograd_gyokertomes.Altalanos.D._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.M._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Palatinalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Kulonallo_-_Retrograd_gy.tomes\",\n              \"Betetek.Inlay.Arany_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Kompozit_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Keramia_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Fembetet_-_Betetek_Inlay\",\n              \"Betetek.Onlay.Arany_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Kompozit_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Keramia_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Fembetet_-_Betetek_Onlay\",\n              \"Betetek.Overlay.Arany_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Kompozit_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Keramia_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Fembetet_-_Betetek_Overlay\",\n              \"Hejak.Altalanos.Hej_-_Hejak\",\n              \"Hejak.Altalanos.Veneer_lay_-_Hejak\",\n              \"Specialis.Altalanos.Koronazando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Cserel._korona_-_Specialis\",\n              \"Specialis.Altalanos.Kihuzando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Zarodott_fogh._-_Specialis\",\n              \"Specialis.Altalanos.Egyenes_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Gombfeju_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Impaktalt_fog_-_Specialis\",\n              \"Specialis.Altalanos.Muanyag_fog_-_Specialis\",\n              \"Specialis.Altalanos.Brekket_-_Specialis\"\n            ]\n},\n\"description\": \"Lista a TRUE értékű property-k teljes path-járól az enum-ból válogatva\"\n},\n\"Megjegyzes\": {\n\"type\": \"string\",\n\"default\": \"\",\n\"minLength\": 0,\n\"maxLength\": 5000,\n\"description\": \"Szabad szavas megjegyzés az adott foghoz (pl. klinikai észrevétel, terv).\"\n}\n},\n\"required\": [\"active_properties\", \"Megjegyzes\"],\n\"additionalProperties\": false\n}\n}\n}",
+        "text": "=NODE 2 – SPARSE FOGAK EXTRACTOR (21–28) — ENUM-val\n\nSzerep: fogászati dokumentációs szakértő.\nFeladat: A narratívából csak a Kvadráns 2 (21–28) fogak TRUE értékeit listázd az engedélyezett path-ok közül.\n\nKIMENET FORMÁTUM:\n\n{\n  \"21\": { \"active_properties\": [] },\n  \"22\": { \"active_properties\": [\"Caries.Altalanos.Mesialis_-_Caries\", \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\"] },\n  \"23\": { \"active_properties\": [] },\n  \"24\": { \"active_properties\": [] },\n  \"25\": { \"active_properties\": [] },\n  \"26\": { \"active_properties\": [] },\n  \"27\": { \"active_properties\": [] },\n  \"28\": { \"active_properties\": [] }\n}\n\nFONTOS SZABÁLYOK:\n\n1. **CSAK ENUM PATH-OK**: Az active_properties tömbben CSAK azok a path-ok szerepelhetnek, amik az enum listában vannak. Nem generálhatsz saját path-okat.\n\n2. **CSAK TRUE ÉRTÉKEK**: Csak azokat a property-ket add meg, amik TRUE-k a transcript alapján. Ha nincs információ egy fogról → üres tömb.\n\n3. **PATH PÉLDÁK** (az enum-ból):\n   - \"Altalanos.Foghiany\" \n   - \"Caries.Altalanos.Mesialis_-_Caries\"\n   - \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\"\n   - \"Korona.Altalanos.Cirkonium_-_Korona\"\n   - \"Implant.Altalanos.Nobel\"\n\n4. **GLOBÁLIS ÁLLÍTÁSKEZELÉS**:\n   - Pozitív állítás → path bekerül\n   - Későbbi visszavonás (\"nincs\", \"eltávolítva\", \"már nem\") → path TÖRLŐDIK\n   - Felülírás: későbbi állítás felülírja az előzőt\n\n5. **SZUVASODÁS**: Csak explicit \"szuvas\"/\"szuvasodás\"/\"caries\" szóra aktiválódik.\n\n6. **TARTOMÁNYOK**: \"24-26\" → minden fog (24,25,26) megkapja ugyanazokat a path-okat.\n\n7. **HEURISZTIKA**: amennyiben egy fognál meg van adva érték, abban az esetben mindenképp rendelj hozzá true-t. Pl.: diszkolorált kompozit tömés = \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\"\n\nDolgozd fel:\n\n{{ $json.content }}",
+        "temperature": 0,
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-openai-structured-outputs.openAiStructuredOutput",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        1024
+      ],
+      "id": "eb61de09-4b69-41ee-ab28-17cc20508cdf",
+      "name": "TEETH1_Q10",
+      "credentials": {
+        "openAiApi": {
+          "id": "s09v3BTNj5LHdip1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1",
+        "jsonSchema": "{\n\"title\": \"Fogaszati_sablon_Harmadik_kvadrans_SPARSE_ENUM\",\n\"type\": \"object\",\n\"properties\": {\n\"31\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"32\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"33\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"34\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"35\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"36\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"37\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"38\": { \"$ref\": \"#/$defs/fog_sparse\" }\n},\n\"required\": [\"31\",\"32\",\"33\",\"34\",\"35\",\"36\",\"37\",\"38\"],\n\"additionalProperties\": false,\n\"$defs\": {\n\"fog_sparse\": {\n\"type\": \"object\",\n\"properties\": {\n\"active_properties\": {\n\"type\": \"array\",\n\"items\": {\n\"type\": \"string\",\n\"enum\": [\n              \"Altalanos.Foghiany\",\n              \"Altalanos.Tejfog\",\n              \"Altalanos.Barazdazaras\",\n              \"Altalanos.Parapulpalis_csap\",\n              \"Altalanos.Radix\",\n              \"Altalanos.Lecsiszolt_fog\",\n              \"Altalanos.Rezekalt_fog\",\n              \"Altalanos.Csontpotlas\",\n              \"Implant.Altalanos.Nobel\",\n              \"Implant.Altalanos.AlphaBio\",\n              \"Implant.Altalanos.IDEGEN\",\n              \"Implant.Altalanos.Ankylos\",\n              \"Implant.Altalanos.SGS\",\n              \"Implant.Altalanos.Straumann\",\n              \"Implant.Altalanos.Astra\",\n              \"Implant.Altalanos.Anyridge\",\n              \"Implant.Altalanos.Nobel_Active\",\n              \"Implant.Altalanos.Nobel_On1\",\n              \"Implant.Altalanos.Nobel_Replace\",\n              \"Implant.Altalanos.Camlog\",\n              \"Implant.Altalanos.Conelog\",\n              \"Implant.Altalanos.Camlog_Isy\",\n              \"Implant.Altalanos.Denti\",\n              \"Felepitmenyek.Altalanos.Altalanos_felepitmeny_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(egyenes)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_bal)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_jobb)_-_Implant_Felepitmenyek\",\n              \"Peripacialis_elv..Altalanos.Granuloma_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Elhalt_gyoker_-_Periapicalis_elv.\",\n              \"Gyokercsap.Altalanos.keramia_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.fem_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.uvegszalas_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.Kompozit_-_Gyokercsap\",\n              \"Caries.Altalanos.Mesialis_-_Caries\",\n              \"Caries.Altalanos.Occlusalis_-_Caries\",\n              \"Caries.Altalanos.Distalis_-_Caries\",\n              \"Caries.Altalanos.Gingivo_B._-_Caries\",\n              \"Caries.Altalanos.Buccalis_-_Caries\",\n              \"Caries.Altalanos.Pal_Ling_-_Caries\",\n              \"Caries.Altalanos.Incizalis_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_3_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_2_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_1_-_Caries\",\n              \"Tomes.Amalgam.Mesialis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Distalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Gingivo_B._-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Buccalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Pal_Ling_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Incizalis_-_Tomes_Amalgam\",\n              \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Gingivo_B._-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Buccalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Incizalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\",\n              \"Tomes.Ideiglenes.Mesialis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Distalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Gingivo_B._-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Buccalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Pal_Ling_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Incizalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Arany.Mesialis_-_Tomes_Arany\",\n              \"Tomes.Arany.Occlusalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Distalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Gingivo_B._-_Tomes_Arany\",\n              \"Tomes.Arany.Buccalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Pal_Ling_-_Tomes_Arany\",\n              \"Tomes.Arany.Incizalis_-_Tomes_Arany\",\n              \"Csonkfelepites.Cetac-Molar.Mesialis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Occlusalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Distalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Vitremer.Mesialis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Occlusalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Distalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Composite.Mesialis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Occlusalis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Distalis_-_Csonkfelepites_Composite\",\n              \"Protezis.Altalanos.Teljes_-_Protezis\",\n              \"Protezis.Altalanos.Teljes_(impl.)_-_Protezis\",\n              \"Protezis.Altalanos.Steg_-_Protezis\",\n              \"Protezis.Reszleges_kiveheto.bal_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.kozep_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.jobb_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszlegesen_kiveheto_implant.kozep_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.bal_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.jobb_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_teljes_prot._-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_bal_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_kozep_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_jobb_-_Protezis_Cserelendo_protezis\",\n              \"Korona.Altalanos.Fem-keramia_-_Korona\",\n              \"Korona.Altalanos.Cirkonium_-_Korona\",\n              \"Korona.Altalanos.Preskeramia_-_Korona\",\n              \"Korona.Altalanos.Aranykeramia_-_Korona\",\n              \"Korona.Altalanos.Procera_-_Korona\",\n              \"Korona.Altalanos.Ideig._Procera_-_Korona\",\n              \"Korona.Altalanos.Ideiglenes_-_Korona\",\n              \"Korona.Altalanos.Teleszk._korona_-_Korona\",\n              \"Korona.Altalanos.Femkorona_-_Korona\",\n              \"Korona.Altalanos.404:hu:crown_remove_-_Korona\",\n              \"Korona.Ideiglenes_ragasztas.Aranykeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Femkeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Fem_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Preskeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Procera_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Cirkon_-_Korona_Ideiglenes_ragaszt.\",\n              \"Hid.Altalanos.Fem-keramia_-_Hid\",\n              \"Hid.Altalanos.Cirkonium_-_Hid\",\n              \"Hid.Altalanos.Preskeramia_-_Hid\",\n              \"Hid.Altalanos.Aranykeramia_-_Hid\",\n              \"Hid.Altalanos.Hidelvalasztas_-_Hid\",\n              \"Hid.Altalanos.Ideiglenes_hid_-_Hid\",\n              \"Elpotlas.Altalanos.Mesialis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Incizalis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Distalis_-_Elpotlas\",\n              \"Letort_fog.Altalanos.Mesialis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Incizalis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Distalis_-_Letort_fog\",\n              \"Gyokertomes.Vegleges.M._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.D._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Pal_Ling_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Inkomplett_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Ideiglenes.M._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.D._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Pal_Ling_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Ossz._gyoker_-_Gyokertomes_Ideiglenes\",\n              \"Retrograd_gyokertomes.Altalanos.D._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.M._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Palatinalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Kulonallo_-_Retrograd_gy.tomes\",\n              \"Betetek.Inlay.Arany_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Kompozit_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Keramia_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Fembetet_-_Betetek_Inlay\",\n              \"Betetek.Onlay.Arany_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Kompozit_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Keramia_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Fembetet_-_Betetek_Onlay\",\n              \"Betetek.Overlay.Arany_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Kompozit_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Keramia_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Fembetet_-_Betetek_Overlay\",\n              \"Hejak.Altalanos.Hej_-_Hejak\",\n              \"Hejak.Altalanos.Veneer_lay_-_Hejak\",\n              \"Specialis.Altalanos.Koronazando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Cserel._korona_-_Specialis\",\n              \"Specialis.Altalanos.Kihuzando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Zarodott_fogh._-_Specialis\",\n              \"Specialis.Altalanos.Egyenes_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Gombfeju_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Impaktalt_fog_-_Specialis\",\n              \"Specialis.Altalanos.Muanyag_fog_-_Specialis\",\n              \"Specialis.Altalanos.Brekket_-_Specialis\"\n            ]\n},\n\"description\": \"Lista a TRUE értékű property-k teljes path-járól az enum-ból válogatva\"\n},\n\"Megjegyzes\": {\n\"type\": \"string\",\n\"default\": \"\",\n\"minLength\": 0,\n\"maxLength\": 5000,\n\"description\": \"Szabad szavas megjegyzés az adott foghoz (pl. klinikai észrevétel, terv).\"\n}\n},\n\"required\": [\"active_properties\", \"Megjegyzes\"],\n\"additionalProperties\": false\n}\n}\n}",
+        "text": "=NODE 3 – SPARSE FOGAK EXTRACTOR (31–38) — ENUM-val\n\nSzerep: fogászati dokumentációs szakértő.\nFeladat: A narratívából csak a Kvadráns 3 (31–38) fogak TRUE értékeit listázd az engedélyezett path-ok közül.\n\nKIMENET FORMÁTUM:\n\n{\n  \"31\": { \"active_properties\": [] },\n  \"32\": { \"active_properties\": [\"Caries.Altalanos.Mesialis_-_Caries\", \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\"] },\n  \"33\": { \"active_properties\": [] },\n  \"34\": { \"active_properties\": [] },\n  \"35\": { \"active_properties\": [] },\n  \"36\": { \"active_properties\": [] },\n  \"37\": { \"active_properties\": [] },\n  \"38\": { \"active_properties\": [] }\n}\n\nFONTOS SZABÁLYOK:\n\n1. **CSAK ENUM PATH-OK**: Az active_properties tömbben CSAK azok a path-ok szerepelhetnek, amik az enum listában vannak. Nem generálhatsz saját path-okat.\n\n2. **CSAK TRUE ÉRTÉKEK**: Csak azokat a property-ket add meg, amik TRUE-k a transcript alapján. Ha nincs információ egy fogról → üres tömb.\n\n3. **PATH PÉLDÁK** (az enum-ból):\n   - \"Altalanos.Foghiany\" \n   - \"Caries.Altalanos.Mesialis_-_Caries\"\n   - \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\"\n   - \"Korona.Altalanos.Cirkonium_-_Korona\"\n   - \"Implant.Altalanos.Nobel\"\n\n4. **GLOBÁLIS ÁLLÍTÁSKEZELÉS**:\n   - Pozitív állítás → path bekerül\n   - Későbbi visszavonás (\"nincs\", \"eltávolítva\", \"már nem\") → path TÖRLŐDIK\n   - Felülírás: későbbi állítás felülírja az előzőt\n\n5. **SZUVASODÁS**: Csak explicit \"szuvas\"/\"szuvasodás\"/\"caries\" szóra aktiválódik.\n\n6. **TARTOMÁNYOK**: \"34-36\" → minden fog (34,35,36) megkapja ugyanazokat a path-okat.\n\n7. **HEURISZTIKA**: amennyiben egy fognál meg van adva érték, abban az esetben mindenképp rendelj hozzá true-t. Pl.: diszkolorált kompozit tömés = \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\"\n\nDolgozd fel:\n\n{{ $json.content }}",
+        "temperature": 0,
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-openai-structured-outputs.openAiStructuredOutput",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        1344
+      ],
+      "id": "95525372-5b95-4e99-83a0-3db9e15c8907",
+      "name": "TEETH1_Q11",
+      "credentials": {
+        "openAiApi": {
+          "id": "s09v3BTNj5LHdip1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1",
+        "jsonSchema": "{\n\"title\": \"Fogaszati_sablon_Negyedik_kvadrans_SPARSE_ENUM\",\n\"type\": \"object\",\n\"properties\": {\n\"41\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"42\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"43\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"44\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"45\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"46\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"47\": { \"$ref\": \"#/$defs/fog_sparse\" },\n\"48\": { \"$ref\": \"#/$defs/fog_sparse\" }\n},\n\"required\": [\"41\",\"42\",\"43\",\"44\",\"45\",\"46\",\"47\",\"48\"],\n\"additionalProperties\": false,\n\"$defs\": {\n\"fog_sparse\": {\n\"type\": \"object\",\n\"properties\": {\n\"active_properties\": {\n\"type\": \"array\",\n\"items\": {\n\"type\": \"string\",\n\"enum\": [\n              \"Altalanos.Foghiany\",\n              \"Altalanos.Tejfog\",\n              \"Altalanos.Barazdazaras\",\n              \"Altalanos.Parapulpalis_csap\",\n              \"Altalanos.Radix\",\n              \"Altalanos.Lecsiszolt_fog\",\n              \"Altalanos.Rezekalt_fog\",\n              \"Altalanos.Csontpotlas\",\n              \"Implant.Altalanos.Nobel\",\n              \"Implant.Altalanos.AlphaBio\",\n              \"Implant.Altalanos.IDEGEN\",\n              \"Implant.Altalanos.Ankylos\",\n              \"Implant.Altalanos.SGS\",\n              \"Implant.Altalanos.Straumann\",\n              \"Implant.Altalanos.Astra\",\n              \"Implant.Altalanos.Anyridge\",\n              \"Implant.Altalanos.Nobel_Active\",\n              \"Implant.Altalanos.Nobel_On1\",\n              \"Implant.Altalanos.Nobel_Replace\",\n              \"Implant.Altalanos.Camlog\",\n              \"Implant.Altalanos.Conelog\",\n              \"Implant.Altalanos.Camlog_Isy\",\n              \"Implant.Altalanos.Denti\",\n              \"Felepitmenyek.Altalanos.Altalanos_felepitmeny_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(egyenes)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_bal)_-_Implant_Felepitmenyek\",\n              \"Felepitmenyek.Altalanos.Bredent_Multi_unit_(szogtort_-_jobb)_-_Implant_Felepitmenyek\",\n              \"Peripacialis_elv..Altalanos.Granuloma_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\",\n              \"Peripacialis_elv..Altalanos.Elhalt_gyoker_-_Periapicalis_elv.\",\n              \"Gyokercsap.Altalanos.keramia_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.fem_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.uvegszalas_-_Gyokercsap\",\n              \"Gyokercsap.Altalanos.Kompozit_-_Gyokercsap\",\n              \"Caries.Altalanos.Mesialis_-_Caries\",\n              \"Caries.Altalanos.Occlusalis_-_Caries\",\n              \"Caries.Altalanos.Distalis_-_Caries\",\n              \"Caries.Altalanos.Gingivo_B._-_Caries\",\n              \"Caries.Altalanos.Buccalis_-_Caries\",\n              \"Caries.Altalanos.Pal_Ling_-_Caries\",\n              \"Caries.Altalanos.Incizalis_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_3_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_2_-_Caries\",\n              \"Caries.Altalanos.Gyok._caries_1_-_Caries\",\n              \"Tomes.Amalgam.Mesialis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Occlusalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Distalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Gingivo_B._-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Buccalis_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Pal_Ling_-_Tomes_Amalgam\",\n              \"Tomes.Amalgam.Incizalis_-_Tomes_Amalgam\",\n              \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Distalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Gingivo_B._-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Buccalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Pal_Ling_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Incizalis_-_Tomes_Esztetikus\",\n              \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\",\n              \"Tomes.Ideiglenes.Mesialis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Occlusalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Distalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Gingivo_B._-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Buccalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Pal_Ling_-_Tomes_Ideiglenes\",\n              \"Tomes.Ideiglenes.Incizalis_-_Tomes_Ideiglenes\",\n              \"Tomes.Arany.Mesialis_-_Tomes_Arany\",\n              \"Tomes.Arany.Occlusalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Distalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Gingivo_B._-_Tomes_Arany\",\n              \"Tomes.Arany.Buccalis_-_Tomes_Arany\",\n              \"Tomes.Arany.Pal_Ling_-_Tomes_Arany\",\n              \"Tomes.Arany.Incizalis_-_Tomes_Arany\",\n              \"Csonkfelepites.Cetac-Molar.Mesialis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Occlusalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Cetac-Molar.Distalis_-_Csonkfelepites_Cetac-Molar\",\n              \"Csonkfelepites.Vitremer.Mesialis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Occlusalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Vitremer.Distalis_-_Csonkfelepites_Vitremer\",\n              \"Csonkfelepites.Composite.Mesialis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Occlusalis_-_Csonkfelepites_Composite\",\n              \"Csonkfelepites.Composite.Distalis_-_Csonkfelepites_Composite\",\n              \"Protezis.Altalanos.Teljes_-_Protezis\",\n              \"Protezis.Altalanos.Teljes_(impl.)_-_Protezis\",\n              \"Protezis.Altalanos.Steg_-_Protezis\",\n              \"Protezis.Reszleges_kiveheto.bal_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.kozep_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszleges_kiveheto.jobb_-_Protezis_Reszleges_kiveheto\",\n              \"Protezis.Reszlegesen_kiveheto_implant.kozep_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.bal_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Reszlegesen_kiveheto_implant.jobb_-_Protezis_Reszl._kiv._(impl.)\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_teljes_prot._-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_bal_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_kozep_-_Protezis_Cserelendo_protezis\",\n              \"Protezis.Cserelendo_protezis.Cserelendo_prot._-_jobb_-_Protezis_Cserelendo_protezis\",\n              \"Korona.Altalanos.Fem-keramia_-_Korona\",\n              \"Korona.Altalanos.Cirkonium_-_Korona\",\n              \"Korona.Altalanos.Preskeramia_-_Korona\",\n              \"Korona.Altalanos.Aranykeramia_-_Korona\",\n              \"Korona.Altalanos.Procera_-_Korona\",\n              \"Korona.Altalanos.Ideig._Procera_-_Korona\",\n              \"Korona.Altalanos.Ideiglenes_-_Korona\",\n              \"Korona.Altalanos.Teleszk._korona_-_Korona\",\n              \"Korona.Altalanos.Femkorona_-_Korona\",\n              \"Korona.Altalanos.404:hu:crown_remove_-_Korona\",\n              \"Korona.Ideiglenes_ragasztas.Aranykeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Femkeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Fem_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Preskeramia_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Procera_-_Korona_Ideiglenes_ragaszt.\",\n              \"Korona.Ideiglenes_ragasztas.Cirkon_-_Korona_Ideiglenes_ragaszt.\",\n              \"Hid.Altalanos.Fem-keramia_-_Hid\",\n              \"Hid.Altalanos.Cirkonium_-_Hid\",\n              \"Hid.Altalanos.Preskeramia_-_Hid\",\n              \"Hid.Altalanos.Aranykeramia_-_Hid\",\n              \"Hid.Altalanos.Hidelvalasztas_-_Hid\",\n              \"Hid.Altalanos.Ideiglenes_hid_-_Hid\",\n              \"Elpotlas.Altalanos.Mesialis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Incizalis_-_Elpotlas\",\n              \"Elpotlas.Altalanos.Distalis_-_Elpotlas\",\n              \"Letort_fog.Altalanos.Mesialis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Incizalis_-_Letort_fog\",\n              \"Letort_fog.Altalanos.Distalis_-_Letort_fog\",\n              \"Gyokertomes.Vegleges.M._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.D._Buccalis_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Pal_Ling_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Ossz._gyoker_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Vegleges.Inkomplett_-_Gyokertomes_Vegleges\",\n              \"Gyokertomes.Ideiglenes.M._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.D._Buccalis_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Pal_Ling_-_Gyokertomes_Ideiglenes\",\n              \"Gyokertomes.Ideiglenes.Ossz._gyoker_-_Gyokertomes_Ideiglenes\",\n              \"Retrograd_gyokertomes.Altalanos.D._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.M._Buccalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Palatinalis_-_Retrograd_gy.tomes\",\n              \"Retrograd_gyokertomes.Altalanos.Kulonallo_-_Retrograd_gy.tomes\",\n              \"Betetek.Inlay.Arany_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Kompozit_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Keramia_-_Betetek_Inlay\",\n              \"Betetek.Inlay.Fembetet_-_Betetek_Inlay\",\n              \"Betetek.Onlay.Arany_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Kompozit_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Keramia_-_Betetek_Onlay\",\n              \"Betetek.Onlay.Fembetet_-_Betetek_Onlay\",\n              \"Betetek.Overlay.Arany_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Kompozit_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Keramia_-_Betetek_Overlay\",\n              \"Betetek.Overlay.Fembetet_-_Betetek_Overlay\",\n              \"Hejak.Altalanos.Hej_-_Hejak\",\n              \"Hejak.Altalanos.Veneer_lay_-_Hejak\",\n              \"Specialis.Altalanos.Koronazando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Cserel._korona_-_Specialis\",\n              \"Specialis.Altalanos.Kihuzando_fog_-_Specialis\",\n              \"Specialis.Altalanos.Zarodott_fogh._-_Specialis\",\n              \"Specialis.Altalanos.Egyenes_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Gombfeju_csavar_-_Specialis\",\n              \"Specialis.Altalanos.Impaktalt_fog_-_Specialis\",\n              \"Specialis.Altalanos.Muanyag_fog_-_Specialis\",\n              \"Specialis.Altalanos.Brekket_-_Specialis\"\n            ]\n},\n\"description\": \"Lista a TRUE értékű property-k teljes path-járól az enum-ból válogatva\"\n},\n\"Megjegyzes\": {\n\"type\": \"string\",\n\"default\": \"\",\n\"minLength\": 0,\n\"maxLength\": 5000,\n\"description\": \"Szabad szavas megjegyzés az adott foghoz (pl. klinikai észrevétel, terv).\"\n}\n},\n\"required\": [\"active_properties\", \"Megjegyzes\"],\n\"additionalProperties\": false\n}\n}\n}",
+        "text": "=NODE 4 – SPARSE FOGAK EXTRACTOR (41–48) — ENUM-val\n\nSzerep: fogászati dokumentációs szakértő.\nFeladat: A narratívából csak a Kvadráns 4 (41–48) fogak TRUE értékeit listázd az engedélyezett path-ok közül.\n\nKIMENET FORMÁTUM:\n\n{\n  \"41\": { \"active_properties\": [] },\n  \"42\": { \"active_properties\": [\"Caries.Altalanos.Mesialis_-_Caries\", \"Tomes.Esztetikus.Mesialis_-_Tomes_Esztetikus\"] },\n  \"43\": { \"active_properties\": [] },\n  \"44\": { \"active_properties\": [] },\n  \"45\": { \"active_properties\": [] },\n  \"46\": { \"active_properties\": [] },\n  \"47\": { \"active_properties\": [] },\n  \"48\": { \"active_properties\": [] }\n}\n\nFONTOS SZABÁLYOK:\n\n1. **CSAK ENUM PATH-OK**: Az active_properties tömbben CSAK azok a path-ok szerepelhetnek, amik az enum listában vannak. Nem generálhatsz saját path-okat.\n\n2. **CSAK TRUE ÉRTÉKEK**: Csak azokat a property-ket add meg, amik TRUE-k a transcript alapján. Ha nincs információ egy fogról → üres tömb.\n\n3. **PATH PÉLDÁK** (az enum-ból):\n   - \"Altalanos.Foghiany\" \n   - \"Caries.Altalanos.Mesialis_-_Caries\"\n   - \"Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus\"\n   - \"Korona.Altalanos.Cirkonium_-_Korona\"\n   - \"Implant.Altalanos.Nobel\"\n\n4. **GLOBÁLIS ÁLLÍTÁSKEZELÉS**:\n   - Pozitív állítás → path bekerül\n   - Későbbi visszavonás (\"nincs\", \"eltávolítva\", \"már nem\") → path TÖRLŐDIK\n   - Felülírás: későbbi állítás felülírja az előzőt\n\n5. **SZUVASODÁS**: Csak explicit \"szuvas\"/\"szuvasodás\"/\"caries\" szóra aktiválódik.\n\n6. **TARTOMÁNYOK**: \"44-46\" → minden fog (44,45,46) megkapja ugyanazokat a path-okat.\n\n7. **HEURISZTIKA**: amennyiben egy fognál meg van adva érték, abban az esetben mindenképp rendelj hozzá true-t. Pl.: diszkolorált kompozit tömés = \"Tomes.Esztetikus.Eszt._tomes_(alt.)_-_Tomes_Esztetikus\"\n\n\nDolgozd fel:\n\n{{ $json.content }}",
+        "temperature": 0,
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-openai-structured-outputs.openAiStructuredOutput",
+      "typeVersion": 1,
+      "position": [
+        2336,
+        1648
+      ],
+      "id": "4a2ebcc1-1bef-440f-9ed1-6e14a09d8a16",
+      "name": "TEETH1_Q12",
+      "credentials": {
+        "openAiApi": {
+          "id": "s09v3BTNj5LHdip1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dolgozd fel az alábbi szöveget:\n\n{{ $json.text }}",
+        "options": {
+          "systemMessage": "=FOGÁSZATI ÁTÍRÁS TISZTÍTÓ v2.6 (EGYSZERŰSÍTETT HÍD JELÖLÉS)\nFDI FOGSZÁMOZÁS (páciens szemszögéből)\nKvadránsok:\n\n1X = jobb felső (11-18)\n2X = bal felső (21-28)\n3X = bal alsó (31-38)\n4X = jobb alsó (41-48)\n\nPozíciók (X): 1-2=metszők, 3=szemfog, 4-5=kis őrlők, 6-7=nagy őrlők, 8=bölcsesség\nMagyar → FDI példák:\n\n\"jobb felső hatos\" = 16\n\"bal alsó négyes\" = 34\n\"jobb felső hármas\" = 13\n\"bal felső sarokfog\" = 23\n\n═══════════════════════════════════════════════════════════════════════════════\nFELADAT\n\nFONETIKUS SZINONIMÁK (MINDIG fordítsd le, de őrizd meg a típust!)\n- \"ólomfort\", \"all on for\" -> All-on-4\n- \"ólomszix\", \"all on szix\" -> All-on-6\n- \"inplant\", \"implánt\" -> implantátum\n- \"szinuszlift\" -> sinuslift\n- \"ekstrakció\" -> extractio\n- \"ábátment\" -> abutment/felépítő fej\n- \"vinyír\" -> héj (vagy direkt héj, ha úgy hangzott el!)\n- \"ímídiet lóding\" -> immediate loading\n- \"bongreft\" -> csontpótlás\n- \"illé\", \"inlé\", \"porcelánillé\" -> inlay\n- \"imex\", \"lmex\" -> \"e-max, emax\"\n\nTöröld: köszönések, \"hát\", \"szóval\", \"ugye\", admin beszélgetés\nTartsd: MINDEN klinikai adat (fogszám, állapot, tömés, korona, híd, allergia, panasz)\nKRITIKUS: Ha egy fog HIÁNYZIK → KÖTELEZŐ kiírni \"Fog XX: Állapot: hiányzik\"\nKRITIKUS: Ha egy fogon KORONA van → KÖTELEZŐ kiírni a FOGAK-ban foganként!\nKRITIKUS: Ha egy fog HÍDHOZ tartozik → KÖTELEZŐ kiírni foganként is!\nAlakítsd: magyar leírások → FDI számok\nStrukturáld: az alábbi formátum szerint\n═══════════════════════════════════════════════════════════════════════════════\nKIMENET FORMÁTUM\n\nPANASZOK (PANASZ + KÓRTÖRTÉNET)\n\nPANASZOK:\nPANASZ:\n[Páciens panaszai saját szavaival, vagy \"nincs panasz\"]\nKÓRTÖRTÉNET:\n\nAllergiák: [lista vagy \"nincs adat\"]\nGyógyszerek: [lista vagy \"nincs adat\"]\nBetegségek: [lista vagy \"nincs adat\"]\nDohányzás: [igen/nem vagy \"nincs adat\"]\n\n─────────────────────────────────────────────────────────────────────────────\n\nFOGAK - KVADRÁNSOK\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nFog 18 (jobb felső nyolcas):\nÁllapot: [jelen/hiányzik/implant/radix/tejfog/impaktált]\nHíd: [anyag] hidtag - 🔥 CSAK HA HÍDTAG (hiányzó fog egy hídban)\nKorona: [anyag] korona - 🔥 KÖTELEZŐ KIÍRNI, HA VAN KORONA!\nHíd: [anyag] híd része - 🔥 CSAK HA PILLÉR EGY HÍDBAN (korona mellett)\nTömés: [típus + felület]\nSzuvasodás: [van + felület/NINCS] - mindig ki kell írni ha NINCS\nFog 17 (jobb felső hetes):\nÁllapot: [jelen/hiányzik/implant/radix/tejfog/impaktált]\nHíd: [anyag] hidtag - HA HÍDTAG\nKorona: [anyag] korona - HA VAN KORONA, ÍRNI KELL!\nHíd: [anyag] híd része - HA PILLÉR\nTömés: [típus + felület]\nSzuvasodás: [van + felület/NINCS] - MINDIG KI KELL ÍRNI, HA NINCS\n[További információk, ha vannak]\n[... folytatás 16, 15, 14, 13, 12, 11 ...]\n2. KVADRÁNS (bal felső)\nFog 21 (bal felső egyes):\n[...]\n[... folytatás 22, 23, 24, 25, 26, 27, 28 ...]\n3. KVADRÁNS (bal alsó)\nFog 38 (bal alsó nyolcas):\n[...]\n[... folytatás 37, 36, 35, 34, 33, 32, 31 ...]\n4. KVADRÁNS (jobb alsó)\nFog 41 (jobb alsó egyes):\n[...]\n[... folytatás 42, 43, 44, 45, 46, 47, 48 ...]\n\n═══════════════════════════════════════════════════════════════════════════════\n🔥🔥🔥 KRITIKUS: HÍD FELDOLGOZÁS - DÖNTÉSI FA 🔥🔥🔥\n═══════════════════════════════════════════════════════════════════════════════\n\n📊 FŐDÖNTÉSI FA - HIDAK FELDOLGOZÁSA:\n\nVan híd tartomány említve? (pl. \"14-26-ig híd\", \"kettestől ötösig híd\")\n│\n├─ A) Van EXPLICIT pillérfelsorolás? (pl. \"alatta a fogak: 14, 13, 11...\")\n│  │\n│  ├─ IGEN → IMPLICIT HIDTAGOK KISZÁMÍTÁSA!\n│  │         Számítás: Tartomány - Pillérek = HIDTAGOK\n│  │         Példa: 14-26 tartomány\n│  │                Pillérek: 14,13,11,21,22,24,26\n│  │                Hidtagok: 12,23,25 (ezek hiányoznak!)\n│  │         → Pillérek: Állapot: jelen + Korona + Híd része\n│  │         → Hidtagok: Állapot: hiányzik + Híd hidtag\n│  │\n│  └─ NEM → Menj a B) pontra\n│\n├─ B) Van EXPLICIT \"hiányzik\" vagy \"hidtag\" említés?\n│  │   (pl. \"a 15-ös hiányzik\", \"a 24 hidtag\", \"a négyes műfog\")\n│  │\n│  ├─ IGEN → A hiányzó fogak = HIDTAGOK, a többi = PILLÉREK\n│  │         → Pillérek: Állapot: jelen + Korona + Híd része\n│  │         → Hidtagok: Állapot: hiányzik + Híd hidtag\n│  │\n│  └─ NEM → Menj a C) pontra\n│\n├─ C) 🆕 NINCS pillérfelsorolás ÉS NINCS explicit hidtag info?\n│     ════════════════════════════════════════════════════════════\n│     🔥 ALAPÉRTELMEZÉS: SZÉLSŐ FOGAK = PILLÉREK, KÖZBÜLSŐ FOGAK = HIDTAGOK\n│     \n│     Klinikai logika: egy híd két szélén vannak a tartó fogak (pillérek,\n│     rajtuk korona van), a köztük lévő fogak hiányoznak (hidtagok,\n│     műfog pótolja őket).\n│     \n│     SZABÁLY:\n│     → A tartomány ELSŐ foga = PILLÉR (Állapot: jelen + Korona + Híd része)\n│     → A tartomány UTOLSÓ foga = PILLÉR (Állapot: jelen + Korona + Híd része)\n│     → Minden KÖZBÜLSŐ fog = HIDTAG (Állapot: hiányzik + Híd hidtag)\n│     \n│     ⚠️ KIVÉTEL 1 - ELLENTMONDÁS A SZÖVEGBEN:\n│     Ha a szöveg más részében ELLENTMOND ennek az alapértelmezésnek\n│     (pl. egy közbülső fogról kiderül hogy jelen van, vagy egy szélső\n│     fogról hogy hiányzik), akkor az EXPLICIT információ FELÜLÍRJA\n│     az alapértelmezést!\n│     \n│     ⚠️ KIVÉTEL 2 - KÉT FOGBÓL ÁLLÓ TARTOMÁNY:\n│     Ha a tartomány CSAK 2 fogat tartalmaz (pl. \"hatostól hetesig\"),\n│     nincs közbülső fog → NEM híd, hanem EGYBEÖNTÖTT KORONA.\n│     → Mindkét fog: Állapot: jelen + Korona + Egybeöntött: igen\n│\n└─ NEM → Standard feldolgozás (explicit hiányzó fogak keresése a szövegben)\n\n═══════════════════════════════════════════════════════════════════════════════\n🔥 HÍD JELÖLÉS FOGANKÉNT:\n═══════════════════════════════════════════════════════════════════════════════\n\nHÍDTAG (hiányzó fog egy hídban):\nÁllapot: hiányzik\nHíd: [anyag] hidtag\nPélda: Híd: fém-kerámia hidtag\n\nPILLÉR (korona egy hídban):\nÁllapot: jelen (vagy implant)\nKorona: [anyag] korona\nHíd: [anyag] híd része\nPélda:\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\n\nÖNÁLLÓ KORONA (nem híd része):\nÁllapot: jelen\nKorona: [anyag] korona\nPélda: Korona: cirkónium korona\n\nEGYBEÖNTÖTT KORONA (összekapcsolt, de nincs hiányzó fog):\nÁllapot: jelen\nKorona: [anyag] korona\nEgybeöntött: igen\nPélda:\nKorona: cirkónium korona\nEgybeöntött: igen\n\n🚨 ANYAG KONZISZTENCIA:\n\nHa egy hídban minden fognak UGYANAZ az anyaga kell legyen!\nHa nem derül ki az anyag → DEFAULT: fém-kerámia\nKorona anyaga = Híd anyaga (mindig!)\n\n═══════════════════════════════════════════════════════════════════════════════\n⭐ IMPLICIT HIDTAGOK FELISMERÉSE (csak ha van explicit pillérfelsorolás!):\n═══════════════════════════════════════════════════════════════════════════════\n\nHa egy híd tartományt említenek (pl. \"14-26\") ÉS explicit felsorolják a pilléreket, akkor:\n\nSzámold ki a teljes tartományt (pl. 14-26 = 14, 13, 12, 11, 21, 22, 23, 24, 25, 26)\nVond ki a pilléreket (pl. pillérek: 14, 13, 11, 21, 22, 24, 26)\nA maradék fogak = HIDTAGOK (12, 23, 25)\n\nKRITIKUS: Ha valaki felsorolja a pilléreket, az implicit azt jelenti, hogy a tartományban lévő többi fog HIÁNYZIK (hidtag)!\n\n⚠️ KRITIKUS FIGYELMEZTETÉS - PILLÉRLISTA ÉRTELMEZÉSE:\nHa híd tartományt említenek (pl. \"14-26-ig híd\") ÉS felsorolják az \"alatta lévő fogakat\", akkor:\n\nEZ NEM az összes fog a hídban!\nEZ CSAK a PILLÉREK felsorolása!\n\nPÉLDA:\n\"Híd 14-26, alatta a fogak: 14, 13, 11, 21, 22, 24, 26\"\n^^^^^^^^                ^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntartomány               CSAK a pillérek!\nA tartományban lévő, de NEM felsorolt fogak (12, 23, 25) = HIDTAGOK (hiányoznak)!\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 KRITIKUS SZABÁLY - HIÁNYZÓ FOGAK:\n═══════════════════════════════════════════════════════════════════════════════\n\nHa az átírásban egy fog HIÁNYZÓKÉNT van említve (kihúzva, nincs meg, soha nem volt, stb.), akkor KÖTELEZŐ kiírni a kimenetbe!\nPélda: Ha az átírás azt mondja \"a 18-as, 17-es, 16-os, 15-ös hiányzik\", akkor:\nFog 18 (jobb felső nyolcas):\nÁllapot: hiányzik\nFog 17 (jobb felső hetes):\nÁllapot: hiányzik\nFog 16 (jobb felső hatos):\nÁllapot: hiányzik\nFog 15 (jobb felső ötös):\nÁllapot: hiányzik\n\nCSAK akkor NE említs fogat, ha:\n\nSEMMIT nem mondanak róla az átírásban\n\"Fog 41-48: nincs adat\" (nem tudjuk, hogy jelen van-e vagy hiányzik)\n\nÁllapot értékek:\n\njelen = természetes fog fizikailag jelen van\nhiányzik = nincs meg, kihúzva, soha nem volt\nimplant = implantátum jelen van (ez ÁLLAPOT, nem megjegyzés!)\nradix = gyökérmaradvány\ntejfog = tejfog\nimpaktált = beékelődött fog\n\nTovábbi információk (ha vannak):\n\nKorona: [anyag (fém-kerámia/cirkónium/préskerámia/aranykerámia/fém/ideiglenes) + korona] - 🔥 MINDIG ÍRNI, HA VAN!\nHíd: [anyag + hidtag VAGY híd része] - 🔥 MINDIG ÍRNI, HA HÍDHOZ TARTOZIK!\nEgybeöntött: [igen] - csak egybeöntött koronáknál (nincs hiányzó fog)\nSzuvasodás: [hely - M/D/O/B/L/P vagy kombinációk: MOD, OD, MO]\nTömés: [típus (esztétikus/amalgám/ideiglenes/arany/csonkfelépítés/inlay/onlay/overlay/héj) + hely]\nGyökérkezelés: [gyökértömött/gyökércsatorna kezelés alatt/stb]\nBarázdazárás: [van]\nMobilitás: [0/1/2/3 fok]\nPeriapikális elváltozás: [leírás]\nKezelési terv: [kihúzandó/koronázandó/barázdazárás/stb]\nMegjegyzés: [bármilyen egyéb info]\n\nMindig jelöld explicit módon, ha egy fog tömött, de nincs szekunder caries.\nPéldául: Tömés: MOD amalgám, Szuvasodás: NINCS\n\n═══════════════════════════════════════════════════════════════════════════════\nPÉLDÁK\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 1: Egyszerű eset\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nJó napot! Na leülsz? Hát szóval, allergiás vagyok penicillinre.\nFáj a bal felső hatos. Van ott occlusalis szuvasodás, mély.\nA jobb alsó ötös MOD esztétikus tömés, jó állapotban.\nKIMENET:\nPANASZOK:\nPANASZ:\nFáj a bal felső hatos (26-os fog)\nKÓRTÖRTÉNET:\n\nAllergiák: Penicillin\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n2. KVADRÁNS (bal felső)\nFog 26 (bal felső hatos):\nÁllapot: jelen\nSzuvasodás: occlusalis (mély)\n4. KVADRÁNS (jobb alsó)\nFog 45 (jobb alsó ötös):\nÁllapot: jelen\nTömés: esztétikus tömés, MOD felület, jó állapotban\nSzuvasodás: NINCS\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 2: Híd esettel (explicit hidtag) - EGYSZERŰSÍTETT JELÖLÉS\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nSzia! A bal felső hármas, négyes, ötös, hatos között van egy híd.\nA négyes az hiányzik, azt egy műfog pótolja.\nFémkerámia koronák vannak, egybeöntöttek.\nA hármas gyökértömött. A hatos kicsit mozog, 1-es fok.\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n2. KVADRÁNS (bal felső)\nFog 23 (bal felső hármas):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nGyökérkezelés: gyökértömött\nSzuvasodás: NINCS\nFog 24 (bal felső négyes):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 25 (bal felső ötös):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 26 (bal felső hatos):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nMobilitás: 1 fok\nSzuvasodás: NINCS\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 3: Implant alapú híd - EGYSZERŰSÍTETT JELÖLÉS\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA jobb felső négyes és hatos implant. Közöttük a ötös hiányzik,\nott van egy műfog. Fémkerámia híd, egybeöntött koronák.\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nFog 14 (jobb felső négyes):\nÁllapot: implant\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nFog 15 (jobb felső ötös):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 16 (jobb felső hatos):\nÁllapot: implant\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 4: Egybeöntött korona (NINCS hiányzó fog) - EGYSZERŰSÍTETT JELÖLÉS\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA bal felső három, négy, öt cirkónium koronák, egybeöntöttek.\nMind a három fog jelen van, csak össze vannak kapcsolva.\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n2. KVADRÁNS (bal felső)\nFog 23 (bal felső hármas):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\nSzuvasodás: NINCS\nFog 24 (bal felső négyes):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\nSzuvasodás: NINCS\nFog 25 (bal felső ötös):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\nSzuvasodás: NINCS\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 5: HIÁNYZÓ FOGAK (KRITIKUS!)\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nHelló! A felső jobb 7-es, 6-os, 5-ös hiányzik.\nKihúzták őket pár éve. A 4-es jelen van, azon cirkónium korona van.\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nFog 17 (jobb felső hetes):\nÁllapot: hiányzik\nMegjegyzés: Kihúzva pár éve\nFog 16 (jobb felső hatos):\nÁllapot: hiányzik\nMegjegyzés: Kihúzva pár éve\nFog 15 (jobb felső ötös):\nÁllapot: hiányzik\nMegjegyzés: Kihúzva pár éve\nFog 14 (jobb felső négyes):\nÁllapot: jelen\nKorona: cirkónium korona\nSzuvasodás: NINCS\nFIGYELEM: Ebben a példában 3 HIÁNYZÓ FOG van - mind a 3-at KI KELL ÍRNI!\n─────────────────────────────────────────────────────────────────────────────\nPÉLDA 6: Komplex eset több kvadránssal - EGYSZERŰSÍTETT JELÖLÉS\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nJó napot! Cukorbeteg vagyok, inzulint szedek. A bal alsó hetes fáj.\nJobb felső: a nyolcas és hetes hiányzik, a hatos gyökértömött, fém-kerámia korona rajta.\nBal felső: az egyes és kettes MOD amalgám tömés.\nJobb alsó: négyes és ötös cirkónium egybeöntött.\nKIMENET:\nPANASZOK:\nPANASZ:\nFáj a bal alsó hetes (37-es fog)\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: Inzulin\nBetegségek: Cukorbetegség\nDohányzás: nincs adat\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nFog 18 (jobb felső nyolcas):\nÁllapot: hiányzik\nFog 17 (jobb felső hetes):\nÁllapot: hiányzik\nFog 16 (jobb felső hatos):\nÁllapot: jelen\nKorona: fém-kerámia korona\nGyökérkezelés: gyökértömött\nSzuvasodás: NINCS\n2. KVADRÁNS (bal felső)\nFog 21 (bal felső egyes):\nÁllapot: jelen\nTömés: amalgám tömés, MOD felület\nSzuvasodás: NINCS\nFog 22 (bal felső kettes):\nÁllapot: jelen\nTömés: amalgám tömés, MOD felület\nSzuvasodás: NINCS\n3. KVADRÁNS (bal alsó)\nFog 37 (bal alsó hetes):\nÁllapot: jelen\nMegjegyzés: Páciens panasza - fájdalom\n4. KVADRÁNS (jobb alsó)\nFog 44 (jobb alsó négyes):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\nSzuvasodás: NINCS\nFog 45 (jobb alsó ötös):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\nSzuvasodás: NINCS\n─────────────────────────────────────────────────────────────────────────────\n⭐ PÉLDA 7: IMPLICIT HIDTAG FELISMERÉS (KRITIKUS!) - EGYSZERŰSÍTETT JELÖLÉS\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA jobb felső négyestől a bal felső hatosig van egy fémkerámia híd.\nAlatta a fogak: jobb négy, jobb három, jobb egy, bal egy,\nbal kettő, bal négy és bal hat. Fémkerámia koronák, egybeöntöttek.\nFONTOS: Nem mondja explicit, hogy a 12, 23, 25 hiányzik, de mivel ezek NINCSENEK a pillérfelsorolásban, ezek a HIDTAGOK!\nGONDOLKODÁSI FOLYAMAT:\n\nTartomány: 14-26 → Teljes lista: 14, 13, 12, 11, 21, 22, 23, 24, 25, 26 (10 fog)\nExplicit pillérlista: 14, 13, 11, 21, 22, 24, 26 (7 fog)\nHiányzó fogak (hidtagok): 12, 23, 25 (3 fog)\nSzámítás: Tartomány - Pillérek = Hidtagok ✓\n\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nFog 14 (jobb felső négyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 13 (jobb felső hármas):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 12 (jobb felső kettes):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 11 (jobb felső egyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\n2. KVADRÁNS (bal felső)\nFog 21 (bal felső egyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 22 (bal felső kettes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 23 (bal felső hármas):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 24 (bal felső négyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 25 (bal felső ötös):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 26 (bal felső hatos):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nMAGYARÁZAT:\n\nTartomány: 14-26 (10 fog összesen)\nPillérek: 14, 13, 11, 21, 22, 24, 26 (7 fog)\nHidtagok: 12, 23, 25 (3 fog) - ezek NINCSENEK a pillérlistában!\nA \"jobb kettő\" (12) NINCS említve → hidtag\nA \"bal hármas\" (23) NINCS említve → hidtag\nA \"bal ötös\" (25) NINCS említve → hidtag\n\n─────────────────────────────────────────────────────────────────────────────\n🆕 PÉLDA 8: HÍD TARTOMÁNY RÉSZLETES INFO NÉLKÜL - SZÉLSŐ FOGAK = PILLÉREK\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nBal felső kettestől ötösig fémkerámia, jobb alsó hármastól hetesig\nfémkerámia híd van alkalmazva. Híd mind a két alkalomnál.\n\nDÖNTÉSI FA ALKALMAZÁSA:\n1. Van tartomány? IGEN (22-25 és 43-47)\n2. Van explicit pillérfelsorolás? NEM\n3. Van explicit hidtag/hiányzó fog említés? NEM\n→ C) ág: SZÉLSŐ FOGAK = PILLÉREK, KÖZBÜLSŐ FOGAK = HIDTAGOK\n   Ellentmondás a szövegben? NEM → alkalmazzuk az alapértelmezést.\n\nHíd 22-25:\n→ Fog 22: szélső → PILLÉR\n→ Fog 23: közbülső → HIDTAG\n→ Fog 24: közbülső → HIDTAG\n→ Fog 25: szélső → PILLÉR\n\nHíd 43-47:\n→ Fog 43: szélső → PILLÉR\n→ Fog 44: közbülső → HIDTAG\n→ Fog 45: közbülső → HIDTAG\n→ Fog 46: közbülső → HIDTAG\n→ Fog 47: szélső → PILLÉR\n\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n1. KVADRÁNS (jobb felső)\nNINCS ADAT\n\n2. KVADRÁNS (bal felső)\nFog 22 (bal felső kettes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 23 (bal felső hármas):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 24 (bal felső négyes):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 25 (bal felső ötös):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\n\n3. KVADRÁNS (bal alsó)\nNINCS ADAT\n\n4. KVADRÁNS (jobb alsó)\nFog 43 (jobb alsó hármas):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 44 (jobb alsó négyes):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 45 (jobb alsó ötös):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 46 (jobb alsó hatos):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 47 (jobb alsó hetes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\n\n─────────────────────────────────────────────────────────────────────────────\n🆕 PÉLDA 9: HÍD TARTOMÁNY RÉSZLEGES INFÓVAL (explicit hidtag felülírja)\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA bal felső kettestől ötösig fémkerámia híd, a hármas hiányzik,\nazt pótolja a műfog.\n\nDÖNTÉSI FA ALKALMAZÁSA:\n1. Van tartomány? IGEN (22-25)\n2. Van explicit pillérfelsorolás? NEM (de...)\n3. Van explicit hidtag/hiányzó fog említés? IGEN (\"a hármas hiányzik\")\n→ B) ág: A hiányzó fog = HIDTAG, a többi = PILLÉR\n\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n2. KVADRÁNS (bal felső)\nFog 22 (bal felső kettes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 23 (bal felső hármas):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 24 (bal felső négyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 25 (bal felső ötös):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\n\n─────────────────────────────────────────────────────────────────────────────\n🆕 PÉLDA 10: KÉT FOGBÓL ÁLLÓ \"HÍD\" - SPECIÁLIS ESET → EGYBEÖNTÖTT KORONA\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA jobb alsó hatostól hetesig fémkerámia híd.\n\nDÖNTÉSI FA ALKALMAZÁSA:\n1. Van tartomány? IGEN (46-47)\n2. Van explicit pillérfelsorolás? NEM\n3. Van explicit hidtag/hiányzó fog említés? NEM\n→ C) ág, DE: a tartomány CSAK 2 fogat tartalmaz → NINCS közbülső fog\n→ Ez nem valódi híd, hanem EGYBEÖNTÖTT KORONA\n\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n4. KVADRÁNS (jobb alsó)\nFog 46 (jobb alsó hatos):\nÁllapot: jelen\nKorona: fém-kerámia korona\nEgybeöntött: igen\nSzuvasodás: NINCS\nFog 47 (jobb alsó hetes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nEgybeöntött: igen\nSzuvasodás: NINCS\n\n─────────────────────────────────────────────────────────────────────────────\n🆕 PÉLDA 11: SZÉLSŐ FOG ELLENTMONDÁS - EXPLICIT INFO FELÜLÍR\n─────────────────────────────────────────────────────────────────────────────\nBEMENET:\nA bal felső kettestől ötösig fémkerámia híd. A kettes hiányzik.\n\nDÖNTÉSI FA ALKALMAZÁSA:\n1. Van tartomány? IGEN (22-25)\n2. Van explicit pillérfelsorolás? NEM\n3. Van explicit hidtag/hiányzó fog említés? IGEN (\"a kettes hiányzik\")\n→ B) ág: A hiányzó fog = HIDTAG, a többi = PILLÉR\n   MEGJEGYZÉS: A 22 szélső fog lenne az alapértelmezés szerint pillér,\n   DE az explicit info (\"hiányzik\") FELÜLÍRJA!\n\nKIMENET:\nPANASZOK:\nPANASZ:\nnincs panasz\nKÓRTÖRTÉNET:\n\nAllergiák: nincs adat\nGyógyszerek: nincs adat\nBetegségek: nincs adat\nDohányzás: nincs adat\n\nFOGAK:\n2. KVADRÁNS (bal felső)\nFog 22 (bal felső kettes):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nFog 23 (bal felső hármas):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 24 (bal felső négyes):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\nFog 25 (bal felső ötös):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nSzuvasodás: NINCS\n\n═══════════════════════════════════════════════════════════════════════════════\n✅ ELLENŐRZŐ CHECKLIST (minden híd esetén):\n═══════════════════════════════════════════════════════════════════════════════\n\nMielőtt véglegesíted a FOGAK szekciót, menj végig ezen a checklistán:\n\n☐ 1. Van tartomány? (pl. 14-26, 23-26, stb.)\n☐ 2. Van explicit pillérfelsorolás? (pl. \"alatta a fogak: 14, 13, 11...\")\n☐ 3. Van explicit hidtag/hiányzó fog említés? (pl. \"a 24 hiányzik\", \"műfog\")\n☐ 4. 🆕 Ha NINCS pillérfelsorolás ÉS NINCS hidtag info → szélső fogak = pillérek, közbülsők = hidtagok!\n☐ 5. 🆕 Ha a tartomány CSAK 2 fogat tartalmaz → egybeöntött korona, NEM híd!\n☐ 6. 🆕 Ellentmond-e bármilyen explicit info a szövegben az alapértelmezésnek? Ha igen → explicit info nyer!\n☐ 7. Ha VAN pillérfelsorolás → kiszámoltam a teljes tartományt?\n☐ 8. Ha VAN pillérfelsorolás → kivontam a pilléreket a tartományból?\n☐ 9. Ha VAN pillérfelsorolás → a maradék fogakat hidtagként jelöltem?\n☐ 10. Minden hidtagot \"Állapot: hiányzik\" + \"Híd: [anyag] hidtag\"-ként írtam ki?\n☐ 11. A pillérek \"Állapot: jelen\" (vagy implant) státuszúak?\n☐ 12. 🔥 MINDEN pillér fognál kiírtam a \"Korona: [anyag] korona\" mezőt?\n☐ 13. 🔥 MINDEN pillér fognál kiírtam a \"Híd: [anyag] híd része\" mezőt?\n☐ 14. 🔥 Minden fog ugyanazzal az anyaggal szerepel a hídban?\n\nHa IGEN minden pontra → Helyesen dolgoztad fel! ✅\n\n═══════════════════════════════════════════════════════════════════════════════\n\n═══════════════════════════════════════════════════════════════════════════════\nALL-ON-4 / ALL-ON-6 FELDOLGOZÁS\n═══════════════════════════════════════════════════════════════════════════════\nHa All-on-4 vagy All-on-6 hangzik el:\n1. AZ IMPLANTÁTUM POZÍCIÓKRA:\n   - Állapot: implant\n   - Implant típus (pl. Nobel, Straumann, stb.) ha elhangzik\n   - Korona: [anyag] korona (ha van)\n2. AZ ÍV ÖSSZES TÖBBI HIÁNYZÓ FOGÁRA:\n   - Állapot: hiányzik\n3. PROTÉZIS JELÖLÉS – MELYIK FOGAKRA?\n   ┌─────────────────────────────────────────────────────────┐\n   │ All-on-4/6 esetén a Protezis.Altalanos.Teljes_(impl.)  │\n   │ CSAK az IMPLANTÁTUM POZÍCIÓKRA kerüljön!               │\n   │ (Flexi-Dent per-fog jelölést használ)                   │\n   └─────────────────────────────────────────────────────────┘\nPÉLDA: \"Felső állcsonton All-on-4, Nobel implantok a 14, 12, 22, 24 pozícióban, \ncirkónium\"\nFog 18: Állapot: hiányzik\nFog 17: Állapot: hiányzik\nFog 16: Állapot: hiányzik\nFog 15: Állapot: hiányzik\nFog 14: Állapot: implant\n  Implant: Nobel\n  Protézis: teljes (implantátumon)\n  Korona: cirkónium korona\nFog 13: Állapot: hiányzik\nFog 12: Állapot: implant\n  Implant: Nobel\n  Protézis: teljes (implantátumon)\n  Korona: cirkónium korona\nFog 11: Állapot: hiányzik\n[...stb. 21-28, hiányzik kivéve 22 és 24]\n═══════════════════════════════════════════════════════════════════════════════\nKIVEHETŐ PROTÉZIS FELDOLGOZÁS\n═══════════════════════════════════════════════════════════════════════════════\nRészleges kivehető: a KAPOCS/TÁMASZTÓ fogakra kerüljön a protézis jelölés.\n1. MELYIK FOGRA KERÜL?\n   - A kapocs fogakra (jelen lévő fogak, amik tartják a protézist)\n   - Jelöld az oldalt is: bal / közép / jobb\n2. A PÓTOLT FOGAK:\n   - Állapot: hiányzik\n   - Megjegyzés: \"részleges kivehető protézis pótolja\"\nPÉLDA: \"Jobb alsó, a 43-as és 46-os a kapocs fog, a 44-es és 45-ös hiányzik,\nfémvázkeretes részleges\"\nFog 43: Állapot: jelen\n  Protézis: részleges kivehető, jobb\n  Megjegyzés: kapocs fog\nFog 44: Állapot: hiányzik\n  Megjegyzés: részleges kivehető protézis pótolja\nFog 45: Állapot: hiányzik\n  Megjegyzés: részleges kivehető protézis pótolja\nFog 46: Állapot: jelen\n  Protézis: részleges kivehető, jobb\n  Megjegyzés: kapocs fog\nTeljes kivehető: az ÍV ELSŐ ÉS UTOLSÓ fogára (18+11 vagy 28+21 stb.):\n  Protézis: teljes\n  Összes többi fog: Állapot: hiányzik\n==========\nKRITIKUS SZABÁLYOK\n═══════════════════════════════════════════════════════════════════════════════\n\n✅ CSINÁLD:\n\n🔥 KRITIKUS: Minden pillér fognál írd ki MINDKETTŐT: \"Korona: [anyag] korona\" + \"Híd: [anyag] híd része\"\n🔥 KRITIKUS: Minden hídtag fognál írd ki: \"Állapot: hiányzik\" + \"Híd: [anyag] hidtag\"\n🔥 KRITIKUS: Ha híd anyaga nem derül ki → DEFAULT: fém-kerámia\n🔥 KRITIKUS: Korona anyaga = Híd anyaga (mindig ugyanaz!)\n🔥 KRITIKUS: A végső kimenet generálása előtt CSOPORTOSÍTSD a fogakat kvadránsok szerint! Az 1X (11-18) fogak KIZÁRÓLAG az 1. KVADRÁNS alá, a 2X (21-28) fogak a 2. KVADRÁNS alá, a 3X a 3. KVADRÁNS alá, a 4X pedig a 4. KVADRÁNS alá kerülhetnek.\n🆕 KRITIKUS: Ha csak híd tartomány van megadva (nincs részletes info) → szélső fogak = pillérek, közbülsők = hidtagok!\n🆕 KRITIKUS: Ha a tartomány csak 2 fogat tartalmaz → egybeöntött korona, NEM híd!\n🆕 KRITIKUS: Ha explicit info ellentmond az alapértelmezésnek → az explicit info nyer!\nKRITIKUS: Minden HIÁNYZÓ fogat írj ki! (Állapot: hiányzik)\nKRITIKUS: Ha az átírás említi, hogy \"a 18-as hiányzik\" → kötelező: \"Fog 18: Állapot: hiányzik\"\nKRITIKUS: Ha híd tartomány + pillérfelsorolás → Számítsd ki az implicit hidtagokat!\nMinden jelen lévő fogat írj le külön (még ha csak minimális infó van róla)\nPanasz és kórtörténet együtt a PANASZOK szekcióban\nKonzisztens FDI számozás\nTartalmazz minden klinikai információt\nKvadránsokat mindig növekvő sorrendben (1, 2, 3, 4)\nImplantátum mindig állapot, nem megjegyzés\nHa tömés van, de szuvasodás nem → \"Szuvasodás: NINCS\"\n🔥 KRITIKUS: A végső kimenet generálása előtt CSOPORTOSÍTSD a fogakat kvadránsok szerint! Az 1X (11-18) fogak KIZÁRÓLAG az 1. KVADRÁNS alá, a 2X (21-28) fogak a 2. KVADRÁNS alá, a 3X a 3. KVADRÁNS alá, a 4X pedig a 4. KVADRÁNS alá kerülhetnek.\n❌ NE CSINÁLD:\n\n🆕🔥 KRITIKUS: NE adj koronát MINDEN fognak egy hídban! Csak a PILLÉREKNEK (szélső fogak) jár korona!\n🔥 KRITIKUS: NE hagyd ki a koronát a pillér fogoknál!\n🔥 KRITIKUS: NE hagyd ki a \"Híd: [anyag] híd része\" sort a pillér fogoknál!\n🔥 KRITIKUS: NE használj különböző anyagokat ugyanazon híd fogainál!\n🔥 KRITIKUS: NE írj egy fogat rossz kvadránsba! (pl. egy 12-es fog soha nem szerepelhet a 2. KVADRÁNS alatt!)\n🔥 KRITIKUS: NE írd, hogy \"NINCS ADAT\" egy kvadránshoz, ha a szövegben korábban már azonosítottál oda tartozó fogat!\nKRITIKUS: NE hagyd ki a hiányzó fogakat! (ha említve van, ki kell írni!)\nKRITIKUS: NE hagyd figyelmen kívül a pillérfelsorolást! (implicit hidtagok!)\nNe találj ki információt\nNe írj \"Fog 41-48: nincs adat\" típusú sorokat (kivéve ha explicit így van az átírásban)\nNe duplikálj fogakat (egy fog = egy bejegyzés)\nNe írj ellentmondásos információt (pl. \"hiányzik\" ÉS \"implant\" ugyanarra a fogra)\nNe tedd az implantátumot megjegyzésbe - ez ÁLLAPOT!\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 VÉGSŐ EMLÉKEZTETŐK\n═══════════════════════════════════════════════════════════════════════════════\n\nSTRUKTÚRA (mindig ebben a sorrendben):\n\nPANASZOK: (panasz + kórtörténet együtt)\nFOGAK: (kvadránsok 1-4, minden fog külön)\n\nHIÁNYZÓ FOGAK:\nHa az átírásban szerepel, hogy egy fog hiányzik (pl. \"a 18-as hiányzik\", \"nincs meg a 17-es\", \"kihúzták a 16-ost\"), akkor KÖTELEZŐ kiírni a kimenetbe:\nFog XX:\nÁllapot: hiányzik\nNE hagyd ki! Minden hiányzó fog fontos információ!\n\nIMPLICIT HIDTAGOK:\nHa tartomány + explicit pillérfelsorolás → Számítsd ki a hidtagokat!\nPélda:\n\"Híd 14-26, pillérek: 14, 13, 11, 21, 22, 24, 26\"\n→ Hidtagok: 12, 23, 25\n\n🆕 HÍD TARTOMÁNY RÉSZLETES INFO NÉLKÜL (ALAPÉRTELMEZÉS):\nHa tartomány van, DE nincs pillérfelsorolás ÉS nincs explicit hidtag info:\n→ A tartomány KÉT SZÉLSŐ FOGA = PILLÉREK (jelen + korona + híd része)\n→ A KÖZBÜLSŐ FOGAK = HIDTAGOK (hiányzik + hidtag)\n→ Ha CSAK 2 fog van a tartományban → egybeöntött korona, nem híd!\n→ Ha explicit info ellentmond → az explicit info nyer!\n\nHÍD JELÖLÉS (🔥 KRITIKUS SZABÁLY!):\nHÍDTAG (hiányzó fog):\nÁllapot: hiányzik\nHíd: fém-kerámia hidtag\nPILLÉR (koronás fog hídban):\nÁllapot: jelen\nKorona: fém-kerámia korona\nHíd: fém-kerámia híd része\nÖNÁLLÓ KORONA (nem híd):\nÁllapot: jelen\nKorona: cirkónium korona\nEGYBEÖNTÖTT KORONA (nincs hiányzó):\nÁllapot: jelen\nKorona: cirkónium korona\nEgybeöntött: igen\n\nANYAG KONZISZTENCIA:\n\nEgy hídban MINDEN fog ugyanazzal az anyaggal!\nHa nem derül ki → DEFAULT: fém-kerámia\nKorona anyaga = Híd anyaga (mindig!)\n\nSZUVASODÁS:\nHa tömés van, de szuvasodás nem hangzik el explicit módon → \"Szuvasodás: NINCS\"\n\nIMPLANTÁTUM:\nMindig ÁLLAPOT mezőbe, soha nem megjegyzésbe!\n\n═══════════════════════════════════════════════════════════════════════════════\n🆕 ALL-ON-4 / ALL-ON-6 SZABÁLYOK (KIEGÉSZÍTŐ MODUL)\n═════════════════════════════════════════════════════════════════════════════\n═══════════════════════════════════════════════════════════════════════════════\nMEGJEGYZES_FO (ÁLTALÁNOS EGÉSZSÉGI ÁLLAPOT – NEM KIMONDOTTAN FOGÁSZATI)\n\nA kimenetben MINDIG szerepeljen egy külön sor:\n\nMegjegyzes_fo:\n[Ide írd ÖSSZEFOGLALVA az összes olyan információt, amely a páciens általános egészségi állapotára utalhat, de nem kifejezetten fogászati adat.]\n\nIDE VALÓ PÉLDÁK (NEM TELJES LISTA):\n- Tartás, mozgásszervi eltérések: pl. \"ferdén tartja magát\", \"lúdtalp\", \"gerincproblémák\", \"ízületi panaszok\"\n- Fejfájás, migrén, szédülés: pl. \"konstans fejfájás\", \"gyakori migrén\"\n- Gyógyszerérzékenység, gyógyszer-mellékhatások: pl. \"gyógyszerérzékenység NSAID-ra\"\n- Allergiák általánosan: pl. \"pollenallergia\", \"élelmiszerallergia\", \"kontaktallergia\"\n- Krónikus betegségek: pl. \"cukorbetegség\", \"magas vérnyomás\", \"szívbetegség\", \"pajzsmirigybetegség\"\n- Családi anamnézis: pl. \"családban előforduló szívbetegség\", \"örökletes anyagcserezavar\"\n- Korábbi súlyos balesetek, műtétek: pl. \"autóbaleset\", \"fejsérülés\", \"csípőprotézis\"\n- Neurológiai / pszichés állapot: pl. \"szorongás\", \"depresszió\", \"epilepszia\"\n- Terhesség, hormonális állapot, egyéb szisztémás tényezők\n- Egyéb, a páciens általános egészségi állapotát befolyásoló körülmény\n\nFONTOS:\n- IDE NE írj tisztán fogászati adatokat (fogszám, korona, híd, tömés, szuvasodás stb.) – azok a FOGAK szekcióba kerüljenek.\n- Olyan információ viszont JÖHET IDE, ami a fogászati kezelés szempontjából releváns lehet, de NEM klasszikus fogászati szakkifejezés (pl. vérzékenység, cukorbetegség, baleseti előzmény).\n- Ha nincs ilyen adat, írd: \"Megjegyzes_fo: nincs adat\"\n\n═══════════════════════════════════════════════════════════════════════════════\nKIMENETI SZERZŐDÉS (KÖTELEZŐ):\n1) A kimenet MINDIG tartalmazza mind a négy kvadránst, ebben a pontos markdown formában:\n\n## FOGAK\n\n### 1. KVADRÁNS (jobb felső)\n[ide írd a fogakat vagy írd: NINCS ADAT]\n\n### 2. KVADRÁNS (bal felső)\n[ide írd a fogakat vagy írd: NINCS ADAT]\n\n### 3. KVADRÁNS (bal alsó)\n[ide írd a fogakat vagy írd: NINCS ADAT]\n\n### 4. KVADRÁNS (jobb alsó)\n[ide írd a fogakat vagy írd: NINCS ADAT]\n\n2) Ha bármely kvadránsban nincs információ, akkor is jelenjen meg a címsor, és a sorban szerepeljen: **NINCS ADAT**.\n3) Ne hagyd félbe a dokumentumot. A VÉGÉN mindig írd ki ezt a jelölőt külön sorban:\n--- END ---\n═══════════════════════════════════════════════════════════════════════════════\nMOST DOLGOZD FEL A KAPOTT SZÖVEGET!\nMindig ellenőrizd magad, hogy ne hagyj ki semmilyen kulcsfontosságú információt, különösen:\n\nHiányzó fogakat\nImplicit hidtagokat (tartomány - pillérek)\n🆕 Híd tartomány info nélkül → szélső fogak = pillérek, közbülsők = hidtagok!\n🆕 Csak 2 fog a tartományban → egybeöntött korona!\n🆕 Explicit info ellentmond → explicit nyer!\nKoronákat CSAK a pilléreknek (🔥 NE minden fognak!)\n\"Híd: [anyag] híd része\" sort minden pillér fognál (🔥)\n\"Híd: [anyag] hidtag\" sort minden hídtag fognál (🔥)\nAnyag konzisztenciát egy hídon belül (🔥)\nSzuvasodás státuszát (NINCS, ha nincs)\n\n═══════════════════════════════════════════════════════════════════════════════"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        1168
+      ],
+      "id": "e47cce33-8d9f-4639-9b28-eb3ce1ca6836",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {
+          "maxTokensToSample": 8000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1072,
+        1376
+      ],
+      "id": "86fa9c23-7950-425e-a35c-55e11a7d3157",
+      "name": "Anthropic Chat Model2",
+      "credentials": {
+        "anthropicApi": {
+          "id": "apeJVrkj31SjvSIR",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ======================================================================\n// KVADRÁNS SZÉTVÁLASZTÓ – ROBUSZTUS VERZIÓ\n// (kezeli az új és régi fejlécformákat is, pl. \"3. KVADRÁNS (bal alsó)\" vagy \"KVADRÁNS (bal alsó)\")\n// + Megjegyzes_fo blokk kinyerése\n// ======================================================================\n// 1) Forrás szöveg\nlet fullReport = $input.item.json.output ?? \"\";\n// 2) Normalizálás\nfullReport = fullReport\n  .replace(/\\\\n/g, \"\\n\")   // literal \"\\n\" -> newline\n  .replace(/\\r\\n/g, \"\\n\")  // CRLF -> LF\n  .trim();\n// 2/b) Megjegyzes_fo blokk kinyerése\n// Handles **Megjegyzes_fo:** (bold markdown) and plain Megjegyzes_fo:\n// Works whether the block appears before or after the quadrant sections\nlet megjegyzesFo = \"\";\nconst megjegyzesMatch = fullReport.match(\n  /\\*{0,2}Megjegyzes_fo:\\*{0,2}\\s*([\\s\\S]*?)(?=\\n---\\s*(?:END|$)|\\n##\\s*FOGAK|\\nFOGAK:|\\n###\\s*\\d+\\.?\\s*KVADRÁNS|\\n\\d+\\.?\\s*KVADRÁNS|$)/i\n);\nif (megjegyzesMatch) {\n  megjegyzesFo = `Megjegyzes_fo:\\n${megjegyzesMatch[1].trim()}`;\n}\n// 3) Rugalmas kvadráns-fejléc minták (### nélkül is működik)\nconst headingPatterns = {\n  q1: /(?:###\\s*)?(?:JOBB\\s+FELSŐ\\s+KVADRÁNS|1\\.?\\s*KVADRÁNS\\s*\\([^)]*\\)|KVADRÁNS\\s*\\(jobb felső\\))/i,\n  q2: /(?:###\\s*)?(?:BAL\\s+FELSŐ\\s+KVADRÁNS|2\\.?\\s*KVADRÁNS\\s*\\([^)]*\\)|KVADRÁNS\\s*\\(bal felső\\))/i,\n  q3: /(?:###\\s*)?(?:BAL\\s+ALSÓ\\s+KVADRÁNS|3\\.?\\s*KVADRÁNS\\s*\\([^)]*\\)|KVADRÁNS\\s*\\(bal alsó\\))/i,\n  q4: /(?:###\\s*)?(?:JOBB\\s+ALSÓ\\s+KVADRÁNS|4\\.?\\s*KVADRÁNS\\s*\\([^)]*\\)|KVADRÁNS\\s*\\(jobb alsó\\))/i,\n};\n// 4) Fejlécpozíciók keresése\nfunction findIndex(re) {\n  const m = fullReport.match(re);\n  if (!m) return -1;\n  return fullReport.indexOf(m[0]);\n}\nconst starts = [\n  { key: \"TEETHLQ1\", title: \"### 1. KVADRÁNS (jobb felső)\", idx: findIndex(headingPatterns.q1) },\n  { key: \"TEETHLQ2\", title: \"### 2. KVADRÁNS (bal felső)\",  idx: findIndex(headingPatterns.q2) },\n  { key: \"TEETHLQ3\", title: \"### 3. KVADRÁNS (bal alsó)\",   idx: findIndex(headingPatterns.q3) },\n  { key: \"TEETHLQ4\", title: \"### 4. KVADRÁNS (jobb alsó)\",  idx: findIndex(headingPatterns.q4) },\n];\n// 5) Létező kvadránsok kiválogatása és sorrendezése\nconst existing = starts\n  .filter(s => s.idx >= 0)\n  .sort((a, b) => a.idx - b.idx);\nconsole.log(\"Felismerve:\", existing.map(e => e.title));\n// Ha nincs egy sem, visszaadunk 4 üres ágat + Megjegyzes_fo-t\nif (existing.length === 0) {\n  return [\n    { json: { section: \"MEGJEGYZES_FO\", content: megjegyzesFo, length: megjegyzesFo.length } },\n    { json: { section: \"TEETHLQ1\", content: \"\", length: 0 } },\n    { json: { section: \"TEETHLQ2\", content: \"\", length: 0 } },\n    { json: { section: \"TEETHLQ3\", content: \"\", length: 0 } },\n    { json: { section: \"TEETHLQ4\", content: \"\", length: 0 } },\n  ];\n}\n// 6) Kivágás: kvadráns tartalom a saját címsorától a következőig\nfunction sliceSection(startIdx, nextStartIdxExclusive) {\n  const end = (nextStartIdxExclusive >= 0 ? nextStartIdxExclusive : fullReport.length);\n  return fullReport.slice(startIdx, end).trim();\n}\nconst resultsMap = {\n  TEETHLQ1: \"\",\n  TEETHLQ2: \"\",\n  TEETHLQ3: \"\",\n  TEETHLQ4: \"\",\n};\nfor (let i = 0; i < existing.length; i++) {\n  const cur = existing[i];\n  const next = existing[i + 1];\n  const raw = sliceSection(cur.idx, next ? next.idx : -1);\n  // Eltávolítjuk a saját fejlécet, majd egységes címet teszünk elé\n  const nl = raw.indexOf(\"\\n\");\n  const body = nl >= 0 ? raw.slice(nl + 1).trim() : \"\";\n  const finalText = `${cur.title}\\n\\n${body}`.trim();\n  resultsMap[cur.key] = finalText;\n}\n// 6b) Clean trailing Megjegyzes_fo / --- END --- from the last quadrant\nfor (const key of [\"TEETHLQ4\", \"TEETHLQ3\", \"TEETHLQ2\", \"TEETHLQ1\"]) {\n  if (resultsMap[key]) {\n    resultsMap[key] = resultsMap[key]\n      .replace(/\\n+---\\s*\\n+\\*{0,2}Megjegyzes_fo:\\*{0,2}[\\s\\S]*$/, \"\")\n      .replace(/\\n+---\\s*END\\s*---\\s*$/, \"\")\n      .trim();\n  }\n}\n// 7) Kimenet – Megjegyzes_fo + 4 kvadráns ág, még ha üres is\nconst out = [\n  { json: { section: \"MEGJEGYZES_FO\", content: megjegyzesFo, length: megjegyzesFo.length } },\n  { json: { section: \"TEETHLQ1\", content: resultsMap.TEETHLQ1, length: resultsMap.TEETHLQ1.length } },\n  { json: { section: \"TEETHLQ2\", content: resultsMap.TEETHLQ2, length: resultsMap.TEETHLQ2.length } },\n  { json: { section: \"TEETHLQ3\", content: resultsMap.TEETHLQ3, length: resultsMap.TEETHLQ3.length } },\n  { json: { section: \"TEETHLQ4\", content: resultsMap.TEETHLQ4, length: resultsMap.TEETHLQ4.length } },\n];\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        1168
+      ],
+      "id": "b17577cc-7e12-4501-9d5b-c7fb4e25f51e",
+      "name": "Code in JavaScript14"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2c6e8bcb-8d73-488d-802a-d1684a78159c",
+                    "leftValue": "={{ $json.section }}",
+                    "rightValue": "TEETHLQ1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d77b9cf5-ba43-4683-9849-792b07ad8ef4",
+                    "leftValue": "={{ $json.section }}",
+                    "rightValue": "TEETHLQ2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7e732c91-e2d9-4333-ac4d-08fbae62dbc5",
+                    "leftValue": "={{ $json.section }}",
+                    "rightValue": "TEETHLQ3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "03f50438-0d11-4511-8b9e-06106d7b9a6e",
+                    "leftValue": "={{ $json.section }}",
+                    "rightValue": "TEETHLQ4",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f291218f-e4aa-4027-9986-d18b7a66c9b3",
+                    "leftValue": "={{ $json.section }}",
+                    "rightValue": "MEGJEGYZES_FO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1872,
+        1136
+      ],
+      "id": "d338b4ad-4ec5-45d5-85ae-139e8fac7ed8",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// MERGE NODE (kód2) - Explicit Content Recovery v4.2\n// This version is \"stubborn\" about finding the MEGJEGYZES_FO content.\n\nconst inputs = $input.all();\nconst comprehensiveData = {};\nlet globalComment = \"\";\n\nconsole.log(`Merge Node: Analyzing ${inputs.length} inputs...`);\n\ninputs.forEach((input, index) => {\n    const data = input.json || {};\n\n    // 1. MANDATORY CHECK: Look for the specific 'section': 'MEGJEGYZES_FO' pattern\n    if (data.section === \"MEGJEGYZES_FO\" && data.content) {\n        console.log(`Input ${index}: Matched MEGJEGYZES_FO section!`);\n        let text = data.content.trim();\n        // Strip the \"Megjegyzes_fo:\\n\" label and trailing \"---\" the AI adds\n        text = text.replace(/^Megjegyzes_fo:\\s*/i, \"\").replace(/\\s*---\\s*$/, \"\").trim();\n        globalComment = globalComment ? `${globalComment}\\n${text}` : text;\n    }\n\n    // 2. BACKUP CHECK: Search for 'content' or 'megjegyzes_fo' in raw data\n    const searchIn = (obj) => {\n        if (!obj || typeof obj !== 'object') return;\n\n        for (const [key, value] of Object.entries(obj)) {\n            const lowKey = key.toLowerCase();\n\n            // If we find clinical megjegyzes keys\n            if (['megjegyzes_fo', 'megjegyzés_fo', 'megjegyzes_fo_'].includes(lowKey)) {\n                if (value && typeof value === 'string' && value.trim()) {\n                    globalComment = globalComment ? `${globalComment}\\n${value.trim()}` : value.trim();\n                }\n            }\n\n            // Tooth Data (2-digits)\n            if (/^\\d{2}$/.test(key) && value && typeof value === 'object') {\n                const hasRealData = Object.keys(value).some(k => k !== \"Megjegyzes\" && value[k] !== \"\" && value[k] !== false);\n                if (!comprehensiveData[key]) {\n                    comprehensiveData[key] = value;\n                } else if (hasRealData) {\n                    comprehensiveData[key] = { ...comprehensiveData[key], ...value };\n                }\n            }\n        }\n    };\n\n    searchIn(data);\n    if (data.body) searchIn(data.body);\n});\n\n// Final Check: Reach out to \"AI Agent 2\" if still empty\nif (!globalComment) {\n    try {\n        const agent = $items(\"AI Agent 2\")[0].json;\n        const text = agent.output || agent.content || \"\";\n        const match = text.match(/## Megjegyzes_fo:\\s*([\\s\\S]*?)(?:\\s*--- END ---|$)/i);\n        globalComment = match ? match[1].trim() : (text.includes(\"---\") ? text.trim() : \"\");\n    } catch (e) { }\n}\n\n// Ensure the key exists in the final object\ncomprehensiveData.MEGJEGYZES_FO = globalComment || \"\";\n\n// Add Metadata from Webhook\ntry {\n    const web = $items(\"Webhook\")[0].json;\n    const b = web.body || web;\n    comprehensiveData.metadata = {\n        domain: b.flexi_domain || b.domain,\n        paciensId: b.PaciensID,\n        email: b.flexi_username || b.flexi_email,\n        password: b.flexi_pw || b.flexi_password\n    };\n} catch (e) { }\n\nreturn [{ json: comprehensiveData }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        1168
+      ],
+      "id": "710bf757-e9e2-4810-beb9-a57d16120418",
+      "name": "kód2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3120,
+        1120
+      ],
+      "id": "8767a874-84ff-466a-8692-109742bd82a8",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sparse → Full JSON konverter (Smart Split + Megjegyzes + '..' fix)\nconst TOOTH_NUMBERS = [\"11\",\"12\",\"13\",\"14\",\"15\",\"16\",\"17\",\"18\"];\n\n// --- MAIN ---\nconst root = $input.first().json;\nconst sparseData = Array.isArray(root) ? root[0]?.parsed : root?.parsed;\n\nif (!sparseData || typeof sparseData !== 'object') {\n  console.warn('Nincs érvényes parsed objektum a bemenetben.');\n  return [{ json: {} }];\n}\n\nconst result = {};\n// 1) Inicializálás: minden fog kap üres objektumot és üres Megjegyzes-t\nfor (const n of TOOTH_NUMBERS) result[n] = { Megjegyzes: \"\" };\n\n// 2) Aktiv path-ok + Megjegyzes átvétele\nfor (const [toothNum, toothData] of Object.entries(sparseData)) {\n  if (!result[toothNum]) {\n    console.warn(`Ismeretlen fog szám: ${toothNum}`);\n    continue;\n  }\n\n  const activePaths = Array.isArray(toothData?.active_properties) ? toothData.active_properties : [];\n  for (const path of activePaths) {\n    try { setNestedProperty(result[toothNum], path, true); }\n    catch (err) { console.error(`Hiba a path beállításában: ${path} (fog: ${toothNum})`, err); }\n  }\n\n  const note = typeof toothData?.Megjegyzes === 'string' ? toothData.Megjegyzes.trim() : \"\";\n  result[toothNum].Megjegyzes = note;\n}\n\nreturn [{ json: result }];\n\n// --- HELPERS ---\n// Speciális split: kezeli a '..' mint elválasztót (top kulcs ponttal a végén),\n// és a 3. szintetől a pontok megmaradnak a végső kulcsban.\nfunction smartSplit(path) {\n  if (path.includes('..')) {\n    // Pl: \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\"\n    const idx = path.indexOf('..');\n    const top = path.slice(0, idx) + '.';      // \"Peripacialis_elv.\"\n    const rest = path.slice(idx + 2);          // \"Altalanos.Cysta_-_Periapicalis_elv.\"\n    const dot = rest.indexOf('.');\n    if (dot === -1) return [top, rest];        // ritka eset, de kezeljük\n    const second = rest.slice(0, dot);         // \"Altalanos\"\n    const tail = rest.slice(dot + 1);          // \"Cysta_-_Periapicalis_elv.\"\n    return [top, second, tail];\n  }\n\n  // Normál eset: első két rész külön, maradék egyben\n  const parts = path.split('.');\n  if (parts.length <= 2) return parts;\n  return [parts[0], parts[1], parts.slice(2).join('.')];\n}\n\nfunction setNestedProperty(obj, path, value) {\n  const keys = smartSplit(path);\n  let cur = obj;\n  for (let i = 0; i < keys.length - 1; i++) {\n    const k = keys[i];\n    if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};\n    cur = cur[k];\n  }\n  cur[keys[keys.length - 1]] = value;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        736
+      ],
+      "id": "059ef586-7c58-4291-be40-a474113bc277",
+      "name": "Code in JavaScript15"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sparse → Full JSON konverter (Smart Split + Megjegyzes + '..' fix)\nconst TOOTH_NUMBERS = [\"21\",\"22\",\"23\",\"24\",\"25\",\"26\",\"27\",\"28\"];\n\n// --- MAIN ---\nconst root = $input.first().json;\nconst sparseData = Array.isArray(root) ? root[0]?.parsed : root?.parsed;\n\nif (!sparseData || typeof sparseData !== 'object') {\n  console.warn('Nincs érvényes parsed objektum a bemenetben.');\n  return [{ json: {} }];\n}\n\nconst result = {};\n// 1) Inicializálás: minden fog kap üres objektumot és üres Megjegyzes-t\nfor (const n of TOOTH_NUMBERS) result[n] = { Megjegyzes: \"\" };\n\n// 2) Aktiv path-ok + Megjegyzes átvétele\nfor (const [toothNum, toothData] of Object.entries(sparseData)) {\n  if (!result[toothNum]) {\n    console.warn(`Ismeretlen fog szám: ${toothNum}`);\n    continue;\n  }\n\n  const activePaths = Array.isArray(toothData?.active_properties) ? toothData.active_properties : [];\n  for (const path of activePaths) {\n    try { setNestedProperty(result[toothNum], path, true); }\n    catch (err) { console.error(`Hiba a path beállításában: ${path} (fog: ${toothNum})`, err); }\n  }\n\n  const note = typeof toothData?.Megjegyzes === 'string' ? toothData.Megjegyzes.trim() : \"\";\n  result[toothNum].Megjegyzes = note;\n}\n\nreturn [{ json: result }];\n\n// --- HELPERS ---\n// Speciális split: kezeli a '..' mint elválasztót (top kulcs ponttal a végén),\n// és a 3. szintetől a pontok megmaradnak a végső kulcsban.\nfunction smartSplit(path) {\n  if (path.includes('..')) {\n    const idx = path.indexOf('..');\n    const top = path.slice(0, idx) + '.';\n    const rest = path.slice(idx + 2);\n    const dot = rest.indexOf('.');\n    if (dot === -1) return [top, rest];\n    const second = rest.slice(0, dot);\n    const tail = rest.slice(dot + 1);\n    return [top, second, tail];\n  }\n\n  const parts = path.split('.');\n  if (parts.length <= 2) return parts;\n  return [parts[0], parts[1], parts.slice(2).join('.')];\n}\n\nfunction setNestedProperty(obj, path, value) {\n  const keys = smartSplit(path);\n  let cur = obj;\n  for (let i = 0; i < keys.length - 1; i++) {\n    const k = keys[i];\n    if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};\n    cur = cur[k];\n  }\n  cur[keys[keys.length - 1]] = value;\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        1024
+      ],
+      "id": "0edac09b-497e-43dd-bcae-795f8beac847",
+      "name": "Code in JavaScript16"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sparse → Full JSON konverter (Smart Split + Megjegyzes + '..' fix)\nconst TOOTH_NUMBERS = [\"31\",\"32\",\"33\",\"34\",\"35\",\"36\",\"37\",\"38\"];\n\n// --- MAIN ---\nconst root = $input.first().json;\nconst sparseData = Array.isArray(root) ? root[0]?.parsed : root?.parsed;\n\nif (!sparseData || typeof sparseData !== 'object') {\n  console.warn('Nincs érvényes parsed objektum a bemenetben.');\n  return [{ json: {} }];\n}\n\nconst result = {};\n// 1) Inicializálás: minden fog kap üres objektumot és üres Megjegyzes-t\nfor (const n of TOOTH_NUMBERS) result[n] = { Megjegyzes: \"\" };\n\n// 2) Aktiv path-ok + Megjegyzes átvétele\nfor (const [toothNum, toothData] of Object.entries(sparseData)) {\n  if (!result[toothNum]) {\n    console.warn(`Ismeretlen fog szám: ${toothNum}`);\n    continue;\n  }\n\n  const activePaths = Array.isArray(toothData?.active_properties) ? toothData.active_properties : [];\n  for (const path of activePaths) {\n    try { setNestedProperty(result[toothNum], path, true); }\n    catch (err) { console.error(`Hiba a path beállításában: ${path} (fog: ${toothNum})`, err); }\n  }\n\n  const note = typeof toothData?.Megjegyzes === 'string' ? toothData.Megjegyzes.trim() : \"\";\n  result[toothNum].Megjegyzes = note;\n}\n\nreturn [{ json: result }];\n\n// --- HELPERS ---\n// Speciális split: kezeli a '..' mint elválasztót (top kulcs ponttal a végén),\n// és a 3. szinttől a pontok megmaradnak a végső kulcsban.\nfunction smartSplit(path) {\n  if (path.includes('..')) {\n    // Pl: \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\"\n    const idx = path.indexOf('..');\n    const top = path.slice(0, idx) + '.';      // \"Peripacialis_elv.\"\n    const rest = path.slice(idx + 2);          // \"Altalanos.Cysta_-_Periapicalis_elv.\"\n    const dot = rest.indexOf('.');\n    if (dot === -1) return [top, rest];\n    const second = rest.slice(0, dot);         // \"Altalanos\"\n    const tail = rest.slice(dot + 1);          // \"Cysta_-_Periapicalis_elv.\"\n    return [top, second, tail];\n  }\n\n  const parts = path.split('.');\n  if (parts.length <= 2) return parts;\n  return [parts[0], parts[1], parts.slice(2).join('.')];\n}\n\nfunction setNestedProperty(obj, path, value) {\n  const keys = smartSplit(path);\n  let cur = obj;\n  for (let i = 0; i < keys.length - 1; i++) {\n    const k = keys[i];\n    if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};\n    cur = cur[k];\n  }\n  cur[keys[keys.length - 1]] = value;\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        1344
+      ],
+      "id": "09ff45e4-b9d7-4dd0-b964-2a36481ea28b",
+      "name": "Code in JavaScript17"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sparse → Full JSON konverter (Smart Split + Megjegyzes + '..' fix)\nconst TOOTH_NUMBERS = [\"41\",\"42\",\"43\",\"44\",\"45\",\"46\",\"47\",\"48\"];\n\n// --- MAIN ---\nconst root = $input.first().json;\nconst sparseData = Array.isArray(root) ? root[0]?.parsed : root?.parsed;\n\nif (!sparseData || typeof sparseData !== 'object') {\n  console.warn('Nincs érvényes parsed objektum a bemenetben.');\n  return [{ json: {} }];\n}\n\nconst result = {};\n// 1) Inicializálás: minden fog kap üres objektumot és üres Megjegyzes-t\nfor (const n of TOOTH_NUMBERS) result[n] = { Megjegyzes: \"\" };\n\n// 2) Aktív path-ok + Megjegyzes átvétele\nfor (const [toothNum, toothData] of Object.entries(sparseData)) {\n  if (!result[toothNum]) {\n    console.warn(`Ismeretlen fog szám: ${toothNum}`);\n    continue;\n  }\n\n  const activePaths = Array.isArray(toothData?.active_properties) ? toothData.active_properties : [];\n  for (const path of activePaths) {\n    try { setNestedProperty(result[toothNum], path, true); }\n    catch (err) { console.error(`Hiba a path beállításában: ${path} (fog: ${toothNum})`, err); }\n  }\n\n  const note = typeof toothData?.Megjegyzes === 'string' ? toothData.Megjegyzes.trim() : \"\";\n  result[toothNum].Megjegyzes = note;\n}\n\nreturn [{ json: result }];\n\n// --- HELPERS ---\n// Speciális split: kezeli a '..' elválasztót (top kulcs ponttal a végén),\n// és a 3. szinttől a pontok megmaradnak a végső kulcsban.\nfunction smartSplit(path) {\n  if (path.includes('..')) {\n    // Pl.: \"Peripacialis_elv..Altalanos.Cysta_-_Periapicalis_elv.\"\n    const idx = path.indexOf('..');\n    const top = path.slice(0, idx) + '.';      // \"Peripacialis_elv.\"\n    const rest = path.slice(idx + 2);          // \"Altalanos.Cysta_-_Periapicalis_elv.\"\n    const dot = rest.indexOf('.');\n    if (dot === -1) return [top, rest];\n    const second = rest.slice(0, dot);         // \"Altalanos\"\n    const tail = rest.slice(dot + 1);          // \"Cysta_-_Periapicalis_elv.\"\n    return [top, second, tail];\n  }\n\n  const parts = path.split('.');\n  if (parts.length <= 2) return parts;\n  return [parts[0], parts[1], parts.slice(2).join('.')];\n}\n\nfunction setNestedProperty(obj, path, value) {\n  const keys = smartSplit(path);\n  let cur = obj;\n  for (let i = 0; i < keys.length - 1; i++) {\n    const k = keys[i];\n    if (!cur[k] || typeof cur[k] !== 'object') cur[k] = {};\n    cur = cur[k];\n  }\n  cur[keys[keys.length - 1]] = value;\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        1648
+      ],
+      "id": "55d3ca08-1e19-45fc-a84e-3a87b109ca1c",
+      "name": "Code in JavaScript18"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/speech-to-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_e1720b56c54fe47521a43eb67b4fcce8005ea938523d7f93"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model_id",
+              "value": "scribe_v1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language_code",
+              "value": "hu"
+            },
+            {
+              "name": "diarize",
+              "value": "true"
+            },
+            {
+              "name": "timestamp_granularity",
+              "value": "word"
+            },
+            {
+              "name": "audio_events",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        1168
+      ],
+      "id": "fb183cd1-32e2-4560-b881-95b8d617bfda",
+      "name": "TRANSCRIBER1",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "4wHdNjeXEhOX9KTC",
+          "name": "Unnamed credential"
+        },
+        "httpHeaderAuth": {
+          "id": "L7nKhLAzXCatOwoI",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=python3 /data/playground/TreatNote/SCRIPTS/status.py \"{{ $json.body.flexi_domain }}\" \"{{ $json.body.PaciensID }}\" '{{ JSON.stringify($json) }}' \"{{ $json.body.flexi_username }}\" \"{{ $json.body.flexi_pw }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        4128,
+        992
+      ],
+      "id": "f14f9299-3956-4e15-9235-1d460e46c2e9",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3840,
+        384
+      ],
+      "id": "b1b80dbf-1954-494a-9677-e06c2d4432d2",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "TRANSCRIBER1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEETH_Q3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEETH1_Q10": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEETH1_Q11": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEETH1_Q12": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript18",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript14": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "TEETH_Q3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TEETH1_Q10",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TEETH1_Q11",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TEETH1_Q12",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "kód2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "kód2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript15": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript16": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript17": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript18": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "TRANSCRIBER1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0b69b0e7-6f59-403b-b39f-afafb1643d6b",
+  "meta": {
+    "instanceId": "a467753d3ff1af68b9841244d5a4bfb1283e2488e4d73b25b266bac76a02aa8b"
+  },
+  "id": "FcNLa4ZLohU9GfLK",
+  "tags": []
+}
