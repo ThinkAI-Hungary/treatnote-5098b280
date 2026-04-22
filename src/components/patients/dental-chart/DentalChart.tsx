@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { ToothModel } from './types';
 import { ZsigmondyCross } from './ZsigmondyCross';
 import { ToothEditorPanel } from './ToothEditorPanel';
-import { ToothHistoryDialog } from './ToothHistoryDialog';
 import { mapVoxisToModels } from './voxisMapper';
 import { History } from 'lucide-react';
 
@@ -20,7 +19,6 @@ export function DentalChart({ patientId }: { patientId: string }) {
   const [data, setData] = useState<Record<string, ToothModel>>({});
   const [loading, setLoading] = useState(true);
   const [showBabyTeeth, setShowBabyTeeth] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
   const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
 
@@ -153,12 +151,6 @@ export function DentalChart({ patientId }: { patientId: string }) {
           <CardDescription>
             Kattintson egy fogra az állapot és felületek módosításához.
           </CardDescription>
-          <div className="mt-3">
-            <Button variant="outline" size="sm" onClick={() => setShowHistory(true)} className="text-muted-foreground hover:text-primary h-8">
-              <History className="w-3.5 h-3.5 mr-2" />
-              Történet
-            </Button>
-          </div>
         </div>
         <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border shadow-sm">
           <Switch 
@@ -179,11 +171,7 @@ export function DentalChart({ patientId }: { patientId: string }) {
         </div>
       </CardContent>
 
-      <ToothHistoryDialog 
-        patientId={patientId} 
-        isOpen={showHistory} 
-        onOpenChange={setShowHistory} 
-      />
+
 
       {selectedTooth && (
         <div className="px-4 pb-4 sm:px-6 sm:pb-6">

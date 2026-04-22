@@ -25,6 +25,7 @@ interface NativeVoiceJobHistoryProps {
   selectedJobId: string | null;
   onSelectJob: (job: VoiceJob) => void;
   onJobTerminated?: () => void;
+  className?: string;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -410,7 +411,7 @@ function HistoryPopup({
 }
 
 // ─── Main export ───
-export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, onJobTerminated }: NativeVoiceJobHistoryProps) {
+export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelectJob, onJobTerminated, className }: NativeVoiceJobHistoryProps) {
   const [terminatingJobId, setTerminatingJobId] = useState<string | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
 
@@ -433,7 +434,7 @@ export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelect
 
   if (isLoading) {
     return (
-      <Card className="h-full">
+      <Card className={cn("h-full", className)}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4" />
@@ -450,7 +451,7 @@ export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelect
   const sidebarJobs = jobs.slice(0, SIDEBAR_CAP);
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className={cn("h-full flex flex-col", className)}>
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-base flex items-center gap-2">
           <Clock className="h-4 w-4" />

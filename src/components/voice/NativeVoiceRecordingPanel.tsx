@@ -35,7 +35,8 @@ export function NativeVoiceRecordingPanel({
   onJobStarted,
   onJobComplete,
   onJobError,
-}: NativeVoiceRecordingPanelProps) {
+  className
+}: NativeVoiceRecordingPanelProps & { className?: string }) {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { flexiDomain } = useSzotar();
@@ -188,7 +189,7 @@ export function NativeVoiceRecordingPanel({
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("flex flex-col gap-6 h-full w-full", className)}>
       <Card className="shrink-0">
         <CardHeader>
           <CardTitle>Felvétel készítése</CardTitle>
@@ -277,7 +278,7 @@ export function NativeVoiceRecordingPanel({
         </CardContent>
       </Card>
 
-      <Card className={cn("shrink-0", !audioUrl ? 'opacity-50 pointer-events-none' : '')}>
+      <Card className={cn("flex-1 flex flex-col min-h-0", !audioUrl ? 'opacity-50 pointer-events-none' : '')}>
         <CardHeader>
           <CardTitle>Visszajátszás</CardTitle>
           <CardDescription>

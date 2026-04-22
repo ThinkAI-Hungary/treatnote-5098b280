@@ -20,6 +20,7 @@ import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
 import VoiceRecording from '@/pages/VoiceRecording';
 import { isVoxisJob } from '@/lib/voxisUtils';
+import { PatientHistoryPanel } from '@/components/patients/history/PatientHistoryPanel';
 
 export default function PatientProfile() {
   const { id } = useParams();
@@ -164,20 +165,20 @@ export default function PatientProfile() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* COL 1: Voice History & Verdict (Left side) */}
         <div 
-          className="lg:col-span-3 xl:col-span-3 flex flex-col gap-6 min-w-0 lg:sticky lg:top-4 transition-all duration-300"
-          ref={leftColumnRef}
+          className="lg:col-span-3 xl:col-span-3 flex flex-col gap-6 min-w-0 transition-all duration-300"
         >
-          <div className="w-full h-full">
+          <div className="w-full h-full flex flex-col">
             <NativeVoiceJobHistory
               jobs={unifiedJobs as any}
               isLoading={unifiedLoading}
               selectedJobId={selectedNativeJobId}
               onSelectJob={(j) => setSelectedNativeJobId(j.id)}
               onJobTerminated={unifiedRefetch}
+              className="flex-1"
             />
           </div>
         </div>
@@ -297,10 +298,14 @@ export default function PatientProfile() {
               )}
             </CardContent>
           </Card>
+          
+          <div className="flex-1 flex flex-col min-h-[420px]">
+            <PatientHistoryPanel patientId={patient.id} />
+          </div>
         </div>
 
         {/* COL 3: Felvétel készítése panel (Right side) */}
-        <div className="lg:col-span-3 xl:col-span-3 shrink-0 lg:sticky lg:top-4" ref={rightColumnRef}>
+        <div className="lg:col-span-3 xl:col-span-3 shrink-0 transition-all duration-300 flex flex-col h-full">
           <NativeVoiceRecordingPanel 
             treatnotePatientId={patient.id}
             isFlexi={pref === 'flexident'}
@@ -313,6 +318,7 @@ export default function PatientProfile() {
               setSelectedNativeJobId(jobId);
               unifiedRefetch();
             }}
+            className="flex-1"
           />
         </div>
       </div>

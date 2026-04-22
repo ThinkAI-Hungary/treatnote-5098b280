@@ -56,9 +56,11 @@ export function TreatnoteReviewPanel({
     return Array.from(grouped.entries()).map(([v, items]) => {
       // Sort items within visit: fog null (szájüreg) items first, then by tooth number
       const sortedItems = [...items].sort((a, b) => {
-        if (!a.fog && b.fog) return -1;
-        if (a.fog && !b.fog) return 1;
-        if (a.fog && b.fog) {
+        const aIsSzajureg = !a.fog || a.fog === 'szájüreg';
+        const bIsSzajureg = !b.fog || b.fog === 'szájüreg';
+        if (aIsSzajureg && !bIsSzajureg) return -1;
+        if (!aIsSzajureg && bIsSzajureg) return 1;
+        if (a.fog && b.fog && !aIsSzajureg && !bIsSzajureg) {
           return parseInt(a.fog) - parseInt(b.fog);
         }
         return 0;
@@ -224,7 +226,7 @@ export function TreatnoteReviewPanel({
                                       <Badge variant="destructive" className="uppercase text-[10px] tracking-wider">Nincs pontos árlista találat</Badge>
                                    )}
                                 </div>
-                                {item.fog ? (
+                                {item.fog && item.fog !== 'szájüreg' ? (
                                    <div className="flex gap-1 flex-wrap justify-end">
                                       <Badge variant="outline" className={cn(
                                          "font-mono font-bold text-xs",

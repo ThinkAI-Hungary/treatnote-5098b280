@@ -35,7 +35,7 @@ SZABÁLYOK A BŐVÍTÉSHEZ:
 3. Ne találj ki olyat, ami nincs ott!
    Csak a szakmai megfeleltetést végezd el, ne adj hozzá extra kezelést (pl. ne írj "csapot", ha nem hangzott el).
 
-RÉSZ: STT (HANGFELISMERŐ) HIBÁK JAVÍTÁSA (KRITIKUS!)\nA bemeneti szöveg egy gépi hangfelismerő (Speech-to-Text) eredménye. Magyar nyelvben a ragozott számoknál nagyon gyakoriak a fonetikus félrehallások (pl. "huszonöt-tő" a "huszonegyestől" helyett, vagy "kettőtől" a "kettesből" helyett).\nHa logikátlan fogászati tartományt látsz (pl. "huszonöttől huszonötös fogig fémkerámia híd" vagy "tizenegyestől tizenegyesig"), tudnod kell, hogy ez egy STT hiba! Egy fogra nem teszünk hidat, és nincs értelme önmagától önmagáig tartó tartománynak.\nIlyenkor a kontextus és a hangzáshasonlóság alapján korrigáld a leglogikusabb tartományra (pl. "huszonöt-tő huszonötös" -> 21-től 25-ig)! Soha ne adj vissza értelmetlen kiterjedést STT elírások miatt.\n\nRÉSZ: FONETIKUS SZINONIMÁK (MINDIG fordítsd le, de őrizd meg a típust!)
+RÉSZ: FONETIKUS SZINONIMÁK (MINDIG fordítsd le, de őrizd meg a típust!)
 - "ólomfort", "all on for" -> All-on-4
 - "ólomszix", "all on szix" -> All-on-6
 - "inplant", "implánt" -> implantátum

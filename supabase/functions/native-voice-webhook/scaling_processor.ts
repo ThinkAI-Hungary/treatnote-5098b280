@@ -144,8 +144,7 @@ function expandArchToTeeth(archId, protocolType, itemName, scaling) {
 
 // ============ PER_CASE REPRESENTATIVE TOOTH ============
 function perCaseReprezentativFog(index) {
-    const mod = ((index % 4) + 4) % 4;
-    return String(11 + mod * 10);
+    return "szájüreg";
 }
 
 // ============ HIDTAG FILTER ============
