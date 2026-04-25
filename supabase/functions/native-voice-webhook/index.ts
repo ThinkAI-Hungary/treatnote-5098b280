@@ -4,6 +4,7 @@ import { logErrorToDatabase } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
 import { processVoxisInternally } from "./process-statusz-internal.ts";
 import { processTreatnoteInternally } from "./process-treatnote-internal.ts";
+import { processAmbulansInternally } from "./process-ambulans-internal.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -139,29 +140,15 @@ serve(async (req) => {
     const elevenlabsApiKey = Deno.env.get("ELEVENLABS_API_KEY");
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     
+    const apiKeys = { openai: openaiApiKey || "", elevenlabs: elevenlabsApiKey || "", anthropic: anthropicApiKey || "" };
+    const ctx = { userId, companyId, telephelyId, logErrorToDatabase };
     let backgroundProcessing;
     if (mode === 'treatnote') {
-      backgroundProcessing = processTreatnoteInternally(jobId, audio, supabaseAdmin, {
-        openai: openaiApiKey || "",
-        elevenlabs: elevenlabsApiKey || "",
-        anthropic: anthropicApiKey || ""
-      }, {
-        userId,
-        companyId,
-        telephelyId,
-        logErrorToDatabase
-      }, overrideTranscript);
+      backgroundProcessing = processTreatnoteInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
+    } else if (mode === 'ambulans') {
+      backgroundProcessing = processAmbulansInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
     } else {
-      backgroundProcessing = processVoxisInternally(jobId, audio, supabaseAdmin, {
-        openai: openaiApiKey || "",
-        elevenlabs: elevenlabsApiKey || "",
-        anthropic: anthropicApiKey || ""
-      }, {
-        userId,
-        companyId,
-        telephelyId,
-        logErrorToDatabase
-      }, overrideTranscript);
+      backgroundProcessing = processVoxisInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
     }
 
     // Use EdgeRuntime.waitUntil to process in background

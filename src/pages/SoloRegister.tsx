@@ -77,7 +77,7 @@ export default function SoloRegister() {
             }
             if (data?.error) throw new Error(data.error);
 
-            toast.success('Sikeres regisztráció! Kérjük erősítse meg email címét.');
+            toast.success('Sikeres regisztráció! Megerősítő email elküldve.');
             setRegisteredEmail(email);
             setRegistered(true);
         } catch (err: any) {

@@ -381,6 +381,7 @@ interface VerdiktDisplayProps {
 
 import { isVoxisJob } from '@/lib/voxisUtils';
 import { TreatnoteReviewPanel } from '../patients/dental-chart/TreatnoteReviewPanel';
+import { AmbulansllapReviewPanel } from '../patients/ambulans/AmbulansllapReviewPanel';
 
 export function VerdiktDisplay({
   isLoading,
@@ -408,7 +409,7 @@ export function VerdiktDisplay({
     return selectedJobMode;
   }, [selectedJobMode, responseData]);
 
-  const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis' || effectiveJobMode === 'treatnote', [payload, effectiveJobMode]);
+  const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis' || effectiveJobMode === 'treatnote' || effectiveJobMode === 'ambulans', [payload, effectiveJobMode]);
   
   const [complaints, setComplaints] = useState<{ id: string; complaint_text: string, created_at: string, users?: { full_name: string } }[]>([]);
   const [localProgress, setLocalProgress] = useState(0);
@@ -507,7 +508,7 @@ export function VerdiktDisplay({
             </CardTitle>
             <CardDescription>
               {isSelectedJob
-                ? `${effectiveJobMode === 'voxis' ? 'STÁTUSZFELVÉTEL' : effectiveJobMode === 'treatnote' ? 'KEZELÉSI TERV' : (effectiveJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
+                ? `${effectiveJobMode === 'voxis' ? 'STÁTUSZFELVÉTEL' : effectiveJobMode === 'treatnote' ? 'KEZELÉSI TERV' : effectiveJobMode === 'ambulans' ? 'AMBULÁNS LAP' : (effectiveJobMode || '').toUpperCase()} - Páciens #${selectedJobPaciensId || 'N/A'}`
                 : 'A feldolgozás eredménye'
               }
             </CardDescription>
@@ -610,10 +611,10 @@ export function VerdiktDisplay({
             <p className="text-sm text-muted-foreground mt-2">{selectedJobError}</p>
           </div>
         ) : isThreePanel ? (
-          <Tabs defaultValue={effectiveJobMode === 'voxis' ? 'textual' : 'original'} className="w-full">
+          <Tabs defaultValue={effectiveJobMode === 'voxis' || effectiveJobMode === 'ambulans' ? 'textual' : 'original'} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="original">Eredeti szöveg</TabsTrigger>
-              {effectiveJobMode !== 'voxis' && (
+              {effectiveJobMode !== 'voxis' && effectiveJobMode !== 'ambulans' && (
                 <TabsTrigger value="semantic">Szabály találatok</TabsTrigger>
               )}
               <TabsTrigger value="textual">Kitöltés</TabsTrigger>
@@ -622,7 +623,7 @@ export function VerdiktDisplay({
               <TabsContent value="original">
                 <OriginalTextPanel text={rawAudioText || claudeCleanedText || payload?.kezdeti_szoveg || payload?.tisztitott_szoveg || payload?.transcriber?.text} />
               </TabsContent>
-              {effectiveJobMode !== 'voxis' && (
+              {effectiveJobMode !== 'voxis' && effectiveJobMode !== 'ambulans' && (
                 <TabsContent value="semantic">
                   <SemanticMatcherPanel report={responseData?.execution_report_human || payload?.execution_report_human} />
                 </TabsContent>
@@ -637,6 +638,8 @@ export function VerdiktDisplay({
                     resultJson={payload}
                     isNewest={true}
                   />
+                ) : effectiveJobMode === 'ambulans' ? (
+                  <AmbulansllapReviewPanel resultJson={responseData as any} />
                 ) : (
                   <TextualListPanel text={effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) : payload?.szoveges_lista} />
                 )}

@@ -170,6 +170,7 @@ export function AppSidebar() {
   const [memberships, setMemberships] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
   const [loadingMemberships, setLoadingMemberships] = useState(false);
+  const [membershipRefreshTrigger, setMembershipRefreshTrigger] = useState(0);
   // Graceful shimmer: stays visible until animation cycle ends, then fades out
   const [showShimmer, setShowShimmer] = useState(false);
   const [shimmerFading, setShimmerFading] = useState(false);
@@ -417,7 +418,7 @@ export function AppSidebar() {
       // Try with company join first
       const { data: telephelyData, error: telError } = await supabase
         .from('telephely')
-        .select('id, name, company_id, company:companies(name)')
+        .select('id, name, display_name, company_id, company:companies(name, display_name)')
         .in('id', telephelyIds);
 
       if (telError) {
@@ -442,7 +443,8 @@ export function AppSidebar() {
             ...m,
             telephely: {
               name: t?.name || 'Unknown',
-              company: { name: 'TreatNote' } // Fallback company name
+              display_name: null,
+              company: { name: 'TreatNote', display_name: null } // Fallback company name
             }
           };
         });
@@ -458,7 +460,8 @@ export function AppSidebar() {
           ...m,
           telephely: {
             name: t?.name || 'Unknown',
-            company: t?.company || { name: 'TreatNote' }
+            display_name: (t as any)?.display_name || null,
+            company: t?.company || { name: 'TreatNote', display_name: null }
           }
         };
       });
@@ -499,7 +502,7 @@ export function AppSidebar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, (profile as any)?.current_telephely_id]);
+  }, [user, (profile as any)?.current_telephely_id, membershipRefreshTrigger]);
 
   // Listen for membership change event (invitation accepted) and poll for new membership
   useEffect(() => {
@@ -572,6 +575,13 @@ export function AppSidebar() {
     };
   }, [user, addNotification]);
 
+  // Re-fetch memberships when the profile page saves display name changes
+  useEffect(() => {
+    const handler = () => setMembershipRefreshTrigger(t => t + 1);
+    window.addEventListener('profile-saved', handler);
+    return () => window.removeEventListener('profile-saved', handler);
+  }, []);
+
   const handleSwitchTelephely = async (telephelyId: string) => {
     if (telephelyId === (profile as any)?.current_telephely_id) return;
 
@@ -601,8 +611,15 @@ export function AppSidebar() {
     currentMembership = memberships[0];
   }
 
-  const currentOrgName = currentMembership?.telephely?.company?.name || 'TreatNote';
-  const currentTelephelyName = currentMembership?.telephely?.name || '-';
+  // Strip trailing numeric suffix from slugs (e.g. "zombori.mark-4" → "zombori.mark")
+  const stripSuffix = (s: string) => s.replace(/-\d+$/, '');
+
+  const currentOrgName = (currentMembership?.telephely?.company as any)?.display_name
+    || stripSuffix(currentMembership?.telephely?.company?.name || '')
+    || '—';
+  const currentTelephelyName = (currentMembership?.telephely as any)?.display_name
+    || stripSuffix((currentMembership?.telephely as any)?.name || '')
+    || '—';
 
   const handleFlexiLinkClick = useCallback(() => {
     navigate('/profile?openFlexi=true');

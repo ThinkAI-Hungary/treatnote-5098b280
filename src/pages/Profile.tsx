@@ -84,9 +84,11 @@ interface ProfileData {
   full_name: string;
   phone: string;
   company_id: string | null;
-  company_name: string | null;
+  company_name: string | null;       // internal slug – never shown
+  company_display_name: string;      // user-facing editable name
   telephely_id: string | null;
-  telephely_name: string | null;
+  telephely_name: string | null;     // internal slug – never shown
+  telephely_display_name: string;    // user-facing editable name
   flexi_domain: string | null;
   voice_recording_preference: 'flexident' | 'treatnote_native' | null;
 }
@@ -100,6 +102,7 @@ const Profile = () => {
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [flexiAuth, setFlexiAuth] = useState<FlexiAuth | null>(null);
   const [unlinking, setUnlinking] = useState(false);
+  const [isSolo, setIsSolo] = useState(false);
   const { isKlinikaAdmin, loading: klinikaAdminLoading } = useKlinikaAdminRole();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const [profile, setProfile] = useState<ProfileData>({
@@ -107,8 +110,10 @@ const Profile = () => {
     phone: '',
     company_id: null,
     company_name: null,
+    company_display_name: '',
     telephely_id: null,
     telephely_name: null,
+    telephely_display_name: '',
     flexi_domain: null,
     voice_recording_preference: null,
   });
@@ -152,18 +157,25 @@ const Profile = () => {
     }
   }, [searchParams, flexiAuth, setSearchParams]);
 
+  // Strip trailing numeric suffix from slugs (e.g. "zombori.mark-4" → "zombori.mark")
+  const stripSuffix = (s: string | null) => (s || '').replace(/-\d+$/, '');
+
   const loadProfile = async (): Promise<string | null> => {
     if (!user) return null;
 
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, phone, company_id, telephely_id, current_telephely_id, voice_recording_preference')
+      .select('full_name, phone, company_id, telephely_id, current_telephely_id, voice_recording_preference, is_solo')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (data) {
+      setIsSolo(!!(data as any).is_solo);
+
       let companyName: string | null = null;
+      let companyDisplayName = '';
       let telephelyName: string | null = null;
+      let telephelyDisplayName = '';
       let flexiDomain: string | null = null;
       let resolvedCompanyId = data.company_id;
       // Prefer current_telephely_id (active) over telephely_id (home)
@@ -183,24 +195,26 @@ const Profile = () => {
         }
       }
 
-      // Fetch company name if company_id exists
+      // Fetch company name + display_name if company_id exists
       if (resolvedCompanyId) {
         const { data: companyData } = await supabase
           .from('companies')
-          .select('name')
+          .select('name, display_name')
           .eq('id', resolvedCompanyId)
           .single();
         companyName = companyData?.name || null;
+        companyDisplayName = (companyData as any)?.display_name || '';
       }
 
-      // Fetch telephely name and flexi_domain if telephely_id exists
+      // Fetch telephely name + display_name and flexi_domain if telephely_id exists
       if (resolvedTelephelyId) {
         const { data: telephelyData } = await supabase
           .from('telephely')
-          .select('name, flexi_domain, company_id')
+          .select('name, display_name, flexi_domain, company_id')
           .eq('id', resolvedTelephelyId)
           .single();
         telephelyName = telephelyData?.name || null;
+        telephelyDisplayName = (telephelyData as any)?.display_name || '';
         flexiDomain = telephelyData?.flexi_domain || null;
 
         // If no company resolved yet, get it from the telephely
@@ -208,10 +222,11 @@ const Profile = () => {
           resolvedCompanyId = telephelyData.company_id;
           const { data: companyData } = await supabase
             .from('companies')
-            .select('name')
+            .select('name, display_name')
             .eq('id', resolvedCompanyId)
             .single();
           companyName = companyData?.name || null;
+          companyDisplayName = (companyData as any)?.display_name || '';
         }
       }
 
@@ -220,8 +235,10 @@ const Profile = () => {
         phone: data.phone || '',
         company_id: resolvedCompanyId,
         company_name: companyName,
+        company_display_name: companyDisplayName,
         telephely_id: resolvedTelephelyId,
         telephely_name: telephelyName,
+        telephely_display_name: telephelyDisplayName,
         flexi_domain: flexiDomain,
         voice_recording_preference: data.voice_recording_preference as any || 'treatnote_native',
       });
@@ -289,19 +306,40 @@ const Profile = () => {
 
     setLoading(true);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: profile.full_name,
-        phone: profile.phone,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
+    const promises: Promise<any>[] = [
+      supabase
+        .from('profiles')
+        .update({ full_name: profile.full_name, phone: profile.phone, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id),
+    ];
 
-    if (error) {
-      toast.error(error.message);
+    // Solo klinika admin: save display names
+    if (isSolo && isKlinikaAdmin) {
+      if (profile.company_id) {
+        promises.push(
+          supabase.from('companies')
+            .update({ display_name: profile.company_display_name || null } as any)
+            .eq('id', profile.company_id)
+        );
+      }
+      if (profile.telephely_id) {
+        promises.push(
+          supabase.from('telephely')
+            .update({ display_name: profile.telephely_display_name || null } as any)
+            .eq('id', profile.telephely_id)
+        );
+      }
+    }
+
+    const results = await Promise.all(promises);
+    const hasError = results.some((r) => r.error);
+
+    if (hasError) {
+      toast.error('Hiba a mentés során');
     } else {
       toast.success('Profil sikeresen frissítve');
+      // Notify sidebar to re-fetch company/telephely display names
+      window.dispatchEvent(new CustomEvent('profile-saved'));
     }
 
     setLoading(false);
@@ -382,19 +420,29 @@ const Profile = () => {
               />
             </div>
 
-            {/* Company - Read Only */}
+            {/* Company - editable display name for solo klinika admin, read-only otherwise */}
             <div className="space-y-2">
               <Label htmlFor="company" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                Cég neve
+                Klinika neve
               </Label>
-              <Input
-                id="company"
-                type="text"
-                value={profile.company_name || 'Nincs hozzárendelve'}
-                disabled
-                className="bg-muted"
-              />
+              {isSolo && isKlinikaAdmin ? (
+                <Input
+                  id="company"
+                  type="text"
+                  placeholder={stripSuffix(profile.company_name) || 'Pl. Kovács Fogászat'}
+                  value={profile.company_display_name}
+                  onChange={(e) => setProfile({ ...profile, company_display_name: e.target.value })}
+                />
+              ) : (
+                <Input
+                  id="company"
+                  type="text"
+                  value={profile.company_display_name || stripSuffix(profile.company_name) || (profile.company_id ? '—' : 'Nincs hozzárendelve')}
+                  disabled
+                  className="bg-muted"
+                />
+              )}
               {!profile.company_id && (
                 <p className="text-xs text-muted-foreground">
                   A cég hozzárendelést egy admin vagy klinika admin végezheti el.
@@ -402,19 +450,29 @@ const Profile = () => {
               )}
             </div>
 
-            {/* Telephely - Read Only */}
+            {/* Telephely - editable display name for solo klinika admin, read-only otherwise */}
             <div className="space-y-2">
               <Label htmlFor="telephely" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                Telephely
+                Telephely neve
               </Label>
-              <Input
-                id="telephely"
-                type="text"
-                value={profile.telephely_name || 'Nincs hozzárendelve'}
-                disabled
-                className="bg-muted"
-              />
+              {isSolo && isKlinikaAdmin ? (
+                <Input
+                  id="telephely"
+                  type="text"
+                  placeholder={stripSuffix(profile.telephely_name) || 'Pl. Budapest I. kerület'}
+                  value={profile.telephely_display_name}
+                  onChange={(e) => setProfile({ ...profile, telephely_display_name: e.target.value })}
+                />
+              ) : (
+                <Input
+                  id="telephely"
+                  type="text"
+                  value={profile.telephely_display_name || stripSuffix(profile.telephely_name) || (profile.telephely_id ? '—' : 'Nincs hozzárendelve')}
+                  disabled
+                  className="bg-muted"
+                />
+              )}
               {!profile.telephely_id && (
                 <p className="text-xs text-muted-foreground">
                   A telephely hozzárendelést egy admin vagy klinika admin végezheti el.

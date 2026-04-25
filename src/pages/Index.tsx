@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/ThemeProvider';
 import { Stethoscope, ArrowRight, LogIn, Moon, Sun } from 'lucide-react';
@@ -19,10 +20,21 @@ const lightStyle = {
 
 const Index = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { resolvedTheme, setTheme } = useTheme();
   const dark = resolvedTheme === 'dark';
 
+  // Ha be van jelentkezve, azonnal a dashboardra irányítjuk
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const btnStyle = dark ? galaxyStyle : lightStyle;
+
+  // Betöltés alatt ne villanjon fel a landing page
+  if (user) return null;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">

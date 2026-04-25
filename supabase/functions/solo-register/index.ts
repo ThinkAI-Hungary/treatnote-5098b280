@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logErrorToDatabase } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sendBrevoEmail, buildConfirmationEmail } from "../_shared/brevo.ts";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -115,7 +116,6 @@ serve(async (req) => {
 
         const displayName = full_name?.trim() || email.split("@")[0];
 
-        const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
             auth: { autoRefreshToken: false, persistSession: false },
         });
@@ -133,28 +133,34 @@ serve(async (req) => {
 
         const origin = req.headers.get("origin") || "";
         // Use APP_URL secret if set; otherwise use request origin explicitly
-        const appUrl = Deno.env.get("APP_URL") || (origin ? origin : null);
+        const appUrl = Deno.env.get("APP_URL") || (origin ? origin : "https://bpjzgapmoyhtgryglcke.lovable.app");
 
-        const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
-            email, password,
+        // ── generateLink → user jön létre (még nem aktivált), kapunk action_link-et ──
+        // A confirm linket Brevo-val küldjük ki saját HTML sablon szerint.
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: "signup",
+            email,
+            password,
             options: {
                 data: { full_name: displayName, solo_registration: true },
-                ...(appUrl && { emailRedirectTo: `${appUrl}/auth` }),
+                redirectTo: `${appUrl}/auth`,
             },
         });
 
-        if (signUpError) {
-            const msg = signUpError.message.toLowerCase();
+        if (linkError) {
+            const msg = linkError.message.toLowerCase();
             const alreadyExists = msg.includes("already registered")
-                || msg.includes("database error saving new user")
+                || msg.includes("already exists")
                 || msg.includes("user already registered");
             return new Response(
-                JSON.stringify({ error: alreadyExists ? "Ez az email cím már regisztrálva van. Kérjük, jelentkezzen be!" : signUpError.message }),
+                JSON.stringify({ error: alreadyExists ? "Ez az email cím már regisztrálva van. Kérjük, jelentkezzen be!" : linkError.message }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
             );
         }
 
-        const userId = signUpData.user?.id;
+        const userId = linkData.user?.id;
+        const confirmationUrl = linkData.properties?.action_link;
+
         if (!userId) {
             return new Response(
                 JSON.stringify({ error: "Ez az email cím már regisztrálva van" }),
@@ -290,7 +296,31 @@ serve(async (req) => {
             .update({ full_name: displayName })
             .eq("user_id", userId);
 
-        console.log(`Solo registration: ${email} → company "${companyName}" | awaiting email confirmation`);
+        // ── Send confirmation email via Brevo ────────────────────────────────
+        if (confirmationUrl) {
+            const emailContent = buildConfirmationEmail({ confirmUrl: confirmationUrl, displayName });
+            const emailResult = await sendBrevoEmail({
+                to: { email, name: displayName },
+                subject: emailContent.subject,
+                htmlContent: emailContent.htmlContent,
+                textContent: emailContent.textContent,
+            });
+            if (!emailResult.success) {
+                console.error(`[solo-register] Brevo email küldési hiba (${email}):`, emailResult.error);
+                await logErrorToDatabase(supabaseAdmin, {
+                    script_name: 'solo-register',
+                    summary: 'Brevo email küldési hiba',
+                    full_log: emailResult.error ?? 'ismeretlen hiba',
+                    user_id: userId,
+                });
+            } else {
+                console.log(`[solo-register] Confirm email elküldve → ${email}`);
+            }
+        } else {
+            console.warn(`[solo-register] Nincs action_link (email: ${email})`);
+        }
+
+        console.log(`Solo registration: ${email} → company "${companyName}" | email confirmation pending`);
 
         return new Response(
             JSON.stringify({ success: true, emailConfirmationRequired: true }),

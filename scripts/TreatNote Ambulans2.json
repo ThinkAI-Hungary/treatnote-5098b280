@@ -1,0 +1,600 @@
+{
+  "name": "TreatNote Ambulans2",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "gpt-4.1",
+        "jsonSchema": "={\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"AmbulansAdatlapExtraction\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\"document\", \"fields\", \"diagnoses\", \"procedures\", \"found\", \"validation\"],\n  \"properties\": {\n    \"document\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"template_id\", \"language\", \"source_type\"],\n      \"properties\": {\n        \"template_id\": { \"type\": \"string\", \"minLength\": 1 },\n        \"language\": { \"type\": \"string\", \"enum\": [\"hu\"] },\n        \"source_type\": { \"type\": \"string\", \"enum\": [\"transcript\", \"text\", \"note\"] }\n      }\n    },\n\n    \"fields\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"1_javitas\",\n        \"2_eredeti_datum\",\n        \"3_eredeti_szakrendelo\",\n        \"4_eredeti_naplosorszam\",\n        \"5_naplosorszam\",\n        \"6_rendelo_neve\",\n        \"7_rendelo_azonosito\",\n        \"8_beutalo_munkahely_neve\",\n        \"9a_beutalo_munkahely_azonosito\",\n        \"9b_beutalo_orvos_kod\",\n        \"9c_ellatast_igazolo_adat\",\n        \"9d_beutalo_kelte\",\n        \"9e_eeszt_beutalo_azonosito\",\n        \"10_teritesi_kategoria\",\n        \"10_reszleges_teritesi_dij\",\n        \"11_ellato_orvos_kod\",\n        \"12_biztositas_orszag_vagy_allampolgarsag\",\n        \"13_szemelyazonosito_jel\",\n        \"14_szemelyazonosito_tipus\",\n        \"15_beteg_neve\",\n        \"16_szuletesi_datum\",\n        \"17_anyja_neve\",\n        \"18_leanykori_nev\",\n        \"19_lakcim\",\n        \"20_kezeles_ideje_datum\",\n        \"20_kezeles_ideje_ido\",\n        \"21_beteg_neme\",\n        \"22_ellatas_tipusa\",\n        \"23_tovabbkuldes\",\n        \"24_baleset_minositese\",\n        \"25_e_adatlap_kitoltes\",\n        \"27a_beavatkozasok_jellege\",\n        \"28_laborvizsgalat_keres\",\n        \"29_kepalkoto_keres\",\n        \"30_ct_mri_pet_keres\",\n        \"31_fizioterapia_utalas\",\n        \"32_utikoltseg\",\n        \"33_keresokepesseg\",\n        \"34_segedeszkoz_venyek_szama\",\n        \"35_venyek_szama\",\n        \"36_gyogyfurdo_venyek_szama\",\n        \"40_varolista_esetazonosito\"\n      ],\n      \"properties\": {\n        \"1_javitas\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"2_eredeti_datum\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"3_eredeti_szakrendelo\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"4_eredeti_naplosorszam\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{8}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"5_naplosorszam\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{8}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"6_rendelo_neve\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"7_rendelo_azonosito\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"8_beutalo_munkahely_neve\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"9a_beutalo_munkahely_azonosito\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"9b_beutalo_orvos_kod\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{5}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"9c_ellatast_igazolo_adat\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"9d_beutalo_kelte\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"9e_eeszt_beutalo_azonosito\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"10_teritesi_kategoria\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"10_reszleges_teritesi_dij\": {\n          \"anyOf\": [\n            { \"type\": \"number\", \"minimum\": 0 },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"11_ellato_orvos_kod\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{5}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"12_biztositas_orszag_vagy_allampolgarsag\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"13_szemelyazonosito_jel\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"14_szemelyazonosito_tipus\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"5\", \"6\", \"7\", \"9\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"15_beteg_neve\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"16_szuletesi_datum\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"17_anyja_neve\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"18_leanykori_nev\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"19_lakcim\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"20_kezeles_ideje_datum\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"20_kezeles_ideje_ido\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^([01][0-9]|2[0-3]):[0-5][0-9]$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"21_beteg_neme\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"1\", \"2\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"22_ellatas_tipusa\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"23_tovabbkuldes\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"24_baleset_minositese\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"pattern\": \"^[0-9]{2}$\" },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"25_e_adatlap_kitoltes\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"27a_beavatkozasok_jellege\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"A\", \"V\", \"C\", \"D\", \"K\", \"R\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"28_laborvizsgalat_keres\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\", \"9\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"29_kepalkoto_keres\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\", \"9\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"30_ct_mri_pet_keres\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"31_fizioterapia_utalas\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"32_utikoltseg\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"33_keresokepesseg\": {\n          \"anyOf\": [\n            { \"type\": \"string\", \"enum\": [\"0\", \"1\", \"2\", \"3\", \"4\", \"5\"] },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"34_segedeszkoz_venyek_szama\": {\n          \"anyOf\": [\n            { \"type\": \"integer\", \"minimum\": 0 },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"35_venyek_szama\": {\n          \"anyOf\": [\n            { \"type\": \"integer\", \"minimum\": 0 },\n            { \"type\": \"null\" }\n          ]\n        },\n        \"36_gyogyfurdo_venyek_szama\": {\n          \"anyOf\": [\n            { \"type\": \"integer\", \"minimum\": 0 },\n            { \"type\": \"null\" }\n          ]\n        },\n\n        \"40_varolista_esetazonosito\": {\n          \"anyOf\": [\n            { \"type\": \"string\" },\n            { \"type\": \"null\" }\n          ]\n        }\n      }\n    },\n\n    \"diagnoses\": {\n      \"type\": \"array\",\n      \"maxItems\": 5,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\"bno10\", \"text_label\", \"evidence\", \"confidence\"],\n        \"properties\": {\n          \"bno10\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"text_label\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"evidence\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 }\n        }\n      }\n    },\n\n    \"procedures\": {\n      \"type\": \"array\",\n      \"maxItems\": 6,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\"oeno\", \"text_label\", \"quantity_me\", \"evidence\", \"confidence\"],\n        \"properties\": {\n          \"oeno\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"text_label\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"quantity_me\": {\n            \"anyOf\": [{ \"type\": \"integer\", \"minimum\": 0 }, { \"type\": \"null\" }]\n          },\n          \"evidence\": {\n            \"anyOf\": [{ \"type\": \"string\" }, { \"type\": \"null\" }]\n          },\n          \"confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 }\n        }\n      }\n    },\n\n    \"found\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\"field\", \"value\", \"evidence\", \"confidence\"],\n        \"properties\": {\n          \"field\": { \"type\": \"string\", \"minLength\": 1 },\n          \"value\": {\n            \"anyOf\": [\n              { \"type\": \"string\" },\n              { \"type\": \"number\" },\n              { \"type\": \"integer\" },\n              { \"type\": \"boolean\" },\n              { \"type\": \"null\" }\n            ]\n          },\n          \"evidence\": { \"type\": \"string\" },\n          \"confidence\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 }\n        }\n      }\n    },\n\n    \"validation\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"errors\", \"warnings\"],\n      \"properties\": {\n        \"errors\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"field\", \"code\", \"message\"],\n            \"properties\": {\n              \"field\": { \"type\": \"string\" },\n              \"code\": { \"type\": \"string\" },\n              \"message\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"warnings\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"required\": [\"field\", \"code\", \"message\"],\n            \"properties\": {\n              \"field\": { \"type\": \"string\" },\n              \"code\": { \"type\": \"string\" },\n              \"message\": { \"type\": \"string\" }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n",
+        "text": "=\"--------------------------------\"\nFELADAT\n\"--------------------------------\"\nKapni fogsz egy szöveges leiratot. A feladatod:\n1) Kinyerni a leiratból az ambuláns adatlap mezőihez tartozó értékeket.\n2) A mezőket a \"fields\" objektumban töltsd (ha nincs, null).\n3) Diagnózisokat (BNO-10) a \"diagnoses\" tömbben add vissza (max 5).\n4) Beavatkozásokat (OENO + mennyiség) a \"procedures\" tömbben add vissza (max 6).\n5) MINDEN kinyert elemhez adj:\n   - evidence: egy rövid, szó szerinti részlet a leiratból (max 180 karakter)\n   - confidence: 0..1\n6) Validáció:\n   - Ha egy érték formai hibás (pl. orvos kód nem 5 számjegy), akkor:\n     a) a fields-ben maradjon null (ne commitold), és\n     b) tedd a \"found\" listába jelöltként, és\n     c) írj a \"validation.errors\"-ba egy hibát.\n   - Ha részben bizonytalan (pl. dátum nem teljes, vagy több jelölt van), akkor:\n     a) ne commitold fields-be (maradjon null),\n     b) menjen found + validation.warnings.\n\n\"--------------------------------\"\nMEZŐ-SZABÁLYOK (minimál validáció)\n\"--------------------------------\"\n- Dátumok formátuma: YYYY-MM-DD\n- 5_naplosorszam: pontosan 8 számjegy\n- 9b_beutalo_orvos_kod és 11_ellato_orvos_kod: pontosan 5 számjegy\n- 14_szemelyazonosito_tipus: csak {0,1,2,3,5,6,7,9}\n- 21_beteg_neme: csak {1,2}\n- 23_tovabbkuldes: csak {0..8}\n- 25_e_adatlap_kitoltes: csak {0,1}\n- 27a_beavatkozasok_jellege: csak {A,V,C,D,K,R}\n- 28_laborvizsgalat_keres: csak {0..9}\n- 29_kepalkoto_keres: csak {0..9}\n- 30_ct_mri_pet_keres: csak {0..4}\n- 31_fizioterapia_utalas: csak {0..8}\n- 32_utikoltseg: csak {0..3}\n- 33_keresokepesseg: csak {0..5}\n- 34/35/36: nemnegatív egész szám\n\nFontos:\n- Ne találj ki OENO/BNO kódokat. Ha csak szöveges diagnózis/beavatkozás van kód nélkül, akkor a kód mező legyen null, a text_label-be írd a megnevezést, evidence kötelező.\n\n\"--------------------------------\"\nKIMENET\n\"--------------------------------\"\nA választ kizárólag az alábbi szerkezetben add vissza (JSON), a fields kulcsok pontos neveivel:\n- document: {template_id, language, source_type}\n- fields: ... (minden mező)\n- diagnoses: [...]\n- procedures: [...]\n- found: [...]\n- validation: {errors:[], warnings:[]}\n\n\"--------------------------------\"\nBEMENETI LEIRAT\n\"--------------------------------\"\n{{ $json.text }}",
+        "temperature": 0,
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-openai-structured-outputs.openAiStructuredOutput",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        256
+      ],
+      "id": "38bac54c-bc59-4d01-87e3-52e7d4d1ddb9",
+      "name": "1",
+      "credentials": {
+        "openAiApi": {
+          "id": "s09v3BTNj5LHdip1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "372cd83b-fb33-4ce4-9655-2fdae766a672",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        -96
+      ],
+      "id": "32180d91-6c84-43b1-abca-192c1deb5aa8",
+      "name": "Webhook",
+      "webhookId": "372cd83b-fb33-4ce4-9655-2fdae766a672"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1376,
+        16
+      ],
+      "id": "ccb3ca86-1de4-48e7-8f72-a69036d89e06",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/speech-to-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_e1720b56c54fe47521a43eb67b4fcce8005ea938523d7f93"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model_id",
+              "value": "scribe_v1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language_code",
+              "value": "hu"
+            },
+            {
+              "name": "diarize",
+              "value": "true"
+            },
+            {
+              "name": "timestamp_granularity",
+              "value": "word"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -720,
+        256
+      ],
+      "id": "7d8fcedb-f09f-4eea-bed6-dd8cc50caaad",
+      "name": "TRANSCRIBER",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "4wHdNjeXEhOX9KTC",
+          "name": "Unnamed credential"
+        },
+        "httpHeaderAuth": {
+          "id": "L7nKhLAzXCatOwoI",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=set -eu\n\nTELEPHELY_ID='{{ $json.body.telephely_id }}'\nFLEXI_DOMAIN='{{ $json.body.flexi_domain }}'\nFLEXI_USER='{{ $json.body.flexi_username }}'\nFLEXI_PW='{{ $json.body.flexi_pw }}'\nPACIENS_ID='{{ $json.body.PaciensID }}'\n\n# STDIN-be egy olyan JSON-t adunk, ami tartalmazza:\n# - a matcher node teljes kimenetét (benne: parsed -> diagnoses -> BNO)\n# - plusz a 3 textbox tartalmát: pap_history / pap_treatments / pap_drugs\nMATCHER_JSON='{{ (() => {\n  const firstJson = (nodeName) => {\n    const its = $items(nodeName);\n    if (!its || !its.length) return {};\n    return its[0].json || {};\n  };\n\n  const m  = firstJson(\"matcher\");\n  const a  = firstJson(\"AI Agent\");\n  const a1 = firstJson(\"AI Agent1\");\n  const a2 = firstJson(\"AI Agent2\");\n\n  const pickText = (o) =>\n    (o.pap_history ?? o.pap_treatments ?? o.pap_drugs ?? o.anamnezis ?? o.anamnézis ?? o.kezelesek ?? o.kezelések ?? o.gyogyszerek ?? o.gyógyszerek ??\n     o.text ?? o.output ?? o.result ?? o.response ?? o.content ?? \"\");\n\n  const merged = Object.assign({}, m, {\n    pap_history:   (a.pap_history   ?? pickText(a)  ?? \"\"),\n    pap_treatments:(a1.pap_treatments ?? pickText(a1) ?? \"\"),\n    pap_drugs:     (a2.pap_drugs    ?? pickText(a2) ?? \"\"),\n  });\n\n  return JSON.stringify(merged);\n})() }}'\n\nSCRIPT_PATH=\"\"\n\nfor p in \\\n  \"data/playground/TreatNote/SCRIPTS/ambulans.py\" \\\n  \"./data/playground/TreatNote/SCRIPTS/ambulans.py\" \\\n  \"/home/node/.n8n/data/playground/TreatNote/SCRIPTS/ambulans.py\" \\\n  \"/data/playground/TreatNote/SCRIPTS/ambulans.py\"\ndo\n  if [ -f \"$p\" ]; then\n    SCRIPT_PATH=\"$p\"\n    break\n  fi\ndone\n\nif [ -z \"$SCRIPT_PATH\" ]; then\n  echo \"HIBA: ambulans.py nem található a megadott útvonalakon.\" >&2\n  exit 2\nfi\n\nif [ -z \"$MATCHER_JSON\" ] || [ \"$MATCHER_JSON\" = \"null\" ]; then\n  echo \"HIBA: MATCHER_JSON üres/null. Ellenőrizd, hogy tényleg a matcher + AI Agent node-ok kimenete elérhető-e.\" >&2\n  exit 3\nfi\n\n# Unbuffered, hogy minden log azonnal kijojjon\nexport PYTHONUNBUFFERED=1\n\n# STDIN: összerakott JSON (matcher + 3 szöveg)\nprintf '%s' \"$MATCHER_JSON\" | \\\npython3 \"$SCRIPT_PATH\" \"$TELEPHELY_ID\" \"$FLEXI_DOMAIN\" \"$FLEXI_USER\" \"$FLEXI_PW\" \"$PACIENS_ID\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        48
+      ],
+      "id": "219dc797-31b5-41d5-8d49-1bbae4cd3f0f",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        992,
+        32
+      ],
+      "id": "ddf32681-b404-40c1-868d-bb039042f568",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================================\n// OPTIMIZED BNO MATCHER (Multi-Match Support)\n// ==========================================================\n\n// ====== CONFIG ======\nconst SUPABASE_URL = \"https://bpjzgapmoyhtgryglcke.supabase.co\";\nconst SUPABASE_SERVICE_KEY = \"sb_secret_gRiwdPwnR3BcA6zo1a8XXQ_Z7bJr8Vn\";\nconst OPENAI_API_KEY = \"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\";\n\nconst EMBEDDING_MODEL = \"text-embedding-3-large\"; \nconst SIMILARITY_THRESHOLD = 0.55;   // Picit még engedékenyebb, hátha a TBC pont beborul 0.58-al\nconst MATCH_COUNT_PER_CHUNK = 3;     // <-- ITT ÁLLÍTHATOD: Top 3 találatot adjon vissza!\nconst RPC_NAME = \"match_bno_embedding\";\nconst SOURCE_TYPES = [\"name\", \"semantic_description\", \"text_source\"];\nconst DEBUG = true;\nconst debug_log = [];\n\nconst HTTP_OPTIONS = { timeout: 60000 };\n\n// ====== HELPERS ======\nfunction log(msg, data) {\n    if (!DEBUG) return;\n    const ts = new Date().toISOString().split(\"T\")[1].replace(\"Z\", \"\");\n    let extra = \"\";\n    if (data !== undefined) {\n        try {\n            extra = typeof data === \"object\" ? \" | \" + JSON.stringify(data).slice(0, 500) : \" | \" + String(data);\n        } catch (e) { extra = \" | [unserializable]\"; }\n    }\n    debug_log.push(`[${ts}] ${msg}${extra}`);\n}\n\nasync function apiCall(name, options) {\n    log(`>>> API CALL: ${name}`);\n    try {\n        const res = await this.helpers.httpRequest({ ...options, ...HTTP_OPTIONS, json: true });\n        return res;\n    } catch (err) {\n        log(`!!! API ERROR: ${name}`, err.message);\n        return { __error: err.message };\n    }\n}\n\nfunction pickCodeAndLabel(row) {\n    const code = row?.code || row?.bno10 || row?.icd10 || row?.bno || null;\n    const label = row?.name || row?.text_label || row?.label || row?.megnevezes || null;\n    return { code: code ? String(code).toUpperCase() : null, label: label ? String(label) : null };\n}\n\n// ====== MAIN ======\nconst inputItem = $input.first().json;\nconst parsed = inputItem.parsed || inputItem;\n\nlet diagnoses = parsed.diagnoses || [];\nif (!Array.isArray(diagnoses)) diagnoses = [];\n\nif (diagnoses.length === 0) {\n    parsed._bno_matcher_debug = { log: debug_log, msg: \"Nincs diagnózis az 1. node kimenetében.\" };\n    return [{ json: { ...inputItem, parsed } }];\n}\n\n// 1) Kiválogatjuk azokat\nconst toEmbedInfos = [];\ndiagnoses.forEach((diag, idx) => {\n    if (!diag.bno10 || String(diag.bno10).trim() === \"\") {\n        // KICSERÉLT SOR: A teljes sztorit (evidence) húzzuk be!\n        const searchText = (diag.evidence || \"\").trim(); \n        \n        if (searchText.length > 2) {\n            toEmbedInfos.push({ idx, text: searchText });\n        }\n    }\n});\n\nlet newDiagnoses = []; // Ebbe építjük bele a bővített, multi-match listát\n\nif (toEmbedInfos.length > 0) {\n    const embTexts = toEmbedInfos.map(t => t.text);\n\n    const embRes = await apiCall.call(this, \"OpenAI_Embeddings\", {\n        method: \"POST\",\n        url: \"https://api.openai.com/v1/embeddings\",\n        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },\n        body: { model: EMBEDDING_MODEL, dimensions: 1536, input: embTexts }, // <-- Dimensions 1536 fix!\n    });\n\n    if (embRes?.__error || !embRes?.data) {\n        parsed._bno_matcher_debug = { error: \"OpenAI Failed\", log: debug_log };\n        newDiagnoses = [...diagnoses]; \n    } else {\n        // 3) Supabase RPC\n        const rpcPromises = embRes.data.map(item =>\n            apiCall.call(this, \"Supabase_RPC\", {\n                method: \"POST\",\n                url: `${SUPABASE_URL}/rest/v1/rpc/${RPC_NAME}`,\n                headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` },\n                body: {\n                    query_embedding: `[${item.embedding.join(\",\")}]`,\n                    match_threshold: SIMILARITY_THRESHOLD,\n                    match_count: MATCH_COUNT_PER_CHUNK, \n                    p_source_types: SOURCE_TYPES,\n                }\n            })\n        );\n\n        const allRpcResults = await Promise.all(rpcPromises);\n\n        // Trackeljük mik azok az indexek, amiket módosítottunk (hogy a végén a kimaradókat visszaadjuk)\n        const embeddedIndexes = new Set(toEmbedInfos.map(info => info.idx));\n\n        toEmbedInfos.forEach((info, i) => {\n            const res = allRpcResults[i];\n            const diagRef = diagnoses[info.idx];\n\n            if (res && !res.__error && Array.isArray(res) && res.length > 0) {\n                // Top X találaton végigmegyünk, és mindet egy klónozott diagnózisként mentjük!\n                res.forEach(row => {\n                    const { code, label } = pickCodeAndLabel(row);\n                    if (code) {\n                        newDiagnoses.push({\n                            ...diagRef, // Eredeti adatok megtartása (text_label, evidence)\n                            bno10: code,\n                            confidence: Math.round((row.similarity || 0) * 100) / 100,\n                            _bno_name: label\n                        });\n                    }\n                });\n            } else {\n                // Nincs találat egy sem, betesszük módosítatlanul nulla BNO-val\n                diagRef.bno10 = null;\n                newDiagnoses.push(diagRef);\n            }\n        });\n\n        // Hozzáadjuk azokat, amiket NEM kellett embeddelni (benne voltak alapból jó BNO-val)\n        diagnoses.forEach((diag, idx) => {\n            if (!embeddedIndexes.has(idx)) {\n                newDiagnoses.push(diag);\n            }\n        });\n    }\n} else {\n    newDiagnoses = diagnoses;\n}\n\n// 5) Eredmény mentése\nparsed.diagnoses = newDiagnoses;\nparsed._bno_matcher_debug = {\n    to_embed_count: toEmbedInfos.length,\n    log: debug_log\n};\n\nreturn [{ json: { ...inputItem, parsed } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        256
+      ],
+      "id": "fd723ecb-223c-433e-9db1-fccde7271632",
+      "name": "matcher"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dolgozd fel az alábbi szöveget:\n\n{{ $('TRANSCRIBER').item.json.text }}",
+        "options": {
+          "systemMessage": "=Feladat: Írj “Anamnézis” szekciót egy ambuláns laphoz a bemeneti szöveg alapján.\n\nKIMENET FORMÁTUM: A kimenet KÖTELEZŐEN és MINDIG pontosan az alábbi struktúrában legyen:\n- Ugyanazok a címek legyenek, ugyanabban a sorrendben.\n- MINDEN mező kapjon tartalmat, üresen nem maradhat.\n- Ha nincs információ: írd pontosan: “Nincs adat.”\n- Ha a szöveg kifejezetten tagad valamit: “Nincs / Tagadja: …”\n- Csak olyan tényt írj le, ami a bemeneti szövegben szerepel vagy egyértelműen következik belőle. Ne találj ki semmit.\n- Magyarul, tömören, orvosi jelleggel fogalmazz.\n\nTAGOLÁSI SZABÁLYOK (átláthatóság):\n- Ne használj bullet pontokat, ne használj számozott listát, ne használj kötőjeles felsorolást.\n- Ehelyett rövid, egysoros “kulcs: érték” sorokat használj (mintha bullet lenne, de pontok nélkül).\n- Ha több elem van, ugyanazon mezőn belül új sorba tedd őket.\n- Törekedj 1–2 rövid mondatra vagy sorra témánként.\n- Használhatsz pontosvesszőt, de inkább külön sorokkal tagolj.\n\nSTÁTUSZ kitöltése:\n- A “Státusz” részt mindig töltsd ki.\n- Ha nincs részletes vizsgálati leírás: írj rövid, általános megállapítást + a végére: “Nincs részletezve a bemeneti szövegben.”\n- Extraoralis és intraoralis külön legyen, mindkettő kitöltve.\n\nVIZSGÁLATI LELETEK:\n- Sorold fel az elhangzó/leírt vizsgálatokat és eredményeket.\n- Ha csak kérés van (pl. “kérek labort”), akkor azt írd le mint kérés (pl. “Kért vizsgálat: ...”).\n- Ha nincs adat: “Nincs adat.”\n\nTILALMAK:\n- Ne adj hozzá új diagnózist, BNO-t, kezelést vagy gyógyszert, ami nincs a szövegben.\n- Ne írj bevezetőt, ne írj magyarázatot, csak a mezőket add vissza.\n\nKIMENET FORMÁTUM (pontosan így, címekkel, kettősponttal, sorokkal):\n\nCsaládban előforduló lényeges megbetegedések:\n[ide a kinyert tartalom / vagy “Nincs adat.”]\n\nGyermekkori megbetegedések (idült betegségek, kórházi kezelések, örökletes megbetegedések):\n[...]\n\nIsmert betegségek (fertőző betegségek, vérzékenység, véralvadási zavar, anaemia, anyagcsere betegségek, terhesség, szív- és érrendszeri megbetegedések, immunszupresszív megbetegedések, pajzsmirigy-mellékvese betegség, tüdőbetegség, mozgásszervi-reumatológiai betegség, vesebetegség, idegrendszeri betegség, egyéb idült betegségek,):\n[...]\n\nKorábbi műtétek:\n[...]\n\nFogászati anamnézis, korábbi fogászati beavatkozások, szájhigiéné, táplálkozási szokások:\n[...]\n\nKorábbi sérülések (pl. csonttörések):\n[...]\n\nRendszeresen szedett gyógyszerek (véravadásgátló, antibiotikum, szteroid, immunszupresszív hatású gyógyszerek, sugárkezelés, immunterápia, cytostatikus kezelés, pszichiátriai gyógyszeres kezelés, stb. ...):\n[...]\n\nGyógyszerérzékenység (pl.: antibiotikum, lidocain, fájdallmcsillapítók):\n[...]\n\nAllergia (pl. fémallergia, akrilát, amalgám, latex):\n[...]\n\nBeültetett eszközök (protézis pacemaker, stb. ...):\n[...]\n\nJelen panaszok (panasz jellege, helye, lefolyása, panasz kezdetének ideje) (hőinger, ráharapási inger, ozmotikus inger, fájdalom, esztétikai panasz, ételbeékelődés):\n[Formátum javaslat a mezőn belül (bullet nélkül, kulcs: érték sorokkal):\nKezdet: ...\nHely: ...\nJelleg: ...\nProvokálja: ...\nEnyhíti: ...\nTársuló tünetek: ...\nIdőbeli lefolyás: ...\nHa fogászati jelleg nem derül ki: a tényleges panaszokat írd.]\n\nStátusz:\nExtraoralis vizsgálat:\n[Formátum: rövid sorok; ha nincs részletezés: “Általános: ... Nincs részletezve a bemeneti szövegben.”]\nIntraoralis vizsgálat:\n[ugyanez]\n\nVizsgálati leletek (labor, képalkotó vizsgálatok, konzíliumok):\n[Formátum: \nKért vizsgálatok: ...\nEredmények: ...\nHa nincs: “Nincs adat.”]"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "c1da6ec6-5973-4d1d-85df-85392067b4b2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        416
+      ],
+      "id": "d695494e-e947-4f36-9a5a-548b30d040a2",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "apeJVrkj31SjvSIR",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dolgozd fel az alábbi szöveget:\n\n{{ $('TRANSCRIBER').item.json.text }}",
+        "options": {
+          "systemMessage": "=Te egy általános ambuláns lap “KEZELÉSEK” szekcióját írod meg strukturáltan.\nBemenetként kapsz egy szabad szöveget (beteg–orvos párbeszéd, triázs, vizsgálati jegyzet, lelet).\nA cél: a kezelések szekció kitöltése úgy, hogy a kimenet formailag mindig ugyanúgy nézzen ki.\n\nSZABÁLYOK:\n- Csak a bemeneti szöveg alapján dolgozz. Ne találj ki semmit.\n- Ha valami nem szerepel: írd “nincs adat” vagy “nem ismert”.\n- Használj rövid, klinikai stílust. Ne magyarázz hosszan.\n- Ha több esemény volt, mindet sorold fel.\n- Ha szerepel időpont/dátum, paraméterek, értékek (pl. RR, pulzus), beavatkozás, vizsgálat: írd bele.\n- Ha szerepel kontroll / beutalás / további teendő: legyen benne.\n- A kimenetben NE legyen semmi más, csak a KEZELÉSEK blokk.\n\n\nKIMENET (PONTOSAN EZ A FORMA, kitöltve):\nKEZELÉSEK:\n1) Ellátás típusa: {első ellátás / kontroll / sürgősségi / egyéb / nincs adat}\n2) Állapotfelmérés és vizsgálatok:\n   - Fizikális vizsgálat: {igen/nem/nincs adat} | Főbb megállapítás: {…/nincs adat}\n   - Vitalparaméterek: {RR: … / Pulzus: … / SpO2: … / Láz: … / nincs adat}\n   - Képalkotó: {nincs / készült / kérve} | Típus: {RTG/CT/MRI/US/egyéb/nincs adat} | Eredmény röviden: {…/nincs adat}\n   - Labor: {nincs / készült / kérve} | Eredmény röviden: {…/nincs adat}\n   - Konzílium: {nincs / történt / kérve} | Szakma: {…/nincs adat} | Javaslat: {…/nincs adat}\n3) Beavatkozások / ellátás (felsorolás):\n   - {beavatkozás/ellátás neve} | Indok: {…/nincs adat} | Részletek: {…/nincs adat} | Időpont: {…/nincs adat}\n   - {…}\n4) Terápia a helyszínen / ambulancián:\n   - Gyógyszer/infúzió/oxigén/egyéb: {…/nincs adat}\n   - Reakció/hatás: {…/nincs adat}\n5) Megfigyelés / állapotváltozás:\n   - {javult / romlott / változatlan / nincs adat} | Megjegyzés: {…/nincs adat}\n6) Diszpozíció (további sors):\n   - Hazabocsátás: {igen/nem/nincs adat}\n   - Továbbküldés / beutalás: {nincs / van} | Hova: {…/nincs adat}\n   - Kontroll javaslat: {nincs / van} | Mikor/hol: {…/nincs adat}\n7) Betegnek adott tanács / teendők:\n   - {…/nincs adat}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        256
+      ],
+      "id": "693992ea-76ce-4584-bf4f-96fbc8fbf1a1",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        432
+      ],
+      "id": "3e0de8d0-383e-4f22-8800-3a3247e290d3",
+      "name": "Anthropic Chat Model1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "apeJVrkj31SjvSIR",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dolgozd fel az alábbi szöveget:\n\n{{ $('TRANSCRIBER').item.json.text }}",
+        "options": {
+          "systemMessage": "=Te egy általános ambuláns lap “GYÓGYSZEREK” szekcióját írod meg strukturáltan.\nBemenetként kapsz egy szabad szöveget (beteg–orvos párbeszéd, vizsgálati jegyzet, lelet).\nA cél: a gyógyszerek szekció kitöltése úgy, hogy a kimenet formailag mindig ugyanúgy nézzen ki.\n\nSZABÁLYOK:\n- Csak a bemeneti szövegben szereplő gyógyszereket írd le. Ne találj ki gyógyszert, dózist, időtartamot.\n- Ha dózis/időtartam hiányzik: “nincs adat”.\n- Szét kell választani: “Rendszeresen szedett”, “Ambulancián adott”, “Felírt/ajánlott”.\n- Ha nincs semmi: írd, hogy “Nincs rögzíthető gyógyszerinformáció”.\n- A kimenetben NE legyen semmi más, csak a GYÓGYSZEREK blokk.\n\nKIMENET (PONTOSAN EZ A FORMA, kitöltve):\nGYÓGYSZEREK:\n1) Rendszeresen szedett gyógyszerek (a szöveg alapján):\n   - Név: {…} | Adagolás: {…/nincs adat} | Indikáció (ha szerepel): {…/nincs adat}\n   - Ha nincs adat: nincs adat\n2) Ambulancián/adott kezelés során beadott szerek:\n   - Név: {…} | Dózis/út: {…/nincs adat} | Időpont: {…/nincs adat} | Indok: {…/nincs adat}\n   - Ha nem volt: nincs adat\n3) Felírt vagy javasolt gyógyszerek hazabocsátáskor:\n   - Név: {…} | Hatóanyag (ha szerepel): {…/nincs adat} | Adagolás: {…/nincs adat} | Időtartam: {…/nincs adat} | Indok: {…/nincs adat}\n   - Ha nincs: nincs felírt/javasolt gyógyszer\n4) Allergia / gyógyszerérzékenység (ha szerepel a szövegben):\n   - {…/nincs adat}\n5) Megjegyzés / betegoktatás (ha szerepel):\n   - {…/nincs adat}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        256
+      ],
+      "id": "5614186d-5347-4d9d-ba53-1b45d7fd12da",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 8000,
+          "thinking": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        416
+      ],
+      "id": "af0679fd-178f-42a6-b438-ab5cbcee10e2",
+      "name": "Anthropic Chat Model2",
+      "credentials": {
+        "anthropicApi": {
+          "id": "apeJVrkj31SjvSIR",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (JS) – minimal, modul nélkül\n\nfunction pickText(obj) {\n  if (!obj || typeof obj !== \"object\") return \"\";\n  const candidates = [\n    obj.output,\n    obj.text,\n    obj.content,\n    obj.answer,\n    obj.result,\n    obj.response,\n    obj.message,\n  ];\n  for (const v of candidates) {\n    if (typeof v === \"string\" && v.trim()) return v.trim();\n  }\n  // ha pl. { data: { text: \"...\" } }\n  if (obj.data && typeof obj.data.text === \"string\" && obj.data.text.trim()) return obj.data.text.trim();\n  return \"\";\n}\n\nconst anamnezis = pickText($items(\"AI Agent\")?.[0]?.json);\nconst kezelesek = pickText($items(\"AI Agent1\")?.[0]?.json);\nconst gyogyszerek = pickText($items(\"AI Agent2\")?.[0]?.json);\n\n// A matcher (vagy amiből a python dolgozik) itemje:\nconst base = $items(\"matcher\")?.[0]?.json ?? $input.first().json;\n\n// Ide tesszük a 3 szöveget + a TinyMCE editor id-kat is (hogy a python 1:1 tudja hova írni)\nbase.pap_texts = {\n  pap_history: anamnezis,\n  pap_treatments: kezelesek,\n  pap_drugs: gyogyszerek,\n};\n\nreturn [{ json: base }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        256
+      ],
+      "id": "563e9dd7-938f-435b-beef-7e9a226df638",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "TRANSCRIBER": [
+      {
+        "json": {
+          "language_code": "hun",
+          "language_probability": 1,
+          "text": "Asszisztens: Jó napot kívánok! Üdvözlöm. Kezdjük egy pár adattal, rendben? Beteg: Jó napot, persze. Asszisztens: Kérem a nevét. Beteg: Kovács Péter. Asszisztens: Születési dátum? Beteg: 1986. július 14. Asszisztens: TAJ szám? Beteg: 123 456 789. Asszisztens: Lakcím? Beteg: 1133 Budapest, Váci út 12., 3/2. Asszisztens: Rendben. Első alkalommal jár most ezzel a panasszal nálunk? Beteg: Igen, most először. Asszisztens: Volt baleset, sérülés, munkahelyi baleset a panasz kapcsán? Beteg: Nem, semmi baleset. Asszisztens: TB-je rendezett, normál biztosítás? Beteg: Igen, normál TB. Asszisztens: Köszönöm. Megadom az orvosnak. Orvos: Jó napot, Kovács Péter. Mi a panasza, mi miatt jött? Beteg: Pár napja kapar a torkom, folyik az orrom, köhögök, és tegnap este hőemelkedésem is volt. Orvos: Mióta tart pontosan? Beteg: Olyan három-négy napja kezdődött. Orvos: Volt magas láza? Beteg: Nem igazán, inkább 37,5–38 körül. Orvos: Van mellkasi fájdalom, nehézlégzés? Beteg: Nincs, csak ez a köhögés meg orrfolyás. Orvos: Köpet van? Milyen színű? Beteg: Inkább száraz, néha kevés áttetsző. Orvos: Allergia gyógyszerre? Beteg: Tudtommal nincs. Orvos: Krónikus betegség, rendszeres gyógyszer? Beteg: Nem, semmi komoly, gyógyszert nem szedek rendszeresen. Orvos: Rendben, megvizsgálom. (vizsgálat közben) Orvos: Láz most nincs. Torka kissé piros, nyaki nyirokcsomók enyhén érzékenyek, tüdő felett tiszta légzés, szaturáció rendben. Inkább felső légúti fertőzésnek tűnik. Beteg: Akkor ez nem tüdőgyulladás? Orvos: Nem látok rá utaló jelet, de kérnék egy alap labort, teljes vérkép és CRP, hogy biztosak legyünk. Asszisztens: Rendben doktor úr, rögzítem. Orvos: Diagnózis: akut felső légúti fertőzés. BNO: J06.9. Asszisztens: Oké, BNO J06.9 rögzítve. Orvos: Kap lázcsillapítót szükség esetére, illetve köhögéscsillapítót estére. Sok folyadék, pihenés. Ha 2–3 nap múlva romlik, vagy fulladás, magas láz jelentkezik, jöjjön vissza vagy sürgősségi. Beteg: Rendben. Asszisztens: A mai ellátás időpontja 2026.01.27., 10:35. Kérek még pár admin adatot. Van beutalója? Beteg: Igen, itt van. Asszisztens: A beutaló kelte 2026.01.20… és az azonosítója: EESZT-REF-2026-0001459. Köszönöm. A háziorvos pecsétszáma? Beteg: 54321. Asszisztens: Rendben. Orvos: Általános vizsgálat történt, plusz vérvétel lesz. Asszisztens: Rendben, OENO: 11041 általános orvosi vizsgálat, mennyiség 1. Vérvétel OENO: 92260, mennyiség 1. Orvos: Továbbutalás most nincs, kontroll háziorvosnál javasolt. Asszisztens: Értem, továbbküldés: nincs. Beteg: Köszönöm szépen. Orvos: Jobbulást kívánok!",
+          "words": [
+            {
+              "text": "Igen,",
+              "start": 1.459,
+              "end": 2.319,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.319,
+              "end": 2.359,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "igen,",
+              "start": 2.359,
+              "end": 2.599,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.599,
+              "end": 2.679,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "én,",
+              "start": 2.679,
+              "end": 2.939,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 2.939,
+              "end": 2.999,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "én",
+              "start": 3,
+              "end": 3.299,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 3.299,
+              "end": 3.299,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "figyelek",
+              "start": 3.299,
+              "end": 3.699,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 3.699,
+              "end": 3.699,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "ezerről.",
+              "start": 3.699,
+              "end": 4.179,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.179,
+              "end": 4.179,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "Nagyon",
+              "start": 4.179,
+              "end": 4.42,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": " ",
+              "start": 4.42,
+              "end": 4.519,
+              "type": "spacing",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            },
+            {
+              "text": "jó.",
+              "start": 4.519,
+              "end": 5.739,
+              "type": "word",
+              "speaker_id": "speaker_0",
+              "logprob": 0
+            }
+          ],
+          "transcription_id": "fq8imzgxcLHPDtj6QxVE"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "1": {
+      "main": [
+        [
+          {
+            "node": "matcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "TRANSCRIBER",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TRANSCRIBER": {
+      "main": [
+        [
+          {
+            "node": "1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "matcher": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5de71584-b1b4-4fa4-9962-94ef0e419ecb",
+  "meta": {
+    "instanceId": "a467753d3ff1af68b9841244d5a4bfb1283e2488e4d73b25b266bac76a02aa8b"
+  },
+  "id": "wuUcaR0K3iofhvdQ",
+  "tags": []
+}

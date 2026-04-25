@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendBrevoEmail, buildInvitationEmailNewUser, buildInvitationEmailExistingUser } from "../_shared/brevo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -493,18 +494,61 @@ serve(async (req) => {
 
           const invitationUrl = `${baseUrl}/accept-invitation?token=${invitationToken}`;
 
+          const callerProfile = await supabaseAdmin
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", caller.id)
+            .maybeSingle();
+          const invitedByName = callerProfile.data?.full_name || caller.email || "TreatNote";
+
           console.log(`Invitation created for ${email} (New User: ${isNewUser})`);
           console.log(`Invitation URL: ${invitationUrl}`);
           console.log(`Company: ${companyData?.name}, Telephely: ${telephelyData?.name}`);
 
+          // ── Send email via Brevo ────────────────────────────────────────
+          const recipientName = full_name || undefined;
+
+          const emailContent = isNewUser
+            ? buildInvitationEmailNewUser({
+                invitationUrl,
+                invitedByName,
+                companyName: companyData?.name || "Klinika",
+                telephelyName: telephelyData?.name || "Telephely",
+                role: inviteRole,
+                recipientName,
+              })
+            : buildInvitationEmailExistingUser({
+                invitationUrl,
+                invitedByName,
+                companyName: companyData?.name || "Klinika",
+                telephelyName: telephelyData?.name || "Telephely",
+                role: inviteRole,
+                recipientName,
+              });
+
+          const emailResult = await sendBrevoEmail({
+            to: { email: email.toLowerCase(), name: full_name || undefined },
+            subject: emailContent.subject,
+            htmlContent: emailContent.htmlContent,
+            textContent: emailContent.textContent,
+          });
+
+          if (!emailResult.success) {
+            console.error(`[invitation-handler] Brevo email küldési hiba (${email}):`, emailResult.error);
+            // Non-fatal: the invitation record is created, URL still returned
+          } else {
+            console.log(`[invitation-handler] Brevo email elküldve → ${email}`);
+          }
+
           return new Response(JSON.stringify({
             success: true,
-            message: "Meghívó létrehozva",
+            message: emailResult.success ? "Meghívó elküldve" : "Meghívó létrehozva (email küldés sikertelen)",
             invitation_url: invitationUrl,
             email: email,
             is_new_user: isNewUser,
             company_name: companyData?.name,
             telephely_name: telephelyData?.name,
+            email_sent: emailResult.success,
           }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },

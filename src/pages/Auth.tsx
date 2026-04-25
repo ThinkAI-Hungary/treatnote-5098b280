@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,11 +21,26 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // Detect Supabase email confirmation callback in the URL hash
+    const hash = window.location.hash;
+    if (hash.includes('type=signup') || hash.includes('type=email_confirmation')) {
+      // Supabase already processed the token and created a session.
+      // We sign out immediately so the user must log in manually.
+      supabase.auth.signOut().then(() => {
+        setEmailConfirmed(true);
+        // Clean the URL hash so it doesn't linger
+        window.history.replaceState(null, '', window.location.pathname);
+      });
+      return;
+    }
+
+    // Normal: if already logged in (no confirmation flow), go to dashboard
+    if (user && !hash.includes('type=')) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -50,7 +67,6 @@ const Auth = () => {
         } else {
           toast.error(error.message);
         }
-
       } else {
         toast.success('Üdvözöljük!');
         navigate('/dashboard');
@@ -62,6 +78,31 @@ const Auth = () => {
     }
   };
 
+  // ── Email megerősítve képernyő ─────────────────────────────────────────────
+  if (emailConfirmed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle2 className="h-7 w-7 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl font-semibold">Email megerősítve!</CardTitle>
+            <CardDescription>
+              Fiókja aktiválva. Most már be tud lépni az email cím és jelszava megadásával.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => setEmailConfirmed(false)}>
+              Bejelentkezés
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Bejelentkezési form ───────────────────────────────────────────────────
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -114,4 +155,3 @@ const Auth = () => {
 };
 
 export default Auth;
-
