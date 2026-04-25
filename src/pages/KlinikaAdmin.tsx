@@ -41,12 +41,13 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { KezelesiSzabalyokTab } from '@/components/klinika/KezelesiSzabalyokTab';
+import { KezelesiTetelekTab } from '@/components/klinika/KezelesiTetelekTab';
 import { ElofizetesTab } from '@/components/klinika/ElofizetesTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
-import { Book } from 'lucide-react';
+import { Book, Coins } from 'lucide-react';
 
 interface AvailableUser {
   id: string;
@@ -182,7 +183,7 @@ export default function KlinikaAdmin() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Controlled tab state for tour navigation
-  const validTabs = ['users', 'kezelesi-szabalyok', 'szotar', 'elofizetes'];
+  const validTabs = ['users', 'kezelesi-szabalyok', 'kezelesi-tetelek', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
     const storedTab = localStorage.getItem('klinika-admin-active-tab');
@@ -801,6 +802,13 @@ export default function KlinikaAdmin() {
               Kezelési Szabályok
             </TabsTrigger>
             <TabsTrigger
+              value="kezelesi-tetelek"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <Coins className="h-4 w-4" />
+              Kezelési Tételek
+            </TabsTrigger>
+            <TabsTrigger
               value="szotar"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
             >
@@ -1219,6 +1227,10 @@ export default function KlinikaAdmin() {
                 companyName={companyName}
                 telephelyName={telephelyName}
               />
+            </TabsContent>
+
+            <TabsContent value="kezelesi-tetelek" className="mt-0">
+              <KezelesiTetelekTab telephelyId={telephelyId} />
             </TabsContent>
 
             <TabsContent value="szotar" className="mt-0">
