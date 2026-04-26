@@ -246,7 +246,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
     if (!currentJobId) return;
 
     const pollInterval = setInterval(async () => {
-      const job = await pollJob(currentJobId);
+      const job = await pollJob(currentJobId, true);
       if (job && job.status !== 'processing') {
         clearInterval(pollInterval);
         setCurrentJobId(null);
@@ -906,6 +906,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                 selectedJobError={selectedJob?.error}
                 selectedJobStatus={selectedJob?.status}
                 jobId={selectedJob?.id || currentJobId}
+                jobType={selectedJob ? (selectedJob.isFlexi ? 'legacy' : 'native') : 'legacy'}
                 userComplaint={selectedJob?.user_complaint}
                 progressPercent={(selectedJob as any)?.progress_percent || (jobs.find(j => j.id === currentJobId) as any)?.progress_percent}
                 progressMessage={(selectedJob as any)?.progress_message || (jobs.find(j => j.id === currentJobId) as any)?.progress_message}
