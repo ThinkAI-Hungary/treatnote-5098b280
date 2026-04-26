@@ -114,17 +114,17 @@ function formatTreatnotePayload(payload: any): string {
   if (!payload || !Array.isArray(payload.vizitek)) {
     return payload?.szoveges_lista || JSON.stringify(payload, null, 2);
   }
-  
+
   const visits = new Map<number, any[]>();
   for (const item of payload.vizitek) {
     const v = item.vizit || 1;
     if (!visits.has(v)) visits.set(v, []);
     visits.get(v)!.push(item);
   }
-  
+
   let result = '';
   const sortedVisits = Array.from(visits.entries()).sort((a, b) => a[0] - b[0]);
-  
+
   for (const [vNum, items] of sortedVisits) {
     result += `${vNum}. Ülés\n`;
     result += `----------------------\n`;
@@ -136,12 +136,12 @@ function formatTreatnotePayload(payload: any): string {
       if (item.hidtag === 'pontic_only') extras.push('hídtag');
       if (item.hidtag === 'pillar_only') extras.push('pillér');
       const extraStr = extras.length > 0 ? ` [${extras.join(', ')}]` : '';
-      
+
       result += ` • ${fog} | ${text}${qty}${extraStr}\n`;
     }
     result += `\n`;
   }
-  
+
   return result.trim();
 }
 
@@ -446,7 +446,7 @@ export function VerdiktDisplay({
   }, [selectedJobMode, responseData]);
 
   const isThreePanel = useMemo(() => hasThreePanelData(payload) || effectiveJobMode === 'voxis' || effectiveJobMode === 'treatnote' || effectiveJobMode === 'ambulans', [payload, effectiveJobMode]);
-  
+
   const [complaints, setComplaints] = useState<{ id: string; complaint_text: string, created_at: string, users?: { full_name: string } }[]>([]);
   const [localProgress, setLocalProgress] = useState(0);
 
@@ -465,7 +465,7 @@ export function VerdiktDisplay({
         `)
         .eq('job_id', jobId)
         .order('created_at', { ascending: true });
-        
+
       if (!error && data) {
         setComplaints(data);
       }
@@ -504,7 +504,7 @@ export function VerdiktDisplay({
           if (prev > 80) step = 1.0;
           if (prev > 90) step = 0.3;
           if (prev > 96) step = 0.05;
-          
+
           const next = prev + step;
           return next > 98 ? 98 : next;
         });
@@ -527,7 +527,7 @@ export function VerdiktDisplay({
   };
 
   const displayPercent = Math.floor(localProgress);
-  const displayMessage = isLoading 
+  const displayMessage = isLoading
     ? (progressMessage || getProgressMessage(displayPercent))
     : (progressMessage || 'Kérjük, várjon amíg az AI elemzi a felvételt.');
 
@@ -559,14 +559,14 @@ export function VerdiktDisplay({
                   {complaints.length} probléma bejelentve
                 </Badge>
               )}
-              <ComplaintDialog 
-                jobId={jobId} 
+              <ComplaintDialog
+                jobId={jobId}
                 jobType={jobType || 'native'}
                 hasComplaint={complaints.length > 0}
                 onSubmitted={() => {
                   fetchComplaints();
                   if (onComplaintSubmitted) onComplaintSubmitted();
-                }} 
+                }}
               />
             </>
           )}
@@ -611,28 +611,30 @@ export function VerdiktDisplay({
               <Loader2 className="h-12 w-12 animate-spin text-sparkle-blue" />
               <div className="absolute inset-0 h-12 w-12 animate-ping opacity-20 rounded-full bg-sparkle-blue" />
             </div>
-            
+
             <h3 className="text-lg font-semibold text-foreground mb-2 text-center">
               Feldolgozás folyamatban...
             </h3>
-            
+
             <p className="text-sm text-muted-foreground text-center mb-6 h-10 flex items-center justify-center">
-              {displayMessage}
+              {jobType === 'legacy' ? "Várakozás a rendszer válaszára..." : displayMessage}
             </p>
-            
-            <div className="w-full space-y-2">
-              <div className="flex justify-between text-xs font-medium text-muted-foreground w-full px-1">
-                <span>Folyamat</span>
-                <span>{displayPercent}%</span>
+
+            {jobType !== 'legacy' && (
+              <div className="w-full space-y-2">
+                <div className="flex justify-between text-xs font-medium text-muted-foreground w-full px-1">
+                  <span>Folyamat</span>
+                  <span>{displayPercent}%</span>
+                </div>
+                <Progress value={localProgress} className="h-2 w-full" />
               </div>
-              <Progress value={localProgress} className="h-2 w-full" />
-            </div>
+            )}
 
             {onTerminate && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onTerminate} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onTerminate}
                 className="w-full mt-4 text-destructive hover:bg-destructive/10"
               >
                 <X className="w-4 h-4 mr-2" />
@@ -681,10 +683,10 @@ export function VerdiktDisplay({
                 )}
                 <TextualListPanel text={
                   (payload?.link ? `🔗 Megtekintés a külső rendszerben: ${payload.link}\n\n` : '') +
-                  (effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) 
-                  : effectiveJobMode === 'ambulans' ? JSON.stringify(responseData, null, 2)
-                  : effectiveJobMode === 'treatnote' ? formatTreatnotePayload(payload)
-                  : payload?.szoveges_lista || JSON.stringify(payload, null, 2))
+                  (effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2)
+                    : effectiveJobMode === 'ambulans' ? JSON.stringify(responseData, null, 2)
+                      : effectiveJobMode === 'treatnote' ? formatTreatnotePayload(payload)
+                        : payload?.szoveges_lista || JSON.stringify(payload, null, 2))
                 } />
               </TabsContent>
             </div>

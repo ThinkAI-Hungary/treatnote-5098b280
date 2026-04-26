@@ -54,11 +54,11 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
     const telephelyId = profile.current_telephely_id;
-    
+
     // ── Rate Limiting ─────────────────────────────────────────────────────
     // 30 requests per 15 minutes limit per user
     const rateLimit = await checkRateLimit(supabaseAdmin, userId, 'native-voice-webhook', 30, 15);
-    
+
     if (!rateLimit.allowed) {
       console.log('Rate limit exceeded but BYPASSED FOR TESTING');
     }
@@ -96,7 +96,7 @@ serve(async (req) => {
         );
       }
     }
-    
+
     const finalFilename = filename || audio.name;
     const estimatedDuration = Math.round(audio.size / 16000);
 
@@ -139,7 +139,7 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     const elevenlabsApiKey = Deno.env.get("ELEVENLABS_API_KEY");
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    
+
     const apiKeys = { openai: openaiApiKey || "", elevenlabs: elevenlabsApiKey || "", anthropic: anthropicApiKey || "" };
     const ctx = { userId, companyId, telephelyId, logErrorToDatabase };
     let backgroundProcessing;

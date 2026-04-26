@@ -74,6 +74,14 @@ export function NativeVoiceRecordingPanel({
     },
   });
 
+  const onJobCompleteRef = useRef(onJobComplete);
+  const onJobErrorRef = useRef(onJobError);
+
+  useEffect(() => {
+    onJobCompleteRef.current = onJobComplete;
+    onJobErrorRef.current = onJobError;
+  }, [onJobComplete, onJobError]);
+
   // Poll for job completion
   useEffect(() => {
     if (!currentJobId) return;
@@ -86,16 +94,16 @@ export function NativeVoiceRecordingPanel({
 
         if (job.status === 'completed') {
           toast.success('Felvétel sikeresen feldolgozva!');
-          onJobComplete?.(currentJobId, job.result);
+          onJobCompleteRef.current?.(currentJobId, job.result);
         } else if (job.status === 'error') {
           toast.error('Hiba a feldolgozás során: ' + (job.error || 'Ismeretlen hiba'));
-          onJobError?.(currentJobId, job.error);
+          onJobErrorRef.current?.(currentJobId, job.error);
         }
       }
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
-  }, [currentJobId, pollJob, onJobComplete, onJobError]);
+  }, [currentJobId, pollJob, isFlexi]);
 
   const handleToggleRecording = () => {
     if (isRecording) {

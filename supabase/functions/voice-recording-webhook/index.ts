@@ -75,24 +75,24 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
     const telephelyId = profile.current_telephely_id;
-    
+
     // ── Rate Limiting ─────────────────────────────────────────────────────
     // 10 requests per 15 minutes limit per user
     const rateLimit = await checkRateLimit(supabaseAdmin, userId, 'voice-recording-webhook', 10, 15);
-    
+
     if (!rateLimit.allowed) {
       await logErrorToDatabase(supabaseAdmin, {
-          script_name: 'voice-recording-webhook',
-          summary: 'Rate limit átlépve',
-          full_log: `Túl sok kérés a webhookra. Engedélyezve: 10 / 15 perc.`,
-          user_id: userId,
-          company_id: companyId,
-          telephely_id: telephelyId,
-          severity: 'warning'
+        script_name: 'voice-recording-webhook',
+        summary: 'Rate limit átlépve',
+        full_log: `Túl sok kérés a webhookra. Engedélyezve: 10 / 15 perc.`,
+        user_id: userId,
+        company_id: companyId,
+        telephely_id: telephelyId,
+        severity: 'warning'
       });
       return new Response(
-          JSON.stringify({ error: "Túl sok hangfelvétel kérés indult ebből a fiókból. Kérjük, várjon 15 percet, majd próbálja újra." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Túl sok hangfelvétel kérés indult ebből a fiókból. Kérjük, várjon 15 percet, majd próbálja újra." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -310,7 +310,7 @@ serve(async (req) => {
         telephely_id: telephelyId,
         severity: 'error'
       });
-      
+
       // Mark job as error if no webhook URL
       await supabaseAdmin
         .from('voice_jobs')
@@ -390,7 +390,7 @@ serve(async (req) => {
         console.log(`[Job ${jobId}] Completed successfully`);
       } catch (webhookError) {
         console.error(`[Job ${jobId}] Webhook error:`, webhookError);
-        
+
         await logErrorToDatabase(supabaseAdmin, {
           script_name: 'voice-recording-webhook',
           summary: 'Az n8n webhook értesítése sikertelen',
