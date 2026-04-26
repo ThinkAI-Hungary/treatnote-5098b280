@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Plus, Trash2, Check, X, Loader2, ChevronRight,
-  ClipboardList, GripVertical, Ban
+  ClipboardList, GripVertical, Ban, Save, Trash
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +46,7 @@ interface TreatmentPlan {
 
 interface TreatmentPlanEditorProps {
   patientId: string;
+  onPlanLoad?: (hasItems: boolean) => void;
 }
 
 // ─── Tooth options (Zsigmondy) ───────────────────────────────────────────────
@@ -59,15 +60,15 @@ const TEETH = [
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
+export function TreatmentPlanEditor({ patientId, onPlanLoad }: TreatmentPlanEditorProps) {
   const { profile } = useProfile();
   const [plan, setPlan] = useState<TreatmentPlan | null>(null);
   const [items, setItems] = useState<PlanItem[]>([]);
+  const [savedItems, setSavedItems] = useState<PlanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVisit, setSelectedVisit] = useState(1);
   const [saving, setSaving] = useState(false);
 
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const telephelyId = profile?.current_telephely_id || profile?.telephely_id || '';
 
   // ─── Load existing plan ──────────────────────────────────────────────────
@@ -97,21 +98,29 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
         if (itemsErr) throw itemsErr;
 
         setPlan({ ...p, items: [] } as TreatmentPlan);
-        setItems((planItems || []).map(i => ({
+        const mappedItems = (planItems || []).map(i => ({
           ...i,
           treatment_item_id: i.treatment_item_id || null,
           price_snapshot: i.price_snapshot || null,
           status: i.status || 'planned',
           notes: i.notes || null,
-        })) as PlanItem[]);
+        })) as PlanItem[];
+        setItems(mappedItems);
+        setSavedItems(mappedItems);
 
         // Select the first visit
         if (planItems && planItems.length > 0) {
           setSelectedVisit(planItems[0].vizit || 1);
         }
+
+        if (onPlanLoad) {
+          onPlanLoad((planItems || []).length > 0);
+        }
       } else {
         setPlan(null);
         setItems([]);
+        setSavedItems([]);
+        if (onPlanLoad) onPlanLoad(false);
       }
     } catch (err: any) {
       console.error('Error loading treatment plan:', err);
@@ -159,6 +168,7 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
       if (error) throw error;
       setPlan({ ...data, items: [] } as TreatmentPlan);
       setItems([]);
+      setSavedItems([]);
       setSelectedVisit(1);
       toast.success('Új kezelési terv létrehozva');
     } catch (err: any) {
@@ -167,51 +177,56 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
     }
   };
 
-  // ─── Auto-save (debounced) ───────────────────────────────────────────────
+  // ─── Manual save ─────────────────────────────────────────────────────────
 
-  const scheduleSave = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      if (!plan) return;
-      setSaving(true);
-      try {
-        // Delete all existing items and re-insert
-        await supabase
-          .from('patient_treatment_plan_items')
-          .delete()
-          .eq('plan_id', plan.id);
+  const saveChanges = async () => {
+    if (!plan) return;
+    setSaving(true);
+    try {
+      // Delete all existing items and re-insert
+      const { error: deleteError } = await supabase
+        .from('patient_treatment_plan_items')
+        .delete()
+        .eq('plan_id', plan.id);
 
-        if (items.length > 0) {
-          const payload = items.map(i => ({
-            plan_id: plan.id,
-            vizit: i.vizit,
-            szakterulet: i.szakterulet || '',
-            fog: i.fog,
-            hidtag: i.hidtag,
-            name: i.name,
-            quantity: i.quantity,
-            scaling: i.scaling,
-            talalat: i.talalat,
-            treatment_item_id: i.treatment_item_id,
-            price_snapshot: i.price_snapshot,
-            status: i.status,
-            notes: i.notes,
-          }));
-
-          const { error } = await supabase
-            .from('patient_treatment_plan_items')
-            .insert(payload);
-
-          if (error) throw error;
-        }
-      } catch (err: any) {
-        console.error('Error saving plan items:', err);
-        toast.error('Hiba a mentéskor');
-      } finally {
-        setSaving(false);
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw deleteError;
       }
-    }, 800);
-  }, [plan, items]);
+
+      if (items.length > 0) {
+        const payload = items.map(i => ({
+          plan_id: plan.id,
+          vizit: i.vizit,
+          szakterulet: i.szakterulet || '',
+          fog: i.fog,
+          hidtag: i.hidtag,
+          name: i.name,
+          quantity: i.quantity,
+          scaling: i.scaling,
+          talalat: i.talalat,
+          treatment_item_id: i.treatment_item_id,
+          price_snapshot: i.price_snapshot,
+          status: i.status,
+          notes: i.notes,
+        }));
+
+        const { error } = await supabase
+          .from('patient_treatment_plan_items')
+          .insert(payload);
+
+        if (error) throw error;
+      }
+      setSavedItems([...items]);
+      toast.success('Kezelési terv sikeresen mentve');
+      window.dispatchEvent(new Event('dental-chart-updated'));
+    } catch (err: any) {
+      console.error('Error saving plan items:', err);
+      toast.error('Hiba a mentéskor');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ─── Item operations ─────────────────────────────────────────────────────
 
@@ -231,7 +246,6 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
       notes: null,
     };
     setItems(prev => [...prev, newItem]);
-    scheduleSave();
   };
 
   const removeItem = (index: number) => {
@@ -242,7 +256,6 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
     });
     if (globalIdx >= 0) {
       setItems(prev => prev.filter((_, i) => i !== globalIdx));
-      scheduleSave();
     }
   };
 
@@ -254,7 +267,6 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
     });
     if (globalIdx >= 0) {
       setItems(prev => prev.map((item, i) => i === globalIdx ? { ...item, [field]: value } : item));
-      scheduleSave();
     }
   };
 
@@ -269,7 +281,6 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
       setItems(prev => prev.map((item, i) =>
         i === globalIdx ? { ...item, status: statusCycle[item.status] || 'planned' } : item
       ));
-      scheduleSave();
     }
   };
 
@@ -289,6 +300,15 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
   };
 
   const formatPrice = (p: number | null) => p != null ? p.toLocaleString('hu-HU') + ' Ft' : '–';
+
+  const hasChanges = useMemo(() => {
+    if (items.length !== savedItems.length) return true;
+    return JSON.stringify(items) !== JSON.stringify(savedItems);
+  }, [items, savedItems]);
+
+  const clearAllItems = () => {
+    setItems([]);
+  };
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -317,23 +337,45 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
   }
 
   return (
-    <Card className="border-border/50 overflow-hidden">
-      <CardHeader className="pb-3 border-b bg-muted/5">
+    <Card className="border-border/50 overflow-hidden flex flex-col h-full">
+      <CardHeader className="pb-3 border-b bg-muted/5 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
             Kezelési Terv
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground ml-2" />}
+            {hasChanges && <span className="text-[10px] font-normal text-amber-500 uppercase ml-2 bg-amber-500/10 px-1.5 py-0.5 rounded">* Mentetlen módosítások</span>}
           </CardTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-mono font-semibold text-foreground">
+          <div className="flex items-center gap-4">
+            <span className="font-mono font-semibold text-foreground text-sm">
               {formatPrice(grandTotal)}
             </span>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={clearAllItems}
+                className="h-8 text-xs font-medium"
+                disabled={items.length === 0}
+              >
+                <Trash className="h-3.5 w-3.5 mr-1" /> Teljes törlés
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={saveChanges}
+                disabled={!hasChanges || saving}
+                className={cn("h-8 text-xs font-medium transition-colors", hasChanges ? "bg-sparkle-blue hover:bg-sparkle-blue/90" : "bg-muted text-muted-foreground")}
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                Mentés
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x min-h-[300px]">
+      <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x min-h-[300px] flex-1 min-h-0">
         {/* LEFT: Visit list */}
         <div className="md:col-span-3 flex flex-col bg-muted/5">
           <div className="px-3 py-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -389,7 +431,7 @@ export function TreatmentPlanEditor({ patientId }: TreatmentPlanEditorProps) {
             </div>
           </div>
 
-          <ScrollArea className="flex-1 max-h-[400px]">
+          <ScrollArea className="flex-1">
             {visitItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                 <p className="text-sm">Nincs tétel ebben az ülésben</p>

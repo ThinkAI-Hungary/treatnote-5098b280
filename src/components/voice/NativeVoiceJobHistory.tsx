@@ -53,8 +53,21 @@ function StatusIcon({ status }: { status: VoiceJob['status'] }) {
   }
 }
 
-function parseJobResult(result: unknown): { originalText: string | null; kitoltes: string | null; appliedRules: any[] } {
+import { mapVoxisToModels } from '../patients/dental-chart/voxisMapper';
+import { DENTAL_STATUSES } from '../patients/dental-chart/constants';
+
+function getStatusName(id?: string) {
+  if (!id || id === 'healthy') return 'Egészséges';
+  return id.split(',').map(part => {
+    const trimmed = part.trim();
+    return DENTAL_STATUSES.find(s => s.id === trimmed)?.name || trimmed;
+  }).join(', ');
+}
+
+function parseJobResult(job: any): { originalText: string | null; kitoltes: string | null; appliedRules: any[] } {
   try {
+    const result = job.result;
+    const mode = job.mode;
     let data: any = result;
     if (typeof data === 'string') {
       try { data = JSON.parse(data); } catch { return { originalText: null, kitoltes: null, appliedRules: [] }; }
@@ -71,30 +84,41 @@ function parseJobResult(result: unknown): { originalText: string | null; kitolte
     const appliedRules = finalData?.execution_report_human?.talalatok || [];
 
     let kitoltesStr = finalData?.szoveges_lista ?? null;
-    if (!kitoltesStr && finalData?.MEGJEGYZES_FO !== undefined) {
-      kitoltesStr = `Megjegyzés: ${finalData.MEGJEGYZES_FO}\n\n--- Érintett fogak ---\n`;
-      let foundChange = false;
-      for (let i = 11; i <= 48; i++) {
-        if (finalData[i] && (finalData[i].active_properties?.length > 0 || finalData[i].Megjegyzes)) {
-          foundChange = true;
-          kitoltesStr += `Fog ${i}:\n`;
-          if (finalData[i].active_properties?.length > 0) {
-             kitoltesStr += `  Tulajdonságok: ${finalData[i].active_properties.join(', ')}\n`;
-          }
-          if (finalData[i].Megjegyzes) {
-             kitoltesStr += `  Észrevétel: ${finalData[i].Megjegyzes}\n`;
-          }
+    if (!kitoltesStr && (mode === 'voxis' || finalData?.MEGJEGYZES_FO !== undefined || finalData?.Megjegyzes_fo !== undefined)) {
+      const megjegyzes = finalData?.MEGJEGYZES_FO || finalData?.Megjegyzes_fo;
+      kitoltesStr = megjegyzes ? `Megjegyzés: ${megjegyzes}\n\n--- Érintett fogak ---\n` : `--- Érintett fogak ---\n`;
+      
+      const mappedUpdates = mapVoxisToModels(finalData, {}, job.treatnote_patient_id || '');
+      
+      if (mappedUpdates.length > 0) {
+        for (const update of mappedUpdates) {
+          kitoltesStr += `Fog ${update.tooth_number}:\n`;
+          kitoltesStr += `  Státusz: ${getStatusName(update.status)}\n`;
+          if (update.surfaces) kitoltesStr += `  Felszín: ${update.surfaces}\n`;
+          if (update.notes) kitoltesStr += `  Észrevétel: ${update.notes}\n`;
         }
+      } else {
+        kitoltesStr = megjegyzes ? kitoltesStr + "Nincsenek specifikus fogak megjelölve." : "Nem lett változás regisztrálva a fogakon.";
       }
-      if (!foundChange) kitoltesStr += "Nem lett változás regisztrálva a fogakon.";
+    }
+
+    // Attempt to parse out some treatnote output if szoveges_lista is missing
+    if (!kitoltesStr && mode === 'treatnote' && appliedRules.length > 0) {
+      kitoltesStr = "--- Felismert Kezelések ---\n";
+      appliedRules.forEach((rule: any) => {
+         if (rule.eredmeny?.rule_name) {
+             kitoltesStr += `- ${rule.eredmeny.rule_name}\n`;
+         }
+      });
     }
 
     return {
-      originalText: finalData?.transcriber?.raw?.text ?? finalData?.transcriber?.text ?? null,
+      originalText: job.raw_audio_text ?? job.claude_cleaned_text ?? finalData?.transcriber?.raw?.text ?? finalData?.transcriber?.text ?? finalData?.audioText ?? null,
       kitoltes: kitoltesStr,
       appliedRules: Array.isArray(appliedRules) ? appliedRules : [],
     };
-  } catch {
+  } catch (e) {
+    console.error("Error parsing job result", e);
     return { originalText: null, kitoltes: null, appliedRules: [] };
   }
 }
@@ -145,7 +169,7 @@ function PreviewPanel({
 }
 
 function PreviewContent({ job }: { job: VoiceJob }) {
-  const { originalText, kitoltes, appliedRules } = parseJobResult(job.result);
+  const { originalText, kitoltes, appliedRules } = parseJobResult(job);
   const [selectedRule, setSelectedRule] = useState<{ id: string; name: string } | null>(null);
 
   if (!originalText && !kitoltes) {

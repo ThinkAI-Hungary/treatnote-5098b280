@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Loader2, AlertCircle, Book, FileText, Search } from 'lucide-react';
+import { X, Loader2, AlertCircle, Book, FileText, Search, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMemo, useState, useEffect } from 'react';
@@ -109,10 +110,45 @@ function val(v: unknown, fallback = 'N/A'): string {
   return String(v);
 }
 
+function formatTreatnotePayload(payload: any): string {
+  if (!payload || !Array.isArray(payload.vizitek)) {
+    return payload?.szoveges_lista || JSON.stringify(payload, null, 2);
+  }
+  
+  const visits = new Map<number, any[]>();
+  for (const item of payload.vizitek) {
+    const v = item.vizit || 1;
+    if (!visits.has(v)) visits.set(v, []);
+    visits.get(v)!.push(item);
+  }
+  
+  let result = '';
+  const sortedVisits = Array.from(visits.entries()).sort((a, b) => a[0] - b[0]);
+  
+  for (const [vNum, items] of sortedVisits) {
+    result += `${vNum}. Ülés\n`;
+    result += `----------------------\n`;
+    for (const item of items) {
+      const fog = item.fog && item.fog !== 'szájüreg' ? `Fog: ${item.fog}` : 'Szájüreg';
+      const text = item.name || 'Ismeretlen kezelés';
+      const qty = item.quantity > 1 ? ` (x${item.quantity})` : '';
+      const extras = [];
+      if (item.hidtag === 'pontic_only') extras.push('hídtag');
+      if (item.hidtag === 'pillar_only') extras.push('pillér');
+      const extraStr = extras.length > 0 ? ` [${extras.join(', ')}]` : '';
+      
+      result += ` • ${fog} | ${text}${qty}${extraStr}\n`;
+    }
+    result += `\n`;
+  }
+  
+  return result.trim();
+}
+
 // ── Panel 1: Original Text ──
 function OriginalTextPanel({ text }: { text?: string }) {
   return (
-    <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
+    <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
         <FileText className="h-4 w-4 text-sparkle-blue" />
         Eredeti szöveg
@@ -128,7 +164,7 @@ function OriginalTextPanel({ text }: { text?: string }) {
 function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
   if (!report) {
     return (
-      <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
+      <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
         <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
           <Search className="h-4 w-4 text-accent" />
           Szabály találatok
@@ -141,7 +177,7 @@ function SemanticMatcherPanel({ report }: { report?: ExecutionReportHuman }) {
   const talalatok = report.talalatok || [];
 
   return (
-    <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
+    <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
       <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
         <Search className="h-4 w-4 text-accent" />
         Szabály találatok
@@ -169,7 +205,7 @@ function MatchItem({ item }: { item: Talalat }) {
     : item.context_text;
 
   return (
-    <div className="border border-border/30 rounded-lg p-4 space-y-3 bg-muted/10">
+    <div className="border border-border/40 rounded-lg p-4 space-y-3 bg-background/50 hover:bg-background/80 transition-colors shadow-sm">
       {/* Header */}
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-mono text-muted-foreground">#{val(item.sorszam)}</span>
@@ -281,7 +317,7 @@ function TextualListPanel({ text }: { text?: string }) {
   }, [text]);
 
   return (
-    <div className="relative rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent p-5 backdrop-blur-sm h-full">
+    <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
       <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
         <Book className="h-4 w-4 text-galaxy-purple" />
         Kitöltés
@@ -628,21 +664,28 @@ export function VerdiktDisplay({
                   <SemanticMatcherPanel report={responseData?.execution_report_human || payload?.execution_report_human} />
                 </TabsContent>
               )}
-              <TabsContent value="textual">
-                {effectiveJobMode === 'voxis' && voxisReviewPanelNode ? (
-                  voxisReviewPanelNode
-                ) : effectiveJobMode === 'treatnote' && jobId && selectedJobPaciensId ? (
-                  <TreatnoteReviewPanel
-                    jobId={jobId}
-                    patientId={selectedJobPaciensId}
-                    resultJson={payload}
-                    isNewest={true}
-                  />
-                ) : effectiveJobMode === 'ambulans' ? (
-                  <AmbulansllapReviewPanel resultJson={responseData as any} />
-                ) : (
-                  <TextualListPanel text={effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) : payload?.szoveges_lista} />
+              <TabsContent value="textual" className="space-y-4">
+                {selectedJobPaciensId && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-foreground">Sikeres mentés</h4>
+                      <p className="text-sm text-muted-foreground mt-1">Az adatok bekerültek a páciens kartonjába.</p>
+                    </div>
+                    <Button asChild variant="outline" className="shrink-0 gap-2">
+                      <Link to={`/patients/${selectedJobPaciensId}/${effectiveJobMode === 'treatnote' ? 'treatment-plan' : effectiveJobMode === 'ambulans' ? 'ambulatory-chart' : 'status'}`}>
+                        Megtekintés a kartonban
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 )}
+                <TextualListPanel text={
+                  (payload?.link ? `🔗 Megtekintés a külső rendszerben: ${payload.link}\n\n` : '') +
+                  (effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2) 
+                  : effectiveJobMode === 'ambulans' ? JSON.stringify(responseData, null, 2)
+                  : effectiveJobMode === 'treatnote' ? formatTreatnotePayload(payload)
+                  : payload?.szoveges_lista || JSON.stringify(payload, null, 2))
+                } />
               </TabsContent>
             </div>
           </Tabs>

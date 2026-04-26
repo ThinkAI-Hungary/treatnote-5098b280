@@ -485,9 +485,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
   }
 
   /* Light mode: soften icon gradient backgrounds (from-primary to-accent is too vivid) */
-  :root:not(.dark) .glow-purple,
-  :root:not(.dark) .rounded-lg.bg-gradient-to-br,
-  :root:not(.dark) .rounded-xl.bg-gradient-to-br {
+  :root:not(.dark) .glow-purple {
     background: linear-gradient(to bottom right,
         hsl(268 30% 82%) 0%,
         hsl(255 14% 88%) 100%) !important;

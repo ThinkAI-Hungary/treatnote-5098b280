@@ -16,6 +16,7 @@ interface ZsigmondyToothCellProps {
   onClick: (event: React.MouseEvent) => void;
   isUpper: boolean;
   treatmentMarkers?: TreatmentMarker[];
+  className?: string;
 }
 
 // ============ ANATOMICAL TOOTH SVG PATHS ============
@@ -265,7 +266,7 @@ function ToothSilhouette({
   const baseFill = hasSurfaces ? 'hsl(var(--primary) / 0.35)' : mainColor;
 
   return (
-    <svg width={viewW * scale} height={viewH * scale} viewBox={`0 0 ${viewW} ${viewH}`} className="drop-shadow-sm">
+    <svg className="w-full h-auto drop-shadow-sm" viewBox={`0 0 ${viewW} ${viewH}`}>
       {/* Layer 1: Roots */}
       <path d={rootsPath} fill="none" stroke={rootColor} strokeWidth={2}
         strokeLinecap="round" strokeLinejoin="round" opacity={0.5} />
@@ -309,8 +310,8 @@ function ToothSilhouette({
 
 function AbsentToothPlaceholder() {
   return (
-    <div className="w-[26px] h-[40px] flex items-center justify-center">
-      <svg width="20" height="32" viewBox="0 0 20 32">
+    <div className="w-full aspect-[20/32] flex items-center justify-center">
+      <svg className="w-full h-full" viewBox="0 0 20 32">
         <rect x="2" y="2" width="16" height="28" rx="4" fill="none"
           stroke="hsl(var(--border))" strokeWidth="1" strokeDasharray="3,2" opacity="0.5" />
         <line x1="5" y1="7" x2="15" y2="25" stroke="hsl(var(--muted-foreground))"
@@ -325,7 +326,7 @@ function AbsentToothPlaceholder() {
 // ============ MAIN COMPONENT ============
 
 export function ZsigmondyToothCell({
-  toothNumber, tooth, isSelected, isMultiSelected = false, onClick, isUpper, treatmentMarkers,
+  toothNumber, tooth, isSelected, isMultiSelected = false, onClick, isUpper, treatmentMarkers, className,
 }: ZsigmondyToothCellProps) {
   const numericTooth = parseInt(toothNumber, 10);
   const colors = getToothColors(tooth?.status);
@@ -357,12 +358,14 @@ export function ZsigmondyToothCell({
             zsigmondy-tooth-cell relative flex flex-col items-center gap-0 p-0.5 rounded-lg
             transition-all duration-200 ease-out
             focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1
+            w-full
             ${isSelected && !isMultiSelected
               ? 'bg-primary/15 ring-2 ring-primary shadow-lg shadow-primary/20 scale-110 z-10'
               : isMultiSelected
                 ? 'bg-blue-500/10 ring-2 ring-blue-500/60 shadow-md scale-105 z-10'
                 : 'hover:bg-muted/50 hover:scale-105'}
             ${colors.isAbsent ? 'opacity-40' : ''}
+            ${className || ''}
           `}
           aria-label={`Fog ${toothNumber}`}
         >
@@ -374,7 +377,7 @@ export function ZsigmondyToothCell({
           </span>
 
           {/* SVG tooth or absent placeholder */}
-          <div className={`relative ${isUpper ? 'order-first' : 'order-last'}`}>
+          <div className={`relative w-full ${isUpper ? 'order-first' : 'order-last'}`}>
             {colors.isAbsent ? (
               <AbsentToothPlaceholder />
             ) : (

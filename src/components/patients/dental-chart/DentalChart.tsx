@@ -29,7 +29,17 @@ const ALL_TEETH = [...UPPER_ALL, ...LOWER_ALL];
 
 // ============ Main Component ============
 
-export function DentalChart({ patientId }: { patientId: string }) {
+export function DentalChart({ 
+  patientId, 
+  toothScale = 1,
+  readonly = false,
+  onSelectionChange
+}: { 
+  patientId: string;
+  toothScale?: number;
+  readonly?: boolean;
+  onSelectionChange?: (selectedTeeth: string[]) => void;
+}) {
   const { profile } = useProfile();
   const [data, setData] = useState<Record<string, ToothModel>>({});
   const [loading, setLoading] = useState(true);
@@ -77,75 +87,76 @@ export function DentalChart({ patientId }: { patientId: string }) {
     fetchChart(true);
   }, [fetchChart]);
 
+  // Fetch treatment plan markers
+  const fetchMarkers = useCallback(async () => {
+    try {
+      // Get the most recent treatment plan
+      const { data: plans } = await supabase
+        .from('patient_treatment_plans')
+        .select('id')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!plans || plans.length === 0) { setTreatmentMarkersMap({}); return; }
+
+      // Get plan items with their visual cues from the catalog
+      const { data: items } = await supabase
+        .from('patient_treatment_plan_items')
+        .select('fog, status, treatment_item_id')
+        .eq('plan_id', plans[0].id);
+
+      if (!items || items.length === 0) { setTreatmentMarkersMap({}); return; }
+
+      // Get visual cues for referenced treatment items
+      const itemIds = [...new Set(items.filter(i => i.treatment_item_id).map(i => i.treatment_item_id!))];
+      let cueMap: Record<string, { visual_icon: string; visual_color: string }> = {};
+
+      if (itemIds.length > 0) {
+        const { data: catalogItems } = await supabase
+          .from('clinic_treatment_items_stdl' as any)
+          .select('id, visual_icon, visual_color')
+          .in('id', itemIds);
+
+        if (catalogItems) {
+          (catalogItems as any[]).forEach(ci => {
+            cueMap[ci.id] = { visual_icon: ci.visual_icon, visual_color: ci.visual_color };
+          });
+        }
+      }
+
+      // Build per-tooth markers map
+      const map: Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>> = {};
+      for (const item of items) {
+        if (!item.fog) continue;
+        const cue = item.treatment_item_id ? cueMap[item.treatment_item_id] : null;
+        if (!map[item.fog]) map[item.fog] = [];
+        map[item.fog].push({
+          visual_icon: cue?.visual_icon || 'dot_outline',
+          visual_color: cue?.visual_color || '#64748b',
+          status: item.status || 'planned',
+        });
+      }
+
+      setTreatmentMarkersMap(map);
+    } catch (err) {
+      console.error('Error fetching treatment markers:', err);
+    }
+  }, [patientId]);
+
+  useEffect(() => {
+    fetchMarkers();
+  }, [fetchMarkers]);
+
   useEffect(() => {
     const handleUpdate = () => {
       fetchChart();
+      fetchMarkers();
     };
 
     window.addEventListener('dental-chart-updated', handleUpdate);
     return () => window.removeEventListener('dental-chart-updated', handleUpdate);
-  }, [fetchChart]);
-
-  // Fetch treatment plan markers
-  useEffect(() => {
-    const fetchMarkers = async () => {
-      try {
-        // Get the most recent treatment plan
-        const { data: plans } = await supabase
-          .from('patient_treatment_plans')
-          .select('id')
-          .eq('patient_id', patientId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!plans || plans.length === 0) { setTreatmentMarkersMap({}); return; }
-
-        // Get plan items with their visual cues from the catalog
-        const { data: items } = await supabase
-          .from('patient_treatment_plan_items')
-          .select('fog, status, treatment_item_id')
-          .eq('plan_id', plans[0].id);
-
-        if (!items || items.length === 0) { setTreatmentMarkersMap({}); return; }
-
-        // Get visual cues for referenced treatment items
-        const itemIds = [...new Set(items.filter(i => i.treatment_item_id).map(i => i.treatment_item_id!))];
-        let cueMap: Record<string, { visual_icon: string; visual_color: string }> = {};
-
-        if (itemIds.length > 0) {
-          const { data: catalogItems } = await supabase
-            .from('clinic_treatment_items_stdl' as any)
-            .select('id, visual_icon, visual_color')
-            .in('id', itemIds);
-
-          if (catalogItems) {
-            (catalogItems as any[]).forEach(ci => {
-              cueMap[ci.id] = { visual_icon: ci.visual_icon, visual_color: ci.visual_color };
-            });
-          }
-        }
-
-        // Build per-tooth markers map
-        const map: Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>> = {};
-        for (const item of items) {
-          if (!item.fog) continue;
-          const cue = item.treatment_item_id ? cueMap[item.treatment_item_id] : null;
-          if (!map[item.fog]) map[item.fog] = [];
-          map[item.fog].push({
-            visual_icon: cue?.visual_icon || 'dot_outline',
-            visual_color: cue?.visual_color || '#64748b',
-            status: item.status || 'planned',
-          });
-        }
-
-        setTreatmentMarkersMap(map);
-      } catch (err) {
-        console.error('Error fetching treatment markers:', err);
-      }
-    };
-
-    fetchMarkers();
-  }, [patientId]);
+  }, [fetchChart, fetchMarkers]);
 
   // ============ Click handling with multi-select ============
 
@@ -170,13 +181,16 @@ export function DentalChart({ patientId }: { patientId: string }) {
       } else {
         setSelectedTooth(toothNum);
         setSelectedTeeth([toothNum]);
-        // Scroll to editor
-        setTimeout(() => {
-          window.scrollBy({ top: 300, behavior: 'smooth' });
-        }, 100);
       }
     }
   }, [selectedTooth, selectedTeeth]);
+
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedTeeth);
+    }
+  }, [selectedTeeth, onSelectionChange]);
 
   // ============ Preset selections ============
 
@@ -443,7 +457,7 @@ export function DentalChart({ patientId }: { patientId: string }) {
 
       {/* The chart itself */}
       <CardContent className="w-full overflow-x-auto pb-4">
-        <div className="w-max mx-auto px-6 pt-4 pb-2">
+        <div className="w-full mx-auto px-2 sm:px-6 pt-4 pb-2">
           <ZsigmondyCross 
             data={data} 
             onToothClick={handleToothClick} 
@@ -452,12 +466,13 @@ export function DentalChart({ patientId }: { patientId: string }) {
             selectedTeeth={selectedTeeth}
             treatmentMarkersMap={treatmentMarkersMap}
             bridgePreview={bridgePreview}
+            scale={toothScale}
           />
         </div>
       </CardContent>
 
       {/* Multi-select bulk toolbar */}
-      {isMultiSelect && (
+      {isMultiSelect && !readonly && (
         <div className="px-4 pb-4 sm:px-6 animate-in slide-in-from-bottom-2 fade-in duration-200">
           <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -516,7 +531,7 @@ export function DentalChart({ patientId }: { patientId: string }) {
       )}
 
       {/* Single tooth editor */}
-      {selectedTooth && !isMultiSelect && (
+      {selectedTooth && !isMultiSelect && !readonly && (
         <div className="px-4 pb-4 sm:px-6 sm:pb-6">
           <ToothEditorPanel 
             key={selectedTooth}

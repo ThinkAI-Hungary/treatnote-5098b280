@@ -20,6 +20,7 @@ type Props = {
   selectedTeeth: string[];
   treatmentMarkersMap?: Record<string, TreatmentMarker[]>;
   bridgePreview?: BridgeConfig | null;
+  scale?: number;
 };
 
 // ============ Bridge line rendering ============
@@ -76,7 +77,7 @@ function findBridgeGroups(
 // ============ Main Component ============
 
 export function ZsigmondyCross({
-  data, onToothClick, showBabyTeeth, selectedTooth, selectedTeeth, treatmentMarkersMap, bridgePreview,
+  data, onToothClick, showBabyTeeth, selectedTooth, selectedTeeth, treatmentMarkersMap, bridgePreview, scale = 1
 }: Props) {
 
   const RowWithBridge = ({ leftNumbers, rightNumbers, isUpper }: {
@@ -102,12 +103,13 @@ export function ZsigmondyCross({
     })();
 
     return (
-      <div ref={rowRef} className="relative flex justify-center items-center gap-0.5 sm:gap-1 w-max mx-auto flex-nowrap">
+      <div ref={rowRef} className="relative flex justify-center items-center gap-0.5 sm:gap-1 w-full mx-auto flex-nowrap px-1">
         {/* Left side */}
-        <div className="flex gap-0.5 sm:gap-1 justify-end flex-nowrap items-center w-max">
+        <div className="flex gap-0.5 sm:gap-1 justify-end flex-nowrap items-center flex-1 min-w-0">
           {leftNumbers.map(num => (
             <ZsigmondyToothCell
               key={num}
+              className={`w-0 flex-1 min-w-[20px] ${scale > 1 ? 'max-w-[60px]' : 'max-w-[40px]'}`}
               toothNumber={num}
               tooth={data[num]}
               isSelected={selectedTooth === num}
@@ -121,13 +123,14 @@ export function ZsigmondyCross({
 
         {/* Center divider */}
         <div className="w-0.5 md:w-1 rounded bg-border/60 flex-shrink-0"
-          style={{ height: isUpper ? '56px' : '56px' }} />
+          style={{ height: scale > 1 ? '70px' : '56px' }} />
 
         {/* Right side */}
-        <div className="flex gap-0.5 sm:gap-1 justify-start flex-nowrap items-center w-max">
+        <div className="flex gap-0.5 sm:gap-1 justify-start flex-nowrap items-center flex-1 min-w-0">
           {rightNumbers.map(num => (
             <ZsigmondyToothCell
               key={num}
+              className={`w-0 flex-1 min-w-[20px] ${scale > 1 ? 'max-w-[60px]' : 'max-w-[40px]'}`}
               toothNumber={num}
               tooth={data[num]}
               isSelected={selectedTooth === num}
@@ -155,7 +158,7 @@ export function ZsigmondyCross({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex flex-col gap-2 items-center w-full max-w-6xl mx-auto p-2">
+      <div className="flex flex-col gap-2 items-center w-full mx-auto p-2">
 
         {/* Upper jaw */}
         <div className="flex flex-col gap-1 w-full items-center">

@@ -22,6 +22,7 @@ statusesData.forEach((s: any) => {
 
 interface PatientHistoryPanelProps {
   patientId: string;
+  filterType?: 'status' | 'treatment_plan' | 'all';
 }
 
 type EventType = 'status_change' | 'treatment_plan' | 'batched_status_change';
@@ -42,13 +43,13 @@ interface UnifiedEvent {
   relatedTeeth?: string[];
 }
 
-export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
+export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHistoryPanelProps) {
   const [events, setEvents] = useState<UnifiedEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Detail popup state
   const [selectedEvent, setSelectedEvent] = useState<UnifiedEvent | null>(null);
-  
+
   // Full screen history state
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [filterTooth, setFilterTooth] = useState('');
@@ -109,7 +110,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
           const isInsert = h.operation === 'INSERT';
           let summary = `Fogstátusz módosítva (${h.tooth_number}. fog)`;
           if (isInsert) summary = `Új fogstátusz rögzítve (${h.tooth_number}. fog)`;
-          
+
           return {
             id: h.id,
             type: 'status_change',
@@ -126,7 +127,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
         const first = batch[0];
         const last = batch[batch.length - 1];
         const uniqueTeeth = Array.from(new Set(batch.map(b => String(b.tooth_number))));
-        
+
         return {
           id: `batch_${first.id}`,
           type: 'batched_status_change',
@@ -136,7 +137,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
           summary: `${batch.length} fogstátusz módosítás rögzítve`,
           icon: <span className="text-blue-500 font-bold font-serif">W</span>,
           rawData: null,
-          batchedEvents: batch.sort((a,b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()),
+          batchedEvents: batch.sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()),
           relatedTeeth: uniqueTeeth
         };
       };
@@ -228,9 +229,9 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
     Object.keys(fieldsToTrack).forEach(key => {
       const oldVal = oldState[key];
       const newVal = newState[key];
-      
+
       const isEmpty = (v: any) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
-      
+
       // If both are empty (or both didn't exist), don't show anything
       if (isEmpty(oldVal) && isEmpty(newVal)) return;
 
@@ -301,8 +302,16 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
     );
   };
 
-  const filteredEvents = useMemo(() => {
+  const baseEvents = useMemo(() => {
     return events.filter(ev => {
+      if (filterType === 'status' && ev.type === 'treatment_plan') return false;
+      if (filterType === 'treatment_plan' && ev.type !== 'treatment_plan') return false;
+      return true;
+    });
+  }, [events, filterType]);
+
+  const filteredEvents = useMemo(() => {
+    return baseEvents.filter(ev => {
       if (filterDoctor !== 'all' && ev.userId !== filterDoctor) return false;
       if (filterDate && !ev.date.startsWith(filterDate)) return false;
       if (filterTooth) {
@@ -310,17 +319,17 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
       }
       return true;
     });
-  }, [events, filterDoctor, filterDate, filterTooth]);
+  }, [events, filterDoctor, filterDate, filterTooth, filterType]);
 
   const uniqueDoctors = useMemo(() => {
     const docs = new Map();
-    events.forEach(e => {
+    baseEvents.forEach(e => {
       if (e.userId && e.profile) {
         docs.set(e.userId, e.profile.full_name);
       }
     });
     return Array.from(docs.entries());
-  }, [events]);
+  }, [baseEvents]);
 
   const EventRow = ({ ev }: { ev: UnifiedEvent }) => (
     <div className="relative pl-6">
@@ -358,7 +367,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
       <CardHeader className="px-6 py-4 border-b bg-muted/10 pb-3 shrink-0 flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <History className="h-5 w-5 text-primary" />
-          Történet (Napló)
+          {filterType === 'status' ? 'Státusz Napló' : filterType === 'treatment_plan' ? 'Kezelési Terv Napló' : 'Történet (Napló)'}
         </CardTitle>
         <Button variant="outline" size="sm" onClick={() => setShowFullHistory(true)} className="h-8 text-xs font-medium">
           <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
@@ -373,14 +382,14 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
-            ) : events.length === 0 ? (
+            ) : baseEvents.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-3">
                 <History className="w-12 h-12 opacity-20" />
                 <p>Még nincsenek rögzített előzmények.</p>
               </div>
             ) : (
               <div className="relative border-l-2 border-primary/20 ml-4 pb-4 space-y-6">
-                {events.map((ev) => (
+                {baseEvents.map((ev) => (
                   <EventRow key={ev.id} ev={ev} />
                 ))}
               </div>
@@ -442,7 +451,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
               Teljes Történet Napló
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="flex flex-1 overflow-hidden">
             {/* Filters Sidebar */}
             <div className="w-64 border-r bg-muted/10 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto">
@@ -450,13 +459,13 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
                 <h3 className="font-medium flex items-center gap-2 mb-3 text-sm">
                   <Filter className="h-4 w-4" /> Szűrők
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider">Fogszám</Label>
-                    <Input 
-                      placeholder="Pl. 11, 24" 
-                      value={filterTooth} 
+                    <Input
+                      placeholder="Pl. 11, 24"
+                      value={filterTooth}
                       onChange={(e) => setFilterTooth(e.target.value)}
                       className="h-8 text-sm"
                     />
@@ -487,18 +496,18 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
 
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider">Dátum</Label>
-                    <Input 
-                      type="date" 
-                      value={filterDate} 
+                    <Input
+                      type="date"
+                      value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
                       className="h-8 text-sm"
                     />
                   </div>
                 </div>
-                
+
                 {(filterTooth || filterDoctor !== 'all' || filterDate) && (
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full mt-4 text-xs h-8 text-muted-foreground"
                     onClick={() => { setFilterTooth(''); setFilterDoctor('all'); setFilterDate(''); }}
                   >
@@ -551,7 +560,7 @@ export function PatientHistoryPanel({ patientId }: PatientHistoryPanelProps) {
                                 {selectedEvent?.id === ev.id ? 'Kevesebb' : 'Részletek'}
                               </Button>
                             </div>
-                            
+
                             {/* Expandable Content */}
                             {selectedEvent?.id === ev.id && (
                               <div className="p-5 animate-in slide-in-from-top-2 duration-200">

@@ -21,6 +21,7 @@ interface NativeVoiceRecordingPanelProps {
   treatnotePatientId: string;
   isFlexi?: boolean;
   flexiPatientId?: string | null;
+  forceMode?: RecordingMode;
   onUploadStart?: () => void;
   onJobStarted?: (jobId: string) => void;
   onJobComplete?: (jobId: string, result: any) => void;
@@ -31,6 +32,7 @@ export function NativeVoiceRecordingPanel({
   treatnotePatientId,
   isFlexi,
   flexiPatientId,
+  forceMode,
   onUploadStart,
   onJobStarted,
   onJobComplete,
@@ -40,9 +42,14 @@ export function NativeVoiceRecordingPanel({
   const { user } = useAuth();
   const { profile } = useProfile();
   const { flexiDomain } = useSzotar();
-  const [mode, setMode] = useState<RecordingMode>('treatnote');
+  const [mode, setMode] = useState<RecordingMode>(forceMode || 'treatnote');
   const [isUploading, setIsUploading] = useState(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+
+  // Update mode if forceMode changes
+  useEffect(() => {
+    if (forceMode) setMode(forceMode);
+  }, [forceMode]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -189,156 +196,111 @@ export function NativeVoiceRecordingPanel({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6 h-full w-full", className)}>
-      <Card className="shrink-0">
-        <CardHeader>
-          <CardTitle>Felvétel készítése</CardTitle>
-          <CardDescription>
-            Nyomja meg a mikrofon gombot a felvétel indításához
+    <div className={cn("w-full", className)}>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Hangfelvevő</CardTitle>
+          <CardDescription className="text-xs">
+            Rögzítse és dolgozza fel a leletet
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Mode selector */}
-          <div className="space-y-2">
-            <Label>Feldolgozási mód</Label>
-            <Select
-              value={mode}
-              onValueChange={(value: RecordingMode) => setMode(value)}
-              disabled={isRecording}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="treatnote">Kezelési terv</SelectItem>
-                <SelectItem value="voxis">Státuszfelvétel</SelectItem>
-                <SelectItem value="ambulans">Ambuláns adatlap</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Recording controls */}
-          <div className="flex flex-col items-center py-8">
-            {/* Duration display */}
-            <div className="text-4xl font-mono font-bold mb-6 text-foreground">
-              {formatDuration(duration)}
+          {!forceMode && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Feldolgozási mód</Label>
+              <Select
+                value={mode}
+                onValueChange={(value: RecordingMode) => setMode(value)}
+                disabled={isRecording}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="treatnote">Kezelési terv</SelectItem>
+                  <SelectItem value="voxis">Státuszfelvétel</SelectItem>
+                  <SelectItem value="ambulans">Ambuláns adatlap</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          )}
 
-            {/* Recording indicator - keeps space reserved so the window size won't jump */}
-            <div className="flex items-center justify-center gap-2 mb-4 h-5">
-              {isRecording && (
-                <>
-                  <div
-                    className={`shrink-0 w-3 h-3 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`}
-                  />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {isPaused ? 'Szüneteltetve' : 'Felvétel...'}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Main controls */}
-            <div className="flex items-center gap-4">
+          {/* Recording Controls */}
+          <div className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${isRecording ? 'bg-red-500/5 border-red-500/20' : 'bg-muted/30 border-border/50'}`}>
+            <div className="flex items-center gap-2">
               {isRecording && (
                 <Button
-                  size="lg"
-                  variant={isRecording ? 'destructive' : 'default'}
-                  className="h-20 w-20 rounded-full primary-btn-gradient dark:bg-gradient-to-br dark:from-[hsl(270_70%_60%)] dark:via-[hsl(250_65%_55%)] dark:to-[hsl(195_85%_50%)] dark:hover:shadow-lg dark:hover:shadow-[hsl(270_70%_60%)/0.4]"
+                  size="icon"
+                  variant="outline"
+                  className="rounded-full w-10 h-10 border-red-200 text-red-600 hover:bg-red-50"
                   onClick={handleTogglePause}
                 >
-                  {isPaused ? (
-                    <Play className="h-8 w-8" />
-                  ) : (
-                    <Pause className="h-8 w-8" />
-                  )}
+                  {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                 </Button>
               )}
-
               <Button
-                size="lg"
+                size="icon"
                 variant={isRecording ? 'destructive' : 'default'}
-                className="h-20 w-20 rounded-full primary-btn-gradient dark:bg-gradient-to-br dark:from-[hsl(270_70%_60%)] dark:via-[hsl(250_65%_55%)] dark:to-[hsl(195_85%_50%)] dark:hover:shadow-lg dark:hover:shadow-[hsl(270_70%_60%)/0.4]"
+                className="rounded-full w-12 h-12 shadow-md transition-transform hover:scale-105"
                 onClick={handleToggleRecording}
               >
-                {isRecording ? (
-                  <Square className="h-8 w-8" />
-                ) : (
-                  <Mic className="h-8 w-8" />
-                )}
+                {isRecording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
               </Button>
             </div>
 
-            <p className="mt-4 text-sm text-muted-foreground text-center">
-              {isRecording
-                ? isPaused ? 'Kattintson a folytatáshoz' : 'Kattintson a leállításhoz'
-                : 'Kattintson a felvétel indításához'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={cn("flex-1 flex flex-col min-h-0", !audioUrl ? 'opacity-50 pointer-events-none' : '')}>
-        <CardHeader>
-          <CardTitle>Visszajátszás</CardTitle>
-          <CardDescription>
-            A rögzített felvétel meghallgatása és feltöltése
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {audioUrl ? (
-            <>
-              {/* Duration badge */}
-              <div className="flex justify-center">
-                <span className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-mono font-semibold bg-primary/10 text-primary border border-primary/20">
-                  <Mic className="h-3.5 w-3.5" />
-                  {formatDuration(finalDuration || duration)}
+            <div className="flex flex-col items-end">
+              <span className="text-2xl font-mono font-bold tracking-tight">
+                {formatDuration(finalDuration || duration)}
+              </span>
+              {isRecording && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-red-500 animate-pulse flex items-center gap-1.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  {isPaused ? 'Szünetelve' : 'Felvétel'}
                 </span>
-              </div>
+              )}
+            </div>
+          </div>
 
-              {/* Audio player */}
-              <div className="space-y-2">
-                <audio
-                  ref={audioRef}
-                  src={audioUrl}
-                  onEnded={() => setIsPlaying(false)}
-                  controls
-                  className="w-full h-10 rounded-lg"
-                  style={{ colorScheme: 'dark' }}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3">
+          {/* Playback & Actions */}
+          {audioUrl && (
+            <div className="space-y-3 pt-3 border-t">
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                onEnded={() => setIsPlaying(false)}
+                controls
+                className="w-full h-8"
+                style={{ colorScheme: 'dark' }}
+              />
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 whitespace-normal h-auto py-2.5 px-3 min-h-[44px]"
+                  size="icon"
+                  className="w-9 h-9 shrink-0 text-muted-foreground hover:text-destructive"
                   onClick={handleClearRecording}
                   disabled={isUploading || !!currentJobId}
                 >
-                  <Trash2 className="mr-2 h-4 w-4 shrink-0" />
-                  Törlés
+                  <Trash2 className="h-4 w-4" />
                 </Button>
                 <GalaxyButton
-                  className="flex-1 whitespace-normal h-auto py-2.5 px-3 min-h-[44px] text-white font-semibold"
+                  className="flex-1 h-9 text-xs font-bold text-white tracking-wide"
                   onClick={handleUpload}
                   disabled={isUploading || !!currentJobId}
                 >
                   {(isUploading || !!currentJobId) ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin shrink-0" />
                       <span>Feldolgozás...</span>
                     </div>
                   ) : (
-                    <span>Feltöltés és feldolgozás</span>
+                    <span className="flex items-center justify-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Feltöltés és Generálás
+                    </span>
                   )}
                 </GalaxyButton>
               </div>
-            </>
-          ) : (
-            <div className="py-12 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
-              <Mic className="h-8 w-8 mb-2 text-muted-foreground" />
-              <p>Még nincs rögzített felvétel</p>
             </div>
           )}
         </CardContent>

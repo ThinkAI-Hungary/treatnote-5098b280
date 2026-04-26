@@ -20,6 +20,10 @@ import Auth from "./pages/Auth";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const PatientManagement = lazy(() => import("./pages/PatientManagement"));
 const PatientProfile = lazy(() => import("./pages/PatientProfile"));
+const PatientOverview = lazy(() => import("./pages/PatientOverview"));
+const PatientStatus = lazy(() => import("./pages/PatientStatus"));
+const PatientTreatmentPlan = lazy(() => import("./pages/PatientTreatmentPlan"));
+const PatientAmbulatoryChart = lazy(() => import("./pages/PatientAmbulatoryChart"));
 const Appointments = lazy(() => import("./pages/Appointments"));
 const ExaminationsList = lazy(() => import("./pages/ExaminationsList"));
 const DentalCharting = lazy(() => import("./pages/DentalCharting"));
@@ -98,7 +102,12 @@ const App = () => {
                 <Route element={<AuthenticatedRoutes />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/patients" element={<PatientManagement />} />
-                  <Route path="/patients/:id" element={<PatientProfile />} />
+                  <Route path="/patients/:id" element={<PatientProfile />}>
+                    <Route index element={<PatientOverview />} />
+                    <Route path="status" element={<PatientStatus />} />
+                    <Route path="treatment-plan" element={<PatientTreatmentPlan />} />
+                    <Route path="ambulatory-chart" element={<PatientAmbulatoryChart />} />
+                  </Route>
                   <Route path="/appointments" element={<Appointments />} />
                   <Route path="/examinations" element={<ExaminationsList />} />
                   <Route path="/dental-charting" element={<DentalCharting />} />
