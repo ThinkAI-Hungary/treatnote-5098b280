@@ -2,11 +2,14 @@ import { useEffect, useState, useMemo, useCallback, useRef, useSyncExternalStore
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
+import { useSzotarStdl } from '@/hooks/useSzotarStdl';
 import { supabase } from '@/integrations/supabase/client';
 import {
   isSzotarGenerating,
@@ -19,18 +22,21 @@ import {
   Users, Calendar, Stethoscope, TrendingUp,
   Globe, TestTube, Link2, BookOpen, ClipboardList,
   CheckCircle2, Circle,
-  Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle
+  Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { PageLoader } from '@/components/PageLoader';
 import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
+import { NativeSzotarDialog } from '@/components/klinika/NativeSzotarDialog';
+import { NativeRulesDialog } from '@/components/klinika/NativeRulesDialog';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { DashboardModeSwitcher } from '@/components/dashboard/DashboardModeSwitcher';
 
 interface OnboardingStep {
   id: string;
@@ -50,10 +56,9 @@ interface KlinikaAdminContact {
   full_name: string | null;
   phone: string | null;
 }
-
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   // Active telephely / company IDs — declared early so useFlexiConnection can use it
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
@@ -66,6 +71,12 @@ export default function Dashboard() {
     isLoading: szotarLoading, refresh: refreshSzotar,
   } = useSzotar();
 
+  const {
+    hasSzotarNative, hasNativeRules,
+    isLoading: szotarStdlLoading,
+    refresh: refreshSzotarStdl,
+  } = useSzotarStdl();
+
   const [hasRules, setHasRules] = useState(false);
   const [rulesLoading, setRulesLoading] = useState(true);
   const [klinikaAdmins, setKlinikaAdmins] = useState<KlinikaAdminContact[]>([]);
@@ -73,10 +84,13 @@ export default function Dashboard() {
   const [recentExaminations, setRecentExaminations] = useState(0);
   const [statsLoading, setStatsLoading] = useState(true);
 
+
   // Dialog states
   const [domainDialogOpen, setDomainDialogOpen] = useState(false);
   const [probaDialogOpen, setProbaDialogOpen] = useState(false);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
+  const [nativeSzotarDialogOpen, setNativeSzotarDialogOpen] = useState(false);
+  const [nativeRulesDialogOpen, setNativeRulesDialogOpen] = useState(false);
 
   // Generation state lives in a module-level store so it survives navigation
   const szotarGenerating = useSyncExternalStore(subscribeGenerationStore, isSzotarGenerating);
@@ -86,16 +100,16 @@ export default function Dashboard() {
   const [flexiConnectionFailed, setFlexiConnectionFailed] = useState(false);
 
 
-  // Fetch treatment_rules count
+  // Fetch flexi treatment_rules count
   useEffect(() => {
     async function fetchRules() {
       if (!activeTelephelyId) { setHasRules(false); setRulesLoading(false); return; }
       try {
-        const { count } = await supabase
+        const { count: flexiCount } = await supabase
           .from('treatment_rules')
           .select('id', { count: 'exact', head: true })
           .eq('clinic_id', activeTelephelyId);
-        setHasRules((count || 0) > 0);
+        setHasRules((flexiCount || 0) > 0);
       } catch { setHasRules(false); }
       finally { setRulesLoading(false); }
     }
@@ -148,65 +162,94 @@ export default function Dashboard() {
 
   // Gate on all step-affecting loading states so the dashboard renders stable.
   // The user prefers a slightly longer load over a flash of partial/wrong step data.
-  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading;
+  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading || szotarStdlLoading;
 
-  const allSteps = useMemo<OnboardingStep[]>(() => [
-    {
-      id: 'domain',
-      icon: Globe,
-      title: 'FlexiDent domain beállítása',
-      description: 'Adja meg a klinika FlexiDent domain címét a rendszer összekapcsolásához.',
-      completed: hasFlexiDomain,
-      adminOnly: true,
-      actionLabel: hasFlexiDomain ? 'Módosítás' : 'Domain megadása',
-      currentValue: flexiDomain || null,
-      editable: true,
-      warning: flexiConnectionFailed ? 'A domain helytelen lehet. Kérjük ellenőrizze!' : null,
-    },
-    {
-      id: 'proba',
-      icon: TestTube,
-      title: 'Próba páciens ID megadása',
-      description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
-      completed: hasProbaPaciens,
-      adminOnly: true,
-      actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
-      currentValue: probaPaciensNeve || null,
-      editable: true,
-    },
-    {
-      id: 'flexi',
-      icon: Link2,
-      title: 'FlexiDent fiók csatlakoztatása',
-      description: 'Csatlakoztassa saját FlexiDent fiókját a páciensadatok szinkronizálásához.',
-      completed: !isFlexiLoading && !!isFlexiConnected,
-      loading: isFlexiLoading, // keeps step neutral while the async DB check resolves
-      adminOnly: false,
-      actionLabel: isFlexiConnected ? 'Újracsatlakozás' : 'Flexi csatlakoztatás',
-      currentValue: flexiUsername || null,
-      editable: true,
-    },
-    {
-      id: 'szotar',
-      icon: BookOpen,
-      title: 'Szótár generálása',
-      description: 'Generálja le a kezelési szótárt a hangfelismerés pontosításához.',
-      completed: hasSzotar,
-      adminOnly: true,
-      actionLabel: szotarGenerating ? 'Generálás...' : 'Szótár generálása',
-    },
-    {
-      id: 'rules',
-      icon: ClipboardList,
-      title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
-      description: hasRules
-        ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
-        : 'Generálja le a kezelési szabályokat a szótár alapján.',
-      completed: hasRules,
-      adminOnly: true,
-      actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
-    },
-  ], [hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
+  const currentMode = profile?.voice_recording_preference;
+  const isNativeMode = currentMode === 'treatnote_native';
+
+  const allSteps = useMemo<OnboardingStep[]>(() => {
+    if (isNativeMode) {
+      return [
+        {
+          id: 'szotar_native',
+          icon: BookOpen,
+          title: 'Kezelési tételek beállítása',
+          description: 'Rögzítse vagy töltse fel a klinika kezelési tételeit.',
+          completed: hasSzotarNative,
+          adminOnly: true,
+          actionLabel: 'Tételek szerkesztése',
+        },
+        {
+          id: 'sync_native',
+          icon: RefreshCw,
+          title: 'Adatok automatikus szinkronizálása',
+          description: hasSzotarNative 
+            ? 'A rendszer automatikusan szinkronizálta a klinika kezelési adatait.' 
+            : 'A rendszer várja, hogy a Klinika Adminisztrátor beállítsa a kezelési szótárat.',
+          completed: hasSzotarNative,
+          adminOnly: false,
+        }
+      ];
+    }
+
+    return [
+      {
+        id: 'domain',
+        icon: Globe,
+        title: 'FlexiDent domain beállítása',
+        description: 'Adja meg a klinika FlexiDent domain címét a rendszer összekapcsolásához.',
+        completed: hasFlexiDomain,
+        adminOnly: true,
+        actionLabel: hasFlexiDomain ? 'Módosítás' : 'Domain megadása',
+        currentValue: flexiDomain || null,
+        editable: true,
+        warning: flexiConnectionFailed ? 'A domain helytelen lehet. Kérjük ellenőrizze!' : null,
+      },
+      {
+        id: 'proba',
+        icon: TestTube,
+        title: 'Próba páciens ID megadása',
+        description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
+        completed: hasProbaPaciens,
+        adminOnly: true,
+        actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
+        currentValue: probaPaciensNeve || null,
+        editable: true,
+      },
+      {
+        id: 'flexi',
+        icon: Link2,
+        title: 'FlexiDent fiók csatlakoztatása',
+        description: 'Csatlakoztassa saját FlexiDent fiókját a páciensadatok szinkronizálásához.',
+        completed: !isFlexiLoading && !!isFlexiConnected,
+        loading: isFlexiLoading, // keeps step neutral while the async DB check resolves
+        adminOnly: false,
+        actionLabel: isFlexiConnected ? 'Újracsatlakozás' : 'Flexi csatlakoztatás',
+        currentValue: flexiUsername || null,
+        editable: true,
+      },
+      {
+        id: 'szotar',
+        icon: BookOpen,
+        title: 'Szótár generálása',
+        description: 'Generálja le a kezelési szótárt a hangfelismerés pontosításához.',
+        completed: hasSzotar,
+        adminOnly: true,
+        actionLabel: szotarGenerating ? 'Generálás...' : 'Szótár generálása',
+      },
+      {
+        id: 'rules',
+        icon: ClipboardList,
+        title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
+        description: hasRules
+          ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
+          : 'Generálja le a kezelési szabályokat a szótár alapján.',
+        completed: hasRules,
+        adminOnly: true,
+        actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
+      },
+    ];
+  }, [isNativeMode, hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasSzotarNative, hasRules, hasNativeRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
 
   const isKlinikaAdminOrAdmin = isKlinikaAdmin || isAdmin;
   const userOwnSteps = useMemo(() => allSteps.filter(s => !s.adminOnly), [allSteps]);
@@ -234,6 +277,12 @@ export default function Dashboard() {
         break;
       case 'rules':
         handleGenerateRules();
+        break;
+      case 'szotar_native':
+        setNativeSzotarDialogOpen(true);
+        break;
+      case 'rules_native':
+        setNativeRulesDialogOpen(true);
         break;
     }
   };
@@ -314,7 +363,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      <DashboardModeSwitcher 
+        currentMode={currentMode} 
+        telephelyId={activeTelephelyId} 
+        userId={user?.id || null} 
+        isKlinikaAdmin={isKlinikaAdmin} 
+        onModeChanged={() => {
+          if (refetchProfile) {
+            refetchProfile();
+          }
+        }}
+      />
 
       {/* Header */}
       <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
@@ -365,6 +425,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+
 
 
       {/* Onboarding steps */}
@@ -483,6 +545,18 @@ export default function Dashboard() {
         }}
         onError={() => setFlexiConnectionFailed(true)}
         telephelyId={activeTelephelyId ?? null}
+      />
+      <NativeSzotarDialog
+        open={nativeSzotarDialogOpen}
+        onOpenChange={setNativeSzotarDialogOpen}
+        telephelyId={activeTelephelyId}
+        onSaved={() => refreshSzotarStdl()}
+      />
+      <NativeRulesDialog
+        open={nativeRulesDialogOpen}
+        onOpenChange={setNativeRulesDialogOpen}
+        telephelyId={activeTelephelyId}
+        onSaved={() => refreshSzotarStdl()}
       />
 
       {/* Dashboard onboarding tour */}

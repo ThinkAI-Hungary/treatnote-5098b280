@@ -14,13 +14,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
+import { useSzotarStdl } from '@/hooks/useSzotarStdl';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useProfile } from '@/hooks/useProfile';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import { usePageLoading } from '@/contexts/PageLoadingContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { ChevronUp as ChevronUpIcon, Building } from 'lucide-react';
 import {
   Sidebar,
@@ -284,6 +285,7 @@ export function AppSidebar() {
   }, [isPageLoading]);
 
   const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
+  const { hasSzotarNative, hasNativeRules, isLoading: szotarStdlLoading } = useSzotarStdl();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const depsInitialLoadRef = useRef(true);
 
@@ -670,7 +672,11 @@ export function AppSidebar() {
   }, [profile, user, navigate]);
 
   // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
-  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
+  const isNativeMode = profile?.voice_recording_preference === 'treatnote_native';
+  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
+  const nativeComplete = hasSzotarNative; // native rules temporarily removed from dependencies
+  
+  const allOnboardingComplete = nativeComplete || flexiComplete;
   const showProtectedItems = allOnboardingComplete;
 
   // Bump animKey whenever protected items first become visible → triggers CSS float-in animation
@@ -682,7 +688,7 @@ export function AppSidebar() {
     prevShowProtectedRef.current = showProtectedItems;
   }, [showProtectedItems]);
 
-  const depsCurrentlyLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading;
+  const depsCurrentlyLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading || szotarStdlLoading;
 
   if (depsCurrentlyLoading && depsInitialLoadRef.current) {
     return (

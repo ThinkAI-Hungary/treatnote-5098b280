@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Minus, Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { updateSeats } from '@/hooks/useBillingDetails';
 
 interface LicenseGridProps {

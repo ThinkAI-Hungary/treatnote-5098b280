@@ -80,7 +80,7 @@ let rulesCache: {
   loaded: boolean;
 } = { telephelyId: null, rules: [], loaded: false };
 
-export function KezelesiSzabalyokTab({
+export function NativeKezelesiSzabalyokTab({
   companyId,
   telephelyId,
   companyName,
@@ -144,10 +144,33 @@ export function KezelesiSzabalyokTab({
   const [backgroundProcessing, setBackgroundProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  // --- Data Loading ---
+  const [dbCustomCategories, setDbCustomCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!telephelyId) return;
+    // Fetch custom categories
+    supabase
+      .from('clinic_custom_categories')
+      .select('name')
+      .eq('telephely_id', telephelyId)
+      .eq('mode', 'nativ')
+      .then(({ data }) => {
+        if (data) {
+          setDbCustomCategories(data.map(d => d.name));
+        }
+      });
+  }, [telephelyId]);
+
   // Count total items across all visits
   const countTotalItems = (rule: TreatmentRule): number => {
     return rule.visits?.reduce((sum, visit) => sum + (visit.items?.length || 0), 0) || 0;
   };
+
+  const availableCategories = useMemo(() => {
+    const custom = rules.map(r => r.category).filter(Boolean) as string[];
+    return Array.from(new Set([...CATEGORY_OPTIONS, ...dbCustomCategories, ...custom])).sort((a, b) => a.localeCompare(b, 'hu'));
+  }, [rules, dbCustomCategories]);
 
   // Helper: update rules state + cache in one shot (for optimistic updates)
   const updateRulesState = useCallback((updater: (prev: TreatmentRule[]) => TreatmentRule[]) => {
@@ -975,7 +998,7 @@ export function KezelesiSzabalyokTab({
               <FileText className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <CardTitle>Kezelési Szabályok</CardTitle>
+              <CardTitle>Kezelési Szabályok (Natív)</CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-sm text-muted-foreground">
                   {rules.length} szabály • {telephelyName}
@@ -1067,7 +1090,7 @@ export function KezelesiSzabalyokTab({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Összes kategória</SelectItem>
-                  {CATEGORY_OPTIONS.map((cat) => (
+                  {availableCategories.map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1430,6 +1453,7 @@ export function KezelesiSzabalyokTab({
         clinicId={telephelyId}
         rule={editingRule}
         originalRuleIdToDeactivate={originalRuleIdToDeactivate}
+        availableCategories={availableCategories}
         onSave={(savedRule) => {
           if (savedRule) {
             // Optimistic: add or update the rule in local state

@@ -13,7 +13,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import { notifyRulesDataChanged } from '@/lib/rulesEvents';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

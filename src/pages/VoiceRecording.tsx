@@ -24,7 +24,7 @@ import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { isVoxisJob } from '@/lib/voxisUtils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useVoiceRecordingStore } from '@/stores/voiceRecordingStore';

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, format } from 'date-fns';
 import { hu } from 'date-fns/locale';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { Button } from '@/components/ui/button';

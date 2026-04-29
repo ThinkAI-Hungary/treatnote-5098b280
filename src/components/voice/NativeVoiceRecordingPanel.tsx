@@ -8,7 +8,7 @@ import { CustomAudioPlayer } from '@/components/voice/CustomAudioPlayer';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 import { cn } from '@/lib/utils';

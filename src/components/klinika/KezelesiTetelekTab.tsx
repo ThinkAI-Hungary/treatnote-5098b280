@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, Pencil, Trash2, Loader2, Upload, FileUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import {
   classifyTreatmentItem,
   getAllVisualGroups,
@@ -20,6 +20,7 @@ import {
   type TreatmentVisualCue,
 } from '@/lib/treatmentClassifier';
 import { AnimatedCard } from './AnimatedCard';
+import { CustomCategoryDialog } from './CustomCategoryDialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -62,8 +63,9 @@ function VisualCueChip({ color, label }: { color: string; label: string }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
-  const [items, setItems] = useState<TreatmentItem[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dbCustomCategories, setDbCustomCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -75,6 +77,8 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   // Form state
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryDialogOpen, setCustomCategoryDialogOpen] = useState(false);
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formIsPerTooth, setFormIsPerTooth] = useState(true);
@@ -86,22 +90,31 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   const loadItems = useCallback(async () => {
-    if (!telephelyId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('clinic_treatment_items_stdl' as any)
-        .select('*')
-        .eq('telephely_id', telephelyId)
-        .order('category')
-        .order('sort_order')
-        .order('name');
+      const [itemsRes, customCatRes] = await Promise.all([
+        supabase
+          .from('clinic_treatment_items_stdl')
+          .select('*')
+          .eq('telephely_id', telephelyId)
+          .order('name', { ascending: true }),
+        supabase
+          .from('clinic_custom_categories')
+          .select('name')
+          .eq('telephely_id', telephelyId)
+          .eq('mode', 'nativ')
+      ]);
 
-      if (error) throw error;
-      setItems((data || []) as unknown as TreatmentItem[]);
-    } catch (err: any) {
-      console.error('Error loading treatment items:', err);
-      toast.error('Hiba a kezelési tételek betöltésekor');
+      if (itemsRes.error) throw itemsRes.error;
+      if (itemsRes.data) {
+        setItems(itemsRes.data);
+      }
+
+      if (customCatRes.data) {
+        setDbCustomCategories(customCatRes.data.map((d: any) => d.name));
+      }
+    } catch (error: any) {
+      toast.error('Hiba történt az adatok betöltésekor: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -119,9 +132,14 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     });
   }, [items, searchTerm, categoryFilter]);
 
+  const availableCategories = useMemo(() => {
+    const custom = items.map(i => i.category).filter(Boolean);
+    return Array.from(new Set([...TREATMENT_CATEGORIES, ...dbCustomCategories, ...custom])).sort((a, b) => a.localeCompare(b, 'hu'));
+  }, [items, dbCustomCategories]);
+
   const uniqueCategories = useMemo(() => {
-    return Array.from(new Set(items.map(i => i.category))).sort();
-  }, [items]);
+    return availableCategories;
+  }, [availableCategories]);
 
   // ─── Form Handlers ──────────────────────────────────────────────────────
 
@@ -129,6 +147,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     setEditingItem(null);
     setFormName('');
     setFormCategory('');
+    setIsCustomCategory(false);
     setFormSubcategory('');
     setFormPrice('');
     setFormIsPerTooth(true);
@@ -140,6 +159,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     setEditingItem(item);
     setFormName(item.name);
     setFormCategory(item.category);
+    setIsCustomCategory(!TREATMENT_CATEGORIES.includes(item.category as any));
     setFormSubcategory(item.subcategory || '');
     setFormPrice(item.price?.toString() || '');
     setFormIsPerTooth(item.is_per_tooth);
@@ -319,8 +339,8 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
       <CardHeader className="pb-4 border-b">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <CardTitle className="text-xl flex items-center gap-2">
-            Kezelési Tételek
-            <Badge variant="secondary" className="ml-2 text-xs">{items.length} tétel</Badge>
+            Kezelési Tervek
+            <Badge variant="secondary" className="ml-2 text-xs">{items.length} terv</Badge>
           </CardTitle>
           <div className="flex items-center gap-2">
             <label htmlFor="csv-import">
@@ -464,14 +484,31 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Kategória *</Label>
-                <Select value={formCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger><SelectValue placeholder="Válasszon..." /></SelectTrigger>
-                  <SelectContent>
-                    {TREATMENT_CATEGORIES.map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isCustomCategory ? (
+                  <Input 
+                    placeholder="Új kategória..."
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    onBlur={() => { if(!formCategory) setIsCustomCategory(false) }}
+                    autoFocus
+                  />
+                ) : (
+                  <Select value={formCategory} onValueChange={(val) => {
+                    if (val === 'custom') {
+                      setCustomCategoryDialogOpen(true);
+                    } else {
+                      handleCategoryChange(val);
+                    }
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Válasszon..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom" className="text-primary font-bold bg-primary/5 mb-1 sticky top-0 z-10 backdrop-blur-md">+ Új kategória...</SelectItem>
+                      {availableCategories.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Alkategória</Label>
@@ -511,6 +548,20 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CustomCategoryDialog
+        open={customCategoryDialogOpen}
+        onOpenChange={setCustomCategoryDialogOpen}
+        telephelyId={telephelyId || ''}
+        mode="nativ"
+        onSaved={(newCategoryName) => {
+          setDbCustomCategories(prev => {
+            if (!prev.includes(newCategoryName)) return [...prev, newCategoryName];
+            return prev;
+          });
+          setFormCategory(newCategoryName);
+        }}
+      />
     </AnimatedCard>
   );
 }

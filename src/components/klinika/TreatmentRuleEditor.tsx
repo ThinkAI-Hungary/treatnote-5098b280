@@ -22,8 +22,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { supabase } from '@/integrations/supabase/client';
+import { CustomCategoryDialog } from './CustomCategoryDialog';
 import {
   TreatmentRule,
   RuleVisit,
@@ -50,6 +51,7 @@ interface TreatmentRuleEditorProps {
   rule?: TreatmentRule | null;
   originalRuleIdToDeactivate?: string | null;
   onSave: (rule?: TreatmentRule) => void;
+  availableCategories?: string[];
 }
 
 export function TreatmentRuleEditor({
@@ -59,12 +61,17 @@ export function TreatmentRuleEditor({
   rule,
   originalRuleIdToDeactivate,
   onSave,
+  availableCategories = CATEGORY_OPTIONS,
 }: TreatmentRuleEditorProps) {
   const isEditing = !!rule?.id;
 
   // Form state
   const [name, setName] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryDialogOpen, setCustomCategoryDialogOpen] = useState(false);
+  const [localCustomCategories, setLocalCustomCategories] = useState<string[]>([]);
+  const [description, setDescription] = useState('');
   const [semanticDescription, setSemanticDescription] = useState('');
   const [visits, setVisits] = useState<RuleVisit[]>([]);
   const [saving, setSaving] = useState(false);
@@ -95,14 +102,18 @@ export function TreatmentRuleEditor({
   // Initialize form when rule changes
   useEffect(() => {
     if (rule) {
-      setName(rule.name || '');
+      setName(rule.name);
       setCategory(rule.category || '');
+      setIsCustomCategory(rule.category ? !CATEGORY_OPTIONS.includes(rule.category as any) : false);
+      setDescription(rule.semantic_description || '');
       setSemanticDescription(rule.semantic_description || '');
       setVisits(rule.visits || []);
     } else {
       // New rule - reset form
       setName('');
       setCategory('');
+      setIsCustomCategory(false);
+      setDescription('');
       setSemanticDescription('');
       setVisits([]);
     }
@@ -489,16 +500,37 @@ export function TreatmentRuleEditor({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rule-category">Kategória</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger id="rule-category" className="h-10">
-                        <SelectValue placeholder="Válasszon kategóriát..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_OPTIONS.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isCustomCategory ? (
+                      <Input 
+                        id="rule-category"
+                        placeholder="Új kategória..."
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        onBlur={() => { if(!category) setIsCustomCategory(false) }}
+                        className="h-10"
+                        autoFocus
+                      />
+                    ) : (
+                      <Select value={category} onValueChange={(val) => {
+                        if (val === 'custom') {
+                          setCustomCategoryDialogOpen(true);
+                        } else {
+                          setCategory(val);
+                        }
+                      }}>
+                        <SelectTrigger id="rule-category" className="h-10">
+                          <SelectValue placeholder="Válasszon kategóriát..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="custom" className="text-primary font-bold bg-primary/5 mb-1 sticky top-0 z-10 backdrop-blur-md">+ Új kategória...</SelectItem>
+                          {Array.from(new Set([...availableCategories, ...localCustomCategories]))
+                            .sort((a, b) => a.localeCompare(b, 'hu'))
+                            .map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 
@@ -821,6 +853,20 @@ export function TreatmentRuleEditor({
           </GalaxyButton>
         </DialogFooter>
       </DialogContent>
+
+      <CustomCategoryDialog
+        open={customCategoryDialogOpen}
+        onOpenChange={setCustomCategoryDialogOpen}
+        telephelyId={clinicId || ''}
+        mode="nativ"
+        onSaved={(newCategoryName) => {
+          setLocalCustomCategories(prev => {
+            if (!prev.includes(newCategoryName)) return [...prev, newCategoryName];
+            return prev;
+          });
+          setCategory(newCategoryName);
+        }}
+      />
     </Dialog>
   );
 }

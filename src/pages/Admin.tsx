@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { sanitizePathName } from '@/lib/hungarianNormalizer';
 import { USERS_DATA_CHANGED } from '@/lib/userSyncEvents';
 import { AdminUserAssignment } from '@/components/admin/AdminUserAssignment';

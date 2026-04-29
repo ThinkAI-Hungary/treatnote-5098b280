@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { Loader2, Building2, MapPin, Check, X, UserPlus } from 'lucide-react';
 import { StarField } from '@/components/klinika/StarField';
 
@@ -25,6 +26,7 @@ export default function AcceptInvitation() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [voiceRecordingPreference, setVoiceRecordingPreference] = useState<'flexident' | 'treatnote_native'>('treatnote_native');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
@@ -154,6 +156,7 @@ export default function AcceptInvitation() {
           token,
           password,
           full_name: fullName.trim(),
+          voice_recording_preference: voiceRecordingPreference,
         },
       });
 
@@ -340,6 +343,32 @@ export default function AcceptInvitation() {
                   minLength={6}
                 />
               </div>
+
+              <div className="space-y-3 pt-2 pb-2">
+                <Label className="text-base">Működési mód</Label>
+                <RadioGroup 
+                    value={voiceRecordingPreference} 
+                    onValueChange={(v: 'flexident' | 'treatnote_native') => setVoiceRecordingPreference(v)}
+                    disabled={loading}
+                    className="flex flex-col space-y-2"
+                >
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setVoiceRecordingPreference('treatnote_native')}>
+                        <RadioGroupItem value="treatnote_native" id="native" className="mt-1" />
+                        <div className="space-y-1 cursor-pointer">
+                            <Label htmlFor="native" className="font-semibold cursor-pointer">TreatNote Natív (Standalone)</Label>
+                            <p className="text-sm text-muted-foreground">Rendszerünk teljes körű használata függetlenül, FlexiDent összekapcsolás nélkül. Manuális szótár és szabály rögzítés.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setVoiceRecordingPreference('flexident')}>
+                        <RadioGroupItem value="flexident" id="flexi" className="mt-1" />
+                        <div className="space-y-1 cursor-pointer">
+                            <Label htmlFor="flexi" className="font-semibold cursor-pointer">FlexiDent</Label>
+                            <p className="text-sm text-muted-foreground">Közvetlen szinkronizáció meglévő FlexiDent fiókkal. Automatikus páciens és beavatkozás betöltés.</p>
+                        </div>
+                    </div>
+                </RadioGroup>
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>

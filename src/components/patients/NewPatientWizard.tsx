@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, ArrowRight, Save, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useNavigate } from 'react-router-dom';
 
 import { patientWizardSchema, PatientWizardFormValues } from './form/schema';

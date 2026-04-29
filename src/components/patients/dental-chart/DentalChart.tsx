@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Loader2, Rows3, ArrowUp, ArrowDown, Grid2X2, MousePointerClick, Link2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 import { ToothModel } from './types';
 import { ZsigmondyCross } from './ZsigmondyCross';

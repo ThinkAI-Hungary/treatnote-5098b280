@@ -10,7 +10,7 @@ import { DENTAL_STATUSES } from './constants';
 import { cn } from '@/lib/utils';
 import { mapVoxisToModels } from './voxisMapper';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useProfile } from '@/hooks/useProfile';
 
 interface VoxisReviewPanelProps {

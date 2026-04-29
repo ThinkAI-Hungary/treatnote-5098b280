@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useProfile } from '@/hooks/useProfile';
 import { TreatmentItemPicker, type ClinicTreatmentItem } from './TreatmentItemPicker';
 

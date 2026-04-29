@@ -17,8 +17,10 @@ interface AuthenticatedLayoutProps {
 
 
 
-import { Sun, Moon, Info } from 'lucide-react';
+import { Sun, Moon, Info, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useHeaderMessage } from '@/hooks/useHeaderMessage';
 
 // Separate header component that uses sidebar context
 function LayoutHeader() {
@@ -26,12 +28,38 @@ function LayoutHeader() {
   const collapsed = state === 'collapsed';
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const { message, type } = useHeaderMessage();
 
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       {/* Left: sidebar toggle */}
       <div className="flex items-center gap-2">
         <SidebarTrigger className={collapsed ? 'ml-0' : '-ml-1'} />
+      </div>
+
+      {/* Center: Animated Header Message */}
+      <div className="flex-1 flex justify-center overflow-hidden px-4">
+        <AnimatePresence mode="wait">
+          {message && (
+            <motion.div
+              key="header-message"
+              initial={{ y: -40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -40, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium shadow-sm border ${
+                type === 'success' ? 'bg-green-500/10 text-green-600 border-green-500/20 dark:bg-green-500/20 dark:text-green-400' :
+                type === 'error' ? 'bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-500/20 dark:text-red-400' :
+                'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400'
+              }`}
+            >
+              {type === 'success' && <CheckCircle2 className="h-4 w-4" />}
+              {type === 'error' && <AlertCircle className="h-4 w-4" />}
+              {type === 'info' && <Info className="h-4 w-4" />}
+              {message}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Right: taskbar actions */}

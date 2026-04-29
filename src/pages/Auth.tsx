@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -39,11 +39,16 @@ const Auth = () => {
       return;
     }
 
+    // Prevent auto-redirect during the brief moment after signout but before AuthContext clears
+    if (emailConfirmed) {
+      return;
+    }
+
     // Normal: if already logged in (no confirmation flow), go to dashboard
     if (user && !hash.includes('type=')) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, navigate, emailConfirmed]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

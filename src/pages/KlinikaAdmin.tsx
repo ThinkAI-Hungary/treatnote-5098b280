@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
+import { useSzotarStdl } from '@/hooks/useSzotarStdl';
 import { useProfile } from '@/hooks/useProfile';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -36,18 +37,20 @@ import { normalizeHungarianString } from '@/lib/hungarianNormalizer';
 import { useKlinikaData } from '@/hooks/useKlinikaData';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { KezelesiSzabalyokTab } from '@/components/klinika/KezelesiSzabalyokTab';
+import { NativeKezelesiSzabalyokTab } from '@/components/klinika/NativeKezelesiSzabalyokTab';
 import { KezelesiTetelekTab } from '@/components/klinika/KezelesiTetelekTab';
 import { ElofizetesTab } from '@/components/klinika/ElofizetesTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
-import { Book, Coins } from 'lucide-react';
+import { KezelopanelTab } from '@/components/klinika/KezelopanelTab';
+import { Book, Coins, LayoutDashboard } from 'lucide-react';
 
 interface AvailableUser {
   id: string;
@@ -132,6 +135,8 @@ export default function KlinikaAdmin() {
   const [rulesGuardLoading, setRulesGuardLoading] = useState(true);
   const [onboardingScannedFor, setOnboardingScannedFor] = useState<string | null>(null);
 
+  const useNativeSzotar = profile?.voice_recording_preference === 'treatnote_native';
+
   useEffect(() => {
     if (!activeTelephelyId) { setHasRulesGuard(false); setRulesGuardLoading(false); return; }
 
@@ -157,8 +162,13 @@ export default function KlinikaAdmin() {
     checkRules();
   }, [activeTelephelyId]);
 
-  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
-  const onboardingLoading = szotarLoading || isFlexiLoading || rulesGuardLoading;
+  const { hasSzotarNative, isLoading: szotarStdlLoading } = useSzotarStdl();
+
+  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
+  const nativeComplete = hasSzotarNative; // Native rules removed from guard
+  
+  const allOnboardingComplete = nativeComplete || flexiComplete;
+  const onboardingLoading = szotarLoading || isFlexiLoading || rulesGuardLoading || szotarStdlLoading;
 
 
   // Fetch licenses to show per-user license status
@@ -183,11 +193,11 @@ export default function KlinikaAdmin() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Controlled tab state for tour navigation
-  const validTabs = ['users', 'kezelesi-szabalyok', 'kezelesi-tetelek', 'szotar', 'elofizetes'];
+  const validTabs = ['kezelopanel', 'users', 'kezelesi-szabalyok', 'kezelesi-tetelek', 'szotar', 'elofizetes'];
   const [activeTab, setActiveTab] = useState(() => {
     const tabParam = searchParams.get('tab');
     const storedTab = localStorage.getItem('klinika-admin-active-tab');
-    const defaultTab = isSoloCompany ? 'kezelesi-szabalyok' : 'users';
+    const defaultTab = 'kezelopanel';
     
     let initialTab = defaultTab;
     if (tabParam && validTabs.includes(tabParam)) {
@@ -196,7 +206,7 @@ export default function KlinikaAdmin() {
       initialTab = storedTab;
     }
 
-    return (isSoloCompany && initialTab === 'users') ? 'kezelesi-szabalyok' : initialTab;
+    return (isSoloCompany && initialTab === 'users') ? 'kezelopanel' : initialTab;
   });
 
   // Sync tab from URL param on mount and when URL changes
@@ -206,8 +216,8 @@ export default function KlinikaAdmin() {
     console.log("KlinikaAdmin synced activeTab from URL:", tabParam);
     if (tabParam && validTabs.includes(tabParam)) {
       if (isSoloCompany && tabParam === 'users') {
-        setActiveTab('kezelesi-szabalyok');
-        setSearchParams({ tab: 'kezelesi-szabalyok' });
+        setActiveTab('kezelopanel');
+        setSearchParams({ tab: 'kezelopanel' });
       } else {
         setActiveTab(tabParam);
       }
@@ -785,6 +795,13 @@ export default function KlinikaAdmin() {
         {/* Tabs with min-height to prevent layout jumps - controlled for tour navigation */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList data-tour="tabs" className="bg-card/80 backdrop-blur-sm border border-primary/20 dark:border-sparkle-blue/20 p-1">
+            <TabsTrigger
+              value="kezelopanel"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Kezelőpanel
+            </TabsTrigger>
             {!isSoloCompany && (
               <TabsTrigger
                 value="users"
@@ -802,18 +819,11 @@ export default function KlinikaAdmin() {
               Kezelési Szabályok
             </TabsTrigger>
             <TabsTrigger
-              value="kezelesi-tetelek"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
-            >
-              <Coins className="h-4 w-4" />
-              Kezelési Tételek
-            </TabsTrigger>
-            <TabsTrigger
               value="szotar"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
             >
               <Book className="h-4 w-4" />
-              Szótár
+              Kezelési tervek
             </TabsTrigger>
             <TabsTrigger
               value="elofizetes"
@@ -826,6 +836,10 @@ export default function KlinikaAdmin() {
 
           {/* Tab content with min-height to prevent layout jumps */}
           <div className="min-h-[400px]">
+            <TabsContent value="kezelopanel" className="space-y-6 mt-0">
+              <KezelopanelTab telephelyId={activeTelephelyId} />
+            </TabsContent>
+
             <TabsContent value="users" className="space-y-6 mt-0">
 
               <AnimatedCard data-tour="users-table">
@@ -1221,25 +1235,34 @@ export default function KlinikaAdmin() {
 
 
             <TabsContent value="kezelesi-szabalyok" className="mt-0">
-              <KezelesiSzabalyokTab
-                companyId={companyId}
-                telephelyId={telephelyId}
-                companyName={companyName}
-                telephelyName={telephelyName}
-              />
-            </TabsContent>
-
-            <TabsContent value="kezelesi-tetelek" className="mt-0">
-              <KezelesiTetelekTab telephelyId={telephelyId} />
+              {useNativeSzotar ? (
+                <NativeKezelesiSzabalyokTab
+                  companyId={companyId}
+                  telephelyId={telephelyId}
+                  companyName={companyName}
+                  telephelyName={telephelyName}
+                />
+              ) : (
+                <KezelesiSzabalyokTab
+                  companyId={companyId}
+                  telephelyId={telephelyId}
+                  companyName={companyName}
+                  telephelyName={telephelyName}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="szotar" className="mt-0">
-              <SzotarTab
-                companyId={companyId}
-                telephelyId={telephelyId}
-                companyName={companyName}
-                telephelyName={telephelyName}
-              />
+              {useNativeSzotar ? (
+                <KezelesiTetelekTab telephelyId={telephelyId} />
+              ) : (
+                <SzotarTab
+                  companyId={companyId}
+                  telephelyId={telephelyId}
+                  companyName={companyName}
+                  telephelyName={telephelyName}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="elofizetes" className="mt-0">

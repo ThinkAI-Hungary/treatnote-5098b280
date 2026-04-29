@@ -355,17 +355,16 @@ const SelectContentInner = React.forwardRef<
       style={{ zIndex: 9999 }}
       {...props}
     >
-      <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
-          "p-1",
+          "p-1 max-h-[var(--radix-select-content-available-height,20rem)] w-full custom-scrollbar-purple",
           position === "popper" &&
-            "w-full min-w-[var(--radix-select-trigger-width)]",
+            "min-w-[var(--radix-select-trigger-width)]",
         )}
+        style={{ overflowY: 'auto', overflowX: 'hidden' }}
       >
         {children}
       </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
       <SnakeBorder isOpen={true} width={dimensions.width} height={dimensions.height} uniqueId={`content-${uniqueId}`} />
     </SelectPrimitive.Content>
   );

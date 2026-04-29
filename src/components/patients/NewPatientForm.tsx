@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, ArrowLeft, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 const formSchema = z.object({
   titulus: z.string().optional(),

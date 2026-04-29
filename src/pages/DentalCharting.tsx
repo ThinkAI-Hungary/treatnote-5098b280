@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDentalStore } from '@/stores/dentalStore';
 import { Save, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 export default function DentalCharting() {
   const { isDirty, initializeTeeth } = useDentalStore();

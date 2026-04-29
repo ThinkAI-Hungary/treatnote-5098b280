@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { Loader2, Building2, MapPin, UserPlus, X, Lock } from 'lucide-react';
 import { StarField } from '@/components/klinika/StarField';
 
@@ -26,6 +27,7 @@ export default function Register() {
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
     const [loading, setLoading] = useState(false);
     const [verifying, setVerifying] = useState(true);
     const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
@@ -259,6 +261,9 @@ export default function Register() {
                                 minLength={6}
                             />
                         </div>
+
+
+
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? (
                                 <>

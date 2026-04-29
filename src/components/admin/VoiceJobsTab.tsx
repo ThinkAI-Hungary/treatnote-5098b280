@@ -6,7 +6,7 @@ import {
     RefreshCw, Check, Clock, User, Building, ExternalLink, XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';

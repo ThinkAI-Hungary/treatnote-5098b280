@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mail, Check, X, Loader2, Building2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { notifyMembershipChanged } from '@/lib/telephelyEvents';

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 import { NewPatientWizard } from '@/components/patients/NewPatientWizard';
 import { useUserRole } from '@/hooks/useUserRole';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 export default function PatientProfile() {
   const { id } = useParams();

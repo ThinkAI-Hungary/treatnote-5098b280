@@ -10,7 +10,7 @@ import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import { isVoxisJob } from '@/lib/voxisUtils';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
 
 export default function PatientTreatmentPlan() {

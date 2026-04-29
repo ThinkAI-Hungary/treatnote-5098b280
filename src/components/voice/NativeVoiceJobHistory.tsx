@@ -12,7 +12,7 @@ import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow, format } from 'date-fns';
 import { hu } from 'date-fns/locale';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useState, useRef, useCallback } from 'react';
 import { RuleDetailsPopup } from '@/components/shared/RuleDetailsPopup';
 

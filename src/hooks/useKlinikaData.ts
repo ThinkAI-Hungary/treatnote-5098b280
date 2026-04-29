@@ -131,21 +131,24 @@ export function useKlinikaData() {
       if (activeTelephelyId) {
         const { data: telephely } = await supabase
           .from('telephely')
-          .select('name, company_id')
+          .select('name, display_name, company_id')
           .eq('id', activeTelephelyId)
           .single();
-        telephelyName = telephely?.name || null;
-
-        // Resolve company from telephely if profile doesn't have it
-        if (!resolvedCompanyId && telephely?.company_id) {
+        telephelyName = telephely?.display_name || telephely?.name || null;
+        
+        if (telephely?.company_id) {
           resolvedCompanyId = telephely.company_id;
-          const { data: company } = await supabase
-            .from('companies')
-            .select('name')
-            .eq('id', telephely.company_id)
-            .single();
-          resolvedCompanyName = company?.name || null;
         }
+      }
+
+      // Always fetch the company display_name if we have a companyId
+      if (resolvedCompanyId) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, display_name')
+          .eq('id', resolvedCompanyId)
+          .single();
+        resolvedCompanyName = company?.display_name || company?.name || resolvedCompanyName;
       }
 
       // If no access, return early with role data only
