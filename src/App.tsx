@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { PageLoader } from "@/components/PageLoader";
 import { preloadCommonRoutes } from "@/lib/routePrefetch";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Eager-loaded (always needed on first visit)
 import Index from "./pages/Index";
@@ -117,7 +118,7 @@ const App = () => {
 
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
                   <Route path="/klinika-admin" element={<KlinikaAdmin />} />
                 </Route>
 

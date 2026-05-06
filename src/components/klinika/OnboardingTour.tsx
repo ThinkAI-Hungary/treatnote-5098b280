@@ -455,7 +455,6 @@ export function OnboardingTour({ steps, isOpen, onComplete, onSkip, onStepChange
             {/* Header */}
             <div className="bg-gradient-to-r from-primary/20 to-accent/20 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-muted-foreground">
                   {step.displayStep ?? currentStep + 1} / {step.displayTotal ?? steps.length}
                 </span>

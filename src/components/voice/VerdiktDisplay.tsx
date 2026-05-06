@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/useToastMessage';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TreatNotePayload {
   szoveges_lista?: string;
@@ -345,6 +346,7 @@ function ComplaintDialog({ jobId, jobType, hasComplaint, onSubmitted }: { jobId:
         job_type: jobType || 'native',
         complaint_text: text.trim(),
         created_by: user?.id,
+        status: 'new',
       });
       if (error) throw error;
       toast.success('Probléma sikeresen bejelentve');
@@ -362,7 +364,7 @@ function ComplaintDialog({ jobId, jobType, hasComplaint, onSubmitted }: { jobId:
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="hidden sm:flex text-muted-foreground hover:text-destructive hover:border-destructive/50">
+        <Button variant="outline" size="sm" className="flex text-muted-foreground hover:text-destructive hover:border-destructive/50">
           <AlertCircle className="mr-2 h-4 w-4" />
           {hasComplaint ? 'Újabb bejelentés' : 'Probléma bejelentése'}
         </Button>
@@ -412,6 +414,7 @@ interface VerdiktDisplayProps {
   onComplaintSubmitted?: () => void;
   onClose: () => void;
   onTerminate?: () => void;
+  onViewInChart?: () => void;
   voxisReviewPanelNode?: React.ReactNode;
 }
 
@@ -436,6 +439,7 @@ export function VerdiktDisplay({
   onComplaintSubmitted,
   onClose,
   onTerminate,
+  onViewInChart,
   voxisReviewPanelNode,
 }: VerdiktDisplayProps) {
   const payload = useMemo(() => parsePayload(responseData), [responseData]);
@@ -554,7 +558,7 @@ export function VerdiktDisplay({
           {jobId && (
             <>
               {complaints.length > 0 && (
-                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 hidden sm:flex font-medium">
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 flex font-medium">
                   <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
                   {complaints.length} probléma bejelentve
                 </Badge>
@@ -667,27 +671,45 @@ export function VerdiktDisplay({
                 </TabsContent>
               )}
               <TabsContent value="textual" className="space-y-4">
-                {selectedJobPaciensId && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-foreground">Sikeres mentés</h4>
-                      <p className="text-sm text-muted-foreground mt-1">Az adatok bekerültek a páciens kartonjába.</p>
-                    </div>
-                    <Button asChild variant="outline" className="shrink-0 gap-2">
-                      <Link to={`/patients/${selectedJobPaciensId}/${effectiveJobMode === 'treatnote' ? 'treatment-plan' : effectiveJobMode === 'ambulans' ? 'ambulatory-chart' : 'status'}`}>
-                        Megtekintés a kartonban
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                  </div>
+                {/* Voxis: structured review + confirmation panel */}
+                {effectiveJobMode === 'voxis' && voxisReviewPanelNode ? (
+                  voxisReviewPanelNode
+                ) : (
+                  <>
+                    {selectedJobPaciensId && (
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-foreground">Sikeres mentés</h4>
+                          <p className="text-sm text-muted-foreground mt-1">Az adatok bekerültek a páciens kartonjába.</p>
+                        </div>
+                        {onViewInChart ? (
+                          <Button
+                            variant="outline"
+                            className="shrink-0 gap-2"
+                            onClick={onViewInChart}
+                          >
+                            Megtekintés a kartonban
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <Button asChild variant="outline" className="shrink-0 gap-2">
+                            <Link to={`/patients/${selectedJobPaciensId}/${effectiveJobMode === 'treatnote' ? 'treatment-plan' : effectiveJobMode === 'ambulans' ? 'ambulatory-chart' : 'status'}`}>
+                              Megtekintés a kartonban
+                              <ArrowRight className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    <TextualListPanel text={
+                      (payload?.link ? `🔗 Megtekintés a külső rendszerben: ${payload.link}\n\n` : '') +
+                      (effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2)
+                        : effectiveJobMode === 'ambulans' ? JSON.stringify(responseData, null, 2)
+                          : effectiveJobMode === 'treatnote' ? formatTreatnotePayload(payload)
+                            : payload?.szoveges_lista || JSON.stringify(payload, null, 2))
+                    } />
+                  </>
                 )}
-                <TextualListPanel text={
-                  (payload?.link ? `🔗 Megtekintés a külső rendszerben: ${payload.link}\n\n` : '') +
-                  (effectiveJobMode === 'voxis' ? JSON.stringify(payload, null, 2)
-                    : effectiveJobMode === 'ambulans' ? JSON.stringify(responseData, null, 2)
-                      : effectiveJobMode === 'treatnote' ? formatTreatnotePayload(payload)
-                        : payload?.szoveges_lista || JSON.stringify(payload, null, 2))
-                } />
               </TabsContent>
             </div>
           </Tabs>

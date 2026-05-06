@@ -158,6 +158,31 @@ export function DentalChart({
     return () => window.removeEventListener('dental-chart-updated', handleUpdate);
   }, [fetchChart, fetchMarkers]);
 
+  // ─── Supabase Realtime: keep all users in sync ───
+  useEffect(() => {
+    if (!patientId) return;
+
+    const channel = supabase
+      .channel(`dental_chart_patient_${patientId}`)
+      .on(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dental_chart',
+          filter: `patient_id=eq.${patientId}`,
+        },
+        () => {
+          fetchChart();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [patientId, fetchChart]);
+
   // ============ Click handling with multi-select ============
 
   const handleToothClick = useCallback((toothNum: string, event: React.MouseEvent) => {

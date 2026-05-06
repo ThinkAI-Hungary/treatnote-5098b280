@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
-import { Loader2, Mic, Bot } from 'lucide-react';
+import { Loader2, Mic, Copy, Check, QrCode, Eye, EyeOff } from 'lucide-react';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -15,10 +15,33 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
   const { profile, refetch } = useProfile();
   const [currentMode, setCurrentMode] = useState<string | null>(profile?.voice_recording_preference || null);
   const [loading, setLoading] = useState(false);
+  const [shareCode, setShareCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     setCurrentMode(profile?.voice_recording_preference || null);
   }, [profile?.voice_recording_preference]);
+
+  useEffect(() => {
+    if (!telephelyId) return;
+    supabase
+      .from('telephely')
+      .select('share_code')
+      .eq('id', telephelyId)
+      .single()
+      .then(({ data }) => {
+        if (data?.share_code) setShareCode(data.share_code);
+      });
+  }, [telephelyId]);
+
+  const handleCopyCode = () => {
+    if (!shareCode) return;
+    navigator.clipboard.writeText(shareCode);
+    setCopied(true);
+    toast.success('Kód vágólapra másolva!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleModeChange = async (newMode: string) => {
     if (!telephelyId) {
@@ -56,6 +79,59 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* ── Telephely megosztási kód ─────────────────────────────────────── */}
+      <AnimatedCard>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <QrCode className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Páciensmegosztási kód</CardTitle>
+          </div>
+          <CardDescription>
+            Ezt a kódot add meg a másik telephelynek, ha pácienst szeretnek megosztani ezzel a telephellyel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-2">
+            {/* Code display — fixed height so blur toggle causes no layout shift */}
+            <div className="flex-1 relative min-h-[3.5rem]">
+              <div
+                className={`absolute inset-0 bg-muted rounded-lg px-4 py-3 font-mono text-xs font-bold tracking-wider text-primary break-all leading-relaxed overflow-hidden transition-[filter] duration-300 ${
+                  revealed ? 'blur-none select-all' : 'blur-sm select-none'
+                }`}
+              >
+                {shareCode ?? '—'}
+              </div>
+            </div>
+
+            {/* Reveal / hide toggle */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0 mt-0.5"
+              onClick={() => setRevealed(r => !r)}
+              title={revealed ? 'Elrejtés' : 'Kód megjelenítése'}
+            >
+              {revealed
+                ? <EyeOff className="h-4 w-4" />
+                : <Eye className="h-4 w-4" />}
+            </Button>
+
+            {/* Copy */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0 mt-0.5"
+              onClick={handleCopyCode}
+              disabled={!shareCode}
+              title="Kód másolása"
+            >
+              {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardContent>
+      </AnimatedCard>
+
+      {/* ── Működési mód ─────────────────────────────────────────────────── */}
       <AnimatedCard>
         <CardHeader>
           <CardTitle>Működési Mód Választás</CardTitle>

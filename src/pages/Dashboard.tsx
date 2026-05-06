@@ -160,6 +160,18 @@ export default function Dashboard() {
     startSzabalyokGeneration(activeTelephelyId, user.id, hasRules, () => setHasRules(true));
   }, [activeTelephelyId, user, hasRules]);
 
+  const [hasAckMode, setHasAckMode] = useState(false);
+
+  useEffect(() => {
+    if (user?.id && rolesInitialized) {
+      if (isKlinikaAdmin) {
+        setHasAckMode(!!localStorage.getItem(`mode_ack_${user.id}`));
+      } else {
+        setHasAckMode(true);
+      }
+    }
+  }, [user?.id, rolesInitialized, isKlinikaAdmin]);
+
   // Gate on all step-affecting loading states so the dashboard renders stable.
   // The user prefers a slightly longer load over a flash of partial/wrong step data.
   const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading || szotarStdlLoading;
@@ -336,7 +348,7 @@ export default function Dashboard() {
   ];
 
   // Only enable the tour after all async data has settled so allComplete is accurate
-  const tourDataReady = !isLoading && !szotarLoading && !rulesLoading && !isFlexiLoading;
+  const tourDataReady = !isLoading && !szotarLoading && !rulesLoading && !isFlexiLoading && hasAckMode;
 
   const {
     showTour: showDashTour,
@@ -370,6 +382,7 @@ export default function Dashboard() {
         userId={user?.id || null} 
         isKlinikaAdmin={isKlinikaAdmin} 
         onModeChanged={() => {
+          setHasAckMode(true);
           if (refetchProfile) {
             refetchProfile();
           }

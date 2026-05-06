@@ -5,6 +5,7 @@ export type TargetToothType = 'all' | 'pillar_only' | 'pontic_only';
 
 export interface RuleItem {
   id?: string;
+  item_id?: string;
   visit_id?: string;
   name: string;
   quantity: number;

@@ -78,7 +78,7 @@ serve(async (req) => {
     // Get profiles data
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, full_name, company_name, company_id, telephely_id, subscription_status, subscription_plan, subscription_amount, subscription_end_date, can_create_users');
+      .select('user_id, full_name, company_name, company_id, telephely_id, subscription_status, subscription_plan, subscription_amount, subscription_end_date, can_create_users, is_solo');
 
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
@@ -87,7 +87,7 @@ serve(async (req) => {
     // Get all companies
     const { data: companies, error: companiesError } = await supabaseAdmin
       .from('companies')
-      .select('id, name, slug, telephely, is_active')
+      .select('id, name, slug, telephely, is_active, is_solo')
       .order('name');
 
     if (companiesError) {
@@ -170,6 +170,7 @@ serve(async (req) => {
           subscription_end_date: profile?.subscription_end_date || null,
           can_create_users: profile?.can_create_users || false,
           flexi_username: flexiData?.flexi_username || null,
+          is_solo: profile?.is_solo || false,
         };
       });
 

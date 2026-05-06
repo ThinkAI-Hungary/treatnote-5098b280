@@ -33,9 +33,10 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
           .select('id', { count: 'exact', head: true })
           .eq('telephely_id', activeTelephelyId),
         supabase
-          .from('treatment_rules_stdl')
+          .from('treatment_rules')
           .select('id', { count: 'exact', head: true })
           .eq('clinic_id', activeTelephelyId)
+          .eq('aktiv', true)
       ]);
 
       setHasSzotarNative((szotarRes.count || 0) > 0);

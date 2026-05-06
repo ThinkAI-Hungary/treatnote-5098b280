@@ -39,6 +39,7 @@ import {
 } from '@/types/treatmentRules';
 
 interface SzotarKezelesOption {
+  visual_color?: string;
   id: string;
   name: string;
   category: string | null;
@@ -52,6 +53,7 @@ interface TreatmentRuleEditorProps {
   originalRuleIdToDeactivate?: string | null;
   onSave: (rule?: TreatmentRule) => void;
   availableCategories?: string[];
+  mode?: 'flexi' | 'native';
 }
 
 export function TreatmentRuleEditor({
@@ -62,6 +64,7 @@ export function TreatmentRuleEditor({
   originalRuleIdToDeactivate,
   onSave,
   availableCategories = CATEGORY_OPTIONS,
+  mode = 'flexi',
 }: TreatmentRuleEditorProps) {
   const isEditing = !!rule?.id;
 
@@ -84,10 +87,12 @@ export function TreatmentRuleEditor({
   // Fetch szotar_kezelesek when dialog opens
   useEffect(() => {
     if (open && clinicId) {
-      const fetchSzotarKezelesek = async () => {
+            const fetchSzotarKezelesek = async () => {
+        const table = mode === 'native' ? 'clinic_treatment_items_stdl' : 'szotar_kezelesek';
+        const selectQuery = mode === 'native' ? 'id, name, category, visual_color' : 'id, name, category';
         const { data, error } = await supabase
-          .from('szotar_kezelesek')
-          .select('id, name, category')
+          .from(table as any)
+          .select(selectQuery)
           .eq('telephely_id', clinicId)
           .order('name', { ascending: true });
 
@@ -97,7 +102,7 @@ export function TreatmentRuleEditor({
       };
       fetchSzotarKezelesek();
     }
-  }, [open, clinicId]);
+  }, [open, clinicId, mode]);
 
   // Initialize form when rule changes
   useEffect(() => {
@@ -332,6 +337,7 @@ export function TreatmentRuleEditor({
           if (visit.items.length > 0 && visitData) {
             const itemsToInsert = visit.items.map((item, i) => ({
               visit_id: visitData.id,
+              item_id: item.item_id || null,
               name: item.name,
               quantity: item.quantity,
               unit: item.unit,
@@ -401,6 +407,7 @@ export function TreatmentRuleEditor({
           if (visit.items.length > 0 && visitData) {
             const itemsToInsert = visit.items.map((item, i) => ({
               visit_id: visitData.id,
+              item_id: item.item_id || null,
               name: item.name,
               quantity: item.quantity,
               unit: item.unit,
@@ -694,12 +701,20 @@ export function TreatmentRuleEditor({
                                         onMouseDown={(e) => {
                                           e.preventDefault();
                                           updateItem(visitIndex, itemIndex, 'name', kezeles.name);
-                                          setActiveAutocomplete(null);
+                                            updateItem(visitIndex, itemIndex, 'item_id', kezeles.id);
+                                            setActiveAutocomplete(null);
                                         }}
                                       >
-                                        <span>{kezeles.name}</span>
+                                                                                <div className="flex items-center gap-2">
+                                          {mode === 'native' && kezeles.visual_color && (
+                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: kezeles.visual_color }} />
+                                          )}
+                                          <span>{kezeles.name}</span>
+                                        </div>
                                         {kezeles.category && (
-                                          <span className="text-xs text-muted-foreground ml-2">{kezeles.category}</span>
+                                          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
+                                            {kezeles.category}
+                                          </span>
                                         )}
                                       </div>
                                     ))}

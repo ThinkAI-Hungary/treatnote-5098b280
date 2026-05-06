@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { GalaxyButton } from './GalaxyButton';
+import { cn } from '@/lib/utils';
 
 const PREDEFINED_COLORS = [
   '#3b82f6', // blue
@@ -104,16 +105,40 @@ export function CustomCategoryDialog({
 
           <div className="space-y-2">
             <Label>Szín megjelölés</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div 
+                className={cn(
+                  "relative w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer",
+                  !PREDEFINED_COLORS.includes(color) ? 'border-primary scale-110 shadow-sm' : 'border-transparent hover:scale-105 shadow-sm'
+                )}
+                title="Egyéni szín választása" 
+              >
+                <div className="absolute inset-0 rounded-full" style={{ background: 'conic-gradient(from 90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0000ff, #8000ff, #ff00ff, #ff0000)' }} />
+                <div className="absolute inset-[2px] rounded-full bg-background flex items-center justify-center z-10 overflow-hidden">
+                   {!PREDEFINED_COLORS.includes(color) && (
+                     <div className="w-full h-full" style={{ backgroundColor: color }} />
+                   )}
+                </div>
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="absolute inset-[-10px] w-[50px] h-[50px] opacity-0 cursor-pointer z-20"
+                />
+              </div>
+              
+              <div className="h-6 w-px bg-border mx-1" />
+
               {PREDEFINED_COLORS.map(c => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                  className={cn(
+                    "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
                     color === c ? 'border-primary scale-110 shadow-sm' : 'border-transparent hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: c }}
+                  )}
+                  style={{ backgroundColor: c, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }}
                 />
               ))}
             </div>

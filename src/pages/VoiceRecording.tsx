@@ -18,6 +18,7 @@ import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory';
 import { useTheme } from '@/components/ThemeProvider';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
+import { translateRecordingError } from '@/lib/utils';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
@@ -237,7 +238,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
       console.log('Recording complete:', blob.size, 'bytes,', dur, 'seconds');
     },
     onError: (error) => {
-      toast.error('Hiba a felvétel során: ' + error.message);
+      toast.error('Hiba a felvétel során: ' + translateRecordingError(error));
     },
   });
 

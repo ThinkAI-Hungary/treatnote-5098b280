@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { DentalChart } from '@/components/patients/dental-chart';
 import { NativeVoiceRecordingPanel } from '@/components/voice/NativeVoiceRecordingPanel';
-import { NativeVoiceJobHistory } from '@/components/voice/NativeVoiceJobHistory';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
 import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
@@ -18,7 +17,7 @@ export default function PatientStatus() {
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { jobs: unifiedJobs, isLoading: unifiedLoading, refetch: unifiedRefetch } = useUnifiedVoiceHistory(patient.id);
+  const { jobs: unifiedJobs, isLoading: _unifiedLoading, refetch: unifiedRefetch } = useUnifiedVoiceHistory(patient.id);
   const [selectedNativeJobId, setSelectedNativeJobId] = useState<string | null>(null);
   
   const voxisJobs = unifiedJobs.filter(j => j.mode === 'voxis');
@@ -26,51 +25,34 @@ export default function PatientStatus() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Bal oldali oszlop (Fogtérkép + Előzmények) */}
-        <div className="lg:col-span-8 xl:col-span-9 flex flex-col gap-6 min-w-0">
-          <div className="w-full">
-            <DentalChart 
-              patientId={patient.id} 
-              readonly={false}
-              onSelectionChange={setSelectedTeeth}
-              key={`chart-${refreshTrigger}`}
-            />
-          </div>
+      {/* Compact recording bar above the dental chart */}
+      <NativeVoiceRecordingPanel
+        treatnotePatientId={patient.id}
+        isFlexi={profile?.voice_recording_preference === 'flexident'}
+        flexiPatientId={patient.flexident_id}
+        forceMode="voxis"
+        variant="compact"
+        onJobStarted={(jobId) => {
+          setSelectedNativeJobId(jobId);
+          unifiedRefetch();
+        }}
+        onJobComplete={(jobId) => {
+          setSelectedNativeJobId(jobId);
+          unifiedRefetch();
+          setRefreshTrigger(prev => prev + 1);
+        }}
+      />
 
-        </div>
+      {/* Dental chart */}
+      <DentalChart
+        patientId={patient.id}
+        toothScale={1.5}
+        readonly={false}
+        onSelectionChange={setSelectedTeeth}
+        key={`chart-${refreshTrigger}`}
+      />
 
-        {/* Jobb oldali oszlop (Hangfelvevő) */}
-        <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
-          <NativeVoiceRecordingPanel 
-            treatnotePatientId={patient.id}
-            isFlexi={profile?.voice_recording_preference === 'flexident'}
-            flexiPatientId={patient.flexident_id}
-            forceMode="voxis"
-            onJobStarted={(jobId) => {
-              setSelectedNativeJobId(jobId);
-              unifiedRefetch();
-            }}
-            onJobComplete={(jobId) => {
-              setSelectedNativeJobId(jobId);
-              unifiedRefetch();
-              setRefreshTrigger(prev => prev + 1);
-            }}
-          />
-          <div className="w-full flex-1 flex flex-col min-h-[400px]">
-            <NativeVoiceJobHistory
-              jobs={voxisJobs as any}
-              isLoading={unifiedLoading}
-              selectedJobId={selectedNativeJobId}
-              onSelectJob={(j) => setSelectedNativeJobId(j.id)}
-              onJobTerminated={unifiedRefetch}
-              className="flex-1"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Verdikt Display */}
+      {/* VerdiktDisplay below the chart */}
       {(selectedJob || selectedNativeJobId) && (
         <div key={selectedJob?.id || selectedNativeJobId} className="w-full animate-in fade-in slide-in-from-top-6 duration-300">
           <VerdiktDisplay
@@ -89,6 +71,7 @@ export default function PatientStatus() {
             claudeCleanedText={(selectedJob as any)?.claude_cleaned_text}
             onComplaintSubmitted={unifiedRefetch}
             onClose={() => setSelectedNativeJobId(null)}
+            onViewInChart={() => setSelectedNativeJobId(null)}
             onTerminate={async () => {
               const targetJob = selectedJob || { id: selectedNativeJobId, isFlexi: false };
               const table = targetJob.isFlexi ? 'voice_jobs' : 'native_voice_jobs';

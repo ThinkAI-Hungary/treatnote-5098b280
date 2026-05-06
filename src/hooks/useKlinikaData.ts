@@ -123,6 +123,11 @@ export function useKlinikaData() {
 
       const hasAccess = isAdmin || isKlinikaAdmin;
 
+      const stripSuffix = (s: string | null | undefined): string | null => {
+        if (!s) return null;
+        return s.replace(/-\d+$/, '');
+      };
+
       // Get telephely name and resolve company
       let telephelyName: string | null = null;
       let resolvedCompanyId = profileData?.company_id || null;
@@ -134,7 +139,7 @@ export function useKlinikaData() {
           .select('name, display_name, company_id')
           .eq('id', activeTelephelyId)
           .single();
-        telephelyName = telephely?.display_name || telephely?.name || null;
+        telephelyName = telephely?.display_name || stripSuffix(telephely?.name) || null;
         
         if (telephely?.company_id) {
           resolvedCompanyId = telephely.company_id;
@@ -148,7 +153,7 @@ export function useKlinikaData() {
           .select('name, display_name')
           .eq('id', resolvedCompanyId)
           .single();
-        resolvedCompanyName = company?.display_name || company?.name || resolvedCompanyName;
+        resolvedCompanyName = company?.display_name || stripSuffix(company?.name) || stripSuffix(resolvedCompanyName);
       }
 
       // If no access, return early with role data only
@@ -175,6 +180,19 @@ export function useKlinikaData() {
         invokeWithRetry<{ invitations: SentInvitation[] }>('klinika-admin', { operation: 'get-sent-invitations' }),
       ]);
 
+      // Helper to clean up arrays
+      const cleanUsers = (users: KlinikaUser[]) => users.map(u => ({
+        ...u,
+        company_name: stripSuffix(u.company_name),
+        telephely_name: stripSuffix(u.telephely_name)
+      }));
+
+      const cleanInvitations = (invs: SentInvitation[]) => invs.map(i => ({
+        ...i,
+        company_name: stripSuffix((i as any).company_name),
+        telephely_name: stripSuffix((i as any).telephely_name)
+      }));
+
       if (mountedRef.current) {
         setState({
           isAdmin,
@@ -183,8 +201,8 @@ export function useKlinikaData() {
           companyName: resolvedCompanyName,
           telephelyId: activeTelephelyId || null,
           telephelyName,
-          users: usersResponse.data?.users || [],
-          sentInvitations: invitationsResponse.data?.invitations || [],
+          users: cleanUsers(usersResponse.data?.users || []),
+          sentInvitations: cleanInvitations(invitationsResponse.data?.invitations || []),
           isLoading: false,
           error: null,
         });
@@ -202,7 +220,14 @@ export function useKlinikaData() {
     try {
       const { data } = await invokeWithRetry<{ users: KlinikaUser[] }>('klinika-admin', { operation: 'get-users' });
       if (mountedRef.current) {
-        setState(prev => ({ ...prev, users: data?.users || [] }));
+        setState(prev => ({ 
+          ...prev, 
+          users: (data?.users || []).map(u => ({
+            ...u,
+            company_name: u.company_name ? u.company_name.replace(/-\d+$/, '') : null,
+            telephely_name: u.telephely_name ? u.telephely_name.replace(/-\d+$/, '') : null
+          }))
+        }));
       }
     } catch (err) {
       console.error('Error refreshing users:', err);
@@ -214,7 +239,14 @@ export function useKlinikaData() {
     try {
       const { data } = await invokeWithRetry<{ invitations: SentInvitation[] }>('klinika-admin', { operation: 'get-sent-invitations' });
       if (mountedRef.current) {
-        setState(prev => ({ ...prev, sentInvitations: data?.invitations || [] }));
+        setState(prev => ({ 
+          ...prev, 
+          sentInvitations: (data?.invitations || []).map(i => ({
+            ...i,
+            company_name: (i as any).company_name ? (i as any).company_name.replace(/-\d+$/, '') : null,
+            telephely_name: (i as any).telephely_name ? (i as any).telephely_name.replace(/-\d+$/, '') : null
+          }))
+        }));
       }
     } catch (err) {
       console.error('Error refreshing invitations:', err);

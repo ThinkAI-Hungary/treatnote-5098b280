@@ -45,6 +45,19 @@ export default function SoloRegister() {
     const [registered, setRegistered] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
 
+    useEffect(() => {
+        if (!registered) return;
+
+        // Figyeljük, ha egy másik fülön megtörténik az email megerősítése (és ezzel a bejelentkezés)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN') {
+                navigate('/auth?confirmed=true');
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [registered, navigate]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 

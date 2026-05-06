@@ -58,6 +58,7 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
   const setAck = () => {
     localStorage.setItem(`mode_ack_${userId}`, 'true');
     setHasAckMode(true);
+    onModeChanged();
   };
 
   const isNative = currentMode === 'treatnote_native';
@@ -79,13 +80,16 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* FlexiDent Card */}
             <Card 
-              className="relative overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-primary/50"
+              className={cn(
+                "relative overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-primary/50",
+                loading && "pointer-events-none opacity-70"
+              )}
               onClick={() => handleModeChange('flexident')}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="p-8 flex flex-col items-center text-center space-y-6">
                 <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                  <Mic className="h-10 w-10 text-primary" />
+                  {loading ? <Loader2 className="h-10 w-10 text-primary animate-spin" /> : <Mic className="h-10 w-10 text-primary" />}
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-2xl font-bold">FlexiDent Integráció</h3>
@@ -93,15 +97,15 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
                     Közvetlen szinkronizáció meglévő FlexiDent fiókkal. Automatikus páciens és beavatkozás betöltés, egyből a Flexibe mentünk mindent.
                   </p>
                 </div>
-                <Button className="w-full rounded-full h-12 text-lg" disabled={loading}>
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'FlexiDent kiválasztása'}
-                </Button>
               </div>
             </Card>
 
             {/* Native Card */}
             <Card 
-              className="relative overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-primary/50"
+              className={cn(
+                "relative overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-primary/50",
+                loading && "pointer-events-none opacity-70"
+              )}
               onClick={() => {
                 if (isNative) {
                   setAck(); // Már az, csak leokézza
@@ -113,7 +117,11 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="p-8 flex flex-col items-center text-center space-y-6">
                 <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                  <span className="text-[3rem] font-extrabold bg-gradient-to-br from-primary to-accent bg-clip-text text-transparent select-none leading-none">T</span>
+                  {loading ? (
+                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                  ) : (
+                    <span className="text-[3rem] font-extrabold text-primary select-none leading-none">T</span>
+                  )}
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-2xl font-bold">TreatNote Natív</h3>
@@ -121,9 +129,6 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
                     Rendszerünk teljes körű használata függetlenül. Manuális szótár rögzítés, letisztult, önálló dokumentációs folyamat.
                   </p>
                 </div>
-                <Button className="w-full rounded-full h-12 text-lg" disabled={loading}>
-                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Natív mód kiválasztása'}
-                </Button>
               </div>
             </Card>
           </div>

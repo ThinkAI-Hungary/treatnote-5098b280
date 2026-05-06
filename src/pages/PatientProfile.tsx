@@ -2,12 +2,14 @@ import { useParams, useNavigate, Outlet, useLocation, Link } from 'react-router-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Phone, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Phone, AlertTriangle, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 import { NewPatientWizard } from '@/components/patients/NewPatientWizard';
+import { PatientShareDialog } from '@/components/patients/PatientShareDialog';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { toast } from '@/hooks/useToastMessage';
 
 export default function PatientProfile() {
@@ -19,6 +21,8 @@ export default function PatientProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const { isAdmin } = useUserRole();
+  const { isKlinikaAdmin } = useCachedRoles();
+  const [shareOpen, setShareOpen] = useState(false);
 
   async function fetchPatient() {
     if (!id) return;
@@ -136,10 +140,24 @@ export default function PatientProfile() {
               {isCleaning ? 'Törlés...' : 'Clean user'}
             </Button>
           )}
+          {(isKlinikaAdmin || isAdmin) && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShareOpen(true)}>
+              <Share2 className="h-3.5 w-3.5" /> Megosztás
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>Szerkesztés</Button>
           <Button size="sm">Új ellátás</Button>
         </div>
       </div>
+
+      {/* Share dialog */}
+      {patient && shareOpen && (
+        <PatientShareDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          patient={patient}
+        />
+      )}
 
       {/* ── CRITICAL ALERTS BAR (anamnézis warnings, inline) ── */}
       {patient.anamnezis && (

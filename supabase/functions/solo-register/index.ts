@@ -143,7 +143,7 @@ serve(async (req) => {
             password,
             options: {
                 data: { full_name: displayName, solo_registration: true },
-                redirectTo: `${appUrl}/auth`,
+                redirectTo: `${appUrl}/auth?confirmed=true`,
             },
         });
 

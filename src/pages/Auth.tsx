@@ -26,14 +26,16 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Detect Supabase email confirmation callback in the URL hash
+    // Detect Supabase email confirmation callback in the URL hash or confirmed query parameter
     const hash = window.location.hash;
-    if (hash.includes('type=signup') || hash.includes('type=email_confirmation')) {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (hash.includes('type=signup') || hash.includes('type=email_confirmation') || params.get('confirmed') === 'true') {
       // Supabase already processed the token and created a session.
       // We sign out immediately so the user must log in manually.
       supabase.auth.signOut().then(() => {
         setEmailConfirmed(true);
-        // Clean the URL hash so it doesn't linger
+        // Clean the URL hash and query string so it doesn't linger
         window.history.replaceState(null, '', window.location.pathname);
       });
       return;

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { TREATMENT_CATEGORIES } from '@/lib/treatmentClassifier';
+import { TREATMENT_CATEGORIES, classifyTreatmentItem } from '@/lib/treatmentClassifier';
 import { toast } from '@/hooks/useToastMessage';
+import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CustomCategoryDialog } from './CustomCategoryDialog';
-import { FileUp, Pencil, AlertCircle, Plus, Trash2, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileUp, Pencil, Plus, Trash2, Loader2 } from 'lucide-react';
 
 interface NativeSzotarDialogProps {
   open: boolean;
@@ -95,6 +95,66 @@ export function NativeSzotarDialog({ open, onOpenChange, telephelyId, onSaved }:
   };
 
   const [isSaving, setIsSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !telephelyId) return;
+    e.target.value = '';
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) { toast.error('A CSV fájl üres vagy hibás'); return; }
+
+      const sep = lines[0].includes(';') ? ';' : ',';
+      const header = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const nameIdx = header.findIndex(h => h === 'name' || h === 'név' || h === 'nev');
+      const catIdx = header.findIndex(h => h === 'category' || h === 'kategória' || h === 'kategoria');
+      const priceIdx = header.findIndex(h => h === 'price' || h === 'ár' || h === 'ar');
+
+      if (nameIdx === -1) { toast.error('Hiányzó "name" vagy "név" oszlop a CSV-ben'); return; }
+
+      const csvItems: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+        const name = cols[nameIdx];
+        if (!name) continue;
+
+        const category = catIdx >= 0 ? cols[catIdx] || 'Egyéb' : 'Egyéb';
+        const price = priceIdx >= 0 ? parseInt(cols[priceIdx]?.replace(/\D/g, ''), 10) || null : null;
+        const cue = classifyTreatmentItem(name, category);
+
+        csvItems.push({
+          telephely_id: telephelyId,
+          name,
+          category,
+          price,
+          visual_group: cue.visual_group,
+          visual_color: cue.visual_color,
+          visual_icon: cue.visual_icon,
+        });
+      }
+
+      if (csvItems.length === 0) { toast.error('Nem található érvényes sor'); return; }
+
+      const { error } = await supabase
+        .from('clinic_treatment_items_stdl')
+        .upsert(csvItems, { onConflict: 'telephely_id,name', ignoreDuplicates: true });
+
+      if (error) throw error;
+      toast.success(`${csvItems.length} tétel importálva`);
+      notifySzotarDataChanged();
+      onSaved();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error('CSV import error:', err);
+      toast.error('Hiba az importáláskor: ' + (err.message || ''));
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!telephelyId) return;
@@ -122,6 +182,7 @@ export function NativeSzotarDialog({ open, onOpenChange, telephelyId, onSaved }:
       if (error) throw error;
 
       toast.success('Szótár sikeresen mentve!');
+      notifySzotarDataChanged();
       onSaved();
       onOpenChange(false);
     } catch (err: any) {
@@ -140,13 +201,6 @@ export function NativeSzotarDialog({ open, onOpenChange, telephelyId, onSaved }:
             Adja meg a klinika kezelési tételeit. Ezt megteheti fájl feltöltésével vagy kézi szerkesztéssel.
           </DialogDescription>
         </DialogHeader>
-
-        <Alert variant="default" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            A feltöltött adatok feldolgozása egyelőre nem elérhető. Kérjük térjen vissza később!
-          </AlertDescription>
-        </Alert>
 
         <Tabs defaultValue="manual" className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
@@ -249,12 +303,30 @@ export function NativeSzotarDialog({ open, onOpenChange, telephelyId, onSaved }:
           </TabsContent>
 
           <TabsContent value="upload" className="mt-4 space-y-4">
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-10 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors cursor-pointer">
-              <FileUp className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-1">Húzza ide a fájlt</h3>
-              <p className="text-sm text-muted-foreground">vagy kattintson a tallózáshoz</p>
-              <p className="text-xs text-muted-foreground mt-4">Támogatott formátumok: CSV, JSON, TXT</p>
-            </div>
+            <label htmlFor="modal-csv-import" className="block cursor-pointer">
+              <input
+                id="modal-csv-import"
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleCsvImport}
+                disabled={importing}
+              />
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-10 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors">
+                {importing ? (
+                  <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+                ) : (
+                  <FileUp className="h-10 w-10 text-muted-foreground mb-4" />
+                )}
+                <h3 className="font-semibold mb-1">
+                  {importing ? 'Feltöltés folyamatban...' : 'Húzza ide a fájlt'}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {importing ? 'Kérjük várjon...' : 'vagy kattintson a tallózáshoz'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-4">Támogatott formátumok: CSV</p>
+              </div>
+            </label>
           </TabsContent>
         </Tabs>
 

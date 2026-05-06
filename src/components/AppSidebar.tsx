@@ -370,21 +370,32 @@ export function AppSidebar() {
     fetchRules();
   }, [activeTelephelyId]);
 
-  // Re-fetch rules when a generation completes (from any page)
+  // Re-fetch rules when a generation completes (from any page) or when backend updates it
   useEffect(() => {
-    const unsubscribe = subscribeToRulesChanges(() => {
+    const fetchRulesCount = async () => {
       if (!activeTelephelyId) return;
-      (async () => {
-        try {
-          const { count } = await supabase
-            .from('treatment_rules')
-            .select('id', { count: 'exact', head: true })
-            .eq('clinic_id', activeTelephelyId);
-          setHasRules((count || 0) > 0);
-        } catch { /* ignore */ }
-      })();
-    });
-    return unsubscribe;
+      try {
+        const { count } = await supabase
+          .from('treatment_rules')
+          .select('id', { count: 'exact', head: true })
+          .eq('clinic_id', activeTelephelyId);
+        setHasRules((count || 0) > 0);
+      } catch { /* ignore */ }
+    };
+
+    const unsubscribeEvents = subscribeToRulesChanges(fetchRulesCount);
+
+    if (!activeTelephelyId) return unsubscribeEvents;
+
+    const channel = supabase
+      .channel(`sidebar-rules-${activeTelephelyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'treatment_rules', filter: `clinic_id=eq.${activeTelephelyId}` }, fetchRulesCount)
+      .subscribe();
+
+    return () => {
+      unsubscribeEvents();
+      supabase.removeChannel(channel);
+    };
   }, [activeTelephelyId]);
 
   // Fetch all telephely memberships for the user
@@ -674,7 +685,7 @@ export function AppSidebar() {
   // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
   const isNativeMode = profile?.voice_recording_preference === 'treatnote_native';
   const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
-  const nativeComplete = hasSzotarNative; // native rules temporarily removed from dependencies
+  const nativeComplete = hasSzotarNative && hasNativeRules; // native items + at least 1 active native rule
   
   const allOnboardingComplete = nativeComplete || flexiComplete;
   const showProtectedItems = allOnboardingComplete;
@@ -1001,33 +1012,22 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => {
-                // For now, Páciensek menu is restricted to admin only per user request
-                if (item.requiresAdmin && !isAdmin) return null;
+                // Páciensek: visible to global admins, OR native mode users who completed native onboarding
+                if (item.requiresAdmin && !isAdmin && !(isNativeMode && nativeComplete)) return null;
 
                 if (item.requiresFlexi || item.requiresSzotar) {
-                  // Solo: always show, gated only on license
-                  if (isSolo) {
-                    const { isDisabled, disabledContent } = getHangfelvételDisabledState(item);
-                    return (
-                      <StaticMenuItem
-                        key={`${item.title}-solo`}
-                        item={item}
-                        collapsed={collapsed}
-                        tourId={(item as any).tourId}
-                        isDisabled={isDisabled}
-                        disabledContent={disabledContent}
-                        onDisabledClick={isDisabled ? handleBuySoloLicense : undefined}
-                      />
-                    );
-                  }
-                  // Non-solo: hide entirely when onboarding incomplete
-                  if (!showProtectedItems) return null;
+                  if (isNativeMode) return null;
+
+                  const { isDisabled, disabledContent } = getHangfelvételDisabledState(item);
                   return (
                     <StaticMenuItem
                       key={`${item.title}-${menuAnimKey}`}
                       item={item}
                       collapsed={collapsed}
                       tourId={(item as any).tourId}
+                      isDisabled={isDisabled}
+                      disabledContent={disabledContent}
+                      onDisabledClick={isDisabled && isSolo ? handleBuySoloLicense : undefined}
                     />
                   );
                 }

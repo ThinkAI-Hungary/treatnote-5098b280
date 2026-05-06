@@ -136,6 +136,11 @@ export function KezelesiSzabalyokTab({
   const [pendingToggleRule, setPendingToggleRule] = useState<TreatmentRule | null>(null);
   const [pendingToggleLinked, setPendingToggleLinked] = useState<TreatmentRule | null>(null);
 
+  // Activate rule with inactive items warning state
+  const [activateWarningOpen, setActivateWarningOpen] = useState(false);
+  const [pendingActivationRule, setPendingActivationRule] = useState<TreatmentRule | null>(null);
+  const [inactiveItemsToActivate, setInactiveItemsToActivate] = useState<{ id: string; name: string }[]>([]);
+
   // Upload state
   const [uploading, setUploading] = useState(false);
 
@@ -209,9 +214,70 @@ export function KezelesiSzabalyokTab({
         });
       }
 
-      setRules(rulesWithDetails);
+      // Auto-deactivate broken active rules
+      const activeRules = rulesWithDetails.filter(r => r.aktiv);
+      const brokenRuleIds = new Set<string>();
+      
+      for (const rule of activeRules) {
+        const allItems = rule.visits?.flatMap(v => v.items) || [];
+        if (allItems.some(i => !i.item_id)) {
+          brokenRuleIds.add(rule.id!);
+        }
+      }
+
+      // Collect all mapped item ids from active rules
+      const mappedItemIds = activeRules
+        .flatMap(r => r.visits?.flatMap(v => v.items) || [])
+        .map(i => i.item_id)
+        .filter(Boolean) as string[];
+
+      if (mappedItemIds.length > 0) {
+        // We only check for missing price/name/category here. 
+        // Inactive items are handled by the existing deactivation cascade, but we can catch them here too.
+        const { data: dbItems } = await supabase
+          .from('clinic_treatment_items_stdl')
+          .select('id, name, category, price, is_active')
+          .in('id', mappedItemIds);
+
+        if (dbItems) {
+          const invalidItemIds = new Set(
+            dbItems
+              .filter(i => !i.name || !i.category || i.price === null || i.price === undefined || !i.is_active)
+              .map(i => i.id)
+          );
+
+          if (invalidItemIds.size > 0) {
+            for (const rule of activeRules) {
+              const allItems = rule.visits?.flatMap(v => v.items) || [];
+              if (allItems.some(i => i.item_id && invalidItemIds.has(i.item_id))) {
+                brokenRuleIds.add(rule.id!);
+              }
+            }
+          }
+        }
+      }
+
+      let finalRules = rulesWithDetails;
+      if (brokenRuleIds.size > 0) {
+        const idsToDeactivate = Array.from(brokenRuleIds);
+        
+        // Update DB
+        await supabase
+          .from('treatment_rules')
+          .update({ aktiv: false })
+          .in('id', idsToDeactivate);
+
+        // Update local state
+        finalRules = rulesWithDetails.map(r => 
+          brokenRuleIds.has(r.id!) ? { ...r, aktiv: false } : r
+        );
+        
+        toast.error(`${idsToDeactivate.length} szabály automatikusan inaktiválva lett, mert hiányzó szótári elemet vagy hiányos adatot tartalmazott!`);
+      }
+
+      setRules(finalRules);
       // Update cache
-      rulesCache = { telephelyId: telephelyId!, rules: rulesWithDetails, loaded: true };
+      rulesCache = { telephelyId: telephelyId!, rules: finalRules, loaded: true };
     } catch (err: any) {
       console.error('Error loading rules:', err);
       toast.error('Hiba a szabályok betöltésekor');
@@ -221,11 +287,9 @@ export function KezelesiSzabalyokTab({
   }, [telephelyId]);
 
   useEffect(() => {
-    // Only fetch if cache is empty or for a different telephely
-    // When cached, data is already in state from the useState initializer
-    if (!rulesCache.loaded || rulesCache.telephelyId !== telephelyId) {
-      loadRules();
-    }
+    // Always fetch latest data on mount.
+    // If we have cached data, loadRules will fetch silently in the background.
+    loadRules();
   }, [loadRules, telephelyId]);
 
   // --- Supabase Realtime: subscribe to treatment_rules INSERT events ---
@@ -237,66 +301,80 @@ export function KezelesiSzabalyokTab({
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'treatment_rules',
           filter: `clinic_id=eq.${telephelyId}`,
         },
-        async (payload: { new: { id: string } }) => {
-          // Helper to fetch a rule with its visits + items
-          const fetchRuleWithDetails = async (ruleId: string) => {
-            const { data, error } = await supabase
-              .from('treatment_rules')
-              .select(`
-                *,
-                visits:rule_visits(
-                  *,
-                  items:rule_items(*)
-                )
-              `)
-              .eq('id', ruleId)
-              .single();
-            return { data, error };
-          };
-
-          const countItems = (rule: any) =>
-            (rule.visits || []).reduce((sum: number, v: any) => sum + (v.items?.length || 0), 0);
-
-          // Wait 2s before first fetch — processPdf inserts visits/items
-          // AFTER the rule row, so the Realtime event fires too early.
-          await new Promise(r => setTimeout(r, 2000));
-
-          let { data: newRule, error } = await fetchRuleWithDetails(payload.new.id);
-
-          if (error || !newRule) {
-            console.error('Error fetching new rule via Realtime:', error);
+        async (payload: any) => {
+          if (payload.eventType === 'DELETE') {
+            updateRulesState(prev => prev.filter(r => r.id !== payload.old.id));
             return;
           }
 
-          // If still 0 items, retry once after 3s (n8n + DB round-trip can be slow)
-          if (countItems(newRule) === 0) {
-            await new Promise(r => setTimeout(r, 3000));
-            const retry = await fetchRuleWithDetails(payload.new.id);
-            if (!retry.error && retry.data) {
-              newRule = retry.data;
-            }
+          if (payload.eventType === 'UPDATE') {
+            updateRulesState(prev => prev.map(r => 
+              r.id === payload.new.id ? { ...r, ...payload.new } : r
+            ));
+            return;
           }
 
-          const ruleWithDetails = {
-            ...newRule,
-            visits: (newRule.visits || [])
-              .sort((a: any, b: any) => a.display_order - b.display_order)
-              .map((visit: any) => ({
-                ...visit,
-                items: (visit.items || [])
-                  .sort((a: any, b: any) => a.display_order - b.display_order),
-              })),
-          } as TreatmentRule;
+          if (payload.eventType === 'INSERT') {
+            // Helper to fetch a rule with its visits + items
+            const fetchRuleWithDetails = async (ruleId: string) => {
+              const { data, error } = await supabase
+                .from('treatment_rules')
+                .select(`
+                  *,
+                  visits:rule_visits(
+                    *,
+                    items:rule_items(*)
+                  )
+                `)
+                .eq('id', ruleId)
+                .single();
+              return { data, error };
+            };
 
-          setRules((prev) => {
-            if (prev.some((r) => r.id === ruleWithDetails.id)) return prev;
-            return [ruleWithDetails, ...prev];
-          });
+            const countItems = (rule: any) =>
+              (rule.visits || []).reduce((sum: number, v: any) => sum + (v.items?.length || 0), 0);
+
+            // Wait 2s before first fetch — processPdf inserts visits/items
+            // AFTER the rule row, so the Realtime event fires too early.
+            await new Promise(r => setTimeout(r, 2000));
+
+            let { data: newRule, error } = await fetchRuleWithDetails(payload.new.id);
+
+            if (error || !newRule) {
+              console.error('Error fetching new rule via Realtime:', error);
+              return;
+            }
+
+            // If still 0 items, retry once after 3s (n8n + DB round-trip can be slow)
+            if (countItems(newRule) === 0) {
+              await new Promise(r => setTimeout(r, 3000));
+              const retry = await fetchRuleWithDetails(payload.new.id);
+              if (!retry.error && retry.data) {
+                newRule = retry.data;
+              }
+            }
+
+            const ruleWithDetails = {
+              ...newRule,
+              visits: (newRule.visits || [])
+                .sort((a: any, b: any) => a.display_order - b.display_order)
+                .map((visit: any) => ({
+                  ...visit,
+                  items: (visit.items || [])
+                    .sort((a: any, b: any) => a.display_order - b.display_order),
+                })),
+            } as TreatmentRule;
+
+            updateRulesState((prev) => {
+              if (prev.some((r) => r.id === ruleWithDetails.id)) return prev;
+              return [ruleWithDetails, ...prev];
+            });
+          }
         }
       )
       .subscribe();
@@ -561,6 +639,46 @@ export function KezelesiSzabalyokTab({
         setLinkedToggleConfirmOpen(true);
         return;
       }
+      
+      // 1. Check for unmapped items
+      const allItems = rule.visits?.flatMap(v => v.items) || [];
+      const hasUnmappedItems = allItems.some(i => !i.item_id);
+      
+      if (hasUnmappedItems) {
+        toast.error("A szabály nem aktiválható, mert olyan tételt tartalmaz, ami nincs szótári elemhez kötve (hiányzó azonosító).");
+        return;
+      }
+
+      // 2. Check for missing values in the mapped items (name, category, price)
+      const itemIds = allItems.map(i => i.item_id).filter(Boolean) as string[];
+      if (itemIds.length > 0) {
+        try {
+          const { data: dbItems, error } = await supabase
+            .from('clinic_treatment_items_stdl')
+            .select('id, name, category, price, is_active')
+            .in('id', itemIds);
+            
+          if (!error && dbItems) {
+            // A) Check for missing values
+            const invalidItems = dbItems.filter(i => !i.name || !i.category || i.price === null || i.price === undefined);
+            if (invalidItems.length > 0) {
+              toast.error("A szabály nem aktiválható, mert hiányos adatú tételeket tartalmaz (pl. hiányzó ár vagy kategória). Kérjük, pótolja a szótárban!");
+              return;
+            }
+
+            // B) Check for inactive items (existing logic)
+            const inactiveItems = dbItems.filter(i => !i.is_active);
+            if (inactiveItems.length > 0) {
+              setPendingActivationRule(rule);
+              setInactiveItemsToActivate(inactiveItems);
+              setActivateWarningOpen(true);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error checking item status:", err);
+        }
+      }
     }
 
     // If this rule is part of a multi-selection, toggle all selected
@@ -625,6 +743,53 @@ export function KezelesiSzabalyokTab({
       console.error('Error linked toggle:', err);
       toast.error('Hiba a státusz módosításakor');
       loadRules(); // Revert on error
+    }
+  };
+
+  const handleConfirmActivationWithItems = async () => {
+    if (!pendingActivationRule?.id) return;
+    
+    setActivateWarningOpen(false);
+    
+    // The items to activate
+    const itemIdsToActivate = inactiveItemsToActivate.map(i => i.id);
+    const ruleIdsToToggle = selectedIds.has(pendingActivationRule.id) && selectedIds.size > 1
+      ? Array.from(selectedIds)
+      : [pendingActivationRule.id];
+      
+    // Optimistic update for rules
+    const toggleSet = new Set(ruleIdsToToggle);
+    updateRulesState(prev => prev.map(r =>
+      toggleSet.has(r.id!) ? { ...r, aktiv: true } : r
+    ));
+    toast.success('Szabály és a kapcsolódó tételek aktiválva');
+
+    try {
+      // 1. Activate the items
+      if (itemIdsToActivate.length > 0) {
+        const { error: itemErr } = await supabase
+          .from('clinic_treatment_items_stdl')
+          .update({ is_active: true })
+          .in('id', itemIdsToActivate);
+        if (itemErr) throw itemErr;
+        
+        // Dispatch global event so KezelesiTetelekTab reloads if needed
+        import('@/lib/szotarEvents').then(m => m.notifySzotarDataChanged());
+      }
+      
+      // 2. Activate the rules
+      const { error: ruleErr } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: true })
+        .in('id', ruleIdsToToggle);
+      if (ruleErr) throw ruleErr;
+    } catch (err: any) {
+      console.error('Error activating rule with items:', err);
+      toast.error('Hiba az aktiválás során');
+      loadRules(); // Revert
+    } finally {
+      setPendingActivationRule(null);
+      setInactiveItemsToActivate([]);
     }
   };
 
@@ -1488,6 +1653,30 @@ export function KezelesiSzabalyokTab({
         confirmText="Aktiválás"
         cancelText="Mégse"
         onConfirm={handleConfirmLinkedToggle}
+        variant="warning"
+      />
+      {/* Activate Rule with Inactive Items Confirmation */}
+      <ConfirmDialog
+        open={activateWarningOpen}
+        onOpenChange={setActivateWarningOpen}
+        title="Inaktív tételek aktiválása"
+        description={
+          <div className="space-y-2">
+            <p>
+              A kiválasztott kezelési szabály bekapcsolásához a benne szereplő inaktív kezelési tételeket is aktiválni kell.
+            </p>
+            <p className="font-semibold text-sm mt-2 text-foreground">Érintett tételek:</p>
+            <ul className="list-disc pl-5 text-sm">
+              {inactiveItemsToActivate.map(item => (
+                <li key={item.id}>{item.name}</li>
+              ))}
+            </ul>
+            <p className="mt-4">Biztosan folytatja?</p>
+          </div>
+        }
+        confirmText="Aktiválás"
+        cancelText="Mégse"
+        onConfirm={handleConfirmActivationWithItems}
         variant="warning"
       />
     </AnimatedCard>

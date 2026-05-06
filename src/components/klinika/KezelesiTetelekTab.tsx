@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Plus, Pencil, Trash2, Loader2, Upload, FileUp } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Loader2, Upload, FileUp, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
@@ -65,9 +65,16 @@ function VisualCueChip({ color, label }: { color: string; label: string }) {
 export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dbCustomCategories, setDbCustomCategories] = useState<string[]>([]);
+  const [dbCustomCategories, setDbCustomCategories] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showWarnings, setShowWarnings] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  // Deactivation warning state
+  const [deactivateWarningOpen, setDeactivateWarningOpen] = useState(false);
+  const [itemToDeactivate, setItemToDeactivate] = useState<{ item: any, affectedRuleIds: string[] } | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,6 +94,10 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   // CSV import state
   const [importing, setImporting] = useState(false);
 
+  // State variables for delete cascade warning
+  const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ item: any, affectedRuleIds: string[] } | null>(null);
+
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   const loadItems = useCallback(async () => {
@@ -100,7 +111,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
           .order('name', { ascending: true }),
         supabase
           .from('clinic_custom_categories')
-          .select('name')
+          .select('*')
           .eq('telephely_id', telephelyId)
           .eq('mode', 'nativ')
       ]);
@@ -111,7 +122,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
       }
 
       if (customCatRes.data) {
-        setDbCustomCategories(customCatRes.data.map((d: any) => d.name));
+        setDbCustomCategories(customCatRes.data);
       }
     } catch (error: any) {
       toast.error('Hiba történt az adatok betöltésekor: ' + error.message);
@@ -125,17 +136,60 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   // ─── Filtering ───────────────────────────────────────────────────────────
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
+    let result = items.filter(item => {
       const matchesSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
-  }, [items, searchTerm, categoryFilter]);
+
+    if (sortConfig !== null) {
+      result.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        if (aValue === null || aValue === undefined) aValue = '';
+        if (bValue === null || bValue === undefined) bValue = '';
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortConfig.direction === 'asc'
+            ? aValue.localeCompare(bValue, 'hu')
+            : bValue.localeCompare(aValue, 'hu');
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [items, searchTerm, categoryFilter, sortConfig]);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity" />;
+    }
+    return sortConfig.direction === 'asc'
+      ? <ArrowUp className="ml-2 h-4 w-4 text-primary" />
+      : <ArrowDown className="ml-2 h-4 w-4 text-primary" />;
+  };
 
   const availableCategories = useMemo(() => {
     const custom = items.map(i => i.category).filter(Boolean);
-    return Array.from(new Set([...TREATMENT_CATEGORIES, ...dbCustomCategories, ...custom])).sort((a, b) => a.localeCompare(b, 'hu'));
+    return Array.from(new Set([...TREATMENT_CATEGORIES, ...dbCustomCategories.map(c => c.name), ...custom])).sort((a, b) => a.localeCompare(b, 'hu'));
   }, [items, dbCustomCategories]);
+
+  const warningCount = useMemo(() => {
+    return items.filter(item => !item.name || !item.category || item.price === null || item.price === undefined).length;
+  }, [items]);
 
   const uniqueCategories = useMemo(() => {
     return availableCategories;
@@ -237,33 +291,175 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
+  const handleDelete = async (item: TreatmentItem) => {
     try {
+      setIsDeactivating(true); // Reusing this loading state for the check
+      const { data: rules, error: rulesError } = await supabase
+        .from('treatment_rules')
+        .select(`id, name, visits:rule_visits(items:rule_items(item_id))`)
+        .eq('clinic_id', telephelyId)
+        .eq('aktiv', true);
+
+      if (rulesError) throw rulesError;
+
+      const affectedRuleIds: string[] = [];
+      if (rules) {
+        for (const rule of rules) {
+          let hasItem = false;
+          if (Array.isArray(rule.visits)) {
+            for (const visit of rule.visits) {
+              if (Array.isArray(visit.items) && visit.items.some((ri: any) => ri.item_id === item.id)) {
+                hasItem = true;
+                break;
+              }
+            }
+          }
+          if (hasItem) affectedRuleIds.push(rule.id);
+        }
+      }
+
+      if (affectedRuleIds.length > 0) {
+        setItemToDelete({ item, affectedRuleIds });
+        setDeleteWarningOpen(true);
+      } else {
+        executeDelete(item, []);
+      }
+    } catch (error: any) {
+      console.error("Dependency check error:", error);
+      toast.error("Hiba a függőségek ellenőrzésekor: " + error.message);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const executeDelete = async (item: any, affectedRuleIds: string[]) => {
+    setDeleteWarningOpen(false);
+    setItems(prev => prev.filter(i => i.id !== item.id));
+
+    try {
+      // Ha vannak érintett aktív szabályok, inaktiváljuk őket
+      if (affectedRuleIds && affectedRuleIds.length > 0) {
+        for (const ruleId of affectedRuleIds) {
+          await supabase
+            .from('treatment_rules')
+            .update({ aktiv: false })
+            .eq('id', ruleId);
+        }
+      }
+
       const { error } = await supabase
         .from('clinic_treatment_items_stdl' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', item.id);
+
       if (error) throw error;
-      toast.success('Tétel törölve');
+
+      if (affectedRuleIds.length > 0) {
+        toast.success(`Tétel törölve, és ${affectedRuleIds.length} db érintett szabály inaktiválva.`);
+      } else {
+        toast.success('Tétel törölve');
+      }
     } catch (err: any) {
       toast.error('Hiba a törlésnél');
       loadItems();
     }
   };
 
-  const handleToggleActive = async (item: TreatmentItem) => {
+  const handleToggleActive = async (item: any) => {
     const newVal = !item.is_active;
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: newVal } : i));
+
+    // Ha bekapcsoljuk, vagy nincs DB ID-ja, csak simán mentsük
+    if (newVal || !item.id) {
+      executeToggleActive(item, newVal, []);
+      return;
+    }
+
+    // Ha kikapcsoljuk, ellenőrizzük a függőségeket a treatment_rules-ban!
     try {
+      setIsDeactivating(true);
+      // Keresünk olyan AKTÍV szabályokat, amelyekben ez a tétel szerepel a rule_items vagy rule_visits JSON-ben.
+      const { data: rules, error: rulesError } = await supabase
+        .from('treatment_rules')
+        .select(`
+          id, 
+          name, 
+          visits:rule_visits(
+            items:rule_items(item_id)
+          )
+        `)
+        .eq('clinic_id', telephelyId)
+        .eq('aktiv', true); // FIGYELEM: a táblában 'aktiv' az oszlop neve!
+
+      if (rulesError) throw rulesError;
+
+      const affectedRuleIds: string[] = [];
+      if (rules) {
+        for (const rule of rules) {
+          let hasItem = false;
+          // végigmegyünk a rule_visits-en és a hozzájuk tartozó rule_items-eken
+          if (Array.isArray(rule.visits)) {
+            for (const visit of rule.visits) {
+              if (Array.isArray(visit.items) && visit.items.some((ri: any) => ri.item_id === item.id)) {
+                hasItem = true;
+                break;
+              }
+            }
+          }
+
+          if (hasItem) {
+            affectedRuleIds.push(rule.id);
+          }
+        }
+      }
+
+      if (affectedRuleIds.length > 0) {
+        setItemToDeactivate({ item, affectedRuleIds });
+        setDeactivateWarningOpen(true);
+      } else {
+        executeToggleActive(item, false, []);
+      }
+    } catch (error: any) {
+      console.error("Dependency check error:", error);
+      toast.error("Hiba a függőségek ellenőrzésekor: " + error.message);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const executeToggleActive = async (item: any, newVal: boolean, affectedRuleIds: string[]) => {
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_active: newVal } : i));
+    setDeactivateWarningOpen(false);
+
+    try {
+      setIsDeactivating(true);
+
+      // Update item itself
       const { error } = await supabase
-        .from('clinic_treatment_items_stdl' as any)
+        .from('clinic_treatment_items_stdl')
         .update({ is_active: newVal })
         .eq('id', item.id);
       if (error) throw error;
-    } catch {
-      toast.error('Hiba');
+
+      // Update affected rules (cascade deactivation)
+      if (affectedRuleIds && affectedRuleIds.length > 0) {
+        for (const ruleId of affectedRuleIds) {
+          const { error: ruleUpdateError } = await supabase
+            .from('treatment_rules')
+            .update({ aktiv: false }) // FIGYELEM: 'aktiv' az oszlop!
+            .eq('id', ruleId);
+          if (ruleUpdateError) {
+            console.error("Failed to deactivate rule:", ruleId, ruleUpdateError);
+          }
+        }
+        toast.warning(`A tétel és ${affectedRuleIds.length} db hozzá kapcsolódó kezelési szabály inaktiválva lett.`);
+      }
+
+    } catch (error: any) {
+      toast.error('Hiba az állapot frissítésekor');
       loadItems();
+    } finally {
+      setIsDeactivating(false);
+      setItemToDeactivate(null);
     }
   };
 
@@ -336,7 +532,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
   return (
     <AnimatedCard className="relative overflow-hidden">
-      <CardHeader className="pb-4 border-b">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <CardTitle className="text-xl flex items-center gap-2">
             Kezelési Tervek
@@ -387,6 +583,21 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            variant={showWarnings ? "destructive" : "outline"}
+            size="sm"
+            onClick={() => setShowWarnings(!showWarnings)}
+            className="h-9 transition-colors"
+          >
+            <AlertTriangle className={cn("h-4 w-4 mr-2", showWarnings ? "text-white" : "text-amber-500")} />
+            Figyelmeztetések
+            {warningCount > 0 && (
+              <Badge variant={showWarnings ? "secondary" : "destructive"} className="ml-2 px-1.5 py-0 text-[10px]">
+                {warningCount}
+              </Badge>
+            )}
+          </Button>
         </div>
       </CardHeader>
 
@@ -405,66 +616,96 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
             </p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[600px]">
-            <Table>
-              <TableHeader>
+          <div
+            className="custom-scrollbar-purple"
+            style={{
+              maxHeight: '600px',
+              overflowY: 'scroll',
+              borderRadius: '0.5rem',
+              border: '1px solid hsl(var(--border) / 0.5)',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'hsl(var(--primary) / 0.4) transparent',
+            }}
+          >
+            <Table wrapperClassName="overflow-visible border-0 bg-transparent rounded-none">
+              <TableHeader className="sticky top-0 z-10 bg-[#f4f2f7] dark:bg-[#1a1625] shadow-sm border-b">
                 <TableRow className="bg-muted/30">
-                  <TableHead className="w-[300px]">Név</TableHead>
-                  <TableHead>Kategória</TableHead>
-                  <TableHead>Típus</TableHead>
-                  <TableHead className="text-right">Ár</TableHead>
-                  <TableHead className="text-center w-[80px]">Aktív</TableHead>
+                  <TableHead className="w-[300px] cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('name')}>
+                    <div className="flex items-center">Név {getSortIcon('name')}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('category')}>
+                    <div className="flex items-center">Kategória {getSortIcon('category')}</div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('is_per_tooth')}>
+                    <div className="flex items-center">Típus {getSortIcon('is_per_tooth')}</div>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('price')}>
+                    <div className="flex items-center justify-end">Ár {getSortIcon('price')}</div>
+                  </TableHead>
+                  <TableHead className="text-center w-[80px] cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('is_active')}>
+                    <div className="flex items-center justify-center">Aktív {getSortIcon('is_active')}</div>
+                  </TableHead>
                   <TableHead className="text-right w-[100px]">Műveletek</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.map(item => (
-                  <TableRow
-                    key={item.id}
-                    className={cn(
-                      "group transition-colors",
-                      !item.is_active && "opacity-50"
-                    )}
-                  >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: item.visual_color }}
+                {filteredItems.map(item => {
+                  const dbCat = dbCustomCategories.find(c => c.name === item.category);
+                  const displayColor = dbCat ? dbCat.color : item.visual_color;
+                  const isWarning = !item.name || !item.category || item.price === null || item.price === undefined;
+
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className={cn(
+                        "group transition-colors",
+                        !item.is_active && "opacity-50",
+                        isWarning && showWarnings && "bg-destructive/10"
+                      )}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: displayColor }}
+                          />
+                          {item.name || <span className="text-muted-foreground italic">Névtelen</span>}
+                          {isWarning && (
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" title="Hiányos adatok!" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <VisualCueChip color={displayColor} label={item.category} />
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {item.is_per_tooth ? 'Fog' : 'Szájüreg'}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {formatPrice(item.price)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={item.is_active}
+                          onCheckedChange={() => handleToggleActive(item)}
                         />
-                        {item.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <VisualCueChip color={item.visual_color} label={item.category} />
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {item.is_per_tooth ? 'Fog' : 'Szájüreg'}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {formatPrice(item.price)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={item.is_active}
-                        onCheckedChange={() => handleToggleActive(item)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
 
@@ -485,11 +726,11 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
               <div className="space-y-1.5">
                 <Label className="text-xs">Kategória *</Label>
                 {isCustomCategory ? (
-                  <Input 
+                  <Input
                     placeholder="Új kategória..."
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
-                    onBlur={() => { if(!formCategory) setIsCustomCategory(false) }}
+                    onBlur={() => { if (!formCategory) setIsCustomCategory(false) }}
                     autoFocus
                   />
                 ) : (
@@ -555,13 +796,87 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
         telephelyId={telephelyId || ''}
         mode="nativ"
         onSaved={(newCategoryName) => {
-          setDbCustomCategories(prev => {
-            if (!prev.includes(newCategoryName)) return [...prev, newCategoryName];
-            return prev;
-          });
+          loadItems();
           setFormCategory(newCategoryName);
         }}
       />
+
+      {/* Deactivation Cascade Warning Dialog */}
+      <Dialog open={deactivateWarningOpen} onOpenChange={setDeactivateWarningOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Figyelmeztetés: Kaszkádolt Inaktiválás
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm">
+              Ezt a kezelési tételt (<strong>{itemToDeactivate?.item?.name}</strong>) jelenleg{' '}
+              <strong>{itemToDeactivate?.affectedRuleIds?.length}</strong> aktív kezelési szabály (Treatment Rule) használja.
+            </p>
+            <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+              Ha kikapcsolja ezt a tételt, az összes rá épülő szabály <strong>automatikusan inaktívvá válik</strong>! Folytatja a műveletet?
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivateWarningOpen(false)}>Mégse</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (itemToDeactivate) {
+                  executeToggleActive(itemToDeactivate.item, false, itemToDeactivate.affectedRuleIds);
+                }
+              }}
+              disabled={isDeactivating}
+            >
+              {isDeactivating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Tétel és Szabályok Kikapcsolása
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deletion Cascade Warning Dialog */}
+      <Dialog open={deleteWarningOpen} onOpenChange={setDeleteWarningOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Figyelmeztetés: Törlés és Kaszkádolt Inaktiválás
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-sm">
+              Ezt a kezelési tételt (<strong>{itemToDelete?.item?.name}</strong>) jelenleg{' '}
+              <strong>{itemToDelete?.affectedRuleIds.length}</strong> aktív kezelési szabály használja.
+            </p>
+            <p className="text-sm">
+              Ha törli ezt a tételt, a tétel elveszíti a kapcsolatát a szótárral a kezelési szabályokban, és a kapcsolódó kezelési szabályok <strong>automatikusan inaktívvá válnak</strong>.
+            </p>
+            <p className="text-sm font-medium">
+              Biztosan folytatja a törlést? Ez a művelet nem vonható vissza.
+            </p>
+          </div>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteWarningOpen(false)}>
+              Mégse
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (itemToDelete) {
+                  executeDelete(itemToDelete.item, itemToDelete.affectedRuleIds);
+                }
+              }}
+              disabled={isDeactivating}
+            >
+              {isDeactivating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Törlés és Szabályok Inaktiválása
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AnimatedCard>
   );
 }

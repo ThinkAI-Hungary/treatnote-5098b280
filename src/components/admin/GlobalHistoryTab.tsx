@@ -12,9 +12,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { RuleDetailsPopup } from '@/components/shared/RuleDetailsPopup';
 import {
     History, Loader2, CheckCircle2, XCircle, ChevronDown, ChevronRight,
-    Search, Mic, FileText, Book, Filter, AlertCircle
+    Search, Mic, FileText, Book, Filter, AlertCircle, Trash2, Building, Clock
 } from 'lucide-react';
 import type { VoiceJob } from '@/hooks/useVoiceJobHistory';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface AdminUser {
     id: string;
@@ -109,12 +110,50 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
     const [filterUser, setFilterUser] = useState<string>('all');
     const [filterComplaint, setFilterComplaint] = useState<boolean>(false);
 
-    
     // Popup state
     const [selectedRule, setSelectedRule] = useState<{ id: string; name: string } | null>(null);
 
+    // On-demand technical details (loaded when a row is expanded)
+    const [technicalDetails, setTechnicalDetails] = useState<Record<string, any>>({});
+    const [complaintsMap, setComplaintsMap] = useState<Record<string, any[]>>({});
+    const [loadingExpandIds, setLoadingExpandIds] = useState<Set<string>>(new Set());
+
+    // Delete state
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'native' | 'legacy' } | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const fetchTechnicalDetails = async (jobId: string) => {
+        if (technicalDetails[jobId]) return; // already loaded
+        setLoadingExpandIds(prev => new Set(prev).add(jobId));
+        try {
+            // Try native first
+            const nativeRes = await supabase
+                .from('native_voice_jobs')
+                .select('trace_logs, raw_audio_text, claude_cleaned_text, trace_info, audio_url, progress_percent, progress_message')
+                .eq('id', jobId)
+                .maybeSingle();
+            if (nativeRes.data) {
+                setTechnicalDetails(prev => ({ ...prev, [jobId]: { ...nativeRes.data, job_type: 'native' } }));
+            } else {
+                // Try legacy
+                const legacyRes = await supabase
+                    .from('voice_jobs')
+                    .select('trace_logs, raw_audio_text, claude_cleaned_text, trace_info, audio_url, progress_percent, progress_message')
+                    .eq('id', jobId)
+                    .maybeSingle();
+                if (legacyRes.data) {
+                    setTechnicalDetails(prev => ({ ...prev, [jobId]: { ...legacyRes.data, job_type: 'legacy' } }));
+                }
+            }
+        } finally {
+            setLoadingExpandIds(prev => { const next = new Set(prev); next.delete(jobId); return next; });
+        }
+    };
+
     const fetchJobs = useCallback(async () => {
         setLoading(true);
+        setComplaintsMap({});
         try {
             const { data, error } = await supabase.rpc('get_global_voice_jobs', {
                 p_limit: 200,
@@ -124,7 +163,25 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
             });
 
             if (error) throw error;
-            setJobs((data as VoiceJob[]) || []);
+            const fetchedJobs = (data as VoiceJob[]) || [];
+            setJobs(fetchedJobs);
+
+            // Load all complaints in one batch
+            if (fetchedJobs.length > 0) {
+                const { data: compData } = await supabase
+                    .from('voice_job_complaints')
+                    .select('*, users:created_by(full_name)')
+                    .in('job_id', fetchedJobs.map(j => j.id))
+                    .order('created_at', { ascending: true });
+                if (compData) {
+                    const map: Record<string, any[]> = {};
+                    compData.forEach((c: any) => {
+                        if (!map[c.job_id]) map[c.job_id] = [];
+                        map[c.job_id].push(c);
+                    });
+                    setComplaintsMap(map);
+                }
+            }
         } catch (error) {
             console.error('Error fetching global jobs:', error);
             toast.error('Hiba az előzmények betöltésekor');
@@ -140,8 +197,12 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+                fetchTechnicalDetails(id); // load on first open
+            }
             return next;
         });
     };
@@ -172,6 +233,23 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
     const getUserDetails = (userId: string) => {
         return users.find(u => u.id === userId);
     };
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        const tableName = deleteTarget.type === 'native' ? 'native_voice_jobs' : 'voice_jobs';
+        const { error } = await supabase.from(tableName).delete().eq('id', deleteTarget.id);
+        if (error) {
+            console.error(error);
+        } else {
+            setJobs(prev => prev.filter(j => j.id !== deleteTarget.id));
+            setExpandedIds(prev => { const next = new Set(prev); next.delete(deleteTarget.id); return next; });
+        }
+        setDeleting(false);
+        setDeleteConfirmOpen(false);
+        setDeleteTarget(null);
+    };
+
 
     return (
         <AnimatedCard>
@@ -265,7 +343,7 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
             ) : (
                 <div className="space-y-3">
                     {jobs
-                        .filter(job => !filterComplaint || job.user_complaint)
+                        .filter(job => !filterComplaint || job.user_complaint || (complaintsMap[job.id]?.length ?? 0) > 0)
                         .map((job) => {
                         const isExpanded = expandedIds.has(job.id);
                         const { originalText, kitoltes, appliedRules } = parseJobResult(job.result);
@@ -295,12 +373,15 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
                                         {userDetails ? (userDetails.full_name || userDetails.email) : 'Ismeretlen felhasználó'}
                                     </span>
 
-                                    {job.user_complaint && (
-                                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 hidden sm:inline-flex flex-shrink-0">
-                                            <AlertCircle className="h-3 w-3 mr-1" />
-                                            Bejelentés
-                                        </Badge>
-                                    )}
+                                    {(() => {
+                                        const count = (complaintsMap[job.id]?.length ?? 0) + (job.user_complaint ? 1 : 0);
+                                        return count > 0 ? (
+                                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 inline-flex flex-shrink-0">
+                                                <AlertCircle className="h-3 w-3 mr-1" />
+                                                {count > 1 ? `${count} bejelentés` : 'Bejelentés'}
+                                            </Badge>
+                                        ) : null;
+                                    })()}
 
                                     <div className="flex-1 flex justify-end items-center gap-4 text-xs text-muted-foreground">
                                         <span className="bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
@@ -340,20 +421,37 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
                                             )}
                                         </div>
 
-                                        {job.user_complaint && (
-                                            <div className="mb-4 p-4 rounded-lg bg-destructive/5 border border-destructive/20 text-sm">
-                                                <div className="flex justify-between items-start mb-2">
+                                        {(() => {
+                                            const newComplaints = complaintsMap[job.id] || [];
+                                            const legacyText = job.user_complaint;
+                                            const hasAny = legacyText || newComplaints.length > 0;
+                                            if (!hasAny) return null;
+                                            return (
+                                                <div className="mb-4 p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-sm space-y-2">
                                                     <h4 className="font-semibold text-destructive flex items-center gap-2">
                                                         <AlertCircle className="h-4 w-4" />
-                                                        Bejelentett probléma
+                                                        Hibabejelentések
                                                     </h4>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {job.user_complaint_date ? format(new Date(job.user_complaint_date), 'yyyy. MMMM d. HH:mm', { locale: hu }) : ''}
-                                                    </span>
+                                                    {legacyText && (
+                                                        <div className="bg-background/80 rounded p-2 border border-destructive/10">
+                                                            {job.user_complaint_date && (
+                                                                <div className="text-xs text-muted-foreground mb-1">{format(new Date(job.user_complaint_date), 'yyyy. MMMM d. HH:mm', { locale: hu })}</div>
+                                                            )}
+                                                            <p className="text-foreground/90 whitespace-pre-wrap">{legacyText}</p>
+                                                        </div>
+                                                    )}
+                                                    {newComplaints.map((c: any, i: number) => (
+                                                        <div key={i} className="bg-background/80 rounded p-2 border border-destructive/10">
+                                                            <div className="text-xs text-muted-foreground mb-1">
+                                                                {new Date(c.created_at).toLocaleString('hu-HU')}
+                                                                {c.users?.full_name && <> &bull; {c.users.full_name}</>}
+                                                            </div>
+                                                            <p className="text-foreground whitespace-pre-wrap">{c.complaint_text}</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                                <p className="text-foreground/90 whitespace-pre-wrap">{job.user_complaint}</p>
-                                            </div>
-                                        )}
+                                            );
+                                        })()}
 
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {/* Eredeti szöveg */}
@@ -460,6 +558,64 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Technical details (loaded on expand) */}
+                                        {(() => {
+                                            const tech = technicalDetails[job.id];
+                                            const jobComplaints = complaintsMap[job.id] || [];
+                                            const isLoadingTech = loadingExpandIds.has(job.id);
+                                            return (
+                                                <>
+                                                {/* Header bar: type badge + delete */}
+                                                <div className="flex items-center justify-between pt-2 border-t border-primary/10">
+                                                    <div className="flex items-center gap-2">
+                                                        {isLoadingTech && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                                        {tech && (
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium uppercase ${
+                                                                tech.job_type === 'native'
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                    : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                                            }`}>
+                                                                {tech.job_type === 'native' ? 'Natív' : 'FlexiDent'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {tech && (
+                                                        <button
+                                                            onClick={() => { setDeleteTarget({ id: job.id, type: tech.job_type }); setDeleteConfirmOpen(true); }}
+                                                            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 rounded transition-colors"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                            Törlés
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Audio */}
+                                                {tech?.audio_url && (
+                                                    <div className="bg-muted/50 p-3 rounded-lg border">
+                                                        <h4 className="text-xs font-semibold mb-2 flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+                                                            <Mic className="h-3.5 w-3.5 text-primary" /> Rögzített hang
+                                                        </h4>
+                                                        <audio src={tech.audio_url} controls className="w-full max-w-md" />
+                                                    </div>
+                                                )}
+
+                                                {/* Complaints shown inline above, not duplicated here */}
+
+                                                {/* Trace info */}
+                                                {tech?.trace_info?.total_duration_ms && (
+                                                    <div className="text-xs text-muted-foreground bg-muted/30 rounded px-3 py-2 border flex items-center gap-2">
+                                                        <Clock className="h-3 w-3" />
+                                                        Feldolgozási idő: <span className="font-bold text-foreground">{(tech.trace_info.total_duration_ms / 1000).toFixed(1)}s</span>
+                                                        {tech.trace_info.step4_quadrant_extractors?.model && <>
+                                                            <span className="opacity-40">|</span> Modell: <span className="font-medium text-foreground">{tech.trace_info.step4_quadrant_extractors.model}</span>
+                                                        </>}
+                                                    </div>
+                                                )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                             </div>
@@ -473,6 +629,14 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
                 ruleName={selectedRule?.name || ''}
                 open={!!selectedRule}
                 onOpenChange={(open) => !open && setSelectedRule(null)}
+            />
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Rögzítés törlése"
+                description="Biztosan törölni szeretne ezt a hangfelvétel feldolgozást? Ez a művelet nem vonható vissza."
+                onConfirm={handleDelete}
+                variant="danger"
             />
         </AnimatedCard>
     );

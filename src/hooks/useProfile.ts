@@ -80,6 +80,9 @@ export function useProfile() {
       cachedProfile = effectiveProfile;
       cachedUserId = user.id;
       setProfile(effectiveProfile);
+      
+      // Notify other instances of useProfile that the cache has been updated
+      window.dispatchEvent(new CustomEvent('profile-cache-updated'));
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err as Error);
@@ -91,6 +94,15 @@ export function useProfile() {
   useEffect(() => {
     fetchProfile();
   }, [user]);
+
+  // Sync state across multiple useProfile hook instances
+  useEffect(() => {
+    const handleCacheUpdate = () => {
+      setProfile(cachedProfile);
+    };
+    window.addEventListener('profile-cache-updated', handleCacheUpdate);
+    return () => window.removeEventListener('profile-cache-updated', handleCacheUpdate);
+  }, []);
 
   // Realtime subscription: re-fetch whenever the profile row changes.
   // This is what makes useSzotar / useFlexiConnection react to telephely assignment
@@ -160,6 +172,9 @@ export function useProfile() {
             cachedProfile = effectiveProfile;
             cachedUserId = user.id;
             setProfile(effectiveProfile);
+            
+            // Notify other instances of useProfile that the cache has been updated via realtime subscription
+            window.dispatchEvent(new CustomEvent('profile-cache-updated'));
           } catch (err) {
             console.error('Error re-fetching profile after realtime update:', err);
           }
