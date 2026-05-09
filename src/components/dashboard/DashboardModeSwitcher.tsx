@@ -22,11 +22,16 @@ export function DashboardModeSwitcher({ currentMode, telephelyId, userId, isKlin
   useEffect(() => {
     if (userId) {
       const ack = localStorage.getItem(`mode_ack_${userId}`);
-      if (!ack) {
+      if (ack || currentMode) {
+        setHasAckMode(true);
+        if (!ack && currentMode) {
+          localStorage.setItem(`mode_ack_${userId}`, 'true');
+        }
+      } else {
         setHasAckMode(false);
       }
     }
-  }, [userId]);
+  }, [userId, currentMode]);
 
   if (!isKlinikaAdmin || !telephelyId || !userId) return null;
 

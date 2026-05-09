@@ -101,7 +101,7 @@ export default function PatientProfile() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1600px] w-full px-4 md:px-6 mx-auto animate-in fade-in duration-300 pb-16">
+    <div className="space-y-6 w-full animate-in fade-in duration-300 pb-16">
       {/* ── TOP BAR: Patient name + quick info + actions ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-4">
         <div className="flex items-center gap-4">

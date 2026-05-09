@@ -28,7 +28,12 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
 
     setIsLoading(true);
     try {
-      const [szotarRes, rulesRes] = await Promise.all([
+      const [telephelyRes, szotarRes, rulesRes, lockedRes] = await Promise.all([
+        supabase
+          .from('telephely')
+          .select('use_default_library')
+          .eq('id', activeTelephelyId)
+          .single(),
         supabase
           .from('clinic_treatment_items_stdl')
           .select('id', { count: 'exact', head: true })
@@ -37,10 +42,19 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
           .from('treatment_rules_stdl')
           .select('id', { count: 'exact', head: true })
           .eq('clinic_id', activeTelephelyId)
-          .eq('aktiv', true)
+          .eq('aktiv', true),
+        supabase
+          .from('clinic_item_overrides')
+          .select('id', { count: 'exact', head: true })
+          .eq('telephely_id', activeTelephelyId)
+          .eq('is_locked', true)
       ]);
 
-      setHasSzotarNative((szotarRes.count || 0) > 0);
+      const useDefault = telephelyRes.data?.use_default_library || false;
+      const hasCustomItems = (szotarRes.count || 0) > 0;
+      const hasLockedItems = (lockedRes.count || 0) > 0;
+      
+      setHasSzotarNative(useDefault || hasCustomItems || hasLockedItems);
       setHasNativeRules((rulesRes.count || 0) > 0);
     } catch (err) {
       console.error('Error fetching native szotar/rules:', err);
@@ -62,8 +76,10 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
 
     const channel = supabase
       .channel(`szotar-stdl-${activeTelephelyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'telephely', filter: `id=eq.${activeTelephelyId}` }, fetchNativeData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_treatment_items_stdl', filter: `telephely_id=eq.${activeTelephelyId}` }, fetchNativeData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'treatment_rules_stdl', filter: `clinic_id=eq.${activeTelephelyId}` }, fetchNativeData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_item_overrides', filter: `telephely_id=eq.${activeTelephelyId}` }, fetchNativeData)
       .subscribe();
 
     return () => {

@@ -75,17 +75,24 @@ const CLASSIFICATION_RULES: Array<TreatmentVisualCue & { keywords: string[] }> =
     label: 'Diagnosztika',
     keywords: ['röntgen', 'ct', 'cbct', 'panoráma', 'diagnoszti', 'vizsgálat', 'szkenner', 'konzultáció', 'státusz'],
   },
+  {
+    visual_group: 'other',
+    visual_color: '#94a3b8',
+    visual_icon: 'dot_outline',
+    label: 'Egyéb',
+    keywords: ['egyéb', 'other', 'fogkefe', 'paszta', 'szájvíz'],
+  },
 ];
 
 /**
  * Classify a treatment item by name and optional category.
- * Returns the best-matching visual cue, or falls back to 'diagnostic' (gray).
+ * Returns the best-matching visual cue, or falls back to 'other' (gray).
  */
 export function classifyTreatmentItem(name: string, category?: string): TreatmentVisualCue {
   const text = `${name} ${category || ''}`.toLowerCase();
 
   for (const rule of CLASSIFICATION_RULES) {
-    if (rule.keywords.some(kw => text.includes(kw))) {
+    if (rule.keywords.some(kw => text.includes(kw)) || (category && category.toLowerCase() === rule.label.toLowerCase())) {
       return {
         visual_group: rule.visual_group,
         visual_color: rule.visual_color,
@@ -95,12 +102,12 @@ export function classifyTreatmentItem(name: string, category?: string): Treatmen
     }
   }
 
-  // Fallback: diagnostic (neutral gray)
+  // Fallback: other (neutral gray)
   return {
-    visual_group: 'diagnostic',
-    visual_color: '#64748b',
+    visual_group: 'other',
+    visual_color: '#94a3b8',
     visual_icon: 'dot_outline',
-    label: 'Diagnosztika',
+    label: category && category !== 'custom' ? category : 'Egyéb',
   };
 }
 

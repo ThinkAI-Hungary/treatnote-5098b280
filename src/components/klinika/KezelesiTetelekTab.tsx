@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Plus, Pencil, Trash2, Loader2, Upload, FileUp, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Loader2, Upload, FileUp, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
 import {
@@ -21,6 +22,10 @@ import {
 } from '@/lib/treatmentClassifier';
 import { AnimatedCard } from './AnimatedCard';
 import { CustomCategoryDialog } from './CustomCategoryDialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fetchCombinedTreatmentItems, type CombinedTreatmentItem } from '@/lib/treatmentItems';
+import { subscribeToRulesChanges } from '@/lib/rulesEvents';
+import { TreatmentItemEditorDialog } from './TreatmentItemEditorDialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,30 +45,20 @@ interface TreatmentItem {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  embedding_status: string;
 }
 
 interface KezelesiTetelekTabProps {
   telephelyId: string;
 }
 
-// ─── Visual cue preview chip ─────────────────────────────────────────────────
-
-function VisualCueChip({ color, label }: { color: string; label: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border"
-      style={{ borderColor: color + '40', backgroundColor: color + '15', color }}
-    >
-      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
+import { VisualCueChip } from './VisualCueChip';
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<CombinedTreatmentItem[]>([]);
+  const [useDefaultLibrary, setUseDefaultLibrary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dbCustomCategories, setDbCustomCategories] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,48 +73,41 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<TreatmentItem | null>(null);
+  const [editingItem, setEditingItem] = useState<CombinedTreatmentItem | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // Form state
-  const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('');
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
-  const [customCategoryDialogOpen, setCustomCategoryDialogOpen] = useState(false);
-  const [formSubcategory, setFormSubcategory] = useState('');
-  const [formPrice, setFormPrice] = useState('');
-  const [formIsPerTooth, setFormIsPerTooth] = useState(true);
-  const [formVisualCue, setFormVisualCue] = useState<TreatmentVisualCue | null>(null);
 
   // CSV import state
   const [importing, setImporting] = useState(false);
 
-  // State variables for delete cascade warning
   const [deleteWarningOpen, setDeleteWarningOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ item: any, affectedRuleIds: string[] } | null>(null);
+
+  // Toggle off warning state
+  const [toggleWarningOpen, setToggleWarningOpen] = useState(false);
+  const [affectedRulesOnToggle, setAffectedRulesOnToggle] = useState<{ id: string, name: string }[]>([]);
+  const [itemsToDisappearCount, setItemsToDisappearCount] = useState(0);
+  const [pendingToggleState, setPendingToggleState] = useState<boolean | null>(null);
+
+  // Unlock while library OFF warning state
+  const [unlockWarningOpen, setUnlockWarningOpen] = useState(false);
+  const [itemToUnlock, setItemToUnlock] = useState<{ item: CombinedTreatmentItem, affectedRules: { id: string, name: string }[] } | null>(null);
 
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [itemsRes, customCatRes] = await Promise.all([
-        supabase
-          .from('clinic_treatment_items_stdl')
-          .select('*')
-          .eq('telephely_id', telephelyId)
-          .order('name', { ascending: true }),
-        supabase
-          .from('clinic_custom_categories')
-          .select('*')
-          .eq('telephely_id', telephelyId)
-          .eq('mode', 'nativ')
+      const [telephelyRes, customCatRes] = await Promise.all([
+        supabase.from('telephely').select('use_default_library').eq('id', telephelyId).single(),
+        supabase.from('clinic_custom_categories').select('*').eq('telephely_id', telephelyId).eq('mode', 'nativ')
       ]);
 
-      if (itemsRes.error) throw itemsRes.error;
-      if (itemsRes.data) {
-        setItems(itemsRes.data);
+      if (telephelyRes.data) {
+        setUseDefaultLibrary(telephelyRes.data.use_default_library || false);
       }
+
+      const combined = await fetchCombinedTreatmentItems(telephelyId);
+      setItems(combined);
 
       if (customCatRes.data) {
         setDbCustomCategories(customCatRes.data);
@@ -131,7 +119,255 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     }
   }, [telephelyId]);
 
-  useEffect(() => { loadItems(); }, [loadItems]);
+  const handleToggleDefaultLibrary = async (checked: boolean) => {
+    if (checked) {
+      executeToggleDefaultLibrary(true, []);
+      return;
+    }
+
+    // Checking dependencies before turning OFF
+    try {
+      setIsDeactivating(true);
+      
+      // Items that are default and NOT locked will disappear
+      const itemsToDisappear = items.filter(i => i.is_default && !i.is_locked);
+      const itemsToDisappearIds = itemsToDisappear.map(i => i.id);
+
+      if (itemsToDisappearIds.length === 0) {
+        executeToggleDefaultLibrary(false, []);
+        return;
+      }
+
+      // Check which rules use these items
+      const { data: rules, error: rulesError } = await supabase
+        .from('treatment_rules_stdl')
+        .select(`
+          id, 
+          name, 
+          visits:rule_visits_stdl(
+            items:rule_items_stdl(item_id)
+          )
+        `)
+        .eq('clinic_id', telephelyId)
+        .eq('aktiv', true);
+
+      if (rulesError) throw rulesError;
+
+      const affectedRules: { id: string, name: string }[] = [];
+      
+      if (rules) {
+        for (const rule of rules) {
+          let hasItem = false;
+          if (Array.isArray(rule.visits)) {
+            for (const visit of rule.visits) {
+              if (Array.isArray(visit.items) && visit.items.some((ri: any) => itemsToDisappearIds.includes(ri.item_id))) {
+                hasItem = true;
+                break;
+              }
+            }
+          }
+          if (hasItem) {
+            affectedRules.push({ id: rule.id, name: rule.name });
+          }
+        }
+      }
+
+      if (affectedRules.length > 0) {
+        setItemsToDisappearCount(itemsToDisappearIds.length);
+        setAffectedRulesOnToggle(affectedRules);
+        setPendingToggleState(false);
+        setToggleWarningOpen(true);
+      } else {
+        executeToggleDefaultLibrary(false, []);
+      }
+    } catch (err: any) {
+      toast.error('Hiba a függőségek ellenőrzésekor: ' + err.message);
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
+  const executeToggleDefaultLibrary = async (checked: boolean, affectedRuleIds: string[]) => {
+    setToggleWarningOpen(false);
+    try {
+      setUseDefaultLibrary(checked);
+      const { error } = await supabase
+        .from('telephely')
+        .update({ use_default_library: checked })
+        .eq('id', telephelyId);
+      if (error) throw error;
+      
+      // Deactivate affected rules
+      if (affectedRuleIds.length > 0) {
+        for (const ruleId of affectedRuleIds) {
+          await supabase
+            .from('treatment_rules_stdl')
+            .update({ aktiv: false })
+            .eq('id', ruleId);
+        }
+        toast.warning(`${affectedRuleIds.length} db kezelési szabály inaktiválva lett.`);
+      }
+
+      loadItems();
+      window.dispatchEvent(new Event('SZOTAR_DATA_CHANGED'));
+      toast.success(checked ? 'Központi kezelési tervek bekapcsolva' : 'Központi kezelési tervek kikapcsolva');
+    } catch (err: any) {
+      toast.error('Hiba az állapot frissítésekor');
+      setUseDefaultLibrary(!checked);
+    }
+  };
+
+  const handleToggleLockClick = async (item: CombinedTreatmentItem) => {
+    if (!item.is_default) return;
+    
+    const newLockedState = !item.is_locked;
+    
+    if (newLockedState === false && !useDefaultLibrary) {
+      // Unlocking while the library is OFF
+      try {
+        setIsDeactivating(true);
+        const { data: rules, error: rulesError } = await supabase
+          .from('treatment_rules_stdl')
+          .select(`
+            id, 
+            name, 
+            visits:rule_visits_stdl(
+              items:rule_items_stdl(item_id)
+            )
+          `)
+          .eq('clinic_id', telephelyId)
+          .eq('aktiv', true);
+
+        if (rulesError) throw rulesError;
+
+        const affectedRules: { id: string, name: string }[] = [];
+        if (rules) {
+          for (const rule of rules) {
+            let hasItem = false;
+            if (Array.isArray(rule.visits)) {
+              for (const visit of rule.visits) {
+                if (Array.isArray(visit.items) && visit.items.some((ri: any) => ri.item_id === item.id)) {
+                  hasItem = true;
+                  break;
+                }
+              }
+            }
+            if (hasItem) {
+              affectedRules.push({ id: rule.id, name: rule.name });
+            }
+          }
+        }
+
+        setItemToUnlock({ item, affectedRules });
+        setUnlockWarningOpen(true);
+      } catch (err: any) {
+        toast.error('Hiba a függőségek ellenőrzésekor: ' + err.message);
+      } finally {
+        setIsDeactivating(false);
+      }
+      return;
+    }
+    
+    // Normal toggle
+    handleToggleLock(item);
+  };
+
+  const handleToggleLock = async (item: CombinedTreatmentItem) => {
+    if (!item.is_default) return;
+    try {
+      const newLockedState = !item.is_locked;
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_locked: newLockedState } : i));
+      
+      const { error } = await supabase
+        .from('clinic_item_overrides')
+        .upsert({
+          telephely_id: telephelyId,
+          default_item_id: item.id,
+          is_locked: newLockedState,
+          price: item.price,
+          is_active: item.is_active,
+        }, { onConflict: 'telephely_id,default_item_id' });
+        
+      if (error) throw error;
+      toast.success(newLockedState ? 'Tétel zárolva, nem fog eltűnni kikapcsoláskor.' : 'Tétel zárolása feloldva.');
+    } catch (err: any) {
+      toast.error('Hiba a zárolás módosításakor');
+      loadItems();
+    }
+  };
+
+  const executeUnlockAndRemove = async () => {
+    if (!itemToUnlock) return;
+    const { item, affectedRules } = itemToUnlock;
+    setUnlockWarningOpen(false);
+    
+    try {
+      setIsDeactivating(true);
+      
+      // Remove from UI immediately
+      setItems(prev => prev.filter(i => i.id !== item.id));
+
+      const { error } = await supabase
+        .from('clinic_item_overrides')
+        .upsert({
+          telephely_id: telephelyId,
+          default_item_id: item.id,
+          is_locked: false,
+          price: item.price,
+          is_active: item.is_active,
+        }, { onConflict: 'telephely_id,default_item_id' });
+        
+      if (error) throw error;
+      
+      if (affectedRules.length > 0) {
+        for (const rule of affectedRules) {
+          await supabase
+            .from('treatment_rules_stdl')
+            .update({ aktiv: false })
+            .eq('id', rule.id);
+        }
+        toast.warning(`A tétel kikerült a listából, és ${affectedRules.length} db érintett kezelési szabály inaktiválva lett.`);
+      } else {
+        toast.success('Tétel zárolása feloldva, kikerült a listából.');
+      }
+      
+      window.dispatchEvent(new Event('SZOTAR_DATA_CHANGED'));
+    } catch (err: any) {
+      toast.error('Hiba a zárolás feloldásakor');
+      loadItems();
+    } finally {
+      setIsDeactivating(false);
+      setItemToUnlock(null);
+    }
+  };
+
+  useEffect(() => { 
+    loadItems(); 
+    const unsubscribe = subscribeToRulesChanges(() => {
+      loadItems();
+    });
+
+    // Realtime subscription to detect when the Edge Function finishes generating the embedding
+    const channel = supabase.channel('clinic_treatment_items_stdl_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clinic_treatment_items_stdl',
+          filter: `telephely_id=eq.${telephelyId}`
+        },
+        () => {
+          loadItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [loadItems, telephelyId]);
 
   // ─── Filtering ───────────────────────────────────────────────────────────
 
@@ -202,103 +438,15 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
   const openNewDialog = () => {
     setEditingItem(null);
-    setFormName('');
-    setFormCategory('');
-    setIsCustomCategory(false);
-    setFormSubcategory('');
-    setFormPrice('');
-    setFormIsPerTooth(true);
-    setFormVisualCue(null);
     setDialogOpen(true);
   };
 
-  const openEditDialog = (item: TreatmentItem) => {
+  const openEditDialog = (item: CombinedTreatmentItem) => {
     setEditingItem(item);
-    setFormName(item.name);
-    setFormCategory(item.category);
-    setIsCustomCategory(!TREATMENT_CATEGORIES.includes(item.category as any));
-    setFormSubcategory(item.subcategory || '');
-    setFormPrice(item.price?.toString() || '');
-    setFormIsPerTooth(item.is_per_tooth);
-    setFormVisualCue({
-      visual_group: item.visual_group,
-      visual_color: item.visual_color,
-      visual_icon: item.visual_icon,
-      label: item.category,
-    });
     setDialogOpen(true);
   };
 
-  // Auto-classify when name or category changes
-  const handleNameChange = (val: string) => {
-    setFormName(val);
-    if (val.length > 2) {
-      setFormVisualCue(classifyTreatmentItem(val, formCategory));
-    }
-  };
 
-  const handleCategoryChange = (val: string) => {
-    setFormCategory(val);
-    if (formName.length > 2) {
-      setFormVisualCue(classifyTreatmentItem(formName, val));
-    }
-  };
-
-  const handleSave = async () => {
-    if (!formName.trim()) { toast.error('A név megadása kötelező'); return; }
-    if (!formCategory.trim()) { toast.error('A kategória megadása kötelező'); return; }
-
-    const cue = formVisualCue || classifyTreatmentItem(formName, formCategory);
-    setSaving(true);
-
-    try {
-      const payload: any = {
-        telephely_id: telephelyId,
-        name: formName.trim(),
-        category: formCategory.trim(),
-        subcategory: formSubcategory.trim() || null,
-        price: formPrice ? parseInt(formPrice, 10) : null,
-        is_per_tooth: formIsPerTooth,
-        visual_group: cue.visual_group,
-        visual_color: cue.visual_color,
-        visual_icon: cue.visual_icon,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (editingItem) {
-        const { error } = await supabase
-          .from('clinic_treatment_items_stdl' as any)
-          .update(payload)
-          .eq('id', editingItem.id);
-        if (error) throw error;
-        toast.success('Tétel frissítve');
-      } else {
-        const { error } = await supabase
-          .from('clinic_treatment_items_stdl' as any)
-          .insert(payload);
-        if (error) throw error;
-        toast.success('Új tétel létrehozva');
-      }
-
-      setDialogOpen(false);
-      loadItems();
-
-      // Trigger embedding generation in the background
-      supabase.functions.invoke('generate-szotar-embeddings', {
-        body: { telephely_id: telephelyId, mode: 'native' }
-      }).catch(console.error);
-
-    } catch (err: any) {
-      console.error('Error saving item:', err);
-      if (err.message?.includes('unique') || err.code === '23505') {
-        toast.error('Ilyen nevű tétel már létezik');
-      } else {
-        toast.error('Hiba a mentéskor: ' + (err.message || ''));
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async (item: TreatmentItem) => {
     try {
@@ -356,6 +504,12 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
         }
       }
 
+      if (item.is_default) {
+        // We cannot delete default items, this should not be reached due to UI hiding it, but just in case
+        toast.error('Alapértelmezett tételt nem lehet törölni, csak kikapcsolni.');
+        return;
+      }
+
       const { error } = await supabase
         .from('clinic_treatment_items_stdl' as any)
         .delete()
@@ -375,6 +529,11 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   };
 
   const handleToggleActive = async (item: any) => {
+    if (item.embedding_status === 'pending' || item.embedding_status === 'error') {
+      toast.error('A tétel nem aktiválható, mert az embedding (AI kereső) generálása folyamatban van vagy hibára futott.');
+      return;
+    }
+
     const newVal = !item.is_active;
 
     // Ha bekapcsoljuk, vagy nincs DB ID-ja, csak simán mentsük
@@ -443,11 +602,23 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
       setIsDeactivating(true);
 
       // Update item itself
-      const { error } = await supabase
-        .from('clinic_treatment_items_stdl')
-        .update({ is_active: newVal })
-        .eq('id', item.id);
-      if (error) throw error;
+      if (item.is_default) {
+        const { error } = await supabase
+          .from('clinic_item_overrides')
+          .upsert({
+            telephely_id: telephelyId,
+            default_item_id: item.id,
+            price: item.price,
+            is_active: newVal,
+          }, { onConflict: 'telephely_id,default_item_id' });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('clinic_treatment_items_stdl')
+          .update({ is_active: newVal })
+          .eq('id', item.id);
+        if (error) throw error;
+      }
 
       // Update affected rules (cascade deactivation)
       if (affectedRuleIds && affectedRuleIds.length > 0) {
@@ -548,7 +719,17 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
             Kezelési Tervek
             <Badge variant="secondary" className="ml-2 text-xs">{items.length} terv</Badge>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-md border border-primary/20">
+              <Switch
+                id="use-default-library"
+                checked={useDefaultLibrary}
+                onCheckedChange={handleToggleDefaultLibrary}
+              />
+              <Label htmlFor="use-default-library" className="text-sm font-medium cursor-pointer">
+                Központi kezelési tervek használata
+              </Label>
+            </div>
             <label htmlFor="csv-import">
               <input
                 id="csv-import"
@@ -643,6 +824,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
                   <TableHead className="w-[300px] cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('name')}>
                     <div className="flex items-center">Név {getSortIcon('name')}</div>
                   </TableHead>
+                  <TableHead className="w-[60px] text-center"></TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors group select-none" onClick={() => handleSort('category')}>
                     <div className="flex items-center">Kategória {getSortIcon('category')}</div>
                   </TableHead>
@@ -680,8 +862,38 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
                             style={{ backgroundColor: displayColor }}
                           />
                           {item.name || <span className="text-muted-foreground italic">Névtelen</span>}
+                        </div>
+                        {item.embedding_status === 'pending' && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Dolgozunk rajta...
+                          </div>
+                        )}
+                        {item.embedding_status === 'error' && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-destructive">
+                            <AlertTriangle className="h-3 w-3" /> Hiba történt
+                          </div>
+                        )}
+                        {item.embedding_status === 'ready' && (
+                          <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-500 font-medium">
+                            <CheckCircle2 className="h-3 w-3" /> Beágyazás kész
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
                           {isWarning && (
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" title="Hiányos adatok!" />
+                            <AlertTriangle className="h-4 w-4 text-amber-500" title="Hiányos adatok!" />
+                          )}
+                          {item.is_default && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn("h-6 w-6", item.is_locked ? "text-primary bg-primary/10" : "text-muted-foreground")} 
+                              onClick={() => handleToggleLockClick(item)}
+                              title={item.is_locked ? "Zárolva" : "Zárolás"}
+                            >
+                              {item.is_locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -689,25 +901,41 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
                         <VisualCueChip color={displayColor} label={item.category} />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {item.is_per_tooth ? 'Fog' : 'Szájüreg'}
+                        {item.is_per_tooth ? 'Fog' : 'Szájüreg/Esetenkénti'}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
                         {formatPrice(item.price)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Switch
-                          checked={item.is_active}
-                          onCheckedChange={() => handleToggleActive(item)}
-                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-block">
+                                <Switch
+                                  checked={item.is_active}
+                                  onCheckedChange={() => handleToggleActive(item)}
+                                  disabled={item.embedding_status === 'pending' || item.embedding_status === 'error'}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            {(item.embedding_status === 'pending' || item.embedding_status === 'error') && (
+                              <TooltipContent>
+                                <p>Az elem nem aktiválható, amíg az AI kereső (embedding) nem áll készen.</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(item)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {!item.is_default && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -720,173 +948,150 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
       </CardContent>
 
       {/* ─── Add/Edit Dialog ────────────────────────────────────────────────── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingItem ? 'Tétel szerkesztése' : 'Új kezelési tétel'}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Megnevezés *</Label>
-              <Input value={formName} onChange={e => handleNameChange(e.target.value)} placeholder="pl. Kompozit tömés (2 felszín)" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Kategória *</Label>
-                {isCustomCategory ? (
-                  <Input
-                    placeholder="Új kategória..."
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    onBlur={() => { if (!formCategory) setIsCustomCategory(false) }}
-                    autoFocus
-                  />
-                ) : (
-                  <Select value={formCategory} onValueChange={(val) => {
-                    if (val === 'custom') {
-                      setCustomCategoryDialogOpen(true);
-                    } else {
-                      handleCategoryChange(val);
-                    }
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Válasszon..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="custom" className="text-primary font-bold bg-primary/5 mb-1 sticky top-0 z-10 backdrop-blur-md">+ Új kategória...</SelectItem>
-                      {availableCategories.map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Alkategória</Label>
-                <Input value={formSubcategory} onChange={e => setFormSubcategory(e.target.value)} placeholder="Opcionális" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Ár (Ft)</Label>
-                <Input type="number" value={formPrice} onChange={e => setFormPrice(e.target.value)} placeholder="pl. 25000" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Típus</Label>
-                <div className="flex items-center gap-2 h-9 px-3 border rounded-md">
-                  <Switch checked={formIsPerTooth} onCheckedChange={setFormIsPerTooth} />
-                  <span className="text-sm">{formIsPerTooth ? 'Fog' : 'Szájüreg'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual cue preview */}
-            {formVisualCue && (
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
-                <span className="text-xs text-muted-foreground">Vizuális jelzés:</span>
-                <VisualCueChip color={formVisualCue.visual_color} label={formVisualCue.label} />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Mégse</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
-              {editingItem ? 'Mentés' : 'Létrehozás'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <CustomCategoryDialog
-        open={customCategoryDialogOpen}
-        onOpenChange={setCustomCategoryDialogOpen}
-        telephelyId={telephelyId || ''}
-        mode="nativ"
-        onSaved={(newCategoryName) => {
+      <TreatmentItemEditorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        telephelyId={telephelyId}
+        editingItem={editingItem}
+        onSaved={() => {
+          setDialogOpen(false);
           loadItems();
-          setFormCategory(newCategoryName);
         }}
+        availableCategories={availableCategories}
       />
 
       {/* Deactivation Cascade Warning Dialog */}
-      <Dialog open={deactivateWarningOpen} onOpenChange={setDeactivateWarningOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Figyelmeztetés: Kaszkádolt Inaktiválás
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <p className="text-sm">
+      <ConfirmDialog
+        open={deactivateWarningOpen}
+        onOpenChange={setDeactivateWarningOpen}
+        title="Tétel kikapcsolása"
+        description={
+          <div className="space-y-2">
+            <p>
               Ezt a kezelési tételt (<strong>{itemToDeactivate?.item?.name}</strong>) jelenleg{' '}
-              <strong>{itemToDeactivate?.affectedRuleIds?.length}</strong> aktív kezelési szabály (Treatment Rule) használja.
+              <strong>{itemToDeactivate?.affectedRuleIds?.length}</strong> aktív kezelési szabály használja.
             </p>
-            <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
-              Ha kikapcsolja ezt a tételt, az összes rá épülő szabály <strong>automatikusan inaktívvá válik</strong>! Folytatja a műveletet?
+            <p>
+              Ha kikapcsolja ezt a tételt, az összes rá épülő szabály <strong>automatikusan inaktívvá válik</strong>. Folytatja a műveletet?
             </p>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeactivateWarningOpen(false)}>Mégse</Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (itemToDeactivate) {
-                  executeToggleActive(itemToDeactivate.item, false, itemToDeactivate.affectedRuleIds);
-                }
-              }}
-              disabled={isDeactivating}
-            >
-              {isDeactivating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Tétel és Szabályok Kikapcsolása
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+        confirmText="Kikapcsolás"
+        cancelText="Mégse"
+        onConfirm={() => {
+          if (itemToDeactivate) {
+            executeToggleActive(itemToDeactivate.item, false, itemToDeactivate.affectedRuleIds);
+          }
+        }}
+        isLoading={isDeactivating}
+        variant="warning"
+      />
 
       {/* Deletion Cascade Warning Dialog */}
-      <Dialog open={deleteWarningOpen} onOpenChange={setDeleteWarningOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Figyelmeztetés: Törlés és Kaszkádolt Inaktiválás
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            <p className="text-sm">
+      <ConfirmDialog
+        open={deleteWarningOpen}
+        onOpenChange={setDeleteWarningOpen}
+        title="Tétel törlése"
+        description={
+          <div className="space-y-2">
+            <p>
               Ezt a kezelési tételt (<strong>{itemToDelete?.item?.name}</strong>) jelenleg{' '}
               <strong>{itemToDelete?.affectedRuleIds.length}</strong> aktív kezelési szabály használja.
             </p>
-            <p className="text-sm">
-              Ha törli ezt a tételt, a tétel elveszíti a kapcsolatát a szótárral a kezelési szabályokban, és a kapcsolódó kezelési szabályok <strong>automatikusan inaktívvá válnak</strong>.
+            <p>
+              A tétel törlésével a kapcsolódó kezelési szabályok is <strong>automatikusan inaktívvá válnak</strong>.
             </p>
-            <p className="text-sm font-medium">
-              Biztosan folytatja a törlést? Ez a művelet nem vonható vissza.
+            <p className="font-semibold text-sm mt-2 text-foreground">
+              Biztosan folytatja a törlést?
             </p>
           </div>
-          <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setDeleteWarningOpen(false)}>
-              Mégse
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (itemToDelete) {
-                  executeDelete(itemToDelete.item, itemToDelete.affectedRuleIds);
-                }
-              }}
-              disabled={isDeactivating}
-            >
-              {isDeactivating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Törlés és Szabályok Inaktiválása
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+        confirmText="Törlés"
+        cancelText="Mégse"
+        onConfirm={() => {
+          if (itemToDelete) {
+            executeDelete(itemToDelete.item, itemToDelete.affectedRuleIds);
+          }
+        }}
+        isLoading={isDeactivating}
+        variant="danger"
+      />
+
+      {/* ─── Toggle Off Warning Dialog ────────────────────────────────────────── */}
+      {/* ─── Toggle Off Warning Dialog ────────────────────────────────────────── */}
+      <ConfirmDialog
+        open={toggleWarningOpen}
+        onOpenChange={(open) => {
+          setToggleWarningOpen(open);
+          if (!open) setUseDefaultLibrary(true); // revert switch UI
+        }}
+        title="Központi szótár kikapcsolása"
+        description={
+          <div className="space-y-2">
+            <p>
+              A központi szótár kikapcsolásával <strong>{itemsToDisappearCount} db</strong> nem zárolt központi tétel el fog tűnni a listából.
+            </p>
+            {affectedRulesOnToggle.length > 0 && (
+              <>
+                <p className="font-semibold text-sm mt-2 text-foreground">
+                  Ezek a tételek az alábbi {affectedRulesOnToggle.length} db aktív szabályban szerepelnek:
+                </p>
+                <ul className="list-disc pl-5 text-sm max-h-24 overflow-y-auto">
+                  {affectedRulesOnToggle.map(rule => (
+                    <li key={rule.id}>{rule.name}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-foreground font-medium">
+                  Ha folytatja, ezek a szabályok automatikusan INAKTIVÁLVA lesznek!
+                </p>
+              </>
+            )}
+            <p className="mt-2">Biztosan kikapcsolja a központi szótárat?</p>
+          </div>
+        }
+        confirmText="Kikapcsolás"
+        cancelText="Mégse"
+        onConfirm={() => executeToggleDefaultLibrary(false, affectedRulesOnToggle.map(r => r.id))}
+        isLoading={isDeactivating}
+        variant="warning"
+      />
+
+      {/* ─── Unlock Warning Dialog ────────────────────────────────────────────── */}
+      {/* ─── Unlock Warning Dialog ────────────────────────────────────────────── */}
+      <ConfirmDialog
+        open={unlockWarningOpen}
+        onOpenChange={setUnlockWarningOpen}
+        title="Zárolás feloldása"
+        description={
+          <div className="space-y-2">
+            <p>
+              Mivel a központi szótár ki van kapcsolva, a zárolás feloldásával a rekord <strong>azonnal el fog tűnni a listából</strong>.
+            </p>
+            {itemToUnlock?.affectedRules && itemToUnlock.affectedRules.length > 0 && (
+              <>
+                <p className="font-semibold text-sm mt-2 text-foreground">
+                  Ez a tétel az alábbi {itemToUnlock.affectedRules.length} db aktív szabályban szerepel:
+                </p>
+                <ul className="list-disc pl-5 text-sm max-h-24 overflow-y-auto">
+                  {itemToUnlock.affectedRules.map(rule => (
+                    <li key={rule.id}>{rule.name}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-foreground font-medium">
+                  Ha folytatja, ezek a szabályok automatikusan INAKTIVÁLVA lesznek!
+                </p>
+              </>
+            )}
+            <p className="mt-2">Biztosan feloldja a zárolást?</p>
+          </div>
+        }
+        confirmText="Zárolás feloldása"
+        cancelText="Mégse"
+        onConfirm={executeUnlockAndRemove}
+        isLoading={isDeactivating}
+        variant="warning"
+      />
+
     </AnimatedCard>
   );
 }

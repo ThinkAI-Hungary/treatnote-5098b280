@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, Fragment } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,8 @@ import { GalaxyButton } from './GalaxyButton';
 import { toast } from '@/hooks/useToastMessage';
 import { supabase } from '@/integrations/supabase/client';
 import { CustomCategoryDialog } from './CustomCategoryDialog';
+import { TreatmentItemEditorDialog } from './TreatmentItemEditorDialog';
+import { fetchCombinedTreatmentItems } from '@/lib/treatmentItems';
 import {
   TreatmentRule,
   RuleVisit,
@@ -79,30 +81,68 @@ export function TreatmentRuleEditor({
   const [visits, setVisits] = useState<RuleVisit[]>([]);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{ visitIndex: number; itemIndex?: number; direction?: 'top' | 'bottom' } | null>(null);
+  const [dragOffset, setDragOffset] = useState({ y: 0, height: 0 });
 
   // Szotar kezelesek for autocomplete
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesOption[]>([]);
   const [activeAutocomplete, setActiveAutocomplete] = useState<{ visitIndex: number; itemIndex: number } | null>(null);
 
+  const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
+  const [creatingItemFor, setCreatingItemFor] = useState<{visitIndex: number, itemIndex: number} | null>(null);
+
+  const fetchSzotarKezelesek = useCallback(async () => {
+    if (!clinicId) return;
+    if (mode === 'native') {
+      try {
+        const data = await fetchCombinedTreatmentItems(clinicId);
+        const activeItems = data
+          .filter(item => item.is_active)
+          .sort((a, b) => a.name.localeCompare(b.name, 'hu'));
+        setSzotarKezelesek(activeItems as any[]);
+      } catch (error) {
+        console.error('Failed to fetch szotar items:', error);
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('szotar_kezelesek')
+        .select('id, name, category')
+        .eq('telephely_id', clinicId)
+        .order('name', { ascending: true });
+
+      if (!error && data) {
+        setSzotarKezelesek(data);
+      }
+    }
+  }, [clinicId, mode]);
+
   // Fetch szotar_kezelesek when dialog opens
   useEffect(() => {
-    if (open && clinicId) {
-            const fetchSzotarKezelesek = async () => {
-        const table = mode === 'native' ? 'clinic_treatment_items_stdl' : 'szotar_kezelesek';
-        const selectQuery = mode === 'native' ? 'id, name, category, visual_color' : 'id, name, category';
-        const { data, error } = await supabase
-          .from(table as any)
-          .select(selectQuery)
-          .eq('telephely_id', clinicId)
-          .order('name', { ascending: true });
-
-        if (!error && data) {
-          setSzotarKezelesek(data);
-        }
-      };
+    if (open) {
       fetchSzotarKezelesek();
     }
-  }, [open, clinicId, mode]);
+  }, [open, fetchSzotarKezelesek]);
+
+  // Global capture to aggressively prevent crossed-out cursor anywhere on the screen
+  useEffect(() => {
+    if (!draggedItem) return;
+
+    const handleGlobalDragOver = (e: DragEvent) => {
+      e.preventDefault(); // Prevents the cross-out cursor natively
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+    };
+
+    // Use capture phase to intercept before anything else can mess it up
+    document.addEventListener('dragover', handleGlobalDragOver, { capture: true });
+    document.addEventListener('dragenter', handleGlobalDragOver, { capture: true });
+
+    return () => {
+      document.removeEventListener('dragover', handleGlobalDragOver, { capture: true });
+      document.removeEventListener('dragenter', handleGlobalDragOver, { capture: true });
+    };
+  }, [draggedItem]);
 
   // Initialize form when rule changes
   useEffect(() => {
@@ -234,34 +274,139 @@ export function TreatmentRuleEditor({
   };
 
   // Drag and drop handlers
-  const handleDragStart = (visitIndex: number, itemIndex: number) => {
+  const handleDragStart = (e: React.DragEvent, visitIndex: number, itemIndex: number) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragOffset({
+      y: e.clientY - rect.top,
+      height: rect.height
+    });
     setDraggedItem({ visitIndex, itemIndex });
+    // setTimeout allows the browser to capture the native drag image before the DOM hides the element
+    setTimeout(() => {
+      setDragOverTarget({ visitIndex, itemIndex, direction: 'top' });
+    }, 0);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleItemDragOver = (e: React.DragEvent, visitIndex: number, itemIndex: number) => {
     e.preventDefault();
-  };
-
-  const handleDrop = (targetVisitIndex: number, targetItemIndex?: number) => {
+    e.stopPropagation(); // VERY IMPORTANT: stop CardContent from catching this
+    e.dataTransfer.dropEffect = 'move';
     if (!draggedItem) return;
 
-    const { visitIndex: fromVisitIndex, itemIndex: fromItemIndex } = draggedItem;
-
-    if (fromVisitIndex === targetVisitIndex) {
-      if (targetItemIndex !== undefined && targetItemIndex !== fromItemIndex) {
-        setVisits(prev => prev.map((visit, vi) => {
-          if (vi !== targetVisitIndex) return visit;
-          const newItems = [...visit.items];
-          const [removed] = newItems.splice(fromItemIndex, 1);
-          newItems.splice(targetItemIndex, 0, removed);
-          return { ...visit, items: newItems.map((it, i) => ({ ...it, display_order: i })) };
-        }));
-      }
-    } else {
-      moveItemToVisit(fromVisitIndex, fromItemIndex, targetVisitIndex);
+    // INERT: If we are hovering over the original dragged item itself, do NOT trigger any action point calculations!
+    // Just maintain the state.
+    if (draggedItem.visitIndex === visitIndex && draggedItem.itemIndex === itemIndex) {
+      return;
     }
 
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    
+    // "Action point" of the dragged item: its visual center on the screen
+    const draggedCenterY = e.clientY - dragOffset.y + dragOffset.height / 2;
+    // "Action point" of the target item: its visual center
+    const targetCenterY = rect.top + rect.height / 2;
+    
+    const direction = draggedCenterY < targetCenterY ? 'top' : 'bottom';
+    
+    setDragOverTarget(prev => {
+      if (prev?.visitIndex === visitIndex && prev?.itemIndex === itemIndex && prev?.direction === direction) {
+        return prev;
+      }
+      return { visitIndex, itemIndex, direction };
+    });
+  };
+
+  const handleVisitDragOver = (e: React.DragEvent, visitIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (!draggedItem) return;
+    
+    // If we hover over the empty space/padding of the card content,
+    const lastIndex = visits[visitIndex].items.length - 1;
+    if (lastIndex >= 0) {
+      setDragOverTarget(prev => {
+        // INERT PADDING: If we are already targeting this visit, don't jump to the bottom!
+        // This prevents violent flickering when the mouse accidentally hits the left/right padding of the card.
+        if (prev?.visitIndex === visitIndex) return prev;
+        
+        return { visitIndex, itemIndex: lastIndex, direction: 'bottom' };
+      });
+    } else {
+      // Empty visit
+      setDragOverTarget(prev => {
+        if (prev?.visitIndex === visitIndex && prev?.itemIndex === undefined) return prev;
+        return { visitIndex };
+      });
+    }
+  };
+
+  const commitDrag = () => {
+    if (!draggedItem || !dragOverTarget) {
+      setDraggedItem(null);
+      setDragOverTarget(null);
+      return;
+    }
+
+    const { visitIndex: fromVisitIndex, itemIndex: fromItemIndex } = draggedItem;
+    const { visitIndex: toVisitIndex, itemIndex: toItemIndex, direction } = dragOverTarget;
+
+    setVisits(prev => {
+      const newVisits = [...prev];
+      const item = newVisits[fromVisitIndex].items[fromItemIndex];
+
+      if (fromVisitIndex === toVisitIndex) {
+        if (toItemIndex !== undefined && toItemIndex !== fromItemIndex) {
+          const newItems = [...newVisits[toVisitIndex].items];
+          newItems.splice(fromItemIndex, 1);
+          
+          let insertIndex = toItemIndex;
+          if (fromItemIndex < toItemIndex && direction === 'top') {
+             insertIndex -= 1;
+          } else if (fromItemIndex > toItemIndex && direction === 'bottom') {
+             insertIndex += 1;
+          }
+
+          newItems.splice(insertIndex, 0, item);
+          newVisits[toVisitIndex] = {
+            ...newVisits[toVisitIndex],
+            items: newItems.map((it, i) => ({ ...it, display_order: i }))
+          };
+        }
+      } else {
+        newVisits[fromVisitIndex] = {
+          ...newVisits[fromVisitIndex],
+          items: newVisits[fromVisitIndex].items.filter((_, i) => i !== fromItemIndex).map((it, i) => ({ ...it, display_order: i }))
+        };
+
+        const targetItems = [...newVisits[toVisitIndex].items];
+        if (toItemIndex !== undefined) {
+          let insertIndex = direction === 'bottom' ? toItemIndex + 1 : toItemIndex;
+          targetItems.splice(insertIndex, 0, item);
+        } else {
+          targetItems.push(item);
+        }
+
+        newVisits[toVisitIndex] = {
+          ...newVisits[toVisitIndex],
+          items: targetItems.map((it, i) => ({ ...it, display_order: i }))
+        };
+      }
+      return newVisits;
+    });
+
     setDraggedItem(null);
+    setDragOverTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    commitDrag();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    commitDrag();
   };
 
   // Regenerate embedding for a rule
@@ -480,8 +625,17 @@ export function TreatmentRuleEditor({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] flex flex-col p-0"
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+        }}
+        onDrop={handleDrop}
+      >
         <DialogHeader className="flex-shrink-0 p-6 pb-4">
           <DialogTitle>
             {isEditing ? 'Szabály szerkesztése' : 'Új kezelési szabály'}
@@ -491,7 +645,7 @@ export function TreatmentRuleEditor({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-4">
+        <div className="flex-1 overflow-y-auto px-6 pb-48 custom-scrollbar-purple">
           <div className="space-y-6">
             {/* Rule header section */}
             <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
@@ -545,25 +699,17 @@ export function TreatmentRuleEditor({
                     )}
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Szemantikus leírás</Label>
-                  <Textarea
-                    value={semanticDescription}
-                    onChange={(e) => setSemanticDescription(e.target.value)}
-                    placeholder="AI által generált leírás a kezelésről (szinonimák, típusok, stb.)"
-                    rows={3}
-                    className="resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Ez a leírás segít az AI-nak felismerni a kezelést különböző megfogalmazásokból
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
-            {/* Visits section */}
-            <div className="space-y-4">
+            {/* Szabály Vizitek Listája */}
+            <div 
+              className="space-y-4"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+            >
               <h3 className="text-sm font-medium text-muted-foreground">Vizitek</h3>
 
               {visits.map((visit, visitIndex) => (
@@ -573,8 +719,8 @@ export function TreatmentRuleEditor({
                     "transition-all duration-200",
                     draggedItem?.visitIndex !== visitIndex && "hover:border-primary/50"
                   )}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(visitIndex)}
+                  onDragOver={(e) => handleVisitDragOver(e, visitIndex)}
+                  onDrop={handleDrop}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
@@ -641,39 +787,93 @@ export function TreatmentRuleEditor({
                     </div>
                   </CardHeader>
 
-                  <CardContent className="pt-2">
-                    <div className="space-y-2">
+                  <CardContent 
+                    className="pt-2 min-h-[100px]"
+                    onDragOver={(e) => handleVisitDragOver(e, visitIndex)}
+                    onDrop={handleDrop}
+                  >
+                    <div 
+                      className="relative flex flex-col gap-2 w-full"
+                      onDragOver={(e) => {
+                        // Prevent the gap between items from bubbling up to CardContent,
+                        // which would otherwise cause the ghost to violently jump to the bottom!
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'move';
+                      }}
+                    >
                       {/* Table header for items */}
                       {visit.items.length > 0 && (
                         <div className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground border-b">
                           <div className="w-6" /> {/* Drag handle space */}
                           <div className="flex-1">Tétel neve</div>
                           <div className="w-14 text-center">Menny.</div>
-                          <div className="w-16 text-center">Egység</div>
                           <div className="w-28 text-center">Skálázás</div>
                           <div className="w-28 text-center">Célzott fog</div>
                           <div className="w-24" /> {/* Actions space */}
                         </div>
                       )}
 
-                      {visit.items.map((item, itemIndex) => (
-                        <div
-                          key={itemIndex}
-                          draggable
-                          onDragStart={() => handleDragStart(visitIndex, itemIndex)}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => {
-                            e.stopPropagation();
-                            handleDrop(visitIndex, itemIndex);
-                          }}
-                          className={cn(
-                            "flex items-center gap-2 p-2 rounded-md border bg-background transition-all duration-150",
-                            draggedItem?.visitIndex === visitIndex && draggedItem?.itemIndex === itemIndex
-                              ? "opacity-50 border-primary"
-                              : "hover:border-primary/50"
-                          )}
-                        >
-                          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+                      {/* Ghost placeholder and mapping */}
+                      {(() => {
+                        const renderGhost = (targetVisitIndex: number, targetItemIndex?: number) => {
+                          if (!draggedItem) return null;
+                          const gItem = visits[draggedItem.visitIndex]?.items[draggedItem.itemIndex];
+                          if (!gItem) return null;
+                          
+                          return (
+                            <div 
+                              className="flex items-center gap-2 p-2 rounded-md border-2 border-primary/40 bg-primary/5 opacity-80 animate-in fade-in zoom-in duration-150"
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation(); // INERT: Deactivated action point. Just preserve current state.
+                                e.dataTransfer.dropEffect = 'move';
+                              }}
+                              onDrop={handleDrop}
+                            >
+                              <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="h-8 rounded-md border border-input/50 bg-background/50 px-3 flex items-center text-sm text-foreground/80">{gItem.name || 'Új tétel...'}</div>
+                              </div>
+                              <div className="w-14 h-8 rounded-md border border-input/50 bg-background/50 flex items-center justify-center text-sm text-foreground/80">{gItem.quantity}</div>
+                              <div className="w-28 h-8 rounded-md border border-input/50 bg-background/50 px-3 flex items-center text-sm text-foreground/80 truncate">
+                                 {SCALING_OPTIONS.find(o => o.value === gItem.scaling)?.label || gItem.scaling}
+                              </div>
+                              <div className="w-28 h-8 rounded-md border border-input/50 bg-background/50 px-3 flex items-center text-sm text-foreground/80 truncate">
+                                 {TARGET_TOOTH_OPTIONS.find(o => o.value === gItem.target_tooth_type)?.label || gItem.target_tooth_type}
+                              </div>
+                              <div className="w-24" /> {/* Actions space */}
+                            </div>
+                          );
+                        };
+                        
+                        return (
+                          <>
+                            {dragOverTarget?.visitIndex === visitIndex && dragOverTarget.itemIndex === undefined && renderGhost(visitIndex)}
+                            {visit.items.map((item, itemIndex) => {
+                              const isDragOverTop = dragOverTarget?.visitIndex === visitIndex && dragOverTarget?.itemIndex === itemIndex && dragOverTarget.direction === 'top';
+                              const isDragOverBottom = dragOverTarget?.visitIndex === visitIndex && dragOverTarget?.itemIndex === itemIndex && dragOverTarget.direction === 'bottom';
+                              const isDraggedItem = draggedItem?.visitIndex === visitIndex && draggedItem?.itemIndex === itemIndex;
+                              const shouldHideDragged = isDraggedItem && dragOverTarget !== null;
+
+                              return (
+                                <Fragment key={itemIndex}>
+                                  {isDragOverTop && renderGhost(visitIndex, itemIndex)}
+                                  <div
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, visitIndex, itemIndex)}
+                                    onDragOver={(e) => handleItemDragOver(e, visitIndex, itemIndex)}
+                                    onDragEnd={handleDragEnd}
+                                    onDrop={handleDrop}
+                                    className={cn(
+                                      "flex items-center gap-2 p-2 rounded-md border bg-background transition-all duration-150",
+                                      !!draggedItem && "[&>*]:pointer-events-none",
+                                      shouldHideDragged
+                                        ? "absolute opacity-0 pointer-events-none -z-10 !my-0 w-full"
+                                        : (isDraggedItem ? "opacity-50 border-primary" : "hover:border-primary/50")
+                                    )}
+                                  >
+                                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
 
                           {/* Tétel neve with autocomplete */}
                           <div className="flex-1 relative">
@@ -693,54 +893,64 @@ export function TreatmentRuleEditor({
                             />
                             {/* Autocomplete dropdown */}
                             {activeAutocomplete?.visitIndex === visitIndex &&
-                              activeAutocomplete?.itemIndex === itemIndex &&
-                              item.name.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
-                                  {szotarKezelesek
-                                    .filter(k => k.name.toLowerCase().includes(item.name.toLowerCase()))
-                                    .slice(0, 10)
-                                    .map((kezeles) => (
-                                      <div
-                                        key={kezeles.id}
-                                        className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center"
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          updateItem(visitIndex, itemIndex, 'name', kezeles.name);
+                              activeAutocomplete?.itemIndex === itemIndex && (
+                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-primary/20 rounded-md shadow-lg flex flex-col max-h-[200px]">
+                                  <div
+                                    className="px-3 py-2 text-sm cursor-pointer hover:bg-accent text-primary font-bold bg-primary/5 border-b border-primary/10 shrink-0 z-10"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setCreatingItemFor({ visitIndex, itemIndex });
+                                      setNewItemDialogOpen(true);
+                                      setActiveAutocomplete(null);
+                                    }}
+                                  >
+                                    + Új tétel hozzáadása...
+                                  </div>
+                                  
+                                  <div className="overflow-y-scroll overflow-x-hidden flex-1 custom-scrollbar-purple">
+                                    {szotarKezelesek
+                                      .filter(k => k.name.toLowerCase().includes(item.name.toLowerCase()))
+                                      .map((kezeles) => (
+                                        <div
+                                          key={kezeles.id}
+                                          className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex justify-between items-center"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            updateItem(visitIndex, itemIndex, 'name', kezeles.name);
                                             updateItem(visitIndex, itemIndex, 'item_id', kezeles.id);
                                             setActiveAutocomplete(null);
-                                        }}
-                                      >
-                                                                                <div className="flex items-center gap-2">
-                                          {mode === 'native' && kezeles.visual_color && (
-                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: kezeles.visual_color }} />
+                                          }}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            {mode === 'native' && kezeles.visual_color && (
+                                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: kezeles.visual_color }} />
+                                            )}
+                                            <span className="truncate">{kezeles.name}</span>
+                                          </div>
+                                          {kezeles.category && (
+                                            <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                                              {kezeles.category}
+                                            </span>
                                           )}
-                                          <span>{kezeles.name}</span>
                                         </div>
-                                        {kezeles.category && (
-                                          <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
-                                            {kezeles.category}
-                                          </span>
-                                        )}
+                                      ))}
+                                    {szotarKezelesek.filter(k => k.name.toLowerCase().includes(item.name.toLowerCase())).length === 0 && (
+                                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        Nincs találat
                                       </div>
-                                    ))}
-                                  {szotarKezelesek.filter(k => k.name.toLowerCase().includes(item.name.toLowerCase())).length === 0 && (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                                      Nincs találat
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
                               )}
                           </div>
 
-                          {item.scaling === 'per_case' && (
-                            <Input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => updateItem(visitIndex, itemIndex, 'quantity', parseInt(e.target.value) || 1)}
-                              className="w-14 h-8 text-center"
-                              min={1}
-                            />
-                          )}
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(visitIndex, itemIndex, 'quantity', parseInt(e.target.value) || 1)}
+                            className="w-14 h-8 text-center"
+                            min={1}
+                          />
 
                           <Select
                             value={item.scaling}
@@ -824,15 +1034,35 @@ export function TreatmentRuleEditor({
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
-                          </div>
-                        </div>
-                      ))}
+                                  </div>
+                                </div>
+                                {isDragOverBottom && renderGhost(visitIndex, itemIndex)}
+                              </Fragment>
+                            );
+                            })}
+                          </>
+                        );
+                      })()}
 
                       <Button
                         variant="outline"
                         size="sm"
                         className="w-full mt-2"
                         onClick={() => addItem(visitIndex)}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!draggedItem) return;
+                          e.dataTransfer.dropEffect = 'move';
+                          const lastIdx = visit.items.length - 1;
+                          if (lastIdx >= 0) {
+                            setDragOverTarget(prev => {
+                              if (prev?.visitIndex === visitIndex && prev?.itemIndex === lastIdx && prev?.direction === 'bottom') return prev;
+                              return { visitIndex, itemIndex: lastIdx, direction: 'bottom' };
+                            });
+                          }
+                        }}
+                        onDrop={handleDrop}
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Új tétel hozzáadása
@@ -877,16 +1107,31 @@ export function TreatmentRuleEditor({
       <CustomCategoryDialog
         open={customCategoryDialogOpen}
         onOpenChange={setCustomCategoryDialogOpen}
-        telephelyId={clinicId || ''}
-        mode="nativ"
-        onSaved={(newCategoryName) => {
-          setLocalCustomCategories(prev => {
-            if (!prev.includes(newCategoryName)) return [...prev, newCategoryName];
-            return prev;
-          });
-          setCategory(newCategoryName);
+        telephelyId={clinicId}
+        onSaved={(newCategory) => {
+          setLocalCustomCategories(prev => [...prev, newCategory]);
+          setCategory(newCategory);
         }}
       />
     </Dialog>
+
+      {mode === 'native' && (
+        <TreatmentItemEditorDialog
+          open={newItemDialogOpen}
+          onOpenChange={setNewItemDialogOpen}
+          telephelyId={clinicId}
+          availableCategories={availableCategories}
+          onSaved={async (newItem) => {
+            setNewItemDialogOpen(false);
+            if (newItem && creatingItemFor) {
+              await fetchSzotarKezelesek();
+              updateItem(creatingItemFor.visitIndex, creatingItemFor.itemIndex, 'name', newItem.name);
+              updateItem(creatingItemFor.visitIndex, creatingItemFor.itemIndex, 'item_id', newItem.id);
+            }
+            setCreatingItemFor(null);
+          }}
+        />
+      )}
+    </>
   );
 }

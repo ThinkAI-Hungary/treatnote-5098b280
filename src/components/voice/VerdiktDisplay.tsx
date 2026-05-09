@@ -385,8 +385,8 @@ function ComplaintDialog({ jobId, jobType, hasComplaint, onSubmitted }: { jobId:
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Mégse</Button>
-          <Button variant="destructive" onClick={handleSubmit} disabled={isSubmitting || !text.trim()}>
+          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Mégse</Button>
+          <Button type="button" variant="destructive" onClick={(e) => { e.preventDefault(); handleSubmit(); }} disabled={isSubmitting || !text.trim()}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Küldés
           </Button>
@@ -676,7 +676,7 @@ export function VerdiktDisplay({
                   voxisReviewPanelNode
                 ) : (
                   <>
-                    {selectedJobPaciensId && (
+                    {selectedJobPaciensId && jobType === 'native' && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-center justify-between">
                         <div>
                           <h4 className="font-medium text-foreground">Sikeres mentés</h4>

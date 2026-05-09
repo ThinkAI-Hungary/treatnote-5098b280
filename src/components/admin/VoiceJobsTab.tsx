@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
     Mic, ChevronDown, ChevronRight, Trash2, Loader2,
-    RefreshCw, Check, Clock, User, Building, ExternalLink, XCircle
+    RefreshCw, Check, Clock, User, Building, ExternalLink, XCircle, Copy, Filter, ChevronLeft, ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
@@ -60,38 +60,42 @@ export function VoiceJobsTab() {
     const [deleting, setDeleting] = useState(false);
     
     const [filterSource, setFilterSource] = useState<'all' | 'native' | 'legacy'>('all');
+    
+    // Pagination
+    const [page, setPage] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 50;
 
     const fetchJobs = useCallback(async () => {
         setLoading(true);
         try {
-            const [nativeRes, legacyRes] = await Promise.all([
-                supabase
-                    .from('native_voice_jobs')
-                    .select('*, users:user_id(full_name, email), companies:company_id(name)')
-                    .order('created_at', { ascending: false })
-                    .limit(100),
-                supabase
-                    .from('voice_jobs')
-                    .select('*, users:user_id(full_name, email), companies:company_id(name)')
-                    .order('created_at', { ascending: false })
-                    .limit(100)
-            ]);
+            const pSource = filterSource === 'all' ? null : filterSource;
 
-            if (nativeRes.error) console.error(nativeRes.error);
-            if (legacyRes.error) console.error(legacyRes.error);
+            const countRes = await supabase.rpc('get_all_voice_jobs_count', {
+                p_source: pSource
+            });
+            if (countRes.error) throw countRes.error;
+            setTotalCount(countRes.data || 0);
 
-            const nativeData = (nativeRes.data || []).map(j => ({ ...j, job_type: 'native' as const, type: j.mode || 'ismeretlen' }));
-            const legacyData = (legacyRes.data || []).map(j => ({ ...j, job_type: 'legacy' as const, type: j.mode || 'ismeretlen' }));
+            const { data, error } = await supabase.rpc('get_all_voice_jobs_paginated', {
+                p_limit: pageSize,
+                p_offset: page * pageSize,
+                p_source: pSource
+            });
+            if (error) throw error;
 
-            let merged = [...nativeData, ...legacyData].sort((a, b) => 
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
+            let merged = (data || []).map((j: any) => ({
+                ...j,
+                job_type: j.source_table,
+                type: j.mode || 'ismeretlen',
+                users: j.user_full_name || j.user_email ? { full_name: j.user_full_name, email: j.user_email } : null,
+                companies: j.company_name ? { name: j.company_name } : null
+            }));
 
             // Fetch complaints for these jobs
             const jobIds = merged.map(j => j.id);
             let complaintsByJob: Record<string, any[]> = {};
             if (jobIds.length > 0) {
-                // Supabase .in() has a limit, chunking to 100 max safe
                 const topIds = jobIds.slice(0, 150);
                 const { data: compData } = await supabase
                     .from('voice_job_complaints')
@@ -110,13 +114,12 @@ export function VoiceJobsTab() {
             // Assign complaints
             merged = merged.map(j => ({ ...j, complaints: complaintsByJob[j.id] || [] }));
 
-            // For legacy, convert user_complaint column to an attached complaint object if no new array exists
             merged = merged.map(j => {
-                if (j.job_type === 'legacy' && (j as any).user_complaint && j.complaints.length === 0) {
+                if (j.job_type === 'legacy' && j.user_complaint && j.complaints.length === 0) {
                     j.complaints = [{
                         id: 'legacy-complaint',
-                        complaint_text: (j as any).user_complaint,
-                        created_at: (j as any).user_complaint_date || j.created_at,
+                        complaint_text: j.user_complaint,
+                        created_at: j.user_complaint_date || j.created_at,
                         users: { full_name: 'Ismeretlen (Régi)' }
                     }];
                 }
@@ -129,7 +132,7 @@ export function VoiceJobsTab() {
             toast.error('Hiba a napló betöltésekor');
         }
         setLoading(false);
-    }, []);
+    }, [page, filterSource]);
 
     useEffect(() => {
         fetchJobs();
@@ -137,9 +140,36 @@ export function VoiceJobsTab() {
 
     // Auto-refresh every 30 seconds
     useEffect(() => {
-        const interval = setInterval(fetchJobs, 30000);
-        return () => clearInterval(interval);
-    }, [fetchJobs]);
+        if (page === 0) {
+            const interval = setInterval(fetchJobs, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [fetchJobs, page]);
+
+    const handleCopyForAI = (job: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const rawText = job.raw_audio_text || job.result?.transcriber?.text || job.result?.transcriber?.raw?.text || 'Nincs nyers szöveg';
+        const claudeText = job.claude_cleaned_text || job.result?.transcriber?.claude_text || 'Nincs tisztított szöveg';
+        const rules = job.result?.execution_report_human?.talalatok || [];
+        const rulesText = rules.length > 0 ? rules.map((r: any, i: number) => `${i+1}. Szabály: ${r.eredmeny?.rule_name || '-'} (Oka: ${r.eredmeny?.mi_alapjan || '-'})`).join('\n') : 'Nincs használt szabály';
+        const finalJson = job.result ? JSON.stringify(job.result, null, 2) : '{}';
+
+        const text = `## Hangfelvétel feldolgozás részletei
+### Nyers szöveg:
+${rawText}
+
+### Tisztított (Claude) szöveg:
+${claudeText}
+
+### Felhasznált szabályok:
+${rulesText}
+
+### Végeredmény JSON:
+${finalJson}`;
+
+        navigator.clipboard.writeText(text);
+        toast.success('Adatok másolva a vágólapra AI számára!');
+    };
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
@@ -356,15 +386,26 @@ export function VoiceJobsTab() {
                                                     </span>
                                                 </div>
 
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => { setDeleteTarget({ id: job.id, type: job.job_type }); setDeleteConfirmOpen(true); }}
-                                                    className="border-red-500/20 hover:bg-red-500/10 text-red-400"
-                                                >
-                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                    Törlés
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={(e) => handleCopyForAI(job, e)}
+                                                        className="border-primary/20 hover:bg-primary/10 text-primary"
+                                                    >
+                                                        <Copy className="h-4 w-4 mr-2" />
+                                                        Másolás AI-nak
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => { setDeleteTarget({ id: job.id, type: job.job_type }); setDeleteConfirmOpen(true); }}
+                                                        className="border-red-500/20 hover:bg-red-500/10 text-red-400"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Törlés
+                                                    </Button>
+                                                </div>
                                             </div>
 
                                             {/* Audio playback */}
@@ -413,6 +454,40 @@ export function VoiceJobsTab() {
                                                         <XCircle className="h-4 w-4" /> Hibajelentés (Kivétel)
                                                     </h4>
                                                     <pre className="text-xs text-red-300 font-mono whitespace-pre-wrap">{job.error}</pre>
+                                                </div>
+                                            )}
+
+                                            )}
+
+                                            {/* Applied Rules Section */}
+                                            {job.result?.execution_report_human?.talalatok?.length > 0 && (
+                                                <div className="rounded-lg border border-primary/20 bg-background/50 overflow-hidden mb-4">
+                                                    <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border-b border-primary/10">
+                                                        <Filter className="h-4 w-4 text-primary" />
+                                                        <span className="text-xs font-semibold uppercase tracking-wide">Alkalmazott Szabályok ({job.result.execution_report_human.talalatok.length})</span>
+                                                    </div>
+                                                    <div className="p-0 overflow-x-auto">
+                                                        <table className="w-full text-sm text-left">
+                                                            <thead className="bg-primary/5 text-muted-foreground border-b border-primary/10">
+                                                                <tr>
+                                                                    <th className="px-4 py-2 font-medium">Ssz.</th>
+                                                                    <th className="px-4 py-2 font-medium">Szabály Neve</th>
+                                                                    <th className="px-4 py-2 font-medium">Kontextus</th>
+                                                                    <th className="px-4 py-2 font-medium">Egyezés Oka</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-primary/10">
+                                                                {job.result.execution_report_human.talalatok.map((t: any, idx: number) => (
+                                                                    <tr key={idx} className="transition-colors hover:bg-primary/5">
+                                                                        <td className="px-4 py-3 text-muted-foreground font-medium">{t.sorszam || idx + 1}.</td>
+                                                                        <td className="px-4 py-3 font-semibold text-primary">{t.eredmeny?.rule_name || '-'}</td>
+                                                                        <td className="px-4 py-3 text-muted-foreground break-words text-xs min-w-[200px]">{t.context_text || '-'}</td>
+                                                                        <td className="px-4 py-3 text-xs text-muted-foreground">{t.eredmeny?.mi_alapjan || '-'}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -663,6 +738,40 @@ export function VoiceJobsTab() {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* Pagination Controls */}
+                {totalCount > 0 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-primary/10">
+                        <div className="text-sm text-muted-foreground">
+                            Összesen: <span className="font-bold text-foreground">{totalCount}</span> elemzés
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                disabled={page === 0 || loading}
+                                className="border-primary/20 hover:bg-primary/10"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Előző
+                            </Button>
+                            <span className="text-sm font-medium">
+                                {page + 1}. oldal <span className="text-muted-foreground font-normal">/ {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage(p => p + 1)}
+                                disabled={(page + 1) * pageSize >= totalCount || loading}
+                                className="border-primary/20 hover:bg-primary/10"
+                            >
+                                Következő
+                                <ChevronRightIcon className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
                     </div>
                 )}
             </AnimatedCard>

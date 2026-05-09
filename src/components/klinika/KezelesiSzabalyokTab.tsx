@@ -41,6 +41,7 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useTheme } from '@/components/ThemeProvider';
 import { notifyRulesDataChanged } from '@/lib/rulesEvents';
 import { useSzotar } from '@/hooks/useSzotar';
+import { subscribeToSzotarChanges } from '@/lib/szotarEvents';
 
 // --- Sort helpers ---
 type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
@@ -290,6 +291,11 @@ export function KezelesiSzabalyokTab({
     // Always fetch latest data on mount.
     // If we have cached data, loadRules will fetch silently in the background.
     loadRules();
+    
+    const unsubscribe = subscribeToSzotarChanges(() => {
+      loadRules();
+    });
+    return () => unsubscribe();
   }, [loadRules, telephelyId]);
 
   // --- Supabase Realtime: subscribe to treatment_rules INSERT events ---
@@ -703,6 +709,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: newValue })
         .in('id', idsToToggle);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -739,6 +746,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: true })
         .eq('id', targetId);
       if (err2) throw err2;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error linked toggle:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -783,6 +791,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: true })
         .in('id', ruleIdsToToggle);
       if (ruleErr) throw ruleErr;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error activating rule with items:', err);
       toast.error('Hiba az aktiválás során');
@@ -817,6 +826,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: newValue })
         .in('id', ids);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -1304,7 +1314,7 @@ export function KezelesiSzabalyokTab({
                     >
                       Kategória <SortIcon column="category" />
                     </TableHead>
-                    <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
+
                     <TableHead
                       className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('visits')}
@@ -1329,7 +1339,7 @@ export function KezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -1337,7 +1347,7 @@ export function KezelesiSzabalyokTab({
                     </TableRow>
                   ) : filteredRules.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
@@ -1441,19 +1451,7 @@ export function KezelesiSzabalyokTab({
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <div className="max-w-[350px]">
-                              {rule.semantic_description ? (
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {rule.semantic_description}
-                                </p>
-                              ) : (
-                                <span className="text-muted-foreground text-xs italic">
-                                  Nincs leírás
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
+
                           <TableCell className="text-center">
                             <Badge variant="secondary">
                               {rule.visits?.length || 0}

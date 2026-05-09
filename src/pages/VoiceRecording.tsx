@@ -179,11 +179,12 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
   // Persistent state from store - keyed by userId
   const store = useVoiceRecordingStore();
   const verdikt = store.getVerdikt(userId);
+  const lastJobId = store.getLastJobId(userId);
   const paciensId = store.getPaciensId(userId);
   const isPaciensIdLocked = store.getIsPaciensIdLocked(userId);
   const mode = store.getMode(userId);
 
-  const setVerdikt = (value: string | null) => store.setVerdikt(userId, value);
+  const setVerdikt = (value: string | null, jobId: string | null = null) => store.setVerdikt(userId, value, jobId);
   const setPaciensId = (value: string) => store.setPaciensId(userId, value);
   const setIsPaciensIdLocked = (value: boolean) => store.setIsPaciensIdLocked(userId, value);
   const setMode = (value: 'voxis' | 'treatnote' | 'ambulans') => store.setMode(userId, value);
@@ -257,7 +258,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
           const responseToStore = typeof job.result === 'string'
             ? job.result
             : JSON.stringify(job.result);
-          setVerdikt(responseToStore);
+          setVerdikt(responseToStore, job.id);
           toast.success('Felvétel sikeresen feldolgozva!');
         } else if (job.status === 'error') {
           toast.error('Hiba a feldolgozás során: ' + (job.error || 'Ismeretlen hiba'));
@@ -906,7 +907,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                 selectedJobPaciensId={selectedJob?.paciens_id}
                 selectedJobError={selectedJob?.error}
                 selectedJobStatus={selectedJob?.status}
-                jobId={selectedJob?.id || currentJobId}
+                jobId={selectedJob?.id || currentJobId || lastJobId || undefined}
                 jobType={selectedJob ? (selectedJob.isFlexi ? 'legacy' : 'native') : 'legacy'}
                 userComplaint={selectedJob?.user_complaint}
                 progressPercent={(selectedJob as any)?.progress_percent || (jobs.find(j => j.id === currentJobId) as any)?.progress_percent}

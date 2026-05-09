@@ -42,6 +42,8 @@ import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useTheme } from '@/components/ThemeProvider';
 import { notifyRulesDataChanged } from '@/lib/rulesEvents';
 import { useSzotar } from '@/hooks/useSzotar';
+import { fetchCombinedTreatmentItems } from '@/lib/treatmentItems';
+import { subscribeToSzotarChanges } from '@/lib/szotarEvents';
 
 // --- Sort helpers ---
 type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
@@ -256,19 +258,24 @@ export function NativeKezelesiSzabalyokTab({
         .filter(Boolean) as string[];
 
       if (mappedItemIds.length > 0) {
-        // We only check for missing price/name/category here. 
-        // Inactive items are handled by the existing deactivation cascade, but we can catch them here too.
-        const { data: dbItems } = await supabase
-          .from('clinic_treatment_items_stdl')
-          .select('id, name, category, price, is_active')
-          .in('id', mappedItemIds);
-
-        if (dbItems) {
+        // Fetch all combined items to check against global and local items
+        const combinedItems = await fetchCombinedTreatmentItems(telephelyId!);
+        
+        if (combinedItems && combinedItems.length > 0) {
           const invalidItemIds = new Set(
-            dbItems
+            combinedItems
+              .filter(i => mappedItemIds.includes(i.id))
               .filter(i => !i.name || !i.category || i.price === null || i.price === undefined || !i.is_active)
               .map(i => i.id)
           );
+
+          // Also flag items that completely disappeared from the combined list (e.g. library turned off)
+          const validItemIdsMap = new Set(combinedItems.map(i => i.id));
+          for (const mappedId of mappedItemIds) {
+            if (!validItemIdsMap.has(mappedId)) {
+              invalidItemIds.add(mappedId);
+            }
+          }
 
           if (invalidItemIds.size > 0) {
             for (const rule of activeRules) {
@@ -314,6 +321,11 @@ export function NativeKezelesiSzabalyokTab({
     // Always fetch latest data on mount.
     // If we have cached data, loadRules will fetch silently in the background.
     loadRules();
+    
+    const unsubscribe = subscribeToSzotarChanges(() => {
+      loadRules();
+    });
+    return () => unsubscribe();
   }, [loadRules, telephelyId]);
 
   // --- Supabase Realtime: subscribe to treatment_rules INSERT events ---
@@ -679,21 +691,26 @@ export function NativeKezelesiSzabalyokTab({
       const itemIds = allItems.map(i => i.item_id).filter(Boolean) as string[];
       if (itemIds.length > 0) {
         try {
-          const { data: dbItems, error } = await supabase
-            .from('clinic_treatment_items_stdl')
-            .select('id, name, category, price, is_active')
-            .in('id', itemIds);
+          const combinedItems = await fetchCombinedTreatmentItems(telephelyId!);
+          
+          if (combinedItems) {
+            const ruleItemsInDict = combinedItems.filter(i => itemIds.includes(i.id));
             
-          if (!error && dbItems) {
+            // Check if any items are completely missing from the dictionary
+            if (ruleItemsInDict.length < itemIds.length) {
+              toast.error("A szabály nem aktiválható, mert olyan tételt tartalmaz, ami már nem létezik a szótárban (pl. kikapcsolt központi könyvtár miatt)!");
+              return;
+            }
+
             // A) Check for missing values
-            const invalidItems = dbItems.filter(i => !i.name || !i.category || i.price === null || i.price === undefined);
+            const invalidItems = ruleItemsInDict.filter(i => !i.name || !i.category || i.price === null || i.price === undefined);
             if (invalidItems.length > 0) {
               toast.error("A szabály nem aktiválható, mert hiányos adatú tételeket tartalmaz (pl. hiányzó ár vagy kategória). Kérjük, pótolja a szótárban!");
               return;
             }
 
             // B) Check for inactive items (existing logic)
-            const inactiveItems = dbItems.filter(i => !i.is_active);
+            const inactiveItems = ruleItemsInDict.filter(i => !i.is_active);
             if (inactiveItems.length > 0) {
               setPendingActivationRule(rule);
               setInactiveItemsToActivate(inactiveItems);
@@ -729,6 +746,7 @@ export function NativeKezelesiSzabalyokTab({
         .update({ aktiv: newValue })
         .in('id', idsToToggle);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -793,12 +811,31 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       // 1. Activate the items
-      if (itemIdsToActivate.length > 0) {
-        const { error: itemErr } = await supabase
-          .from('clinic_treatment_items_stdl')
-          .update({ is_active: true })
-          .in('id', itemIdsToActivate);
-        if (itemErr) throw itemErr;
+      if (inactiveItemsToActivate.length > 0) {
+        const localItemIds = inactiveItemsToActivate.filter(i => !i.is_default).map(i => i.id);
+        const defaultItems = inactiveItemsToActivate.filter(i => i.is_default);
+
+        if (localItemIds.length > 0) {
+          const { error: itemErr } = await supabase
+            .from('clinic_treatment_items_stdl')
+            .update({ is_active: true })
+            .in('id', localItemIds);
+          if (itemErr) throw itemErr;
+        }
+
+        if (defaultItems.length > 0) {
+          const overrides = defaultItems.map(item => ({
+            telephely_id: telephelyId,
+            default_item_id: item.id,
+            is_active: true,
+            price: item.price
+          }));
+          
+          const { error: overrideErr } = await supabase
+            .from('clinic_item_overrides')
+            .upsert(overrides, { onConflict: 'telephely_id,default_item_id' });
+          if (overrideErr) throw overrideErr;
+        }
         
         // Dispatch global event so KezelesiTetelekTab reloads if needed
         import('@/lib/szotarEvents').then(m => m.notifySzotarDataChanged());
@@ -1341,7 +1378,7 @@ export function NativeKezelesiSzabalyokTab({
                     >
                       Kategória <SortIcon column="category" />
                     </TableHead>
-                    <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
+
                     <TableHead
                       className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('visits')}
@@ -1366,7 +1403,7 @@ export function NativeKezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -1374,7 +1411,7 @@ export function NativeKezelesiSzabalyokTab({
                     </TableRow>
                   ) : filteredRules.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
@@ -1478,19 +1515,7 @@ export function NativeKezelesiSzabalyokTab({
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <div className="max-w-[350px]">
-                              {rule.semantic_description ? (
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {rule.semantic_description}
-                                </p>
-                              ) : (
-                                <span className="text-muted-foreground text-xs italic">
-                                  Nincs leírás
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
+
                           <TableCell className="text-center">
                             <Badge variant="secondary">
                               {rule.visits?.length || 0}

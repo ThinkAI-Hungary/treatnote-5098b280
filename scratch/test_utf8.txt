@@ -1,0 +1,6 @@
+Név;Kategória;Aliasok
+"Első komplex fogorvosi vizsgálat";"Vizsgálat és diagnosztika";"első vizsgálat|komplex vizsgálat|st.praes.|stomatológiai vizsgálat|fogászati alapvizsgálat"
+"Kontroll vizsgálat (15 perc)";"Vizsgálat és diagnosztika";"kontroll|kontroll 15|rövid kontroll|recall"
+"Kontroll vizsgálat (30 perc)";"Vizsgálat és diagnosztika";"kontroll 30|hosszú kontroll"
+"Sürgősségi vizsgálat";"Vizsgálat és diagnosztika";"akut|sürgősségi|ügyeleti|fájdalom miatti vizsgálat"
+"Konzultáció (15 perc)";"

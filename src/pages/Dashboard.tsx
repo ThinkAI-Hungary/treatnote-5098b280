@@ -165,14 +165,23 @@ export default function Dashboard() {
   const [hasAckMode, setHasAckMode] = useState(false);
 
   useEffect(() => {
-    if (user?.id && rolesInitialized) {
+    if (user?.id && rolesInitialized && !profileLoading) {
       if (isKlinikaAdmin) {
-        setHasAckMode(!!localStorage.getItem(`mode_ack_${user.id}`));
+        const ack = localStorage.getItem(`mode_ack_${user.id}`);
+        const dbMode = profile?.voice_recording_preference;
+        if (ack || dbMode) {
+          setHasAckMode(true);
+          if (!ack && dbMode) {
+            localStorage.setItem(`mode_ack_${user.id}`, 'true');
+          }
+        } else {
+          setHasAckMode(false);
+        }
       } else {
         setHasAckMode(true);
       }
     }
-  }, [user?.id, rolesInitialized, isKlinikaAdmin]);
+  }, [user?.id, rolesInitialized, isKlinikaAdmin, profile?.voice_recording_preference, profileLoading]);
 
   // Gate on all step-affecting loading states so the dashboard renders stable.
   // The user prefers a slightly longer load over a flash of partial/wrong step data.
@@ -198,7 +207,7 @@ export default function Dashboard() {
           id: 'rules_native',
           icon: ClipboardList,
           title: 'Kezelési szabályok beállítása',
-          description: 'Rögzítse vagy töltse fel a klinika kezelési szabályait.',
+          description: 'Rögzítse vagy töltse fel a klinika kezelési szabályait. Fontos: A rendszer működéséhez legalább egy aktív szabályra van szükség!',
           completed: hasNativeRules,
           adminOnly: true,
           actionLabel: 'Szabályok szerkesztése',

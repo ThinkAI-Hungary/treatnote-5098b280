@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface NotificationEntry {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface HeaderMessageState {
@@ -20,9 +21,11 @@ interface HeaderMessageState {
 
 let timeoutId: NodeJS.Timeout | null = null;
 
-export const useHeaderMessage = create<HeaderMessageState>((set) => ({
-  message: null,
-  type: 'info',
+export const useHeaderMessage = create<HeaderMessageState>()(
+  persist(
+    (set) => ({
+      message: null,
+      type: 'info',
   history: [],
   lastReadAt: Date.now(),
   showMessage: (message, type = 'success', duration = 4000) => {
@@ -31,7 +34,7 @@ export const useHeaderMessage = create<HeaderMessageState>((set) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       message,
       type,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     set(state => ({
       message,
@@ -51,4 +54,10 @@ export const useHeaderMessage = create<HeaderMessageState>((set) => ({
   },
   clearHistory: () => set({ history: [], lastReadAt: Date.now() }),
   markAllRead: () => set({ lastReadAt: Date.now() }),
-}));
+    }),
+    {
+      name: 'header-message-storage',
+      partialize: (state) => ({ history: state.history, lastReadAt: state.lastReadAt }),
+    }
+  )
+);

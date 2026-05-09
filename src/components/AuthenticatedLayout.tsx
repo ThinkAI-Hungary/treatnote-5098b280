@@ -11,6 +11,13 @@ import { BackgroundEffects } from '@/components/BackgroundEffects';
 import { PageLoader } from '@/components/PageLoader';
 import { PageTransition } from '@/components/PageTransition';
 import { PageLoadingProvider } from '@/contexts/PageLoadingContext';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -37,6 +44,7 @@ function LayoutHeader() {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -171,7 +179,7 @@ function LayoutHeader() {
             title="Értesítés előzmények"
           >
             <Bell className="h-4 w-4" />
-            {notifHistory.some(e => e.type === 'error' && e.timestamp.getTime() > lastReadAt) && (
+            {notifHistory.some(e => e.type === 'error' && new Date(e.timestamp).getTime() > lastReadAt) && (
               <span className="absolute top-1 right-1 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
@@ -180,45 +188,80 @@ function LayoutHeader() {
           </button>
 
           {notifOpen && (
-            <>
-              <div className="absolute right-0 top-10 z-40 w-80 rounded-xl border bg-popover shadow-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-                  <span className="text-sm font-semibold">Értesítés előzmények</span>
-                  {notifHistory.length > 0 && (
-                    <button
-                      onClick={clearHistory}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      Törlés
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-80 overflow-y-auto divide-y">
-                  {notifHistory.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      Nincsenek értesítések
-                    </div>
-                  ) : (
-                    notifHistory.map(entry => (
-                      <div key={entry.id} className="px-4 py-2.5 flex items-start gap-2.5">
-                        {entry.type === 'success' && <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" />}
-                        {entry.type === 'error' && <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive" />}
-                        {entry.type === 'info' && <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs leading-snug break-words">{entry.message}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {entry.timestamp.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+            <div className="absolute right-0 top-10 z-40 w-80 rounded-xl border bg-popover shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+                <span className="text-sm font-semibold">Legutóbbi értesítések</span>
               </div>
-            </>
+
+              <div className="max-h-80 overflow-y-auto divide-y">
+                {notifHistory.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    Nincsenek értesítések
+                  </div>
+                ) : (
+                  notifHistory.slice(0, 5).map(entry => (
+                    <div key={entry.id} className="px-4 py-2.5 flex items-start gap-2.5">
+                      {entry.type === 'success' && <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" />}
+                      {entry.type === 'error' && <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-destructive" />}
+                      {entry.type === 'info' && <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-blue-500" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs leading-snug break-words">{entry.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {new Date(entry.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              {notifHistory.length > 0 && (
+                <div className="p-2 border-t bg-muted/10">
+                  <button
+                    onClick={() => {
+                      setNotifOpen(false);
+                      setSheetOpen(true);
+                    }}
+                    className="w-full text-xs font-medium text-center py-2 rounded-md hover:bg-muted/50 transition-colors text-primary"
+                  >
+                    Összes megtekintése
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
+
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0" hideClose={true}>
+            <SheetHeader className="px-6 py-4 border-b">
+              <div className="flex items-center justify-between">
+                <SheetTitle>Értesítés előzmények</SheetTitle>
+              </div>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {notifHistory.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  Nincsenek értesítések
+                </div>
+              ) : (
+                notifHistory.map(entry => (
+                  <div key={entry.id} className="flex items-start gap-3 rounded-lg border p-3 shadow-sm bg-card">
+                    {entry.type === 'success' && <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0 text-emerald-500" />}
+                    {entry.type === 'error' && <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-destructive" />}
+                    {entry.type === 'info' && <Info className="h-5 w-5 mt-0.5 shrink-0 text-blue-500" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-snug break-words">{entry.message}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(entry.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {/* Info button */}
         <button

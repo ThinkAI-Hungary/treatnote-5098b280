@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Search, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCombinedTreatmentItems } from '@/lib/treatmentItems';
 
 export interface ClinicTreatmentItem {
   id: string;
@@ -17,6 +18,7 @@ export interface ClinicTreatmentItem {
   visual_color: string;
   visual_icon: string;
   is_per_tooth: boolean;
+  embedding_status?: string;
 }
 
 interface TreatmentItemPickerProps {
@@ -34,25 +36,38 @@ export function TreatmentItemPicker({ telephelyId, onSelect, trigger }: Treatmen
 
   useEffect(() => {
     if (!open || items.length > 0) return;
+    
+    let isMounted = true;
     setLoading(true);
-    supabase
-      .from('clinic_treatment_items_stdl' as any)
-      .select('id, name, category, subcategory, price, visual_group, visual_color, visual_icon, is_per_tooth')
-      .eq('telephely_id', telephelyId)
-      .eq('is_active', true)
-      .order('category')
-      .order('name')
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setItems(data as unknown as ClinicTreatmentItem[]);
+    
+    fetchCombinedTreatmentItems(telephelyId)
+      .then((data) => {
+        if (isMounted) {
+          const activeItems = data
+            .filter(item => item.is_active && item.embedding_status !== 'pending' && item.embedding_status !== 'error')
+            .sort((a, b) => {
+              if (a.category === b.category) {
+                return a.name.localeCompare(b.name, 'hu');
+              }
+              return a.category.localeCompare(b.category, 'hu');
+            });
+            
+          setItems(activeItems as unknown as ClinicTreatmentItem[]);
           // Auto-expand first 2 groups
-          const groups = Array.from(new Set((data as any[]).map(d => d.category)));
+          const groups = Array.from(new Set(activeItems.map(d => d.category)));
           const exp: Record<string, boolean> = {};
           groups.slice(0, 2).forEach(g => { exp[g] = true; });
           setExpandedGroups(exp);
         }
-        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Failed to load treatment items in picker", error);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
       });
+      
+    return () => { isMounted = false; };
   }, [open, telephelyId]);
 
   const grouped = useMemo(() => {

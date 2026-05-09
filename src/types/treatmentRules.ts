@@ -43,7 +43,6 @@ export interface TreatmentRule {
 export const SCALING_OPTIONS: { value: ScalingType; label: string }[] = [
   { value: 'per_tooth', label: 'Foganként' },
   { value: 'per_case', label: 'Esetenként' },
-  { value: 'fix', label: 'Fix' },
 ];
 
 export const TARGET_TOOTH_OPTIONS: { value: TargetToothType; label: string }[] = [
