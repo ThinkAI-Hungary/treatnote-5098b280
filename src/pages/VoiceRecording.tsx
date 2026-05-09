@@ -19,6 +19,7 @@ import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory
 import { useTheme } from '@/components/ThemeProvider';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
+import { V2VerdiktDisplay, isV2Result } from '@/components/voice/V2VerdiktDisplay';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { useNavigate } from 'react-router-dom';
@@ -897,6 +898,13 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
             : (selectedJob ? selectedJob.result : verdiktResponseData);
           return showVerdikt ? (
             <div data-tour="vr-verdikt" className="col-span-full">
+              {/* V2 engine results get the new 7-tab debug display */}
+              {effectiveData && isV2Result(effectiveData) ? (
+                <V2VerdiktDisplay
+                  result={effectiveData}
+                  rawAudioText={(selectedJob as any)?.raw_audio_text || (jobs.find(j => j.id === currentJobId) as any)?.raw_audio_text}
+                />
+              ) : (
               <VerdiktDisplay
                 isLoading={isVerdiktLoading}
                 responseData={effectiveData}
@@ -954,6 +962,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
                   ) : null
                 }
               />
+              )}
             </div>
           ) : null;
         })()}

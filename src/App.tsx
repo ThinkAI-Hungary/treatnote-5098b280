@@ -28,6 +28,7 @@ const Appointments = lazy(() => import("./pages/Appointments"));
 const ExaminationsList = lazy(() => import("./pages/ExaminationsList"));
 const DentalCharting = lazy(() => import("./pages/DentalCharting"));
 const VoiceRecording = lazy(() => import("./pages/VoiceRecording"));
+const TestSuite = lazy(() => import("./pages/TestSuite"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Downloads = lazy(() => import("./pages/Downloads"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -112,6 +113,7 @@ const App = () => {
                   <Route path="/examinations" element={<ExaminationsList />} />
                   <Route path="/dental-charting" element={<DentalCharting />} />
                   <Route path="/voice-recording" element={<VoiceRecording />} />
+                  <Route path="/test-suite" element={<TestSuite />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/downloads" element={<Downloads />} />
 

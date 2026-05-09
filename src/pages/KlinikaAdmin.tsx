@@ -44,6 +44,8 @@ import { KezelesiSzabalyokTab } from '@/components/klinika/KezelesiSzabalyokTab'
 import { KezelesiTetelekTab } from '@/components/klinika/KezelesiTetelekTab';
 import { ElofizetesTab } from '@/components/klinika/ElofizetesTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
+import { V2MappingTab } from '@/components/klinika/V2MappingTab';
+import { V2ProtocolsTab } from '@/components/klinika/V2ProtocolsTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -794,6 +796,7 @@ export default function KlinikaAdmin() {
                 Tagok
               </TabsTrigger>
             )}
+            {/* Kezelési Szabályok tab hidden — replaced by V2 Protokollok
             <TabsTrigger
               value="kezelesi-szabalyok"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
@@ -801,6 +804,8 @@ export default function KlinikaAdmin() {
               <FileText className="h-4 w-4" />
               Kezelési Szabályok
             </TabsTrigger>
+            */}
+            {(profile as any)?.voice_recording_preference !== 'flexident' && (
             <TabsTrigger
               value="kezelesi-tetelek"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
@@ -808,12 +813,27 @@ export default function KlinikaAdmin() {
               <Coins className="h-4 w-4" />
               Kezelési Tételek
             </TabsTrigger>
+            )}
             <TabsTrigger
               value="szotar"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
             >
               <Book className="h-4 w-4" />
               Szótár
+            </TabsTrigger>
+            <TabsTrigger
+              value="v2-mapping"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <Sparkles className="h-4 w-4" />
+              Kezeléslista
+            </TabsTrigger>
+            <TabsTrigger
+              value="v2-protokollok"
+              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
+            >
+              <FileText className="h-4 w-4" />
+              Protokollok
             </TabsTrigger>
             <TabsTrigger
               value="elofizetes"
@@ -1240,6 +1260,14 @@ export default function KlinikaAdmin() {
                 companyName={companyName}
                 telephelyName={telephelyName}
               />
+            </TabsContent>
+
+            <TabsContent value="v2-mapping" className="mt-0">
+              <V2MappingTab telephelyId={telephelyId} />
+            </TabsContent>
+
+            <TabsContent value="v2-protokollok" className="mt-0">
+              <V2ProtocolsTab telephelyId={telephelyId} />
             </TabsContent>
 
             <TabsContent value="elofizetes" className="mt-0">

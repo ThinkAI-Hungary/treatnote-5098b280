@@ -8,6 +8,7 @@ import {
   Building2,
   Home,
   Loader2,
+  FlaskConical,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1049,6 +1050,21 @@ export function AppSidebar() {
                 {adminMenuItems.map((item) => (
                   <StaticMenuItem key={item.title} item={item} collapsed={collapsed} />
                 ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Test Suite - Only shown for zsolt@gmail.com */}
+        {user?.email === 'zsolt@gmail.com' && (
+          <SidebarGroup>
+            {!collapsed && <SidebarGroupLabel>Teszt</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <StaticMenuItem
+                  item={{ title: 'Test Suite', url: '/test-suite', icon: FlaskConical }}
+                  collapsed={collapsed}
+                />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

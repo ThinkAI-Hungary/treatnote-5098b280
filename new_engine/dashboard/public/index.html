@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TreatNote V2 — Mapping Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🦷 TreatNote V2</h1>
+      <span class="badge">Mapping Dashboard</span>
+    </div>
+    <div class="header-right">
+      <label for="telephelySelect">Telephely:</label>
+      <select id="telephelySelect"></select>
+      <div class="stats" id="stats"></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="mappings">📋 Atomi Hozzárendelések</button>
+    <button class="tab" data-tab="templates">📦 Protokoll Template-ek</button>
+  </nav>
+
+  <main>
+    <!-- ── MAPPINGS TAB ── -->
+    <section id="tab-mappings" class="tab-content active">
+      <div class="toolbar">
+        <input type="text" id="searchMappings" placeholder="Keresés slug, szótár név…" />
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">Összes</button>
+          <button class="filter-btn" data-filter="high">🟢 High ≥0.8</button>
+          <button class="filter-btn" data-filter="medium">🟡 Medium</button>
+          <button class="filter-btn" data-filter="low">🔴 Low &lt;0.5</button>
+          <button class="filter-btn" data-filter="conditions">🔀 Feltételes</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="mappingsTable">
+          <thead>
+            <tr>
+              <th>Atomi akció</th>
+              <th>Feltételek</th>
+              <th>Szótár tétel</th>
+              <th>Conf.</th>
+              <th>Státusz</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="mappingsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── TEMPLATES TAB ── -->
+    <section id="tab-templates" class="tab-content">
+      <div class="toolbar">
+        <input type="text" id="searchTemplates" placeholder="Keresés template név, trigger…" />
+        <button class="btn-new-tpl" id="newTemplateBtn">+ Új protokoll</button>
+      </div>
+      <div id="templatesGrid" class="templates-grid"></div>
+    </section>
+  </main>
+
+  <!-- ── MAPPING EDIT MODAL ── -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Szótár tétel szerkesztése</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-info">
+          <span class="modal-label">Atomi akció:</span>
+          <span id="modalSlug" class="mono"></span>
+        </div>
+        <div class="modal-info">
+          <span class="modal-label">Jelenlegi:</span>
+          <span id="modalCurrent" class="current-val"></span>
+        </div>
+        <div class="modal-search-wrap">
+          <input type="text" id="modalSearch" placeholder="Szótár tétel keresése…" />
+        </div>
+        <div class="modal-list" id="modalList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="modalCancel">Mégse</button>
+        <button class="btn-save" id="modalSave" disabled>Mentés</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TEMPLATE EDIT MODAL ── -->
+  <div class="modal-overlay" id="tplEditModal">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="tplModalTitle">Protokoll szerkesztése</h2>
+        <button class="modal-close" id="tplModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tpl-form-grid">
+          <label>Név:</label>
+          <input type="text" id="tplNameInput" placeholder="Protokoll neve…" />
+
+          <label>Kategória:</label>
+          <select id="tplCategorySelect">
+            <option value="konzervalo">Konzerváló</option>
+            <option value="szajsebeszet">Szájsebészet</option>
+            <option value="implantacio">Implantáció</option>
+            <option value="fogpotlastan">Fogpótlástan</option>
+            <option value="parodontologia">Parodontológia</option>
+            <option value="diagnosztika">Diagnosztika</option>
+            <option value="fogszabalyozas">Fogszabályozás</option>
+            <option value="egyeb">Egyéb</option>
+          </select>
+
+          <label>Triggerek:</label>
+          <input type="text" id="tplTriggersInput" placeholder="trigger1, trigger2, …" />
+
+          <label>Leírás:</label>
+          <input type="text" id="tplDescInput" placeholder="Opcionális leírás…" />
+        </div>
+
+        <div class="visits-section">
+          <div class="visits-header">
+            <h3>Vizitek</h3>
+            <button class="btn-add-visit" id="addVisitBtn">+ Vizit hozzáadása</button>
+          </div>
+          <div id="visitsEditor"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="tplModalCancel">Mégse</button>
+        <button class="btn-save" id="tplModalSave">Mentés</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
