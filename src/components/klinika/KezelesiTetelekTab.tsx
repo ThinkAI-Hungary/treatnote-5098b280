@@ -137,6 +137,9 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
+      const isWarning = !item.name || !item.category || item.price === null || item.price === undefined;
+      if (showWarnings && !isWarning) return false;
+
       const matchesSearch = !searchTerm || item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
@@ -163,7 +166,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     }
 
     return result;
-  }, [items, searchTerm, categoryFilter, sortConfig]);
+  }, [items, searchTerm, categoryFilter, sortConfig, showWarnings]);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -279,6 +282,12 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
       setDialogOpen(false);
       loadItems();
+
+      // Trigger embedding generation in the background
+      supabase.functions.invoke('generate-szotar-embeddings', {
+        body: { telephely_id: telephelyId, mode: 'native' }
+      }).catch(console.error);
+
     } catch (err: any) {
       console.error('Error saving item:', err);
       if (err.message?.includes('unique') || err.code === '23505') {
@@ -377,14 +386,14 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     // Ha kikapcsoljuk, ellenőrizzük a függőségeket a treatment_rules-ban!
     try {
       setIsDeactivating(true);
-      // Keresünk olyan AKTÍV szabályokat, amelyekben ez a tétel szerepel a rule_items vagy rule_visits JSON-ben.
+      // Keresünk olyan AKTÍV szabályokat, amelyekben ez a tétel szerepel a rule_items_stdl-ben.
       const { data: rules, error: rulesError } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .select(`
           id, 
           name, 
-          visits:rule_visits(
-            items:rule_items(item_id)
+          visits:rule_visits_stdl(
+            items:rule_items_stdl(item_id)
           )
         `)
         .eq('clinic_id', telephelyId)
@@ -444,7 +453,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
       if (affectedRuleIds && affectedRuleIds.length > 0) {
         for (const ruleId of affectedRuleIds) {
           const { error: ruleUpdateError } = await supabase
-            .from('treatment_rules')
+            .from('treatment_rules_stdl')
             .update({ aktiv: false }) // FIGYELEM: 'aktiv' az oszlop!
             .eq('id', ruleId);
           if (ruleUpdateError) {
@@ -514,6 +523,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
       if (error) throw error;
       toast.success(`${rows.length} tétel importálva`);
+      window.dispatchEvent(new Event('SZOTAR_DATA_CHANGED'));
       loadItems();
     } catch (err: any) {
       console.error('CSV import error:', err);

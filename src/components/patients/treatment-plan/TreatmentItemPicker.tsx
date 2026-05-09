@@ -88,7 +88,7 @@ export function TreatmentItemPicker({ telephelyId, onSelect, trigger }: Treatmen
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="start">
+      <PopoverContent className="w-[360px] p-0" align="start" side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -97,12 +97,11 @@ export function TreatmentItemPicker({ telephelyId, onSelect, trigger }: Treatmen
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-8 h-8 text-sm"
-              autoFocus
             />
           </div>
         </div>
 
-        <ScrollArea className="max-h-[320px]">
+        <div className="max-h-[320px] overflow-y-auto custom-scrollbar-purple">
           {loading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Betöltés...</div>
           ) : grouped.length === 0 ? (
@@ -148,7 +147,7 @@ export function TreatmentItemPicker({ telephelyId, onSelect, trigger }: Treatmen
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

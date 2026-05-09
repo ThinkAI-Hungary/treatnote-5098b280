@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -57,6 +57,7 @@ interface KlinikaAdminContact {
   phone: string | null;
 }
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
@@ -157,8 +158,9 @@ export default function Dashboard() {
   // ── Szabályok generálása szótárból webhook (delegates to module-level store) ──
   const handleGenerateRules = useCallback(() => {
     if (!activeTelephelyId || !user) return;
-    startSzabalyokGeneration(activeTelephelyId, user.id, hasRules, () => setHasRules(true));
-  }, [activeTelephelyId, user, hasRules]);
+    const mode = profile?.voice_recording_preference === 'treatnote_native' ? 'native' : 'flexi';
+    startSzabalyokGeneration(activeTelephelyId, user.id, mode === 'native' ? hasNativeRules : hasRules, () => setHasRules(true), mode);
+  }, [activeTelephelyId, user, hasRules, hasNativeRules, profile?.voice_recording_preference]);
 
   const [hasAckMode, setHasAckMode] = useState(false);
 
@@ -190,16 +192,17 @@ export default function Dashboard() {
           completed: hasSzotarNative,
           adminOnly: true,
           actionLabel: 'Tételek szerkesztése',
+          editable: true,
         },
         {
-          id: 'sync_native',
-          icon: RefreshCw,
-          title: 'Adatok automatikus szinkronizálása',
-          description: hasSzotarNative 
-            ? 'A rendszer automatikusan szinkronizálta a klinika kezelési adatait.' 
-            : 'A rendszer várja, hogy a Klinika Adminisztrátor beállítsa a kezelési szótárat.',
-          completed: hasSzotarNative,
-          adminOnly: false,
+          id: 'rules_native',
+          icon: ClipboardList,
+          title: 'Kezelési szabályok beállítása',
+          description: 'Rögzítse vagy töltse fel a klinika kezelési szabályait.',
+          completed: hasNativeRules,
+          adminOnly: true,
+          actionLabel: 'Szabályok szerkesztése',
+          editable: true,
         }
       ];
     }
@@ -290,11 +293,11 @@ export default function Dashboard() {
       case 'rules':
         handleGenerateRules();
         break;
-      case 'szotar_native':
-        setNativeSzotarDialogOpen(true);
-        break;
       case 'rules_native':
         setNativeRulesDialogOpen(true);
+        break;
+      case 'szotar_native':
+        setNativeSzotarDialogOpen(true);
         break;
     }
   };
@@ -370,7 +373,12 @@ export default function Dashboard() {
     return () => window.removeEventListener('taskbar-info', handler);
   }, [startDashTour]);
 
-  if (isLoading) {
+  const initialLoadRef = useRef(false);
+  if (!isLoading) {
+    initialLoadRef.current = true;
+  }
+
+  if (isLoading && !initialLoadRef.current) {
     return null;
   }
 
@@ -389,145 +397,150 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Header */}
-      <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
+      {/* Header and Steps - Hidden until mode is acknowledged */}
+      {hasAckMode && (
+        <>
+          {/* Header */}
+          <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
 
 
-        <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
-              !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
-            )}
-            style={allComplete
-              ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
-              : undefined
-            }
-          >
-            {allComplete ? (
-              <PartyPopper className="h-7 w-7 text-white" />
-            ) : (
-              <Stethoscope className="h-7 w-7 text-white" />
-            )}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {allComplete
-                ? 'Minden beállítás kész :) — használja az alkalmazást teljes mértékben!'
-                : 'Kövesse az alábbi lépéseket a rendszer beállításához.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {!allComplete && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-muted-foreground">Beállítás állapota</span>
-              <span className="text-primary font-semibold">{completedCount}/{totalCount} kész</span>
-            </div>
-            <div className="h-2.5 rounded-full bg-muted/50 overflow-hidden">
+            <div className="flex items-center gap-4">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
+                className={cn(
+                  "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
+                  !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
+                )}
+                style={allComplete
+                  ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
+                  : undefined
+                }
+              >
+                {allComplete ? (
+                  <PartyPopper className="h-7 w-7 text-white" />
+                ) : (
+                  <Stethoscope className="h-7 w-7 text-white" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  {allComplete
+                    ? 'Minden beállítás kész :) — használja az alkalmazást teljes mértékben!'
+                    : 'Kövesse az alábbi lépéseket a rendszer beállításához.'}
+                </p>
+              </div>
             </div>
+
+            {/* Progress bar */}
+            {!allComplete && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-muted-foreground">Beállítás állapota</span>
+                  <span className="text-primary font-semibold">{completedCount}/{totalCount} kész</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-muted/50 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
 
 
 
-      {/* Onboarding steps */}
-      {!allComplete && (
-        <div data-tour="dashboard-steps" className="space-y-3">
-          {isKlinikaAdminOrAdmin ? (
-            /* ── Klinika Admin / Admin: actionable steps ── */
-            allSteps.map((step, idx) => {
-              // A loading step is neither "complete" nor "the next actionable step" —
-              // treat it as a placeholder so subsequent real steps can take its place.
-              const isFirstIncomplete =
-                !step.completed && !step.loading &&
-                allSteps.slice(0, idx).every(s => s.completed || s.loading);
-              return (
-                <StepCard
-                  key={step.id}
-                  step={step}
-                  index={idx}
-                  isCurrent={isFirstIncomplete}
-                  isProcessing={isStepProcessing(step.id)}
-                  onAction={() => handleStepAction(step.id)}
-                />
-              );
-            })
-          ) : (
-            /* ── Felhasználó ── */
-            <>
-              {userOwnSteps.map((step, idx) => (
-                <StepCard
-                  key={step.id}
-                  step={step}
-                  index={idx}
-                  isCurrent={!step.completed && !step.loading}
-                  isProcessing={isStepProcessing(step.id)}
-                  onAction={() => handleStepAction(step.id)}
-                />
-              ))}
+          {/* Onboarding steps */}
+          {!allComplete && (
+            <div data-tour="dashboard-steps" className="space-y-3">
+              {isKlinikaAdminOrAdmin ? (
+                /* ── Klinika Admin / Admin: actionable steps ── */
+                allSteps.map((step, idx) => {
+                  // A loading step is neither "complete" nor "the next actionable step" —
+                  // treat it as a placeholder so subsequent real steps can take its place.
+                  const isFirstIncomplete =
+                    !step.completed && !step.loading &&
+                    allSteps.slice(0, idx).every(s => s.completed || s.loading);
+                  return (
+                    <StepCard
+                      key={step.id}
+                      step={step}
+                      index={idx}
+                      isCurrent={isFirstIncomplete}
+                      isProcessing={isStepProcessing(step.id)}
+                      onAction={() => handleStepAction(step.id)}
+                    />
+                  );
+                })
+              ) : (
+                /* ── Felhasználó ── */
+                <>
+                  {userOwnSteps.map((step, idx) => (
+                    <StepCard
+                      key={step.id}
+                      step={step}
+                      index={idx}
+                      isCurrent={!step.completed && !step.loading}
+                      isProcessing={isStepProcessing(step.id)}
+                      onAction={() => handleStepAction(step.id)}
+                    />
+                  ))}
 
-              {/* Admin-managed missing items shown as read-only */}
-              {adminMissingSteps.length > 0 && (
-                <Card className="border-yellow-500/30 bg-yellow-500/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <UserCog className="h-5 w-5 text-yellow-500" />
-                      A Klinika Admin által elvégzendő lépések
-                    </CardTitle>
-                    <CardDescription>
-                      Az alábbi beállításokat a Klinika Adminisztrátor tudja elvégezni.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <ul className="space-y-2">
-                      {adminMissingSteps.map(step => (
-                        <li key={step.id} className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <Circle className="h-4 w-4 text-yellow-500/60 flex-shrink-0" />
-                          <span>{step.title}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {klinikaAdmins.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Klinika Admin elérhetősége:</p>
-                        <div className="space-y-1.5">
-                          {klinikaAdmins.map((admin, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              <UserCog className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
-                              <span className="font-medium">{admin.full_name || 'Ismeretlen'}</span>
-                              {admin.phone && (
-                                <>
-                                  <span className="text-muted-foreground">·</span>
-                                  <a href={`tel:${admin.phone}`} className="flex items-center gap-1 text-primary hover:underline">
-                                    <Phone className="h-3 w-3" />
-                                    {admin.phone}
-                                  </a>
-                                </>
-                              )}
-                            </div>
+                  {/* Admin-managed missing items shown as read-only */}
+                  {adminMissingSteps.length > 0 && (
+                    <Card className="border-yellow-500/30 bg-yellow-500/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <UserCog className="h-5 w-5 text-yellow-500" />
+                          A Klinika Admin által elvégzendő lépések
+                        </CardTitle>
+                        <CardDescription>
+                          Az alábbi beállításokat a Klinika Adminisztrátor tudja elvégezni.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <ul className="space-y-2">
+                          {adminMissingSteps.map(step => (
+                            <li key={step.id} className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <Circle className="h-4 w-4 text-yellow-500/60 flex-shrink-0" />
+                              <span>{step.title}</span>
+                            </li>
                           ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </ul>
+
+                        {klinikaAdmins.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Klinika Admin elérhetősége:</p>
+                            <div className="space-y-1.5">
+                              {klinikaAdmins.map((admin, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                  <UserCog className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
+                                  <span className="font-medium">{admin.full_name || 'Ismeretlen'}</span>
+                                  {admin.phone && (
+                                    <>
+                                      <span className="text-muted-foreground">·</span>
+                                      <a href={`tel:${admin.phone}`} className="flex items-center gap-1 text-primary hover:underline">
+                                        <Phone className="h-3 w-3" />
+                                        {admin.phone}
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
               )}
-            </>
+            </div>
           )}
-        </div>
+        </>
       )}
 
 

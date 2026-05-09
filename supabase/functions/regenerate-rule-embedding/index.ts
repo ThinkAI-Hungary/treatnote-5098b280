@@ -53,7 +53,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { rule_id } = await req.json();
+    const { rule_id, mode = "flexi" } = await req.json();
 
     if (!rule_id) {
       return new Response(
@@ -62,11 +62,18 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Regenerating embeddings for rule: ${rule_id}`);
+    const isNative = mode === "native";
+    const rulesTable = isNative ? "treatment_rules_stdl" : "treatment_rules";
+    const visitsTable = isNative ? "rule_visits_stdl" : "rule_visits";
+    const itemsTable = isNative ? "rule_items_stdl" : "rule_items";
+    const embeddingsTable = isNative ? "treatment_embeddings_stdl" : "treatment_embeddings";
+    const upsertRpc = isNative ? "upsert_treatment_embedding_stdl" : "upsert_treatment_embedding";
+
+    console.log(`Regenerating embeddings for rule: ${rule_id} in mode: ${mode}`);
 
     // 1. Fetch the rule with its visits and items
     const { data: rule, error: ruleError } = await supabase
-      .from("treatment_rules")
+      .from(rulesTable)
       .select("id, name, semantic_description")
       .eq("id", rule_id)
       .single();
@@ -81,7 +88,7 @@ serve(async (req) => {
 
     // 2. Fetch all items for this rule via visits
     const { data: visits, error: visitsError } = await supabase
-      .from("rule_visits")
+      .from(visitsTable)
       .select("id")
       .eq("rule_id", rule_id);
 
@@ -98,7 +105,7 @@ serve(async (req) => {
 
     if (visitIds.length > 0) {
       const { data: items, error: itemsError } = await supabase
-        .from("rule_items")
+        .from(itemsTable)
         .select("name")
         .in("visit_id", visitIds);
 
@@ -111,7 +118,7 @@ serve(async (req) => {
 
     // 3. Delete existing embeddings for this rule
     const { error: deleteError } = await supabase
-      .from("treatment_embeddings")
+      .from(embeddingsTable)
       .delete()
       .eq("treatment_rule_id", rule_id);
 
@@ -176,7 +183,7 @@ serve(async (req) => {
       }
 
       const embeddingVector = `[${embedding.join(",")}]`;
-      const { error: upsertError } = await supabase.rpc("upsert_treatment_embedding", {
+      const { error: upsertError } = await supabase.rpc(upsertRpc, {
         p_treatment_rule_id: rule_id,
         p_text_source: item.text,
         p_source_type: item.source_type,

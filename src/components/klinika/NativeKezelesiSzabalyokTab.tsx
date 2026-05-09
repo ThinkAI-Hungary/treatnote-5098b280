@@ -26,6 +26,7 @@ import {
   Link2,
   ArrowUp,
   ArrowDown,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
@@ -196,7 +197,7 @@ export function NativeKezelesiSzabalyokTab({
     }
     try {
       const { data: rulesData, error: rulesError } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .select('*')
         .eq('clinic_id', telephelyId)
         .order('created_at', { ascending: false });
@@ -207,7 +208,7 @@ export function NativeKezelesiSzabalyokTab({
 
       for (const rule of rulesData || []) {
         const { data: visitsData, error: visitsError } = await supabase
-          .from('rule_visits')
+          .from('rule_visits_stdl')
           .select('*')
           .eq('rule_id', rule.id)
           .order('display_order');
@@ -218,7 +219,7 @@ export function NativeKezelesiSzabalyokTab({
 
         for (const visit of visitsData || []) {
           const { data: itemsData, error: itemsError } = await supabase
-            .from('rule_items')
+            .from('rule_items_stdl')
             .select('*')
             .eq('visit_id', visit.id)
             .order('display_order');
@@ -286,7 +287,7 @@ export function NativeKezelesiSzabalyokTab({
         
         // Update DB
         await supabase
-          .from('treatment_rules')
+          .from('treatment_rules_stdl')
           .update({ aktiv: false })
           .in('id', idsToDeactivate);
 
@@ -320,13 +321,13 @@ export function NativeKezelesiSzabalyokTab({
     if (!telephelyId) return;
 
     const channel = supabase
-      .channel(`treatment_rules_realtime_${telephelyId}`)
+      .channel(`treatment_rules_stdl_realtime_${telephelyId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'treatment_rules',
+          table: 'treatment_rules_stdl',
           filter: `clinic_id=eq.${telephelyId}`,
         },
         async (payload: any) => {
@@ -346,7 +347,7 @@ export function NativeKezelesiSzabalyokTab({
             // Helper to fetch a rule with its visits + items
             const fetchRuleWithDetails = async (ruleId: string) => {
               const { data, error } = await supabase
-                .from('treatment_rules')
+                .from('treatment_rules_stdl')
                 .select(`
                   *,
                   visits:rule_visits(
@@ -593,11 +594,12 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       const { error } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .delete()
         .eq('id', idToDelete);
 
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error deleting rule:', err);
       toast.error('Hiba a törléskor');
@@ -634,11 +636,12 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       const { error } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .delete()
         .in('id', deletableIds);
 
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error bulk deleting rules:', err);
       toast.error('Hiba a törléskor');
@@ -722,7 +725,7 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       const { error } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .update({ aktiv: newValue })
         .in('id', idsToToggle);
       if (error) throw error;
@@ -752,16 +755,17 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       const { error: err1 } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .update({ aktiv: false })
         .eq('id', linkedId);
       if (err1) throw err1;
 
       const { error: err2 } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .update({ aktiv: true })
         .eq('id', targetId);
       if (err2) throw err2;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error linked toggle:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -802,10 +806,11 @@ export function NativeKezelesiSzabalyokTab({
       
       // 2. Activate the rules
       const { error: ruleErr } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .update({ aktiv: true })
         .in('id', ruleIdsToToggle);
       if (ruleErr) throw ruleErr;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error activating rule with items:', err);
       toast.error('Hiba az aktiválás során');
@@ -836,10 +841,11 @@ export function NativeKezelesiSzabalyokTab({
 
     try {
       const { error } = await supabase
-        .from('treatment_rules')
+        .from('treatment_rules_stdl')
         .update({ aktiv: newValue })
         .in('id', ids);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -1064,6 +1070,7 @@ export function NativeKezelesiSzabalyokTab({
           telephely_id: telephelyId,
           user_id: user.id,
           regenerate: isRegenerate,
+          mode: 'native',
         },
       });
 
@@ -1191,15 +1198,23 @@ export function NativeKezelesiSzabalyokTab({
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </GalaxyButton>
             <GalaxyButton
+              onClick={handleNewRule}
+              variant="outline"
+              className="bg-background"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Új szabály kézzel
+            </GalaxyButton>
+            <GalaxyButton
               onClick={handleGenerateFromDictionary}
               disabled={generating || backgroundProcessing || loading || szotarLoading || !hasSzotar}
-              className="relative"
-              title={(!hasSzotar && !szotarLoading) ? "A generáláshoz előbb legalább 1 elemet fel kell vennie a FlexiDent szótárba" : undefined}
+              className="relative min-w-[280px]"
+              title={(!hasSzotar && !szotarLoading) ? "A generáláshoz előbb legalább 1 elemet fel kell vennie a Kezelési Tételek közé" : undefined}
             >
               {(generating || backgroundProcessing || loading || szotarLoading) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              {(loading || szotarLoading) ? 'Betöltés...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szabályok újragenerálása' : 'Generálás szótárból')}
+              {(loading || szotarLoading) ? 'Betöltés...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Kezelési tételekből újragenerálás' : 'Kezelési tételekből generálás')}
             </GalaxyButton>
           </div>
         </div>
@@ -1635,8 +1650,10 @@ export function NativeKezelesiSzabalyokTab({
               }
               return next;
             });
+            notifyRulesDataChanged();
           } else {
             loadRules(); // Fallback
+            notifyRulesDataChanged();
           }
           setOriginalRuleIdToDeactivate(null);
         }}

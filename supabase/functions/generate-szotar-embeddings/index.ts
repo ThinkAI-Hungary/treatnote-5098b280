@@ -43,15 +43,21 @@ async function processEmbeddings(
   supabaseUrl: string,
   supabaseServiceKey: string,
   openaiApiKey: string,
-  telephelyId: string
+  telephelyId: string,
+  mode: string
 ) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  console.log(`Starting embedding generation for telephely: ${telephelyId}`);
+  console.log(`Starting embedding generation for telephely: ${telephelyId} in mode: ${mode}`);
 
-  // 1. Get all szotar_kezelesek for this telephely
+  const isNative = mode === "native";
+  const kezelesekTable = isNative ? 'clinic_treatment_items_stdl' : 'szotar_kezelesek';
+  const embeddingsTable = isNative ? 'szotar_embeddings_stdl' : 'szotar_embeddings';
+  const upsertRpc = isNative ? 'upsert_szotar_embedding_stdl' : 'upsert_szotar_embedding';
+
+  // 1. Get all kezelesek for this telephely
   const { data: kezelesek, error: fetchError } = await supabase
-    .from('szotar_kezelesek')
+    .from(kezelesekTable)
     .select('id, name, category')
     .eq('telephely_id', telephelyId);
 
@@ -70,9 +76,9 @@ async function processEmbeddings(
   // 2. Get existing embeddings - fetch all for this telephely via join instead of IN clause
   // This avoids URL length limits with many UUIDs
   const { data: existingEmbeddings, error: embeddingsError } = await supabase
-    .from('szotar_embeddings')
-    .select('szotar_kezeles_id, source_type, szotar_kezelesek!inner(telephely_id)')
-    .eq('szotar_kezelesek.telephely_id', telephelyId);
+    .from(embeddingsTable)
+    .select(`szotar_kezeles_id, source_type, ${kezelesekTable}!inner(telephely_id)`)
+    .eq(`${kezelesekTable}.telephely_id`, telephelyId);
 
   if (embeddingsError) {
     console.error('Error fetching existing embeddings:', embeddingsError);
@@ -132,7 +138,7 @@ async function processEmbeddings(
         const embedding = embeddings[j];
         const embeddingStr = `[${embedding.join(',')}]`;
 
-        const { error: upsertError } = await supabase.rpc('upsert_szotar_embedding', {
+        const { error: upsertError } = await supabase.rpc(upsertRpc, {
           p_szotar_kezeles_id: task.id,
           p_text_source: task.text,
           p_source_type: task.sourceType,
@@ -174,7 +180,7 @@ serve(async (req) => {
       );
     }
 
-    const { telephely_id } = await req.json();
+    const { telephely_id, mode = "flexi" } = await req.json();
 
     if (!telephely_id) {
       return new Response(
@@ -188,7 +194,7 @@ serve(async (req) => {
     // Process embeddings in background
     // @ts-ignore: EdgeRuntime is available in Supabase Edge Functions
     EdgeRuntime.waitUntil(
-      processEmbeddings(supabaseUrl, supabaseServiceKey, openaiApiKey, telephely_id)
+      processEmbeddings(supabaseUrl, supabaseServiceKey, openaiApiKey, telephely_id, mode)
         .then(result => {
           console.log('Background embedding generation completed:', result);
         })

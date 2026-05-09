@@ -48,9 +48,7 @@ export default function PatientOverview() {
       let companyMap = new Map<string, string>();
       if (companyIds.length > 0) {
         const { data: companies } = await supabase
-          .from('companies')
-          .select('id, display_name, name')
-          .in('id', companyIds);
+          .rpc('get_companies_basic_info', { company_ids: companyIds });
         companyMap = new Map((companies || []).map((c: any) => [c.id, c.display_name || c.name || null]));
       }
       setSharedWith(tRows.map((t: any) => ({

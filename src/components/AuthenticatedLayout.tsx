@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +37,21 @@ function LayoutHeader() {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    if (notifOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [notifOpen]);
 
   // Filter out dismissed notifications for the header — they remain in Értesítések tab
   const visibleIncoming = incoming.filter(r => !dismissedIds.has(r.id));
@@ -142,14 +157,16 @@ function LayoutHeader() {
       {/* Right: taskbar actions */}
       <div className="flex items-center gap-1">
         {/* Notification history button */}
-        <div className="relative">
+        <div className="relative" ref={notifRef}>
           <button
             onClick={() => {
               const opening = !notifOpen;
               setNotifOpen(opening);
               if (opening) markAllRead();
             }}
-            className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors duration-200"
+            className={`relative z-40 flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-200 ${
+              notifOpen ? 'bg-muted/60 text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            }`}
             aria-label="Értesítés előzmények"
             title="Értesítés előzmények"
           >
@@ -164,7 +181,6 @@ function LayoutHeader() {
 
           {notifOpen && (
             <>
-              <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
               <div className="absolute right-0 top-10 z-40 w-80 rounded-xl border bg-popover shadow-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
                   <span className="text-sm font-semibold">Értesítés előzmények</span>

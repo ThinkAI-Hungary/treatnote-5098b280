@@ -133,6 +133,7 @@ export async function startSzabalyokGeneration(
     userId: string,
     isRegenerate: boolean,
     onRulesCreated: () => void,
+    mode: string = 'flexi'
 ) {
     if (szabalyokGenerating) return; // prevent duplicate
     szabalyokGenerating = true;
@@ -144,6 +145,7 @@ export async function startSzabalyokGeneration(
                 telephely_id: telephelyId,
                 user_id: userId,
                 regenerate: isRegenerate,
+                mode: mode,
             },
         });
         if (error) throw new Error(error.message || 'Edge function error');

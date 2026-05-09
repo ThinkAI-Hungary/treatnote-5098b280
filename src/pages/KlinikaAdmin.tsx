@@ -162,10 +162,10 @@ export default function KlinikaAdmin() {
     checkRules();
   }, [activeTelephelyId]);
 
-  const { hasSzotarNative, isLoading: szotarStdlLoading } = useSzotarStdl();
+  const { hasSzotarNative, hasNativeRules, isLoading: szotarStdlLoading } = useSzotarStdl();
 
   const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
-  const nativeComplete = hasSzotarNative; // Native rules removed from guard
+  const nativeComplete = hasSzotarNative && hasNativeRules;
   
   const allOnboardingComplete = nativeComplete || flexiComplete;
   const onboardingLoading = szotarLoading || isFlexiLoading || rulesGuardLoading || szotarStdlLoading;

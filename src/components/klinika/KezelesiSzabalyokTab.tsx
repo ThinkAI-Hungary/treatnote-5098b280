@@ -1041,6 +1041,7 @@ export function KezelesiSzabalyokTab({
           telephely_id: telephelyId,
           user_id: user.id,
           regenerate: isRegenerate,
+          mode: 'flexi',
         },
       });
 

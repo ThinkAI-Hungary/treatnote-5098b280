@@ -685,7 +685,7 @@ export function AppSidebar() {
   // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
   const isNativeMode = profile?.voice_recording_preference === 'treatnote_native';
   const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
-  const nativeComplete = hasSzotarNative && hasNativeRules; // native items + at least 1 active native rule
+  const nativeComplete = hasNativeRules; // if there is at least 1 active native rule, consider it complete
   
   const allOnboardingComplete = nativeComplete || flexiComplete;
   const showProtectedItems = allOnboardingComplete;

@@ -122,10 +122,10 @@ export async function processSemanticMatching(tetelLista: any[], telephelyId: st
     function extractSortedRuleItems(rule: any) {
         if (!rule || !rule.rule_visits) return [];
         const items: any[] = [];
-        const visits = Array.isArray(rule.rule_visits) ? rule.rule_visits : [];
+        const visits = Array.isArray(rule.rule_visits_stdl) ? rule.rule_visits_stdl : [];
         for (const visit of visits) {
             const vNum = parseInt(visit.visit_number) || 1;
-            const rItems = Array.isArray(visit.rule_items) ? visit.rule_items : [];
+            const rItems = Array.isArray(visit.rule_items_stdl) ? visit.rule_items_stdl : [];
             for (const item of rItems) {
                 items.push({
                     visit_number: vNum,
@@ -207,8 +207,8 @@ export async function processSemanticMatching(tetelLista: any[], telephelyId: st
     async function fetchRuleDetails(ruleId: string) {
         if (ruleCache.has(ruleId)) return ruleCache.get(ruleId);
         const { data: ruleData } = await supabaseAdmin
-            .from('treatment_rules')
-            .select('*, rule_visits(*, rule_items(*))')
+            .from('treatment_rules_stdl')
+            .select('*, rule_visits_stdl(*, rule_items_stdl(*))')
             .eq('id', ruleId)
             .maybeSingle();
             
@@ -236,7 +236,7 @@ export async function processSemanticMatching(tetelLista: any[], telephelyId: st
         let matchSource = null;
         let decisionReason = "";
 
-        const { data: matches } = await supabaseAdmin.rpc('match_treatment_embedding', {
+        const { data: matches } = await supabaseAdmin.rpc('match_treatment_embedding_stdl', {
             query_embedding: `[${embedding.join(',')}]`,
             match_threshold: SIMILARITY_THRESHOLD,
             match_count: 5,
@@ -330,7 +330,7 @@ export async function processSemanticMatching(tetelLista: any[], telephelyId: st
 
             log(`  -> Fallback indítása...`);
 
-            const { data: fallbackMatches } = await supabaseAdmin.rpc('match_szotar_embedding', {
+            const { data: fallbackMatches } = await supabaseAdmin.rpc('match_szotar_embedding_stdl', {
                 query_embedding: `[${embedding.join(',')}]`,
                 match_threshold: SIMILARITY_THRESHOLD,
                 match_count: 1,

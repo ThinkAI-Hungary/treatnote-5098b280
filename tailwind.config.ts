@@ -197,8 +197,6 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         float: "float 3s ease-in-out infinite",
         "pulse-fade": "pulse-fade 2s ease-in-out infinite",
-        enter: "fade-in 0.3s ease-out, scale-in 0.2s ease-out",
-        exit: "fade-out 0.3s ease-out, scale-out 0.2s ease-out",
       },
       backgroundImage: {
         "galaxy-gradient": "linear-gradient(135deg, hsl(260 40% 6%) 0%, hsl(270 50% 12%) 25%, hsl(260 45% 8%) 50%, hsl(195 40% 10%) 75%, hsl(260 40% 6%) 100%)",

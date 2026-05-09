@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { subscribeToRulesChanges } from '@/lib/rulesEvents';
 
 interface UseSzotarStdlReturn {
   hasSzotarNative: boolean;
@@ -33,7 +34,7 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
           .select('id', { count: 'exact', head: true })
           .eq('telephely_id', activeTelephelyId),
         supabase
-          .from('treatment_rules')
+          .from('treatment_rules_stdl')
           .select('id', { count: 'exact', head: true })
           .eq('clinic_id', activeTelephelyId)
           .eq('aktiv', true)
@@ -72,11 +73,17 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
 
   // Subscribe to manual trigger events
   useEffect(() => {
-    const handleSzotarChanged = () => {
+    const handleDataChanged = () => {
       fetchNativeData();
     };
-    window.addEventListener('SZOTAR_DATA_CHANGED', handleSzotarChanged);
-    return () => window.removeEventListener('SZOTAR_DATA_CHANGED', handleSzotarChanged);
+    
+    window.addEventListener('SZOTAR_DATA_CHANGED', handleDataChanged);
+    const unsubscribeRules = subscribeToRulesChanges(handleDataChanged);
+
+    return () => {
+      window.removeEventListener('SZOTAR_DATA_CHANGED', handleDataChanged);
+      unsubscribeRules();
+    };
   }, [fetchNativeData]);
 
   return {

@@ -269,7 +269,7 @@ export function TreatmentRuleEditor({
     try {
       console.log('Regenerating embedding for rule:', ruleId);
       const { data, error } = await supabase.functions.invoke('regenerate-rule-embedding', {
-        body: { rule_id: ruleId },
+        body: { rule_id: ruleId, mode: mode || 'flexi' },
       });
 
       if (error) {
@@ -298,13 +298,18 @@ export function TreatmentRuleEditor({
     setSaving(true);
     try {
       let savedRuleId: string | null = null;
+      
+      const isNative = mode === 'native';
+      const rulesTable = isNative ? 'treatment_rules_stdl' : 'treatment_rules';
+      const visitsTable = isNative ? 'rule_visits_stdl' : 'rule_visits';
+      const itemsTable = isNative ? 'rule_items_stdl' : 'rule_items';
 
       if (isEditing && rule?.id) {
         savedRuleId = rule.id;
 
         // Update existing rule
         const { error: ruleError } = await supabase
-          .from('treatment_rules')
+          .from(rulesTable as any)
           .update({
             name: name.trim(),
             category: category || null,
@@ -316,12 +321,12 @@ export function TreatmentRuleEditor({
         if (ruleError) throw ruleError;
 
         // Delete existing visits and items (cascade will handle items)
-        await supabase.from('rule_visits').delete().eq('rule_id', rule.id);
+        await supabase.from(visitsTable as any).delete().eq('rule_id', rule.id);
 
         // Insert new visits and items
         for (const visit of renumberVisits(visits)) {
           const { data: visitData, error: visitError } = await supabase
-            .from('rule_visits')
+            .from(visitsTable as any)
             .insert({
               rule_id: rule.id,
               visit_number: visit.visit_number,
@@ -347,7 +352,7 @@ export function TreatmentRuleEditor({
             }));
 
             const { error: itemsError } = await supabase
-              .from('rule_items')
+              .from(itemsTable as any)
               .insert(itemsToInsert);
 
             if (itemsError) throw itemsError;
@@ -358,7 +363,7 @@ export function TreatmentRuleEditor({
       } else {
         // Create new rule
         const { data: ruleData, error: ruleError } = await supabase
-          .from('treatment_rules')
+          .from(rulesTable as any)
           .insert({
             clinic_id: clinicId,
             name: name.trim(),
@@ -375,7 +380,7 @@ export function TreatmentRuleEditor({
         // If this was an edit of an alapszabaly, deactivate the original
         if (originalRuleIdToDeactivate) {
           const { error: deactivateError } = await supabase
-            .from('treatment_rules')
+            .from(rulesTable as any)
             .update({ aktiv: false })
             .eq('id', originalRuleIdToDeactivate);
 
@@ -391,7 +396,7 @@ export function TreatmentRuleEditor({
         // Insert visits and items
         for (const visit of renumberVisits(visits)) {
           const { data: visitData, error: visitError } = await supabase
-            .from('rule_visits')
+            .from(visitsTable as any)
             .insert({
               rule_id: ruleData.id,
               visit_number: visit.visit_number,
@@ -417,7 +422,7 @@ export function TreatmentRuleEditor({
             }));
 
             const { error: itemsError } = await supabase
-              .from('rule_items')
+              .from(itemsTable as any)
               .insert(itemsToInsert);
 
             if (itemsError) throw itemsError;
@@ -430,12 +435,12 @@ export function TreatmentRuleEditor({
       // Fetch the complete rule to update parent state without reload
       if (savedRuleId) {
         const { data: completeRule, error: fetchError } = await supabase
-          .from('treatment_rules')
+          .from(rulesTable as any)
           .select(`
             *,
-            visits:rule_visits(
+            visits:${visitsTable}(
               *,
-              items:rule_items(*)
+              items:${itemsTable}(*)
             )
           `)
           .eq('id', savedRuleId)

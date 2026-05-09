@@ -71,7 +71,17 @@ export default function PatientManagement() {
         .order('keresztnev', { ascending: true });
 
       if (error) throw error;
-      setPatients(data || []);
+
+      // Kérjük le az érvényes telephely ID-kat, hogy a megosztások száma pontos legyen
+      const { data: validTelephelyek } = await supabase.from('telephely').select('id');
+      const validIds = new Set(validTelephelyek?.map(t => t.id) || []);
+
+      const cleanedData = (data || []).map(p => ({
+        ...p,
+        valid_telephely_count: p.telephely_ids ? p.telephely_ids.filter((id: string) => validIds.has(id)).length : 0
+      }));
+
+      setPatients(cleanedData);
     } catch (error) {
       console.error('Error fetching patients:', error);
     } finally {
@@ -105,7 +115,7 @@ export default function PatientManagement() {
         const companyIds = [...new Set((tRes.data || []).map((t: any) => t.company_id).filter(Boolean))];
         let companyMap = new Map<string, string>();
         if (companyIds.length > 0) {
-          const { data: companies } = await supabase.from('companies').select('id, display_name, name').in('id', companyIds);
+          const { data: companies } = await supabase.rpc('get_companies_basic_info', { company_ids: companyIds });
           companyMap = new Map((companies || []).map((c: any) => [c.id, c.display_name || c.name || null]));
         }
 
@@ -261,9 +271,9 @@ export default function PatientManagement() {
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-muted rounded-full">{patient.neme}</span>
                         )}
                         {/* Multi-telephely badge */}
-                        {patient.telephely_ids?.length > 1 && (
+                        {patient.valid_telephely_count > 1 && (
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-violet-500/10 text-violet-500 rounded-full text-xs">
-                            <Share2 className="h-3 w-3" /> {patient.telephely_ids.length} telephely
+                            <Share2 className="h-3 w-3" /> {patient.valid_telephely_count} telephely
                           </span>
                         )}
                       </div>
