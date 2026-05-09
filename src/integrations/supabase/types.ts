@@ -1,1 +1,3714 @@
-{"types":"export type Json =\n  | string\n  | number\n  | boolean\n  | null\n  | { [key: string]: Json | undefined }\n  | Json[]\n\nexport type Database = {\n  // Allows to automatically instantiate createClient with right options\n  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)\n  __InternalSupabase: {\n    PostgrestVersion: \"13.0.5\"\n  }\n  public: {\n    Tables: {\n      appointments: {\n        Row: {\n          appointment_date: string\n          appointment_type: string | null\n          company_id: string | null\n          created_at: string\n          end_time: string\n          id: string\n          notes: string | null\n          patient_id: string\n          reminder_sent: boolean | null\n          start_time: string\n          status: string\n          updated_at: string\n          user_id: string\n        }\n        Insert: {\n          appointment_date: string\n          appointment_type?: string | null\n          company_id?: string | null\n          created_at?: string\n          end_time: string\n          id?: string\n          notes?: string | null\n          patient_id: string\n          reminder_sent?: boolean | null\n          start_time: string\n          status?: string\n          updated_at?: string\n          user_id: string\n        }\n        Update: {\n          appointment_date?: string\n          appointment_type?: string | null\n          company_id?: string | null\n          created_at?: string\n          end_time?: string\n          id?: string\n          notes?: string | null\n          patient_id?: string\n          reminder_sent?: boolean | null\n          start_time?: string\n          status?: string\n          updated_at?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"appointments_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"appointments_patient_id_fkey\"\n            columns: [\"patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patients\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      bno_codes: {\n        Row: {\n          code: string\n          created_at: string\n          id: string\n          name: string\n          updated_at: string\n        }\n        Insert: {\n          code: string\n          created_at?: string\n          id?: string\n          name: string\n          updated_at?: string\n        }\n        Update: {\n          code?: string\n          created_at?: string\n          id?: string\n          name?: string\n          updated_at?: string\n        }\n        Relationships: []\n      }\n      bno_embeddings: {\n        Row: {\n          bno_code_id: string\n          created_at: string | null\n          embedding: string | null\n          id: string\n          source_type: string\n          text_source: string\n          updated_at: string | null\n        }\n        Insert: {\n          bno_code_id: string\n          created_at?: string | null\n          embedding?: string | null\n          id?: string\n          source_type?: string\n          text_source: string\n          updated_at?: string | null\n        }\n        Update: {\n          bno_code_id?: string\n          created_at?: string | null\n          embedding?: string | null\n          id?: string\n          source_type?: string\n          text_source?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"bno_embeddings_bno_code_id_fkey\"\n            columns: [\"bno_code_id\"]\n            isOneToOne: false\n            referencedRelation: \"bno_codes\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      bridge_actions: {\n        Row: {\n          blue_teeth: number[]\n          created_at: string\n          examination_id: string\n          id: string\n          is_sin: boolean | null\n          yellow_teeth: number[]\n        }\n        Insert: {\n          blue_teeth?: number[]\n          created_at?: string\n          examination_id: string\n          id?: string\n          is_sin?: boolean | null\n          yellow_teeth?: number[]\n        }\n        Update: {\n          blue_teeth?: number[]\n          created_at?: string\n          examination_id?: string\n          id?: string\n          is_sin?: boolean | null\n          yellow_teeth?: number[]\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"bridge_actions_examination_id_fkey\"\n            columns: [\"examination_id\"]\n            isOneToOne: false\n            referencedRelation: \"examinations\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      captcha_lessons: {\n        Row: {\n          category: string\n          grid_size: number\n          id: string\n          lesson_rules: string\n          source_count: number\n          updated_at: string\n        }\n        Insert: {\n          category: string\n          grid_size: number\n          id?: string\n          lesson_rules: string\n          source_count?: number\n          updated_at?: string\n        }\n        Update: {\n          category?: string\n          grid_size?: number\n          id?: string\n          lesson_rules?: string\n          source_count?: number\n          updated_at?: string\n        }\n        Relationships: []\n      }\n      captcha_vector: {\n        Row: {\n          ai_error_analysis: string | null\n          ai_final_tiles: number[]\n          ai_phase1_tiles: number[] | null\n          ai_phase2_tiles: number[] | null\n          analysis_done_at: string | null\n          attempt_round: number\n          challenge_text: string\n          challenge_type: string | null\n          created_at: string\n          domain: string\n          grid_screenshot_url: string | null\n          grid_size: number\n          human_tiles: number[] | null\n          id: string\n          notes: string | null\n          reviewed_at: string | null\n          session_id: string\n        }\n        Insert: {\n          ai_error_analysis?: string | null\n          ai_final_tiles: number[]\n          ai_phase1_tiles?: number[] | null\n          ai_phase2_tiles?: number[] | null\n          analysis_done_at?: string | null\n          attempt_round: number\n          challenge_text: string\n          challenge_type?: string | null\n          created_at?: string\n          domain: string\n          grid_screenshot_url?: string | null\n          grid_size: number\n          human_tiles?: number[] | null\n          id?: string\n          notes?: string | null\n          reviewed_at?: string | null\n          session_id: string\n        }\n        Update: {\n          ai_error_analysis?: string | null\n          ai_final_tiles?: number[]\n          ai_phase1_tiles?: number[] | null\n          ai_phase2_tiles?: number[] | null\n          analysis_done_at?: string | null\n          attempt_round?: number\n          challenge_text?: string\n          challenge_type?: string | null\n          created_at?: string\n          domain?: string\n          grid_screenshot_url?: string | null\n          grid_size?: number\n          human_tiles?: number[] | null\n          id?: string\n          notes?: string | null\n          reviewed_at?: string | null\n          session_id?: string\n        }\n        Relationships: []\n      }\n      companies: {\n        Row: {\n          cancel_at_period_end: boolean\n          created_at: string | null\n          current_period_end: string | null\n          id: string\n          is_active: boolean\n          is_solo: boolean\n          livemode: boolean\n          name: string\n          seats: number\n          slug: string\n          stripe_customer_id: string | null\n          stripe_subscription_id: string | null\n          stripe_subscription_item_id: string | null\n          subscription_price_id: string | null\n          subscription_status: string\n          telephely: string | null\n          updated_at: string | null\n        }\n        Insert: {\n          cancel_at_period_end?: boolean\n          created_at?: string | null\n          current_period_end?: string | null\n          id?: string\n          is_active?: boolean\n          is_solo?: boolean\n          livemode?: boolean\n          name: string\n          seats?: number\n          slug: string\n          stripe_customer_id?: string | null\n          stripe_subscription_id?: string | null\n          stripe_subscription_item_id?: string | null\n          subscription_price_id?: string | null\n          subscription_status?: string\n          telephely?: string | null\n          updated_at?: string | null\n        }\n        Update: {\n          cancel_at_period_end?: boolean\n          created_at?: string | null\n          current_period_end?: string | null\n          id?: string\n          is_active?: boolean\n          is_solo?: boolean\n          livemode?: boolean\n          name?: string\n          seats?: number\n          slug?: string\n          stripe_customer_id?: string | null\n          stripe_subscription_id?: string | null\n          stripe_subscription_item_id?: string | null\n          subscription_price_id?: string | null\n          subscription_status?: string\n          telephely?: string | null\n          updated_at?: string | null\n        }\n        Relationships: []\n      }\n      company_app_config: {\n        Row: {\n          company_id: string\n          created_at: string | null\n          enforce_mandatory_update: boolean\n          min_required_version: string\n          updated_at: string | null\n        }\n        Insert: {\n          company_id: string\n          created_at?: string | null\n          enforce_mandatory_update?: boolean\n          min_required_version?: string\n          updated_at?: string | null\n        }\n        Update: {\n          company_id?: string\n          created_at?: string | null\n          enforce_mandatory_update?: boolean\n          min_required_version?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"company_app_config_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: true\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      dental_chart: {\n        Row: {\n          company_id: string | null\n          dental_signs: Json | null\n          gum_recession_mm: number | null\n          id: string\n          implant_date: string | null\n          implant_diameter: number | null\n          implant_length: number | null\n          implant_system: string | null\n          last_updated_at: string | null\n          mobility: number | null\n          notes: string | null\n          patient_id: string\n          percussion: string | null\n          percussion_sensitive: boolean | null\n          periapical_lesion: boolean | null\n          pocket_depth_mm: number | null\n          prosthetic_material: string | null\n          prosthetic_shade: string | null\n          prosthetic_type: string | null\n          sensitivity: string | null\n          status: string\n          surfaces: string | null\n          tooth_number: string\n          updated_by: string | null\n        }\n        Insert: {\n          company_id?: string | null\n          dental_signs?: Json | null\n          gum_recession_mm?: number | null\n          id?: string\n          implant_date?: string | null\n          implant_diameter?: number | null\n          implant_length?: number | null\n          implant_system?: string | null\n          last_updated_at?: string | null\n          mobility?: number | null\n          notes?: string | null\n          patient_id: string\n          percussion?: string | null\n          percussion_sensitive?: boolean | null\n          periapical_lesion?: boolean | null\n          pocket_depth_mm?: number | null\n          prosthetic_material?: string | null\n          prosthetic_shade?: string | null\n          prosthetic_type?: string | null\n          sensitivity?: string | null\n          status?: string\n          surfaces?: string | null\n          tooth_number: string\n          updated_by?: string | null\n        }\n        Update: {\n          company_id?: string | null\n          dental_signs?: Json | null\n          gum_recession_mm?: number | null\n          id?: string\n          implant_date?: string | null\n          implant_diameter?: number | null\n          implant_length?: number | null\n          implant_system?: string | null\n          last_updated_at?: string | null\n          mobility?: number | null\n          notes?: string | null\n          patient_id?: string\n          percussion?: string | null\n          percussion_sensitive?: boolean | null\n          periapical_lesion?: boolean | null\n          pocket_depth_mm?: number | null\n          prosthetic_material?: string | null\n          prosthetic_shade?: string | null\n          prosthetic_type?: string | null\n          sensitivity?: string | null\n          status?: string\n          surfaces?: string | null\n          tooth_number?: string\n          updated_by?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"dental_chart_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"dental_chart_patient_id_fkey\"\n            columns: [\"patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patient_alap_adatok\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      dental_chart_history: {\n        Row: {\n          changed_at: string | null\n          changed_by: string | null\n          dental_chart_id: string | null\n          id: string\n          new_state: Json | null\n          old_state: Json | null\n          operation: string\n          patient_id: string | null\n          tooth_number: string\n        }\n        Insert: {\n          changed_at?: string | null\n          changed_by?: string | null\n          dental_chart_id?: string | null\n          id?: string\n          new_state?: Json | null\n          old_state?: Json | null\n          operation: string\n          patient_id?: string | null\n          tooth_number: string\n        }\n        Update: {\n          changed_at?: string | null\n          changed_by?: string | null\n          dental_chart_id?: string | null\n          id?: string\n          new_state?: Json | null\n          old_state?: Json | null\n          operation?: string\n          patient_id?: string | null\n          tooth_number?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"dental_chart_history_dental_chart_id_fkey\"\n            columns: [\"dental_chart_id\"]\n            isOneToOne: false\n            referencedRelation: \"dental_chart\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"dental_chart_history_patient_id_fkey\"\n            columns: [\"patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patient_alap_adatok\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      diagnoses: {\n        Row: {\n          created_at: string\n          description: string\n          examination_id: string\n          id: string\n          tooth_number: number | null\n        }\n        Insert: {\n          created_at?: string\n          description: string\n          examination_id: string\n          id?: string\n          tooth_number?: number | null\n        }\n        Update: {\n          created_at?: string\n          description?: string\n          examination_id?: string\n          id?: string\n          tooth_number?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"diagnoses_examination_id_fkey\"\n            columns: [\"examination_id\"]\n            isOneToOne: false\n            referencedRelation: \"examinations\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      error_logs: {\n        Row: {\n          company_id: string | null\n          company_name: string | null\n          created_at: string | null\n          domain: string | null\n          full_log: string\n          id: string\n          metadata: Json | null\n          screenshot_urls: string[] | null\n          script_name: string\n          severity: string | null\n          summary: string\n          telephely_id: string | null\n          telephely_name: string | null\n          user_id: string | null\n          username: string | null\n        }\n        Insert: {\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          domain?: string | null\n          full_log: string\n          id?: string\n          metadata?: Json | null\n          screenshot_urls?: string[] | null\n          script_name: string\n          severity?: string | null\n          summary: string\n          telephely_id?: string | null\n          telephely_name?: string | null\n          user_id?: string | null\n          username?: string | null\n        }\n        Update: {\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          domain?: string | null\n          full_log?: string\n          id?: string\n          metadata?: Json | null\n          screenshot_urls?: string[] | null\n          script_name?: string\n          severity?: string | null\n          summary?: string\n          telephely_id?: string | null\n          telephely_name?: string | null\n          user_id?: string | null\n          username?: string | null\n        }\n        Relationships: []\n      }\n      examinations: {\n        Row: {\n          all_on_4_lower: boolean | null\n          all_on_4_upper: boolean | null\n          allergies: string[] | null\n          appliances: boolean | null\n          asa_class: number | null\n          chief_complaint: string | null\n          company_id: string | null\n          conditions: string[] | null\n          created_at: string\n          csak_hid: boolean | null\n          diet_frequency: boolean | null\n          egybeontott_korona: boolean | null\n          fluoride_exposure: boolean | null\n          full_lower_prosthesis: boolean | null\n          full_upper_prosthesis: boolean | null\n          history_notes: string | null\n          id: string\n          manual_override: boolean | null\n          medications: string[] | null\n          pain_scale: number | null\n          partial_removable_prosthesis: boolean | null\n          patient_id: string\n          recent_caries: boolean | null\n          risk_level: string | null\n          risk_rationale: string | null\n          saliva_adequacy: boolean | null\n          smoker: boolean | null\n          updated_at: string\n          user_id: string\n          visible_plaque: boolean | null\n        }\n        Insert: {\n          all_on_4_lower?: boolean | null\n          all_on_4_upper?: boolean | null\n          allergies?: string[] | null\n          appliances?: boolean | null\n          asa_class?: number | null\n          chief_complaint?: string | null\n          company_id?: string | null\n          conditions?: string[] | null\n          created_at?: string\n          csak_hid?: boolean | null\n          diet_frequency?: boolean | null\n          egybeontott_korona?: boolean | null\n          fluoride_exposure?: boolean | null\n          full_lower_prosthesis?: boolean | null\n          full_upper_prosthesis?: boolean | null\n          history_notes?: string | null\n          id?: string\n          manual_override?: boolean | null\n          medications?: string[] | null\n          pain_scale?: number | null\n          partial_removable_prosthesis?: boolean | null\n          patient_id: string\n          recent_caries?: boolean | null\n          risk_level?: string | null\n          risk_rationale?: string | null\n          saliva_adequacy?: boolean | null\n          smoker?: boolean | null\n          updated_at?: string\n          user_id: string\n          visible_plaque?: boolean | null\n        }\n        Update: {\n          all_on_4_lower?: boolean | null\n          all_on_4_upper?: boolean | null\n          allergies?: string[] | null\n          appliances?: boolean | null\n          asa_class?: number | null\n          chief_complaint?: string | null\n          company_id?: string | null\n          conditions?: string[] | null\n          created_at?: string\n          csak_hid?: boolean | null\n          diet_frequency?: boolean | null\n          egybeontott_korona?: boolean | null\n          fluoride_exposure?: boolean | null\n          full_lower_prosthesis?: boolean | null\n          full_upper_prosthesis?: boolean | null\n          history_notes?: string | null\n          id?: string\n          manual_override?: boolean | null\n          medications?: string[] | null\n          pain_scale?: number | null\n          partial_removable_prosthesis?: boolean | null\n          patient_id?: string\n          recent_caries?: boolean | null\n          risk_level?: string | null\n          risk_rationale?: string | null\n          saliva_adequacy?: boolean | null\n          smoker?: boolean | null\n          updated_at?: string\n          user_id?: string\n          visible_plaque?: boolean | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"examinations_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"examinations_patient_id_fkey\"\n            columns: [\"patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patients\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      feltoltott_pdf: {\n        Row: {\n          company_id: string | null\n          created_at: string\n          file_hash_sha256: string | null\n          file_name: string\n          file_path: string\n          file_size: number | null\n          fogalom: string | null\n          id: string\n          telephely_id: string | null\n          uploaded_by: string\n          webhook_status: string\n        }\n        Insert: {\n          company_id?: string | null\n          created_at?: string\n          file_hash_sha256?: string | null\n          file_name: string\n          file_path: string\n          file_size?: number | null\n          fogalom?: string | null\n          id?: string\n          telephely_id?: string | null\n          uploaded_by: string\n          webhook_status?: string\n        }\n        Update: {\n          company_id?: string | null\n          created_at?: string\n          file_hash_sha256?: string | null\n          file_name?: string\n          file_path?: string\n          file_size?: number | null\n          fogalom?: string | null\n          id?: string\n          telephely_id?: string | null\n          uploaded_by?: string\n          webhook_status?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"feltoltott_pdf_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"feltoltott_pdf_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      file_hashes: {\n        Row: {\n          company_id: string | null\n          created_at: string | null\n          path: string\n          sha256: string\n          size: number\n          updated_at: string | null\n          version: string | null\n        }\n        Insert: {\n          company_id?: string | null\n          created_at?: string | null\n          path: string\n          sha256: string\n          size: number\n          updated_at?: string | null\n          version?: string | null\n        }\n        Update: {\n          company_id?: string | null\n          created_at?: string | null\n          path?: string\n          sha256?: string\n          size?: number\n          updated_at?: string | null\n          version?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"file_hashes_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      files: {\n        Row: {\n          created_at: string | null\n          file_name: string\n          file_size: number | null\n          file_url: string\n          id: string\n          uploaded_by: string\n          user_id: string\n        }\n        Insert: {\n          created_at?: string | null\n          file_name: string\n          file_size?: number | null\n          file_url: string\n          id?: string\n          uploaded_by: string\n          user_id: string\n        }\n        Update: {\n          created_at?: string | null\n          file_name?: string\n          file_size?: number | null\n          file_url?: string\n          id?: string\n          uploaded_by?: string\n          user_id?: string\n        }\n        Relationships: []\n      }\n      flexi_auth: {\n        Row: {\n          created_at: string\n          flexi_pw: string | null\n          flexi_username: string | null\n          id: string\n          name: string | null\n          telephely_id: string | null\n          updated_at: string\n          user_id: string\n        }\n        Insert: {\n          created_at?: string\n          flexi_pw?: string | null\n          flexi_username?: string | null\n          id?: string\n          name?: string | null\n          telephely_id?: string | null\n          updated_at?: string\n          user_id: string\n        }\n        Update: {\n          created_at?: string\n          flexi_pw?: string | null\n          flexi_username?: string | null\n          id?: string\n          name?: string | null\n          telephely_id?: string | null\n          updated_at?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"flexi_auth_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      folder_access: {\n        Row: {\n          folder_id: string\n          granted_at: string | null\n          granted_by: string\n          id: string\n          user_id: string\n        }\n        Insert: {\n          folder_id: string\n          granted_at?: string | null\n          granted_by: string\n          id?: string\n          user_id: string\n        }\n        Update: {\n          folder_id?: string\n          granted_at?: string | null\n          granted_by?: string\n          id?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"folder_access_folder_id_fkey\"\n            columns: [\"folder_id\"]\n            isOneToOne: false\n            referencedRelation: \"folder_structure\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      folder_structure: {\n        Row: {\n          company_id: string | null\n          created_at: string\n          created_by: string\n          folder_path: string\n          id: string\n          is_client_folder: boolean\n          parent_path: string | null\n        }\n        Insert: {\n          company_id?: string | null\n          created_at?: string\n          created_by: string\n          folder_path: string\n          id?: string\n          is_client_folder?: boolean\n          parent_path?: string | null\n        }\n        Update: {\n          company_id?: string | null\n          created_at?: string\n          created_by?: string\n          folder_path?: string\n          id?: string\n          is_client_folder?: boolean\n          parent_path?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"folder_structure_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      invitations: {\n        Row: {\n          company_id: string\n          created_at: string\n          expires_at: string\n          full_name: string | null\n          id: string\n          invitation_token: string | null\n          invited_by_user_id: string\n          invited_email: string | null\n          invited_user_id: string | null\n          responded_at: string | null\n          role: Database[\"public\"][\"Enums\"][\"app_role\"]\n          status: string\n          telephely_id: string\n          used_at: string | null\n        }\n        Insert: {\n          company_id: string\n          created_at?: string\n          expires_at?: string\n          full_name?: string | null\n          id?: string\n          invitation_token?: string | null\n          invited_by_user_id: string\n          invited_email?: string | null\n          invited_user_id?: string | null\n          responded_at?: string | null\n          role?: Database[\"public\"][\"Enums\"][\"app_role\"]\n          status?: string\n          telephely_id: string\n          used_at?: string | null\n        }\n        Update: {\n          company_id?: string\n          created_at?: string\n          expires_at?: string\n          full_name?: string | null\n          id?: string\n          invitation_token?: string | null\n          invited_by_user_id?: string\n          invited_email?: string | null\n          invited_user_id?: string | null\n          responded_at?: string | null\n          role?: Database[\"public\"][\"Enums\"][\"app_role\"]\n          status?: string\n          telephely_id?: string\n          used_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"invitations_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"invitations_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      licenses: {\n        Row: {\n          assigned_user_id: string | null\n          billing_interval: string\n          cancel_at_period_end: boolean\n          company_id: string\n          created_at: string\n          expires_at: string | null\n          id: string\n          license_type: string\n          status: string\n          stripe_subscription_id: string | null\n          stripe_subscription_item_id: string | null\n          telephely_id: string | null\n          updated_at: string\n        }\n        Insert: {\n          assigned_user_id?: string | null\n          billing_interval?: string\n          cancel_at_period_end?: boolean\n          company_id: string\n          created_at?: string\n          expires_at?: string | null\n          id?: string\n          license_type?: string\n          status?: string\n          stripe_subscription_id?: string | null\n          stripe_subscription_item_id?: string | null\n          telephely_id?: string | null\n          updated_at?: string\n        }\n        Update: {\n          assigned_user_id?: string | null\n          billing_interval?: string\n          cancel_at_period_end?: boolean\n          company_id?: string\n          created_at?: string\n          expires_at?: string | null\n          id?: string\n          license_type?: string\n          status?: string\n          stripe_subscription_id?: string | null\n          stripe_subscription_item_id?: string | null\n          telephely_id?: string | null\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"licenses_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"licenses_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      native_voice_jobs: {\n        Row: {\n          audio_filename: string | null\n          claude_cleaned_text: string | null\n          company_id: string | null\n          completed_at: string | null\n          created_at: string | null\n          duration_seconds: number | null\n          error: string | null\n          id: string\n          mode: string\n          progress_message: string | null\n          progress_percent: number | null\n          raw_audio_text: string | null\n          result: Json | null\n          status: string\n          telephely_id: string | null\n          trace_info: Json | null\n          trace_logs: Json | null\n          treatnote_patient_id: string | null\n          user_id: string | null\n        }\n        Insert: {\n          audio_filename?: string | null\n          claude_cleaned_text?: string | null\n          company_id?: string | null\n          completed_at?: string | null\n          created_at?: string | null\n          duration_seconds?: number | null\n          error?: string | null\n          id?: string\n          mode: string\n          progress_message?: string | null\n          progress_percent?: number | null\n          raw_audio_text?: string | null\n          result?: Json | null\n          status?: string\n          telephely_id?: string | null\n          trace_info?: Json | null\n          trace_logs?: Json | null\n          treatnote_patient_id?: string | null\n          user_id?: string | null\n        }\n        Update: {\n          audio_filename?: string | null\n          claude_cleaned_text?: string | null\n          company_id?: string | null\n          completed_at?: string | null\n          created_at?: string | null\n          duration_seconds?: number | null\n          error?: string | null\n          id?: string\n          mode?: string\n          progress_message?: string | null\n          progress_percent?: number | null\n          raw_audio_text?: string | null\n          result?: Json | null\n          status?: string\n          telephely_id?: string | null\n          trace_info?: Json | null\n          trace_logs?: Json | null\n          treatnote_patient_id?: string | null\n          user_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"native_voice_jobs_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"native_voice_jobs_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"native_voice_jobs_treatnote_patient_id_fkey\"\n            columns: [\"treatnote_patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patient_alap_adatok\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      patient_alap_adatok: {\n        Row: {\n          alapertelmezett_arlista: string | null\n          alapertelmezett_nyelv: string | null\n          anamnezis: Json | null\n          anyja_neve: string | null\n          azonosito_okmany_tipusa: string | null\n          bekuldo_orvos_id: string | null\n          bekuldo_paciens_id: string | null\n          company_id: string\n          created_at: string\n          dentalhigienikus_id: string | null\n          ertekesitesi_statusz: string | null\n          flexident_id: string | null\n          fontos_info_felelem: string | null\n          honnan_ertesult: string | null\n          husegprogram_vege: string | null\n          id: string\n          inaktiv_paciens: boolean | null\n          iranyitoszam: string\n          kapcsolattarto_email: string | null\n          kaphat_email_ertesitot: boolean | null\n          keresztnev: string\n          kezeloorvos_id: string | null\n          marketing_hozzajarulas: boolean | null\n          mit_var_kezelestol: string | null\n          naptar_megjegyzes: string | null\n          nem_ker_levelet: boolean | null\n          nem_kivant_paciens: boolean | null\n          nem_kivant_paciens_ok: string | null\n          neme: string | null\n          orszag: string | null\n          paciens_megszolitasa: string | null\n          szuletesi_hely: string | null\n          szuletesi_ido: string | null\n          szuletesi_keresztnev: string | null\n          szuletesi_vezeteknev: string | null\n          taj_szam: string | null\n          telefon_1_hivoszam: string | null\n          telefon_1_korzet: string | null\n          telefon_1_leiras: string | null\n          telefon_1_orszagkod: string | null\n          telefon_2_hivoszam: string | null\n          telefon_2_korzet: string | null\n          telefon_2_leiras: string | null\n          telefon_2_orszagkod: string | null\n          telefon_3_hivoszam: string | null\n          telefon_3_korzet: string | null\n          telefon_3_leiras: string | null\n          telefon_3_orszagkod: string | null\n          telephely_ids: string[]\n          titulus: string | null\n          updated_at: string\n          user_id: string | null\n          utca_hazszam: string\n          varos: string\n          vezeteknev: string\n        }\n        Insert: {\n          alapertelmezett_arlista?: string | null\n          alapertelmezett_nyelv?: string | null\n          anamnezis?: Json | null\n          anyja_neve?: string | null\n          azonosito_okmany_tipusa?: string | null\n          bekuldo_orvos_id?: string | null\n          bekuldo_paciens_id?: string | null\n          company_id: string\n          created_at?: string\n          dentalhigienikus_id?: string | null\n          ertekesitesi_statusz?: string | null\n          flexident_id?: string | null\n          fontos_info_felelem?: string | null\n          honnan_ertesult?: string | null\n          husegprogram_vege?: string | null\n          id?: string\n          inaktiv_paciens?: boolean | null\n          iranyitoszam: string\n          kapcsolattarto_email?: string | null\n          kaphat_email_ertesitot?: boolean | null\n          keresztnev: string\n          kezeloorvos_id?: string | null\n          marketing_hozzajarulas?: boolean | null\n          mit_var_kezelestol?: string | null\n          naptar_megjegyzes?: string | null\n          nem_ker_levelet?: boolean | null\n          nem_kivant_paciens?: boolean | null\n          nem_kivant_paciens_ok?: string | null\n          neme?: string | null\n          orszag?: string | null\n          paciens_megszolitasa?: string | null\n          szuletesi_hely?: string | null\n          szuletesi_ido?: string | null\n          szuletesi_keresztnev?: string | null\n          szuletesi_vezeteknev?: string | null\n          taj_szam?: string | null\n          telefon_1_hivoszam?: string | null\n          telefon_1_korzet?: string | null\n          telefon_1_leiras?: string | null\n          telefon_1_orszagkod?: string | null\n          telefon_2_hivoszam?: string | null\n          telefon_2_korzet?: string | null\n          telefon_2_leiras?: string | null\n          telefon_2_orszagkod?: string | null\n          telefon_3_hivoszam?: string | null\n          telefon_3_korzet?: string | null\n          telefon_3_leiras?: string | null\n          telefon_3_orszagkod?: string | null\n          telephely_ids?: string[]\n          titulus?: string | null\n          updated_at?: string\n          user_id?: string | null\n          utca_hazszam: string\n          varos: string\n          vezeteknev: string\n        }\n        Update: {\n          alapertelmezett_arlista?: string | null\n          alapertelmezett_nyelv?: string | null\n          anamnezis?: Json | null\n          anyja_neve?: string | null\n          azonosito_okmany_tipusa?: string | null\n          bekuldo_orvos_id?: string | null\n          bekuldo_paciens_id?: string | null\n          company_id?: string\n          created_at?: string\n          dentalhigienikus_id?: string | null\n          ertekesitesi_statusz?: string | null\n          flexident_id?: string | null\n          fontos_info_felelem?: string | null\n          honnan_ertesult?: string | null\n          husegprogram_vege?: string | null\n          id?: string\n          inaktiv_paciens?: boolean | null\n          iranyitoszam?: string\n          kapcsolattarto_email?: string | null\n          kaphat_email_ertesitot?: boolean | null\n          keresztnev?: string\n          kezeloorvos_id?: string | null\n          marketing_hozzajarulas?: boolean | null\n          mit_var_kezelestol?: string | null\n          naptar_megjegyzes?: string | null\n          nem_ker_levelet?: boolean | null\n          nem_kivant_paciens?: boolean | null\n          nem_kivant_paciens_ok?: string | null\n          neme?: string | null\n          orszag?: string | null\n          paciens_megszolitasa?: string | null\n          szuletesi_hely?: string | null\n          szuletesi_ido?: string | null\n          szuletesi_keresztnev?: string | null\n          szuletesi_vezeteknev?: string | null\n          taj_szam?: string | null\n          telefon_1_hivoszam?: string | null\n          telefon_1_korzet?: string | null\n          telefon_1_leiras?: string | null\n          telefon_1_orszagkod?: string | null\n          telefon_2_hivoszam?: string | null\n          telefon_2_korzet?: string | null\n          telefon_2_leiras?: string | null\n          telefon_2_orszagkod?: string | null\n          telefon_3_hivoszam?: string | null\n          telefon_3_korzet?: string | null\n          telefon_3_leiras?: string | null\n          telefon_3_orszagkod?: string | null\n          telephely_ids?: string[]\n          titulus?: string | null\n          updated_at?: string\n          user_id?: string | null\n          utca_hazszam?: string\n          varos?: string\n          vezeteknev?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"patient_alap_adatok_bekuldo_paciens_id_fkey\"\n            columns: [\"bekuldo_paciens_id\"]\n            isOneToOne: false\n            referencedRelation: \"patient_alap_adatok\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"patient_alap_adatok_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      patients: {\n        Row: {\n          company_id: string | null\n          created_at: string\n          date_of_birth: string\n          email: string | null\n          first_name: string\n          id: string\n          last_name: string\n          notes: string | null\n          phone: string | null\n          updated_at: string\n          user_id: string\n        }\n        Insert: {\n          company_id?: string | null\n          created_at?: string\n          date_of_birth: string\n          email?: string | null\n          first_name: string\n          id?: string\n          last_name: string\n          notes?: string | null\n          phone?: string | null\n          updated_at?: string\n          user_id: string\n        }\n        Update: {\n          company_id?: string | null\n          created_at?: string\n          date_of_birth?: string\n          email?: string | null\n          first_name?: string\n          id?: string\n          last_name?: string\n          notes?: string | null\n          phone?: string | null\n          updated_at?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"patients_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      pdf_extractions: {\n        Row: {\n          created_at: string | null\n          document_id: string\n          error_message: string | null\n          event_id: string\n          finished_at: string | null\n          id: string\n          items_count: number | null\n          raw_json: Json | null\n          retry_count: number | null\n          started_at: string | null\n          status: string\n        }\n        Insert: {\n          created_at?: string | null\n          document_id: string\n          error_message?: string | null\n          event_id: string\n          finished_at?: string | null\n          id?: string\n          items_count?: number | null\n          raw_json?: Json | null\n          retry_count?: number | null\n          started_at?: string | null\n          status?: string\n        }\n        Update: {\n          created_at?: string | null\n          document_id?: string\n          error_message?: string | null\n          event_id?: string\n          finished_at?: string | null\n          id?: string\n          items_count?: number | null\n          raw_json?: Json | null\n          retry_count?: number | null\n          started_at?: string | null\n          status?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"pdf_extractions_document_id_fkey\"\n            columns: [\"document_id\"]\n            isOneToOne: false\n            referencedRelation: \"feltoltott_pdf\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      profiles: {\n        Row: {\n          avatar_url: string | null\n          can_create_users: boolean\n          company_id: string | null\n          company_name: string | null\n          created_at: string | null\n          current_telephely_id: string | null\n          full_name: string | null\n          id: string\n          is_first_login: boolean\n          is_solo: boolean\n          phone: string | null\n          subscription_amount: number | null\n          subscription_end_date: string | null\n          subscription_plan: string | null\n          subscription_start_date: string | null\n          subscription_status: string\n          telephely: string | null\n          telephely_id: string | null\n          updated_at: string | null\n          user_id: string\n          voice_recording_preference: string | null\n        }\n        Insert: {\n          avatar_url?: string | null\n          can_create_users?: boolean\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          current_telephely_id?: string | null\n          full_name?: string | null\n          id?: string\n          is_first_login?: boolean\n          is_solo?: boolean\n          phone?: string | null\n          subscription_amount?: number | null\n          subscription_end_date?: string | null\n          subscription_plan?: string | null\n          subscription_start_date?: string | null\n          subscription_status?: string\n          telephely?: string | null\n          telephely_id?: string | null\n          updated_at?: string | null\n          user_id: string\n          voice_recording_preference?: string | null\n        }\n        Update: {\n          avatar_url?: string | null\n          can_create_users?: boolean\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          current_telephely_id?: string | null\n          full_name?: string | null\n          id?: string\n          is_first_login?: boolean\n          is_solo?: boolean\n          phone?: string | null\n          subscription_amount?: number | null\n          subscription_end_date?: string | null\n          subscription_plan?: string | null\n          subscription_start_date?: string | null\n          subscription_status?: string\n          telephely?: string | null\n          telephely_id?: string | null\n          updated_at?: string | null\n          user_id?: string\n          voice_recording_preference?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"profiles_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"profiles_current_telephely_id_fkey\"\n            columns: [\"current_telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"profiles_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      rate_limits: {\n        Row: {\n          endpoint: string\n          first_request_time: string | null\n          id: string\n          identifier: string\n          request_count: number | null\n        }\n        Insert: {\n          endpoint: string\n          first_request_time?: string | null\n          id?: string\n          identifier: string\n          request_count?: number | null\n        }\n        Update: {\n          endpoint?: string\n          first_request_time?: string | null\n          id?: string\n          identifier?: string\n          request_count?: number | null\n        }\n        Relationships: []\n      }\n      rule_generation_jobs: {\n        Row: {\n          attempt: number\n          batch_id: string\n          completed_at: string | null\n          created_at: string\n          error_message: string | null\n          extractions_count: number | null\n          id: string\n          max_attempts: number\n          protocol_id: number | null\n          protocol_name: string\n          source: string\n          status: string\n          telephely_id: string\n          updated_at: string\n          user_id: string\n        }\n        Insert: {\n          attempt?: number\n          batch_id: string\n          completed_at?: string | null\n          created_at?: string\n          error_message?: string | null\n          extractions_count?: number | null\n          id?: string\n          max_attempts?: number\n          protocol_id?: number | null\n          protocol_name: string\n          source?: string\n          status?: string\n          telephely_id: string\n          updated_at?: string\n          user_id: string\n        }\n        Update: {\n          attempt?: number\n          batch_id?: string\n          completed_at?: string | null\n          created_at?: string\n          error_message?: string | null\n          extractions_count?: number | null\n          id?: string\n          max_attempts?: number\n          protocol_id?: number | null\n          protocol_name?: string\n          source?: string\n          status?: string\n          telephely_id?: string\n          updated_at?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"rule_generation_jobs_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      rule_items: {\n        Row: {\n          created_at: string\n          display_order: number\n          id: string\n          name: string\n          quantity: number\n          scaling: string\n          target_tooth_type: string\n          unit: string\n          visit_id: string\n        }\n        Insert: {\n          created_at?: string\n          display_order?: number\n          id?: string\n          name: string\n          quantity?: number\n          scaling?: string\n          target_tooth_type?: string\n          unit?: string\n          visit_id: string\n        }\n        Update: {\n          created_at?: string\n          display_order?: number\n          id?: string\n          name?: string\n          quantity?: number\n          scaling?: string\n          target_tooth_type?: string\n          unit?: string\n          visit_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"rule_items_visit_id_fkey\"\n            columns: [\"visit_id\"]\n            isOneToOne: false\n            referencedRelation: \"rule_visits\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      rule_visits: {\n        Row: {\n          created_at: string\n          display_order: number\n          duration_days: number | null\n          healing_months: number | null\n          id: string\n          rule_id: string\n          visit_number: number\n        }\n        Insert: {\n          created_at?: string\n          display_order?: number\n          duration_days?: number | null\n          healing_months?: number | null\n          id?: string\n          rule_id: string\n          visit_number?: number\n        }\n        Update: {\n          created_at?: string\n          display_order?: number\n          duration_days?: number | null\n          healing_months?: number | null\n          id?: string\n          rule_id?: string\n          visit_number?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"rule_visits_rule_id_fkey\"\n            columns: [\"rule_id\"]\n            isOneToOne: false\n            referencedRelation: \"treatment_rules\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      statusz_embeddings: {\n        Row: {\n          category: string\n          created_at: string\n          data_name: string\n          embedding: string | null\n          id: string\n          label_hu: string\n          marker_key: string\n          text_source: string\n          updated_at: string\n        }\n        Insert: {\n          category?: string\n          created_at?: string\n          data_name: string\n          embedding?: string | null\n          id?: string\n          label_hu: string\n          marker_key: string\n          text_source: string\n          updated_at?: string\n        }\n        Update: {\n          category?: string\n          created_at?: string\n          data_name?: string\n          embedding?: string | null\n          id?: string\n          label_hu?: string\n          marker_key?: string\n          text_source?: string\n          updated_at?: string\n        }\n        Relationships: []\n      }\n      stripe_events: {\n        Row: {\n          event_id: string\n          event_type: string\n          id: string\n          livemode: boolean\n          processed_at: string | null\n        }\n        Insert: {\n          event_id: string\n          event_type: string\n          id?: string\n          livemode?: boolean\n          processed_at?: string | null\n        }\n        Update: {\n          event_id?: string\n          event_type?: string\n          id?: string\n          livemode?: boolean\n          processed_at?: string | null\n        }\n        Relationships: []\n      }\n      szabalyepito_teszt_extractions: {\n        Row: {\n          company_id: string | null\n          created_at: string\n          event_id: string\n          fogalom: string\n          id: string\n          kategoria: string | null\n          parsed_file_name: string | null\n          parsed_json: Json\n          source_file_name: string\n          telephely_id: string | null\n          trigger_words: Json | null\n          uploaded_by: string\n        }\n        Insert: {\n          company_id?: string | null\n          created_at?: string\n          event_id: string\n          fogalom: string\n          id?: string\n          kategoria?: string | null\n          parsed_file_name?: string | null\n          parsed_json: Json\n          source_file_name: string\n          telephely_id?: string | null\n          trigger_words?: Json | null\n          uploaded_by: string\n        }\n        Update: {\n          company_id?: string | null\n          created_at?: string\n          event_id?: string\n          fogalom?: string\n          id?: string\n          kategoria?: string | null\n          parsed_file_name?: string | null\n          parsed_json?: Json\n          source_file_name?: string\n          telephely_id?: string | null\n          trigger_words?: Json | null\n          uploaded_by?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"szabalyepito_teszt_extractions_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"szabalyepito_teszt_extractions_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      szamlazz_invoices: {\n        Row: {\n          attempt_count: number\n          company_id: string | null\n          created_at: string\n          id: string\n          last_error: string | null\n          raw_response: string | null\n          status: string\n          stripe_customer_id: string\n          stripe_invoice_id: string\n          szamlazz_invoice_number: string | null\n          updated_at: string\n        }\n        Insert: {\n          attempt_count?: number\n          company_id?: string | null\n          created_at?: string\n          id?: string\n          last_error?: string | null\n          raw_response?: string | null\n          status?: string\n          stripe_customer_id: string\n          stripe_invoice_id: string\n          szamlazz_invoice_number?: string | null\n          updated_at?: string\n        }\n        Update: {\n          attempt_count?: number\n          company_id?: string | null\n          created_at?: string\n          id?: string\n          last_error?: string | null\n          raw_response?: string | null\n          status?: string\n          stripe_customer_id?: string\n          stripe_invoice_id?: string\n          szamlazz_invoice_number?: string | null\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"szamlazz_invoices_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      szamlazz_received_invoices: {\n        Row: {\n          brutto_vegosszeg: number | null\n          created_at: string\n          fizmod: string | null\n          id: string\n          kelt_datum: string | null\n          penznem: string | null\n          raw_xml: string | null\n          received_at: string\n          szamlaszam: string | null\n          szamlazz_id: string\n          szamlazz_key: string | null\n          teljesites_datum: string | null\n          tipus: string | null\n          updated_at: string\n          vevo_email: string | null\n          vevo_nev: string | null\n        }\n        Insert: {\n          brutto_vegosszeg?: number | null\n          created_at?: string\n          fizmod?: string | null\n          id?: string\n          kelt_datum?: string | null\n          penznem?: string | null\n          raw_xml?: string | null\n          received_at?: string\n          szamlaszam?: string | null\n          szamlazz_id: string\n          szamlazz_key?: string | null\n          teljesites_datum?: string | null\n          tipus?: string | null\n          updated_at?: string\n          vevo_email?: string | null\n          vevo_nev?: string | null\n        }\n        Update: {\n          brutto_vegosszeg?: number | null\n          created_at?: string\n          fizmod?: string | null\n          id?: string\n          kelt_datum?: string | null\n          penznem?: string | null\n          raw_xml?: string | null\n          received_at?: string\n          szamlaszam?: string | null\n          szamlazz_id?: string\n          szamlazz_key?: string | null\n          teljesites_datum?: string | null\n          tipus?: string | null\n          updated_at?: string\n          vevo_email?: string | null\n          vevo_nev?: string | null\n        }\n        Relationships: []\n      }\n      szotar: {\n        Row: {\n          content: Json\n          created_at: string\n          created_by: string\n          id: string\n          telephely_id: string\n          updated_at: string\n        }\n        Insert: {\n          content?: Json\n          created_at?: string\n          created_by: string\n          id?: string\n          telephely_id: string\n          updated_at?: string\n        }\n        Update: {\n          content?: Json\n          created_at?: string\n          created_by?: string\n          id?: string\n          telephely_id?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"szotar_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: true\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      szotar_embeddings: {\n        Row: {\n          created_at: string | null\n          embedding: string | null\n          id: string\n          source_type: string\n          szotar_kezeles_id: string\n          text_source: string\n          updated_at: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          embedding?: string | null\n          id?: string\n          source_type: string\n          szotar_kezeles_id: string\n          text_source: string\n          updated_at?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          embedding?: string | null\n          id?: string\n          source_type?: string\n          szotar_kezeles_id?: string\n          text_source?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"szotar_embeddings_szotar_kezeles_id_fkey\"\n            columns: [\"szotar_kezeles_id\"]\n            isOneToOne: false\n            referencedRelation: \"szotar_kezelesek\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      szotar_kezelesek: {\n        Row: {\n          category: string\n          created_at: string\n          id: string\n          name: string\n          telephely_id: string\n          updated_at: string\n        }\n        Insert: {\n          category?: string\n          created_at?: string\n          id?: string\n          name: string\n          telephely_id: string\n          updated_at?: string\n        }\n        Update: {\n          category?: string\n          created_at?: string\n          id?: string\n          name?: string\n          telephely_id?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"szotar_kezelesek_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      teeth: {\n        Row: {\n          bridge: string\n          caries: boolean | null\n          caries_locations: string[] | null\n          created_at: string\n          crown: string\n          endo_status: string\n          examination_id: string\n          fissure_sealing: boolean | null\n          id: string\n          mobility: number | null\n          notes: string | null\n          pathology: string\n          present: boolean | null\n          prosthesis: string\n          restoration: string\n          restoration_locations: string[] | null\n          tooth_number: number\n          tooth_type: string\n          treatment_plan: string\n          updated_at: string\n        }\n        Insert: {\n          bridge?: string\n          caries?: boolean | null\n          caries_locations?: string[] | null\n          created_at?: string\n          crown?: string\n          endo_status?: string\n          examination_id: string\n          fissure_sealing?: boolean | null\n          id?: string\n          mobility?: number | null\n          notes?: string | null\n          pathology?: string\n          present?: boolean | null\n          prosthesis?: string\n          restoration?: string\n          restoration_locations?: string[] | null\n          tooth_number: number\n          tooth_type?: string\n          treatment_plan?: string\n          updated_at?: string\n        }\n        Update: {\n          bridge?: string\n          caries?: boolean | null\n          caries_locations?: string[] | null\n          created_at?: string\n          crown?: string\n          endo_status?: string\n          examination_id?: string\n          fissure_sealing?: boolean | null\n          id?: string\n          mobility?: number | null\n          notes?: string | null\n          pathology?: string\n          present?: boolean | null\n          prosthesis?: string\n          restoration?: string\n          restoration_locations?: string[] | null\n          tooth_number?: number\n          tooth_type?: string\n          treatment_plan?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"teeth_examination_id_fkey\"\n            columns: [\"examination_id\"]\n            isOneToOne: false\n            referencedRelation: \"examinations\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      telephely: {\n        Row: {\n          company_id: string\n          created_at: string | null\n          flexi_domain: string | null\n          id: string\n          name: string\n          probapaciens_neve: string | null\n          updated_at: string | null\n        }\n        Insert: {\n          company_id: string\n          created_at?: string | null\n          flexi_domain?: string | null\n          id?: string\n          name: string\n          probapaciens_neve?: string | null\n          updated_at?: string | null\n        }\n        Update: {\n          company_id?: string\n          created_at?: string | null\n          flexi_domain?: string | null\n          id?: string\n          name?: string\n          probapaciens_neve?: string | null\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"telephely_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"companies\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      telephely_memberships: {\n        Row: {\n          created_at: string\n          id: string\n          role: Database[\"public\"][\"Enums\"][\"app_role\"]\n          telephely_id: string\n          user_id: string\n        }\n        Insert: {\n          created_at?: string\n          id?: string\n          role?: Database[\"public\"][\"Enums\"][\"app_role\"]\n          telephely_id: string\n          user_id: string\n        }\n        Update: {\n          created_at?: string\n          id?: string\n          role?: Database[\"public\"][\"Enums\"][\"app_role\"]\n          telephely_id?: string\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"telephely_memberships_telephely_id_fkey\"\n            columns: [\"telephely_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      treatment_embeddings: {\n        Row: {\n          created_at: string\n          embedding: string\n          id: string\n          source_type: string\n          text_source: string\n          treatment_rule_id: string\n          updated_at: string\n        }\n        Insert: {\n          created_at?: string\n          embedding: string\n          id?: string\n          source_type?: string\n          text_source: string\n          treatment_rule_id: string\n          updated_at?: string\n        }\n        Update: {\n          created_at?: string\n          embedding?: string\n          id?: string\n          source_type?: string\n          text_source?: string\n          treatment_rule_id?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"treatment_embeddings_treatment_rule_id_fkey\"\n            columns: [\"treatment_rule_id\"]\n            isOneToOne: false\n            referencedRelation: \"treatment_rules\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      treatment_items: {\n        Row: {\n          created_at: string\n          display_order: number\n          estimated_cost: number | null\n          examination_id: string\n          id: string\n          label: string\n          notes: string | null\n          priority: string | null\n          status: string | null\n          tooth_number: number | null\n          updated_at: string\n        }\n        Insert: {\n          created_at?: string\n          display_order: number\n          estimated_cost?: number | null\n          examination_id: string\n          id?: string\n          label: string\n          notes?: string | null\n          priority?: string | null\n          status?: string | null\n          tooth_number?: number | null\n          updated_at?: string\n        }\n        Update: {\n          created_at?: string\n          display_order?: number\n          estimated_cost?: number | null\n          examination_id?: string\n          id?: string\n          label?: string\n          notes?: string | null\n          priority?: string | null\n          status?: string | null\n          tooth_number?: number | null\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"treatment_items_examination_id_fkey\"\n            columns: [\"examination_id\"]\n            isOneToOne: false\n            referencedRelation: \"examinations\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      treatment_rules: {\n        Row: {\n          aktiv: boolean\n          alapszabaly: boolean\n          category: string | null\n          clinic_id: string\n          created_at: string\n          id: string\n          name: string\n          semantic_description: string | null\n          trigger_words: string[] | null\n          updated_at: string\n        }\n        Insert: {\n          aktiv?: boolean\n          alapszabaly?: boolean\n          category?: string | null\n          clinic_id: string\n          created_at?: string\n          id?: string\n          name: string\n          semantic_description?: string | null\n          trigger_words?: string[] | null\n          updated_at?: string\n        }\n        Update: {\n          aktiv?: boolean\n          alapszabaly?: boolean\n          category?: string | null\n          clinic_id?: string\n          created_at?: string\n          id?: string\n          name?: string\n          semantic_description?: string | null\n          trigger_words?: string[] | null\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"treatment_rules_clinic_id_fkey\"\n            columns: [\"clinic_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      user_roles: {\n        Row: {\n          created_at: string | null\n          id: string\n          role: Database[\"public\"][\"Enums\"][\"app_role\"]\n          user_id: string\n        }\n        Insert: {\n          created_at?: string | null\n          id?: string\n          role: Database[\"public\"][\"Enums\"][\"app_role\"]\n          user_id: string\n        }\n        Update: {\n          created_at?: string | null\n          id?: string\n          role?: Database[\"public\"][\"Enums\"][\"app_role\"]\n          user_id?: string\n        }\n        Relationships: []\n      }\n      voice_jobs: {\n        Row: {\n          audio_filename: string | null\n          company_id: string | null\n          completed_at: string | null\n          created_at: string\n          duration_seconds: number | null\n          error: string | null\n          id: string\n          mode: string\n          paciens_id: string | null\n          result: Json | null\n          status: string\n          telephely_id: string | null\n          treatnote_patient_id: string | null\n          user_complaint: string | null\n          user_complaint_date: string | null\n          user_id: string\n        }\n        Insert: {\n          audio_filename?: string | null\n          company_id?: string | null\n          completed_at?: string | null\n          created_at?: string\n          duration_seconds?: number | null\n          error?: string | null\n          id?: string\n          mode: string\n          paciens_id?: string | null\n          result?: Json | null\n          status?: string\n          telephely_id?: string | null\n          treatnote_patient_id?: string | null\n          user_complaint?: string | null\n          user_complaint_date?: string | null\n          user_id: string\n        }\n        Update: {\n          audio_filename?: string | null\n          company_id?: string | null\n          completed_at?: string | null\n          created_at?: string\n          duration_seconds?: number | null\n          error?: string | null\n          id?: string\n          mode?: string\n          paciens_id?: string | null\n          result?: Json | null\n          status?: string\n          telephely_id?: string | null\n          treatnote_patient_id?: string | null\n          user_complaint?: string | null\n          user_complaint_date?: string | null\n          user_id?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"voice_jobs_treatnote_patient_id_fkey\"\n            columns: [\"treatnote_patient_id\"]\n            isOneToOne: false\n            referencedRelation: \"patient_alap_adatok\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      zombi_profiles: {\n        Row: {\n          avatar_url: string | null\n          can_create_users: boolean | null\n          company_id: string | null\n          company_name: string | null\n          created_at: string | null\n          current_telephely_id: string | null\n          full_name: string | null\n          id: string | null\n          is_first_login: boolean | null\n          is_solo: boolean | null\n          phone: string | null\n          subscription_amount: number | null\n          subscription_end_date: string | null\n          subscription_plan: string | null\n          subscription_start_date: string | null\n          subscription_status: string | null\n          telephely: string | null\n          telephely_id: string | null\n          updated_at: string | null\n          user_id: string | null\n        }\n        Insert: {\n          avatar_url?: string | null\n          can_create_users?: boolean | null\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          current_telephely_id?: string | null\n          full_name?: string | null\n          id?: string | null\n          is_first_login?: boolean | null\n          is_solo?: boolean | null\n          phone?: string | null\n          subscription_amount?: number | null\n          subscription_end_date?: string | null\n          subscription_plan?: string | null\n          subscription_start_date?: string | null\n          subscription_status?: string | null\n          telephely?: string | null\n          telephely_id?: string | null\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Update: {\n          avatar_url?: string | null\n          can_create_users?: boolean | null\n          company_id?: string | null\n          company_name?: string | null\n          created_at?: string | null\n          current_telephely_id?: string | null\n          full_name?: string | null\n          id?: string | null\n          is_first_login?: boolean | null\n          is_solo?: boolean | null\n          phone?: string | null\n          subscription_amount?: number | null\n          subscription_end_date?: string | null\n          subscription_plan?: string | null\n          subscription_start_date?: string | null\n          subscription_status?: string | null\n          telephely?: string | null\n          telephely_id?: string | null\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Relationships: []\n      }\n    }\n    Views: {\n      treatment_embeddings_stats: {\n        Row: {\n          clinic_id: string | null\n          item_embeddings: number | null\n          last_updated: string | null\n          rules_with_embeddings: number | null\n          semantic_embeddings: number | null\n          total_embeddings: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"treatment_rules_clinic_id_fkey\"\n            columns: [\"clinic_id\"]\n            isOneToOne: false\n            referencedRelation: \"telephely\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n    }\n    Functions: {\n      audit_two_tables: {\n        Args: { p_codes_table: unknown; p_embeddings_table: unknown }\n        Returns: {\n          check_name: string\n          details: string\n          ok: boolean\n        }[]\n      }\n      can_access_company_version: {\n        Args: { _company_id: string; _user_id: string }\n        Returns: boolean\n      }\n      can_access_path: {\n        Args: { _path: string; _user_id: string }\n        Returns: boolean\n      }\n      check_is_telephely_admin: {\n        Args: { _telephely_id: string; _user_id: string }\n        Returns: boolean\n      }\n      cleanup_orphaned_embeddings: { Args: never; Returns: number }\n      clinic_subscription_active: {\n        Args: { _company_id: string }\n        Returns: boolean\n      }\n      col_exists: {\n        Args: { p_col: string; p_table: unknown }\n        Returns: boolean\n      }\n      col_type: { Args: { p_col: string; p_table: unknown }; Returns: string }\n      count_bno_codes_without_embeddings: { Args: never; Returns: number }\n      create_licenses_for_item: {\n        Args: {\n          p_billing_interval: string\n          p_company_id: string\n          p_expires_at: string\n          p_item_id: string\n          p_sub_id: string\n          p_target_count: number\n          p_telephely_id: string\n        }\n        Returns: number\n      }\n      get_bno_codes_without_embeddings: {\n        Args: { p_limit?: number }\n        Returns: {\n          code: string\n          id: string\n          name: string\n        }[]\n      }\n      get_company_names: {\n        Args: never\n        Returns: {\n          company_name: string\n        }[]\n      }\n      get_global_voice_jobs: {\n        Args: {\n          p_company_id?: string\n          p_limit?: number\n          p_telephely_id?: string\n          p_user_id?: string\n        }\n        Returns: {\n          audio_filename: string | null\n          company_id: string | null\n          completed_at: string | null\n          created_at: string\n          duration_seconds: number | null\n          error: string | null\n          id: string\n          mode: string\n          paciens_id: string | null\n          result: Json | null\n          status: string\n          telephely_id: string | null\n          treatnote_patient_id: string | null\n          user_complaint: string | null\n          user_complaint_date: string | null\n          user_id: string\n        }[]\n        SetofOptions: {\n          from: \"*\"\n          to: \"voice_jobs\"\n          isOneToOne: false\n          isSetofReturn: true\n        }\n      }\n      has_any_trigger: { Args: { p_table: unknown }; Returns: boolean }\n      has_fk: {\n        Args: {\n          p_from: unknown\n          p_from_col: string\n          p_to: unknown\n          p_to_col: string\n        }\n        Returns: boolean\n      }\n      has_index_like: {\n        Args: { p_pattern: string; p_table: unknown }\n        Returns: boolean\n      }\n      has_pk_on_id: { Args: { p_table: unknown }; Returns: boolean }\n      has_role: {\n        Args: {\n          _role: Database[\"public\"][\"Enums\"][\"app_role\"]\n          _user_id: string\n        }\n        Returns: boolean\n      }\n      has_updated_at_trigger: { Args: { p_table: unknown }; Returns: boolean }\n      mark_first_login_complete: { Args: never; Returns: undefined }\n      match_bno_embedding: {\n        Args: {\n          match_count?: number\n          match_threshold?: number\n          p_source_types?: string[]\n          query_embedding: string\n        }\n        Returns: {\n          bno_code_id: string\n          code: string\n          matched_text: string\n          name: string\n          similarity: number\n          source_type: string\n        }[]\n      }\n      match_statusz_marker: {\n        Args: {\n          match_count?: number\n          match_threshold?: number\n          query_embedding: string\n        }\n        Returns: {\n          category: string\n          data_name: string\n          label_hu: string\n          marker_key: string\n          similarity: number\n        }[]\n      }\n      match_szotar_embedding: {\n        Args: {\n          match_count?: number\n          match_threshold?: number\n          p_source_types?: string[]\n          p_telephely_id?: string\n          query_embedding: string\n        }\n        Returns: {\n          category: string\n          matched_text: string\n          name: string\n          rule_name: string\n          similarity: number\n          source_type: string\n          szotar_kezeles_id: string\n        }[]\n      }\n      match_treatment_embedding:\n        | {\n            Args: {\n              match_count?: number\n              match_threshold?: number\n              p_clinic_id?: string\n              p_source_types?: string[]\n              query_embedding: string\n            }\n            Returns: {\n              matched_text: string\n              rule_name: string\n              similarity: number\n              source_type: string\n              treatment_rule_id: string\n            }[]\n          }\n        | {\n            Args: {\n              match_count?: number\n              match_threshold?: number\n              p_clinic_id?: string\n              query_embedding: string\n            }\n            Returns: {\n              matched_text: string\n              rule_name: string\n              similarity: number\n              source_type: string\n              treatment_rule_id: string\n            }[]\n          }\n      policy_count: { Args: { p_table: unknown }; Returns: number }\n      rls_enabled: { Args: { p_table: unknown }; Returns: boolean }\n      submit_voice_job_complaint: {\n        Args: { p_complaint_text: string; p_job_id: string }\n        Returns: undefined\n      }\n      subscription_is_active: { Args: { _user_id: string }; Returns: boolean }\n      upsert_bno_embedding: {\n        Args: {\n          p_bno_code_id: string\n          p_embedding: string\n          p_source_type: string\n          p_text_source: string\n        }\n        Returns: string\n      }\n      upsert_statusz_embedding: {\n        Args: {\n          p_category: string\n          p_data_name: string\n          p_embedding: string\n          p_label_hu: string\n          p_marker_key: string\n          p_text_source: string\n        }\n        Returns: undefined\n      }\n      upsert_szotar_embedding: {\n        Args: {\n          p_embedding: string\n          p_source_type: string\n          p_szotar_kezeles_id: string\n          p_text_source: string\n        }\n        Returns: string\n      }\n      upsert_treatment_embedding: {\n        Args: {\n          p_embedding: string\n          p_source_type: string\n          p_text_source: string\n          p_treatment_rule_id: string\n        }\n        Returns: string\n      }\n    }\n    Enums: {\n      app_role: \"admin\" | \"user\" | \"klinika_admin\"\n    }\n    CompositeTypes: {\n      [_ in never]: never\n    }\n  }\n}\n\ntype DatabaseWithoutInternals = Omit<Database, \"__InternalSupabase\">\n\ntype DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, \"public\">]\n\nexport type Tables<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof (DefaultSchema[\"Tables\"] & DefaultSchema[\"Views\"])\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"] &\n        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Views\"])\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"] &\n      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Views\"])[TableName] extends {\n      Row: infer R\n    }\n    ? R\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema[\"Tables\"] &\n        DefaultSchema[\"Views\"])\n    ? (DefaultSchema[\"Tables\"] &\n        DefaultSchema[\"Views\"])[DefaultSchemaTableNameOrOptions] extends {\n        Row: infer R\n      }\n      ? R\n      : never\n    : never\n\nexport type TablesInsert<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof DefaultSchema[\"Tables\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"]\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"][TableName] extends {\n      Insert: infer I\n    }\n    ? I\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema[\"Tables\"]\n    ? DefaultSchema[\"Tables\"][DefaultSchemaTableNameOrOptions] extends {\n        Insert: infer I\n      }\n      ? I\n      : never\n    : never\n\nexport type TablesUpdate<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof DefaultSchema[\"Tables\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"]\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"][TableName] extends {\n      Update: infer U\n    }\n    ? U\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema[\"Tables\"]\n    ? DefaultSchema[\"Tables\"][DefaultSchemaTableNameOrOptions] extends {\n        Update: infer U\n      }\n      ? U\n      : never\n    : never\n\nexport type Enums<\n  DefaultSchemaEnumNameOrOptions extends\n    | keyof DefaultSchema[\"Enums\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  EnumName extends DefaultSchemaEnumNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions[\"schema\"]][\"Enums\"]\n    : never = never,\n> = DefaultSchemaEnumNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions[\"schema\"]][\"Enums\"][EnumName]\n  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema[\"Enums\"]\n    ? DefaultSchema[\"Enums\"][DefaultSchemaEnumNameOrOptions]\n    : never\n\nexport type CompositeTypes<\n  PublicCompositeTypeNameOrOptions extends\n    | keyof DefaultSchema[\"CompositeTypes\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions[\"schema\"]][\"CompositeTypes\"]\n    : never = never,\n> = PublicCompositeTypeNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions[\"schema\"]][\"CompositeTypes\"][CompositeTypeName]\n  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema[\"CompositeTypes\"]\n    ? DefaultSchema[\"CompositeTypes\"][PublicCompositeTypeNameOrOptions]\n    : never\n\nexport const Constants = {\n  public: {\n    Enums: {\n      app_role: [\"admin\", \"user\", \"klinika_admin\"],\n    },\n  },\n} as const\n"}
+﻿export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
+  public: {
+    Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_type: string | null
+          company_id: string | null
+          created_at: string
+          end_time: string
+          id: string
+          notes: string | null
+          patient_id: string
+          reminder_sent: boolean | null
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          reminder_sent?: boolean | null
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          reminder_sent?: boolean | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bno_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bno_embeddings: {
+        Row: {
+          bno_code_id: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          text_source: string
+          updated_at: string | null
+        }
+        Insert: {
+          bno_code_id: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source: string
+          updated_at?: string | null
+        }
+        Update: {
+          bno_code_id?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bno_embeddings_bno_code_id_fkey"
+            columns: ["bno_code_id"]
+            isOneToOne: false
+            referencedRelation: "bno_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bridge_actions: {
+        Row: {
+          blue_teeth: number[]
+          created_at: string
+          examination_id: string
+          id: string
+          is_sin: boolean | null
+          yellow_teeth: number[]
+        }
+        Insert: {
+          blue_teeth?: number[]
+          created_at?: string
+          examination_id: string
+          id?: string
+          is_sin?: boolean | null
+          yellow_teeth?: number[]
+        }
+        Update: {
+          blue_teeth?: number[]
+          created_at?: string
+          examination_id?: string
+          id?: string
+          is_sin?: boolean | null
+          yellow_teeth?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bridge_actions_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      captcha_lessons: {
+        Row: {
+          category: string
+          grid_size: number
+          id: string
+          lesson_rules: string
+          source_count: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          grid_size: number
+          id?: string
+          lesson_rules: string
+          source_count?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          grid_size?: number
+          id?: string
+          lesson_rules?: string
+          source_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      captcha_vector: {
+        Row: {
+          ai_error_analysis: string | null
+          ai_final_tiles: number[]
+          ai_phase1_tiles: number[] | null
+          ai_phase2_tiles: number[] | null
+          analysis_done_at: string | null
+          attempt_round: number
+          challenge_text: string
+          challenge_type: string | null
+          created_at: string
+          domain: string
+          grid_screenshot_url: string | null
+          grid_size: number
+          human_tiles: number[] | null
+          id: string
+          notes: string | null
+          reviewed_at: string | null
+          session_id: string
+        }
+        Insert: {
+          ai_error_analysis?: string | null
+          ai_final_tiles: number[]
+          ai_phase1_tiles?: number[] | null
+          ai_phase2_tiles?: number[] | null
+          analysis_done_at?: string | null
+          attempt_round: number
+          challenge_text: string
+          challenge_type?: string | null
+          created_at?: string
+          domain: string
+          grid_screenshot_url?: string | null
+          grid_size: number
+          human_tiles?: number[] | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          session_id: string
+        }
+        Update: {
+          ai_error_analysis?: string | null
+          ai_final_tiles?: number[]
+          ai_phase1_tiles?: number[] | null
+          ai_phase2_tiles?: number[] | null
+          analysis_done_at?: string | null
+          attempt_round?: number
+          challenge_text?: string
+          challenge_type?: string | null
+          created_at?: string
+          domain?: string
+          grid_screenshot_url?: string | null
+          grid_size?: number
+          human_tiles?: number[] | null
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
+      clinic_custom_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          mode: string
+          name: string
+          telephely_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          mode: string
+          name: string
+          telephely_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          mode?: string
+          name?: string
+          telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_custom_categories_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_item_overrides: {
+        Row: {
+          created_at: string | null
+          default_item_id: string
+          id: string
+          is_active: boolean | null
+          price: number | null
+          telephely_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_item_id: string
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          telephely_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_item_id?: string
+          id?: string
+          is_active?: boolean | null
+          price?: number | null
+          telephely_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_item_overrides_default_item_id_fkey"
+            columns: ["default_item_id"]
+            isOneToOne: false
+            referencedRelation: "default_treatment_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_item_overrides_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_treatment_items_stdl: {
+        Row: {
+          applicable_statuses: string[] | null
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_per_tooth: boolean | null
+          name: string
+          price: number | null
+          sort_order: number | null
+          subcategory: string | null
+          telephely_id: string
+          updated_at: string | null
+          visual_color: string
+          visual_group: string
+          visual_icon: string
+        }
+        Insert: {
+          applicable_statuses?: string[] | null
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_per_tooth?: boolean | null
+          name: string
+          price?: number | null
+          sort_order?: number | null
+          subcategory?: string | null
+          telephely_id: string
+          updated_at?: string | null
+          visual_color?: string
+          visual_group?: string
+          visual_icon?: string
+        }
+        Update: {
+          applicable_statuses?: string[] | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_per_tooth?: boolean | null
+          name?: string
+          price?: number | null
+          sort_order?: number | null
+          subcategory?: string | null
+          telephely_id?: string
+          updated_at?: string | null
+          visual_color?: string
+          visual_group?: string
+          visual_icon?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_treatment_items_stdl_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string | null
+          current_period_end: string | null
+          display_name: string | null
+          id: string
+          is_active: boolean
+          is_solo: boolean
+          livemode: boolean
+          name: string
+          seats: number
+          slug: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          subscription_price_id: string | null
+          subscription_status: string
+          telephely: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string | null
+          current_period_end?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_solo?: boolean
+          livemode?: boolean
+          name: string
+          seats?: number
+          slug: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          subscription_price_id?: string | null
+          subscription_status?: string
+          telephely?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string | null
+          current_period_end?: string | null
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_solo?: boolean
+          livemode?: boolean
+          name?: string
+          seats?: number
+          slug?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          subscription_price_id?: string | null
+          subscription_status?: string
+          telephely?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      company_app_config: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          enforce_mandatory_update: boolean
+          min_required_version: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          enforce_mandatory_update?: boolean
+          min_required_version?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          enforce_mandatory_update?: boolean
+          min_required_version?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_app_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      default_treatment_items: {
+        Row: {
+          applicable_statuses: string[] | null
+          category: string | null
+          created_at: string | null
+          id: string
+          is_per_tooth: boolean | null
+          name: string
+          sort_order: number | null
+          subcategory: string | null
+          updated_at: string | null
+          visual_color: string | null
+          visual_group: string | null
+          visual_icon: string | null
+        }
+        Insert: {
+          applicable_statuses?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_per_tooth?: boolean | null
+          name: string
+          sort_order?: number | null
+          subcategory?: string | null
+          updated_at?: string | null
+          visual_color?: string | null
+          visual_group?: string | null
+          visual_icon?: string | null
+        }
+        Update: {
+          applicable_statuses?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_per_tooth?: boolean | null
+          name?: string
+          sort_order?: number | null
+          subcategory?: string | null
+          updated_at?: string | null
+          visual_color?: string | null
+          visual_group?: string | null
+          visual_icon?: string | null
+        }
+        Relationships: []
+      }
+      dental_chart: {
+        Row: {
+          company_id: string | null
+          dental_signs: Json | null
+          gum_recession_mm: number | null
+          id: string
+          implant_date: string | null
+          implant_diameter: number | null
+          implant_length: number | null
+          implant_system: string | null
+          last_updated_at: string | null
+          mobility: number | null
+          notes: string | null
+          patient_id: string
+          percussion: string | null
+          percussion_sensitive: boolean | null
+          periapical_lesion: boolean | null
+          pocket_depth_mm: number | null
+          prosthetic_material: string | null
+          prosthetic_shade: string | null
+          prosthetic_type: string | null
+          sensitivity: string | null
+          status: string
+          surfaces: string | null
+          tooth_number: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          dental_signs?: Json | null
+          gum_recession_mm?: number | null
+          id?: string
+          implant_date?: string | null
+          implant_diameter?: number | null
+          implant_length?: number | null
+          implant_system?: string | null
+          last_updated_at?: string | null
+          mobility?: number | null
+          notes?: string | null
+          patient_id: string
+          percussion?: string | null
+          percussion_sensitive?: boolean | null
+          periapical_lesion?: boolean | null
+          pocket_depth_mm?: number | null
+          prosthetic_material?: string | null
+          prosthetic_shade?: string | null
+          prosthetic_type?: string | null
+          sensitivity?: string | null
+          status?: string
+          surfaces?: string | null
+          tooth_number: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          dental_signs?: Json | null
+          gum_recession_mm?: number | null
+          id?: string
+          implant_date?: string | null
+          implant_diameter?: number | null
+          implant_length?: number | null
+          implant_system?: string | null
+          last_updated_at?: string | null
+          mobility?: number | null
+          notes?: string | null
+          patient_id?: string
+          percussion?: string | null
+          percussion_sensitive?: boolean | null
+          periapical_lesion?: boolean | null
+          pocket_depth_mm?: number | null
+          prosthetic_material?: string | null
+          prosthetic_shade?: string | null
+          prosthetic_type?: string | null
+          sensitivity?: string | null
+          status?: string
+          surfaces?: string | null
+          tooth_number?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dental_chart_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dental_chart_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dental_chart_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          dental_chart_id: string | null
+          id: string
+          new_state: Json | null
+          old_state: Json | null
+          operation: string
+          patient_id: string | null
+          tooth_number: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          dental_chart_id?: string | null
+          id?: string
+          new_state?: Json | null
+          old_state?: Json | null
+          operation: string
+          patient_id?: string | null
+          tooth_number: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          dental_chart_id?: string | null
+          id?: string
+          new_state?: Json | null
+          old_state?: Json | null
+          operation?: string
+          patient_id?: string | null
+          tooth_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dental_chart_history_dental_chart_id_fkey"
+            columns: ["dental_chart_id"]
+            isOneToOne: false
+            referencedRelation: "dental_chart"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dental_chart_history_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnoses: {
+        Row: {
+          created_at: string
+          description: string
+          examination_id: string
+          id: string
+          tooth_number: number | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          examination_id: string
+          id?: string
+          tooth_number?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          examination_id?: string
+          id?: string
+          tooth_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnoses_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      error_logs: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          domain: string | null
+          full_log: string
+          id: string
+          metadata: Json | null
+          screenshot_urls: string[] | null
+          script_name: string
+          severity: string | null
+          summary: string
+          telephely_id: string | null
+          telephely_name: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          domain?: string | null
+          full_log: string
+          id?: string
+          metadata?: Json | null
+          screenshot_urls?: string[] | null
+          script_name: string
+          severity?: string | null
+          summary: string
+          telephely_id?: string | null
+          telephely_name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          domain?: string | null
+          full_log?: string
+          id?: string
+          metadata?: Json | null
+          screenshot_urls?: string[] | null
+          script_name?: string
+          severity?: string | null
+          summary?: string
+          telephely_id?: string | null
+          telephely_name?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      examinations: {
+        Row: {
+          all_on_4_lower: boolean | null
+          all_on_4_upper: boolean | null
+          allergies: string[] | null
+          appliances: boolean | null
+          asa_class: number | null
+          chief_complaint: string | null
+          company_id: string | null
+          conditions: string[] | null
+          created_at: string
+          csak_hid: boolean | null
+          diet_frequency: boolean | null
+          egybeontott_korona: boolean | null
+          fluoride_exposure: boolean | null
+          full_lower_prosthesis: boolean | null
+          full_upper_prosthesis: boolean | null
+          history_notes: string | null
+          id: string
+          manual_override: boolean | null
+          medications: string[] | null
+          pain_scale: number | null
+          partial_removable_prosthesis: boolean | null
+          patient_id: string
+          recent_caries: boolean | null
+          risk_level: string | null
+          risk_rationale: string | null
+          saliva_adequacy: boolean | null
+          smoker: boolean | null
+          updated_at: string
+          user_id: string
+          visible_plaque: boolean | null
+        }
+        Insert: {
+          all_on_4_lower?: boolean | null
+          all_on_4_upper?: boolean | null
+          allergies?: string[] | null
+          appliances?: boolean | null
+          asa_class?: number | null
+          chief_complaint?: string | null
+          company_id?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          csak_hid?: boolean | null
+          diet_frequency?: boolean | null
+          egybeontott_korona?: boolean | null
+          fluoride_exposure?: boolean | null
+          full_lower_prosthesis?: boolean | null
+          full_upper_prosthesis?: boolean | null
+          history_notes?: string | null
+          id?: string
+          manual_override?: boolean | null
+          medications?: string[] | null
+          pain_scale?: number | null
+          partial_removable_prosthesis?: boolean | null
+          patient_id: string
+          recent_caries?: boolean | null
+          risk_level?: string | null
+          risk_rationale?: string | null
+          saliva_adequacy?: boolean | null
+          smoker?: boolean | null
+          updated_at?: string
+          user_id: string
+          visible_plaque?: boolean | null
+        }
+        Update: {
+          all_on_4_lower?: boolean | null
+          all_on_4_upper?: boolean | null
+          allergies?: string[] | null
+          appliances?: boolean | null
+          asa_class?: number | null
+          chief_complaint?: string | null
+          company_id?: string | null
+          conditions?: string[] | null
+          created_at?: string
+          csak_hid?: boolean | null
+          diet_frequency?: boolean | null
+          egybeontott_korona?: boolean | null
+          fluoride_exposure?: boolean | null
+          full_lower_prosthesis?: boolean | null
+          full_upper_prosthesis?: boolean | null
+          history_notes?: string | null
+          id?: string
+          manual_override?: boolean | null
+          medications?: string[] | null
+          pain_scale?: number | null
+          partial_removable_prosthesis?: boolean | null
+          patient_id?: string
+          recent_caries?: boolean | null
+          risk_level?: string | null
+          risk_rationale?: string | null
+          saliva_adequacy?: boolean | null
+          smoker?: boolean | null
+          updated_at?: string
+          user_id?: string
+          visible_plaque?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examinations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examinations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feltoltott_pdf: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          file_hash_sha256: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          fogalom: string | null
+          id: string
+          telephely_id: string | null
+          uploaded_by: string
+          webhook_status: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          file_hash_sha256?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          fogalom?: string | null
+          id?: string
+          telephely_id?: string | null
+          uploaded_by: string
+          webhook_status?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          file_hash_sha256?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          fogalom?: string | null
+          id?: string
+          telephely_id?: string | null
+          uploaded_by?: string
+          webhook_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feltoltott_pdf_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feltoltott_pdf_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_hashes: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          path: string
+          sha256: string
+          size: number
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          path: string
+          sha256: string
+          size: number
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          path?: string
+          sha256?: string
+          size?: number
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_hashes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flexi_auth: {
+        Row: {
+          created_at: string
+          flexi_pw: string | null
+          flexi_username: string | null
+          id: string
+          name: string | null
+          telephely_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          flexi_pw?: string | null
+          flexi_username?: string | null
+          id?: string
+          name?: string | null
+          telephely_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          flexi_pw?: string | null
+          flexi_username?: string | null
+          id?: string
+          name?: string | null
+          telephely_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flexi_auth_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folder_access: {
+        Row: {
+          folder_id: string
+          granted_at: string | null
+          granted_by: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          folder_id: string
+          granted_at?: string | null
+          granted_by: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          folder_id?: string
+          granted_at?: string | null
+          granted_by?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_access_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folder_structure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folder_structure: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string
+          folder_path: string
+          id: string
+          is_client_folder: boolean
+          parent_path: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          folder_path: string
+          id?: string
+          is_client_folder?: boolean
+          parent_path?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          folder_path?: string
+          id?: string
+          is_client_folder?: boolean
+          parent_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_structure_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          expires_at: string
+          full_name: string | null
+          id: string
+          invitation_token: string | null
+          invited_by_user_id: string
+          invited_email: string | null
+          invited_user_id: string | null
+          responded_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          telephely_id: string
+          used_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invitation_token?: string | null
+          invited_by_user_id: string
+          invited_email?: string | null
+          invited_user_id?: string | null
+          responded_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          telephely_id: string
+          used_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invitation_token?: string | null
+          invited_by_user_id?: string
+          invited_email?: string | null
+          invited_user_id?: string | null
+          responded_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          telephely_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenses: {
+        Row: {
+          assigned_user_id: string | null
+          billing_interval: string
+          cancel_at_period_end: boolean
+          company_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          license_type: string
+          status: string
+          stripe_subscription_id: string | null
+          stripe_subscription_item_id: string | null
+          telephely_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          billing_interval?: string
+          cancel_at_period_end?: boolean
+          company_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_type?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          telephely_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          billing_interval?: string
+          cancel_at_period_end?: boolean
+          company_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          license_type?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          stripe_subscription_item_id?: string | null
+          telephely_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      native_voice_jobs: {
+        Row: {
+          audio_filename: string | null
+          claude_cleaned_text: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          progress_message: string | null
+          progress_percent: number | null
+          raw_audio_text: string | null
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          trace_info: Json | null
+          trace_logs: Json | null
+          treatnote_patient_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          audio_filename?: string | null
+          claude_cleaned_text?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode: string
+          progress_message?: string | null
+          progress_percent?: number | null
+          raw_audio_text?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          trace_info?: Json | null
+          trace_logs?: Json | null
+          treatnote_patient_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          audio_filename?: string | null
+          claude_cleaned_text?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode?: string
+          progress_message?: string | null
+          progress_percent?: number | null
+          raw_audio_text?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          trace_info?: Json | null
+          trace_logs?: Json | null
+          treatnote_patient_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "native_voice_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "native_voice_jobs_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "native_voice_jobs_treatnote_patient_id_fkey"
+            columns: ["treatnote_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_alap_adatok: {
+        Row: {
+          alapertelmezett_arlista: string | null
+          alapertelmezett_nyelv: string | null
+          anamnezis: Json | null
+          anyja_neve: string | null
+          azonosito_okmany_tipusa: string | null
+          bekuldo_orvos_id: string | null
+          bekuldo_paciens_id: string | null
+          company_id: string
+          created_at: string
+          dentalhigienikus_id: string | null
+          ertekesitesi_statusz: string | null
+          flexident_id: string | null
+          fontos_info_felelem: string | null
+          honnan_ertesult: string | null
+          husegprogram_vege: string | null
+          id: string
+          inaktiv_paciens: boolean | null
+          iranyitoszam: string
+          kapcsolattarto_email: string | null
+          kaphat_email_ertesitot: boolean | null
+          keresztnev: string
+          kezeloorvos_id: string | null
+          marketing_hozzajarulas: boolean | null
+          mit_var_kezelestol: string | null
+          naptar_megjegyzes: string | null
+          nem_ker_levelet: boolean | null
+          nem_kivant_paciens: boolean | null
+          nem_kivant_paciens_ok: string | null
+          neme: string | null
+          orszag: string | null
+          paciens_megszolitasa: string | null
+          szuletesi_hely: string | null
+          szuletesi_ido: string | null
+          szuletesi_keresztnev: string | null
+          szuletesi_vezeteknev: string | null
+          taj_szam: string | null
+          telefon_1_hivoszam: string | null
+          telefon_1_korzet: string | null
+          telefon_1_leiras: string | null
+          telefon_1_orszagkod: string | null
+          telefon_2_hivoszam: string | null
+          telefon_2_korzet: string | null
+          telefon_2_leiras: string | null
+          telefon_2_orszagkod: string | null
+          telefon_3_hivoszam: string | null
+          telefon_3_korzet: string | null
+          telefon_3_leiras: string | null
+          telefon_3_orszagkod: string | null
+          telephely_ids: string[]
+          titulus: string | null
+          updated_at: string
+          user_id: string | null
+          utca_hazszam: string
+          varos: string
+          vezeteknev: string
+        }
+        Insert: {
+          alapertelmezett_arlista?: string | null
+          alapertelmezett_nyelv?: string | null
+          anamnezis?: Json | null
+          anyja_neve?: string | null
+          azonosito_okmany_tipusa?: string | null
+          bekuldo_orvos_id?: string | null
+          bekuldo_paciens_id?: string | null
+          company_id: string
+          created_at?: string
+          dentalhigienikus_id?: string | null
+          ertekesitesi_statusz?: string | null
+          flexident_id?: string | null
+          fontos_info_felelem?: string | null
+          honnan_ertesult?: string | null
+          husegprogram_vege?: string | null
+          id?: string
+          inaktiv_paciens?: boolean | null
+          iranyitoszam: string
+          kapcsolattarto_email?: string | null
+          kaphat_email_ertesitot?: boolean | null
+          keresztnev: string
+          kezeloorvos_id?: string | null
+          marketing_hozzajarulas?: boolean | null
+          mit_var_kezelestol?: string | null
+          naptar_megjegyzes?: string | null
+          nem_ker_levelet?: boolean | null
+          nem_kivant_paciens?: boolean | null
+          nem_kivant_paciens_ok?: string | null
+          neme?: string | null
+          orszag?: string | null
+          paciens_megszolitasa?: string | null
+          szuletesi_hely?: string | null
+          szuletesi_ido?: string | null
+          szuletesi_keresztnev?: string | null
+          szuletesi_vezeteknev?: string | null
+          taj_szam?: string | null
+          telefon_1_hivoszam?: string | null
+          telefon_1_korzet?: string | null
+          telefon_1_leiras?: string | null
+          telefon_1_orszagkod?: string | null
+          telefon_2_hivoszam?: string | null
+          telefon_2_korzet?: string | null
+          telefon_2_leiras?: string | null
+          telefon_2_orszagkod?: string | null
+          telefon_3_hivoszam?: string | null
+          telefon_3_korzet?: string | null
+          telefon_3_leiras?: string | null
+          telefon_3_orszagkod?: string | null
+          telephely_ids?: string[]
+          titulus?: string | null
+          updated_at?: string
+          user_id?: string | null
+          utca_hazszam: string
+          varos: string
+          vezeteknev: string
+        }
+        Update: {
+          alapertelmezett_arlista?: string | null
+          alapertelmezett_nyelv?: string | null
+          anamnezis?: Json | null
+          anyja_neve?: string | null
+          azonosito_okmany_tipusa?: string | null
+          bekuldo_orvos_id?: string | null
+          bekuldo_paciens_id?: string | null
+          company_id?: string
+          created_at?: string
+          dentalhigienikus_id?: string | null
+          ertekesitesi_statusz?: string | null
+          flexident_id?: string | null
+          fontos_info_felelem?: string | null
+          honnan_ertesult?: string | null
+          husegprogram_vege?: string | null
+          id?: string
+          inaktiv_paciens?: boolean | null
+          iranyitoszam?: string
+          kapcsolattarto_email?: string | null
+          kaphat_email_ertesitot?: boolean | null
+          keresztnev?: string
+          kezeloorvos_id?: string | null
+          marketing_hozzajarulas?: boolean | null
+          mit_var_kezelestol?: string | null
+          naptar_megjegyzes?: string | null
+          nem_ker_levelet?: boolean | null
+          nem_kivant_paciens?: boolean | null
+          nem_kivant_paciens_ok?: string | null
+          neme?: string | null
+          orszag?: string | null
+          paciens_megszolitasa?: string | null
+          szuletesi_hely?: string | null
+          szuletesi_ido?: string | null
+          szuletesi_keresztnev?: string | null
+          szuletesi_vezeteknev?: string | null
+          taj_szam?: string | null
+          telefon_1_hivoszam?: string | null
+          telefon_1_korzet?: string | null
+          telefon_1_leiras?: string | null
+          telefon_1_orszagkod?: string | null
+          telefon_2_hivoszam?: string | null
+          telefon_2_korzet?: string | null
+          telefon_2_leiras?: string | null
+          telefon_2_orszagkod?: string | null
+          telefon_3_hivoszam?: string | null
+          telefon_3_korzet?: string | null
+          telefon_3_leiras?: string | null
+          telefon_3_orszagkod?: string | null
+          telephely_ids?: string[]
+          titulus?: string | null
+          updated_at?: string
+          user_id?: string | null
+          utca_hazszam?: string
+          varos?: string
+          vezeteknev?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_alap_adatok_bekuldo_paciens_id_fkey"
+            columns: ["bekuldo_paciens_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_alap_adatok_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_share_log: {
+        Row: {
+          action: string
+          created_at: string
+          from_telephely_id: string
+          id: string
+          message: string | null
+          patient_id: string
+          performed_by: string
+          request_id: string | null
+          to_telephely_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          from_telephely_id: string
+          id?: string
+          message?: string | null
+          patient_id: string
+          performed_by: string
+          request_id?: string | null
+          to_telephely_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          from_telephely_id?: string
+          id?: string
+          message?: string | null
+          patient_id?: string
+          performed_by?: string
+          request_id?: string | null
+          to_telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_share_log_from_telephely_id_fkey"
+            columns: ["from_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_share_log_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_share_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "patient_share_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_share_log_to_telephely_id_fkey"
+            columns: ["to_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_share_requests: {
+        Row: {
+          created_at: string
+          from_company_name_snapshot: string | null
+          from_telephely_id: string
+          from_telephely_name_snapshot: string | null
+          id: string
+          message: string | null
+          patient_id: string
+          patient_name_snapshot: string | null
+          requested_by: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          to_telephely_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_company_name_snapshot?: string | null
+          from_telephely_id: string
+          from_telephely_name_snapshot?: string | null
+          id?: string
+          message?: string | null
+          patient_id: string
+          patient_name_snapshot?: string | null
+          requested_by: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          to_telephely_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_company_name_snapshot?: string | null
+          from_telephely_id?: string
+          from_telephely_name_snapshot?: string | null
+          id?: string
+          message?: string | null
+          patient_id?: string
+          patient_name_snapshot?: string | null
+          requested_by?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          to_telephely_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_share_requests_from_telephely_id_fkey"
+            columns: ["from_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_share_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_share_requests_to_telephely_id_fkey"
+            columns: ["to_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_treatment_plan_items: {
+        Row: {
+          created_at: string | null
+          fog: string | null
+          hidtag: string | null
+          id: string
+          name: string
+          notes: string | null
+          plan_id: string | null
+          price_snapshot: number | null
+          quantity: number
+          scaling: string | null
+          status: string | null
+          szakterulet: string | null
+          talalat: boolean | null
+          treatment_item_id: string | null
+          vizit: number
+        }
+        Insert: {
+          created_at?: string | null
+          fog?: string | null
+          hidtag?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          plan_id?: string | null
+          price_snapshot?: number | null
+          quantity: number
+          scaling?: string | null
+          status?: string | null
+          szakterulet?: string | null
+          talalat?: boolean | null
+          treatment_item_id?: string | null
+          vizit: number
+        }
+        Update: {
+          created_at?: string | null
+          fog?: string | null
+          hidtag?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          plan_id?: string | null
+          price_snapshot?: number | null
+          quantity?: number
+          scaling?: string | null
+          status?: string | null
+          szakterulet?: string | null
+          talalat?: boolean | null
+          treatment_item_id?: string | null
+          vizit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_treatment_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "patient_treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_treatment_plan_items_treatment_item_id_fkey"
+            columns: ["treatment_item_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_treatment_items_stdl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_treatment_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          patient_id: string | null
+          telephely_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          voice_job_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          voice_job_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          voice_job_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_treatment_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_treatment_plans_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_treatment_plans_voice_job_id_fkey"
+            columns: ["voice_job_id"]
+            isOneToOne: false
+            referencedRelation: "native_voice_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          date_of_birth: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          date_of_birth: string
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          date_of_birth?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_extractions: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          error_message: string | null
+          event_id: string
+          finished_at: string | null
+          id: string
+          items_count: number | null
+          raw_json: Json | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          error_message?: string | null
+          event_id: string
+          finished_at?: string | null
+          id?: string
+          items_count?: number | null
+          raw_json?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          error_message?: string | null
+          event_id?: string
+          finished_at?: string | null
+          id?: string
+          items_count?: number | null
+          raw_json?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_extractions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "feltoltott_pdf"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          can_create_users: boolean
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          current_telephely_id: string | null
+          full_name: string | null
+          id: string
+          is_first_login: boolean
+          is_solo: boolean
+          phone: string | null
+          subscription_amount: number | null
+          subscription_end_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
+          subscription_status: string
+          telephely: string | null
+          telephely_id: string | null
+          updated_at: string | null
+          user_id: string
+          voice_recording_preference: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          can_create_users?: boolean
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string
+          is_first_login?: boolean
+          is_solo?: boolean
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          voice_recording_preference?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          can_create_users?: boolean
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string
+          is_first_login?: boolean
+          is_solo?: boolean
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          voice_recording_preference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_current_telephely_id_fkey"
+            columns: ["current_telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          endpoint: string
+          first_request_time: string | null
+          id: string
+          identifier: string
+          request_count: number | null
+        }
+        Insert: {
+          endpoint: string
+          first_request_time?: string | null
+          id?: string
+          identifier: string
+          request_count?: number | null
+        }
+        Update: {
+          endpoint?: string
+          first_request_time?: string | null
+          id?: string
+          identifier?: string
+          request_count?: number | null
+        }
+        Relationships: []
+      }
+      rule_generation_jobs: {
+        Row: {
+          attempt: number
+          batch_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          extractions_count: number | null
+          id: string
+          max_attempts: number
+          protocol_id: number | null
+          protocol_name: string
+          source: string
+          status: string
+          telephely_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extractions_count?: number | null
+          id?: string
+          max_attempts?: number
+          protocol_id?: number | null
+          protocol_name: string
+          source?: string
+          status?: string
+          telephely_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          extractions_count?: number | null
+          id?: string
+          max_attempts?: number
+          protocol_id?: number | null
+          protocol_name?: string
+          source?: string
+          status?: string
+          telephely_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_generation_jobs_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          item_id: string | null
+          name: string
+          quantity: number
+          scaling: string
+          target_tooth_type: string
+          unit: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          item_id?: string | null
+          name: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          item_id?: string | null
+          name?: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_treatment_items_stdl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_items_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rule_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_items_stdl: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          item_id: string | null
+          name: string
+          quantity: number
+          scaling: string
+          target_tooth_type: string
+          unit: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          item_id?: string | null
+          name: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          item_id?: string | null
+          name?: string
+          quantity?: number
+          scaling?: string
+          target_tooth_type?: string
+          unit?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_items_stdl_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_treatment_items_stdl"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_items_stdl_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rule_visits_stdl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_visits: {
+        Row: {
+          created_at: string
+          display_order: number
+          duration_days: number | null
+          healing_months: number | null
+          id: string
+          rule_id: string
+          visit_number: number
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id: string
+          visit_number?: number
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id?: string
+          visit_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_visits_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_visits_stdl: {
+        Row: {
+          created_at: string
+          display_order: number
+          duration_days: number | null
+          healing_months: number | null
+          id: string
+          rule_id: string
+          visit_number: number
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id: string
+          visit_number?: number
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          duration_days?: number | null
+          healing_months?: number | null
+          id?: string
+          rule_id?: string
+          visit_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_visits_stdl_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_embeddings_stdl_stats"
+            referencedColumns: ["rule_id"]
+          },
+          {
+            foreignKeyName: "rule_visits_stdl_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules_stdl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      statusz_embeddings: {
+        Row: {
+          category: string
+          created_at: string
+          data_name: string
+          embedding: string | null
+          id: string
+          label_hu: string
+          marker_key: string
+          text_source: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data_name: string
+          embedding?: string | null
+          id?: string
+          label_hu: string
+          marker_key: string
+          text_source: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data_name?: string
+          embedding?: string | null
+          id?: string
+          label_hu?: string
+          marker_key?: string
+          text_source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          id: string
+          livemode: boolean
+          processed_at: string | null
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          id?: string
+          livemode?: boolean
+          processed_at?: string | null
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          id?: string
+          livemode?: boolean
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
+      szabalyepito_teszt_extractions: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          event_id: string
+          fogalom: string
+          id: string
+          kategoria: string | null
+          parsed_file_name: string | null
+          parsed_json: Json
+          source_file_name: string
+          telephely_id: string | null
+          trigger_words: Json | null
+          uploaded_by: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          event_id: string
+          fogalom: string
+          id?: string
+          kategoria?: string | null
+          parsed_file_name?: string | null
+          parsed_json: Json
+          source_file_name: string
+          telephely_id?: string | null
+          trigger_words?: Json | null
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          event_id?: string
+          fogalom?: string
+          id?: string
+          kategoria?: string | null
+          parsed_file_name?: string | null
+          parsed_json?: Json
+          source_file_name?: string
+          telephely_id?: string | null
+          trigger_words?: Json | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szabalyepito_teszt_extractions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "szabalyepito_teszt_extractions_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szamlazz_invoices: {
+        Row: {
+          attempt_count: number
+          company_id: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          raw_response: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_invoice_id: string
+          szamlazz_invoice_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          raw_response?: string | null
+          status?: string
+          stripe_customer_id: string
+          stripe_invoice_id: string
+          szamlazz_invoice_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          raw_response?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_invoice_id?: string
+          szamlazz_invoice_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szamlazz_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szamlazz_received_invoices: {
+        Row: {
+          brutto_vegosszeg: number | null
+          created_at: string
+          fizmod: string | null
+          id: string
+          kelt_datum: string | null
+          penznem: string | null
+          raw_xml: string | null
+          received_at: string
+          szamlaszam: string | null
+          szamlazz_id: string
+          szamlazz_key: string | null
+          teljesites_datum: string | null
+          tipus: string | null
+          updated_at: string
+          vevo_email: string | null
+          vevo_nev: string | null
+        }
+        Insert: {
+          brutto_vegosszeg?: number | null
+          created_at?: string
+          fizmod?: string | null
+          id?: string
+          kelt_datum?: string | null
+          penznem?: string | null
+          raw_xml?: string | null
+          received_at?: string
+          szamlaszam?: string | null
+          szamlazz_id: string
+          szamlazz_key?: string | null
+          teljesites_datum?: string | null
+          tipus?: string | null
+          updated_at?: string
+          vevo_email?: string | null
+          vevo_nev?: string | null
+        }
+        Update: {
+          brutto_vegosszeg?: number | null
+          created_at?: string
+          fizmod?: string | null
+          id?: string
+          kelt_datum?: string | null
+          penznem?: string | null
+          raw_xml?: string | null
+          received_at?: string
+          szamlaszam?: string | null
+          szamlazz_id?: string
+          szamlazz_key?: string | null
+          teljesites_datum?: string | null
+          tipus?: string | null
+          updated_at?: string
+          vevo_email?: string | null
+          vevo_nev?: string | null
+        }
+        Relationships: []
+      }
+      szotar: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string
+          id: string
+          telephely_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          telephely_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          telephely_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: true
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szotar_embeddings: {
+        Row: {
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          szotar_kezeles_id?: string
+          text_source?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_embeddings_szotar_kezeles_id_fkey"
+            columns: ["szotar_kezeles_id"]
+            isOneToOne: false
+            referencedRelation: "szotar_kezelesek"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szotar_embeddings_stdl: {
+        Row: {
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          szotar_kezeles_id: string
+          text_source: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          szotar_kezeles_id?: string
+          text_source?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_embeddings_stdl_szotar_kezeles_id_fkey"
+            columns: ["szotar_kezeles_id"]
+            isOneToOne: false
+            referencedRelation: "clinic_treatment_items_stdl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      szotar_kezelesek: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          telephely_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          telephely_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          telephely_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "szotar_kezelesek_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teeth: {
+        Row: {
+          bridge: string
+          caries: boolean | null
+          caries_locations: string[] | null
+          created_at: string
+          crown: string
+          endo_status: string
+          examination_id: string
+          fissure_sealing: boolean | null
+          id: string
+          mobility: number | null
+          notes: string | null
+          pathology: string
+          present: boolean | null
+          prosthesis: string
+          restoration: string
+          restoration_locations: string[] | null
+          tooth_number: number
+          tooth_type: string
+          treatment_plan: string
+          updated_at: string
+        }
+        Insert: {
+          bridge?: string
+          caries?: boolean | null
+          caries_locations?: string[] | null
+          created_at?: string
+          crown?: string
+          endo_status?: string
+          examination_id: string
+          fissure_sealing?: boolean | null
+          id?: string
+          mobility?: number | null
+          notes?: string | null
+          pathology?: string
+          present?: boolean | null
+          prosthesis?: string
+          restoration?: string
+          restoration_locations?: string[] | null
+          tooth_number: number
+          tooth_type?: string
+          treatment_plan?: string
+          updated_at?: string
+        }
+        Update: {
+          bridge?: string
+          caries?: boolean | null
+          caries_locations?: string[] | null
+          created_at?: string
+          crown?: string
+          endo_status?: string
+          examination_id?: string
+          fissure_sealing?: boolean | null
+          id?: string
+          mobility?: number | null
+          notes?: string | null
+          pathology?: string
+          present?: boolean | null
+          prosthesis?: string
+          restoration?: string
+          restoration_locations?: string[] | null
+          tooth_number?: number
+          tooth_type?: string
+          treatment_plan?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teeth_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telephely: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          display_name: string | null
+          flexi_domain: string | null
+          id: string
+          name: string
+          probapaciens_neve: string | null
+          share_code: string
+          updated_at: string | null
+          use_default_library: boolean | null
+          voice_recording_preference: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          display_name?: string | null
+          flexi_domain?: string | null
+          id?: string
+          name: string
+          probapaciens_neve?: string | null
+          share_code: string
+          updated_at?: string | null
+          use_default_library?: boolean | null
+          voice_recording_preference?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          display_name?: string | null
+          flexi_domain?: string | null
+          id?: string
+          name?: string
+          probapaciens_neve?: string | null
+          share_code?: string
+          updated_at?: string | null
+          use_default_library?: boolean | null
+          voice_recording_preference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telephely_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telephely_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          telephely_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          telephely_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          telephely_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telephely_memberships_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_embeddings: {
+        Row: {
+          created_at: string
+          embedding: string
+          id: string
+          source_type: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          embedding: string
+          id?: string
+          source_type?: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string
+          id?: string
+          source_type?: string
+          text_source?: string
+          treatment_rule_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_embeddings_treatment_rule_id_fkey"
+            columns: ["treatment_rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_embeddings_stdl: {
+        Row: {
+          created_at: string | null
+          embedding: string | null
+          id: string
+          source_type: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source: string
+          treatment_rule_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          source_type?: string
+          text_source?: string
+          treatment_rule_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_embeddings_stdl_treatment_rule_id_fkey"
+            columns: ["treatment_rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_embeddings_stdl_stats"
+            referencedColumns: ["rule_id"]
+          },
+          {
+            foreignKeyName: "treatment_embeddings_stdl_treatment_rule_id_fkey"
+            columns: ["treatment_rule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_rules_stdl"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_items: {
+        Row: {
+          created_at: string
+          display_order: number
+          estimated_cost: number | null
+          examination_id: string
+          id: string
+          label: string
+          notes: string | null
+          priority: string | null
+          status: string | null
+          tooth_number: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order: number
+          estimated_cost?: number | null
+          examination_id: string
+          id?: string
+          label: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tooth_number?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          estimated_cost?: number | null
+          examination_id?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tooth_number?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_items_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_rules: {
+        Row: {
+          aktiv: boolean
+          alapszabaly: boolean
+          category: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          name: string
+          semantic_description: string | null
+          trigger_words: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          aktiv?: boolean
+          alapszabaly?: boolean
+          category?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          name: string
+          semantic_description?: string | null
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          aktiv?: boolean
+          alapszabaly?: boolean
+          category?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          semantic_description?: string | null
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_rules_stdl: {
+        Row: {
+          aktiv: boolean | null
+          alapszabaly: boolean
+          category: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          name: string
+          semantic_description: string | null
+          trigger_words: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          aktiv?: boolean | null
+          alapszabaly?: boolean
+          category?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          name: string
+          semantic_description?: string | null
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          aktiv?: boolean | null
+          alapszabaly?: boolean
+          category?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          semantic_description?: string | null
+          trigger_words?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_stdl_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      voice_job_complaints: {
+        Row: {
+          complaint_text: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          job_id: string
+          job_type: string | null
+          status: string
+        }
+        Insert: {
+          complaint_text: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          job_id: string
+          job_type?: string | null
+          status?: string
+        }
+        Update: {
+          complaint_text?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          job_type?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      voice_jobs: {
+        Row: {
+          audio_filename: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          paciens_id: string | null
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          treatnote_patient_id: string | null
+          user_complaint: string | null
+          user_complaint_date: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode: string
+          paciens_id?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_complaint?: string | null
+          user_complaint_date?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_filename?: string | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          mode?: string
+          paciens_id?: string | null
+          result?: Json | null
+          status?: string
+          telephely_id?: string | null
+          treatnote_patient_id?: string | null
+          user_complaint?: string | null
+          user_complaint_date?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_jobs_treatnote_patient_id_fkey"
+            columns: ["treatnote_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_alap_adatok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zombi_profiles: {
+        Row: {
+          avatar_url: string | null
+          can_create_users: boolean | null
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          current_telephely_id: string | null
+          full_name: string | null
+          id: string | null
+          is_first_login: boolean | null
+          is_solo: boolean | null
+          phone: string | null
+          subscription_amount: number | null
+          subscription_end_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
+          subscription_status: string | null
+          telephely: string | null
+          telephely_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          can_create_users?: boolean | null
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_first_login?: boolean | null
+          is_solo?: boolean | null
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          can_create_users?: boolean | null
+          company_id?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_telephely_id?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_first_login?: boolean | null
+          is_solo?: boolean | null
+          phone?: string | null
+          subscription_amount?: number | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
+          telephely?: string | null
+          telephely_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      treatment_embeddings_stats: {
+        Row: {
+          clinic_id: string | null
+          item_embeddings: number | null
+          last_updated: string | null
+          rules_with_embeddings: number | null
+          semantic_embeddings: number | null
+          total_embeddings: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_embeddings_stdl_stats: {
+        Row: {
+          clinic_id: string | null
+          embedding_count: number | null
+          last_updated: string | null
+          rule_id: string | null
+          rule_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_rules_stdl_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      accept_share_request: {
+        Args: { p_request_id: string; p_resolver_id: string }
+        Returns: Json
+      }
+      audit_two_tables: {
+        Args: { p_codes_table: unknown; p_embeddings_table: unknown }
+        Returns: {
+          check_name: string
+          details: string
+          ok: boolean
+        }[]
+      }
+      can_access_company_version: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_access_path: {
+        Args: { _path: string; _user_id: string }
+        Returns: boolean
+      }
+      check_is_telephely_admin: {
+        Args: { _telephely_id: string; _user_id: string }
+        Returns: boolean
+      }
+      cleanup_orphaned_embeddings: { Args: never; Returns: number }
+      clinic_subscription_active: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
+      col_exists: {
+        Args: { p_col: string; p_table: unknown }
+        Returns: boolean
+      }
+      col_type: { Args: { p_col: string; p_table: unknown }; Returns: string }
+      count_bno_codes_without_embeddings: { Args: never; Returns: number }
+      create_licenses_for_item: {
+        Args: {
+          p_billing_interval: string
+          p_company_id: string
+          p_expires_at: string
+          p_item_id: string
+          p_sub_id: string
+          p_target_count: number
+          p_telephely_id: string
+        }
+        Returns: number
+      }
+      get_bno_codes_without_embeddings: {
+        Args: { p_limit?: number }
+        Returns: {
+          code: string
+          id: string
+          name: string
+        }[]
+      }
+      get_companies_basic_info: {
+        Args: { company_ids: string[] }
+        Returns: {
+          display_name: string
+          id: string
+          name: string
+        }[]
+      }
+      get_company_names: {
+        Args: never
+        Returns: {
+          company_name: string
+        }[]
+      }
+      get_global_voice_jobs: {
+        Args: {
+          p_company_id?: string
+          p_limit?: number
+          p_telephely_id?: string
+          p_user_id?: string
+        }
+        Returns: {
+          audio_filename: string | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          mode: string
+          paciens_id: string | null
+          result: Json | null
+          status: string
+          telephely_id: string | null
+          treatnote_patient_id: string | null
+          user_complaint: string | null
+          user_complaint_date: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "voice_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_users_basic_info: {
+        Args: { user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      has_any_trigger: { Args: { p_table: unknown }; Returns: boolean }
+      has_fk: {
+        Args: {
+          p_from: unknown
+          p_from_col: string
+          p_to: unknown
+          p_to_col: string
+        }
+        Returns: boolean
+      }
+      has_index_like: {
+        Args: { p_pattern: string; p_table: unknown }
+        Returns: boolean
+      }
+      has_pk_on_id: { Args: { p_table: unknown }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_updated_at_trigger: { Args: { p_table: unknown }; Returns: boolean }
+      mark_first_login_complete: { Args: never; Returns: undefined }
+      match_bno_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          query_embedding: string
+        }
+        Returns: {
+          bno_code_id: string
+          code: string
+          matched_text: string
+          name: string
+          similarity: number
+          source_type: string
+        }[]
+      }
+      match_dental_bno_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          query_embedding: string
+        }
+        Returns: {
+          bno_code_id: string
+          code: string
+          matched_text: string
+          name: string
+          similarity: number
+          source_type: string
+        }[]
+      }
+      match_statusz_marker: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          data_name: string
+          label_hu: string
+          marker_key: string
+          similarity: number
+        }[]
+      }
+      match_szotar_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          p_telephely_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          matched_text: string
+          name: string
+          rule_name: string
+          similarity: number
+          source_type: string
+          szotar_kezeles_id: string
+        }[]
+      }
+      match_szotar_embedding_stdl: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_source_types?: string[]
+          p_telephely_id?: string
+          query_embedding: string
+        }
+        Returns: {
+          category: string
+          matched_text: string
+          name: string
+          rule_name: string
+          similarity: number
+          source_type: string
+          szotar_kezeles_id: string
+        }[]
+      }
+      match_treatment_embedding:
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              p_source_types?: string[]
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
+        | {
+            Args: {
+              match_count?: number
+              match_threshold?: number
+              p_clinic_id?: string
+              query_embedding: string
+            }
+            Returns: {
+              matched_text: string
+              rule_name: string
+              similarity: number
+              source_type: string
+              treatment_rule_id: string
+            }[]
+          }
+      match_treatment_embedding_stdl: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_clinic_id?: string
+          p_source_types?: string[]
+          query_embedding: string
+        }
+        Returns: {
+          matched_text: string
+          rule_name: string
+          similarity: number
+          source_type: string
+          treatment_rule_id: string
+        }[]
+      }
+      policy_count: { Args: { p_table: unknown }; Returns: number }
+      rls_enabled: { Args: { p_table: unknown }; Returns: boolean }
+      submit_voice_job_complaint: {
+        Args: { p_complaint_text: string; p_job_id: string }
+        Returns: undefined
+      }
+      subscription_is_active: { Args: { _user_id: string }; Returns: boolean }
+      upsert_bno_embedding: {
+        Args: {
+          p_bno_code_id: string
+          p_embedding: string
+          p_source_type: string
+          p_text_source: string
+        }
+        Returns: string
+      }
+      upsert_statusz_embedding: {
+        Args: {
+          p_category: string
+          p_data_name: string
+          p_embedding: string
+          p_label_hu: string
+          p_marker_key: string
+          p_text_source: string
+        }
+        Returns: undefined
+      }
+      upsert_szotar_embedding: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_szotar_kezeles_id: string
+          p_text_source: string
+        }
+        Returns: string
+      }
+      upsert_szotar_embedding_stdl: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_szotar_kezeles_id: string
+          p_text_source: string
+        }
+        Returns: string
+      }
+      upsert_treatment_embedding: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_text_source: string
+          p_treatment_rule_id: string
+        }
+        Returns: string
+      }
+      upsert_treatment_embedding_stdl: {
+        Args: {
+          p_embedding: string
+          p_source_type: string
+          p_text_source: string
+          p_treatment_rule_id: string
+        }
+        Returns: string
+      }
+    }
+    Enums: {
+      app_role: "admin" | "user" | "klinika_admin"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "user", "klinika_admin"],
+    },
+  },
+} as const
+

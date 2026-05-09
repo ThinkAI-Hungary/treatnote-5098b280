@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -26,16 +26,23 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Detect Supabase email confirmation callback in the URL hash
+    // Detect Supabase email confirmation callback in the URL hash or confirmed query parameter
     const hash = window.location.hash;
-    if (hash.includes('type=signup') || hash.includes('type=email_confirmation')) {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (hash.includes('type=signup') || hash.includes('type=email_confirmation') || params.get('confirmed') === 'true') {
       // Supabase already processed the token and created a session.
       // We sign out immediately so the user must log in manually.
       supabase.auth.signOut().then(() => {
         setEmailConfirmed(true);
-        // Clean the URL hash so it doesn't linger
+        // Clean the URL hash and query string so it doesn't linger
         window.history.replaceState(null, '', window.location.pathname);
       });
+      return;
+    }
+
+    // Prevent auto-redirect during the brief moment after signout but before AuthContext clears
+    if (emailConfirmed) {
       return;
     }
 
@@ -43,7 +50,7 @@ const Auth = () => {
     if (user && !hash.includes('type=')) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, navigate, emailConfirmed]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

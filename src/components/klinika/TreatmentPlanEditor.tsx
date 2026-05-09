@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TreatmentItem {

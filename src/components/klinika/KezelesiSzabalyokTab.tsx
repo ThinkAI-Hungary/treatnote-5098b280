@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { GalaxyButton } from './GalaxyButton';
 import { AnimatedCard } from './AnimatedCard';
 import { TreatmentRuleEditor } from './TreatmentRuleEditor';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { supabase } from '@/integrations/supabase/client';
 import { TreatmentRule, RuleVisit, RuleItem, CATEGORY_OPTIONS } from '@/types/treatmentRules';
 import { format } from 'date-fns';
@@ -40,6 +40,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useTheme } from '@/components/ThemeProvider';
 import { notifyRulesDataChanged } from '@/lib/rulesEvents';
+import { useSzotar } from '@/hooks/useSzotar';
+import { subscribeToSzotarChanges } from '@/lib/szotarEvents';
 
 // --- Sort helpers ---
 type SortColumn = 'name' | 'category' | 'visits' | 'items' | 'created_at';
@@ -90,6 +92,7 @@ export function KezelesiSzabalyokTab({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const { addNotification } = useNotifications();
+  const { hasSzotar, isLoading: szotarLoading } = useSzotar();
 
   // Invalidate cache if telephely changed
   if (telephelyId !== rulesCache.telephelyId) {
@@ -133,6 +136,11 @@ export function KezelesiSzabalyokTab({
   const [linkedToggleConfirmOpen, setLinkedToggleConfirmOpen] = useState(false);
   const [pendingToggleRule, setPendingToggleRule] = useState<TreatmentRule | null>(null);
   const [pendingToggleLinked, setPendingToggleLinked] = useState<TreatmentRule | null>(null);
+
+  // Activate rule with inactive items warning state
+  const [activateWarningOpen, setActivateWarningOpen] = useState(false);
+  const [pendingActivationRule, setPendingActivationRule] = useState<TreatmentRule | null>(null);
+  const [inactiveItemsToActivate, setInactiveItemsToActivate] = useState<{ id: string; name: string }[]>([]);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
@@ -207,9 +215,70 @@ export function KezelesiSzabalyokTab({
         });
       }
 
-      setRules(rulesWithDetails);
+      // Auto-deactivate broken active rules
+      const activeRules = rulesWithDetails.filter(r => r.aktiv);
+      const brokenRuleIds = new Set<string>();
+      
+      for (const rule of activeRules) {
+        const allItems = rule.visits?.flatMap(v => v.items) || [];
+        if (allItems.some(i => !i.item_id)) {
+          brokenRuleIds.add(rule.id!);
+        }
+      }
+
+      // Collect all mapped item ids from active rules
+      const mappedItemIds = activeRules
+        .flatMap(r => r.visits?.flatMap(v => v.items) || [])
+        .map(i => i.item_id)
+        .filter(Boolean) as string[];
+
+      if (mappedItemIds.length > 0) {
+        // We only check for missing price/name/category here. 
+        // Inactive items are handled by the existing deactivation cascade, but we can catch them here too.
+        const { data: dbItems } = await supabase
+          .from('clinic_treatment_items_stdl')
+          .select('id, name, category, price, is_active')
+          .in('id', mappedItemIds);
+
+        if (dbItems) {
+          const invalidItemIds = new Set(
+            dbItems
+              .filter(i => !i.name || !i.category || i.price === null || i.price === undefined || !i.is_active)
+              .map(i => i.id)
+          );
+
+          if (invalidItemIds.size > 0) {
+            for (const rule of activeRules) {
+              const allItems = rule.visits?.flatMap(v => v.items) || [];
+              if (allItems.some(i => i.item_id && invalidItemIds.has(i.item_id))) {
+                brokenRuleIds.add(rule.id!);
+              }
+            }
+          }
+        }
+      }
+
+      let finalRules = rulesWithDetails;
+      if (brokenRuleIds.size > 0) {
+        const idsToDeactivate = Array.from(brokenRuleIds);
+        
+        // Update DB
+        await supabase
+          .from('treatment_rules')
+          .update({ aktiv: false })
+          .in('id', idsToDeactivate);
+
+        // Update local state
+        finalRules = rulesWithDetails.map(r => 
+          brokenRuleIds.has(r.id!) ? { ...r, aktiv: false } : r
+        );
+        
+        toast.error(`${idsToDeactivate.length} szabály automatikusan inaktiválva lett, mert hiányzó szótári elemet vagy hiányos adatot tartalmazott!`);
+      }
+
+      setRules(finalRules);
       // Update cache
-      rulesCache = { telephelyId: telephelyId!, rules: rulesWithDetails, loaded: true };
+      rulesCache = { telephelyId: telephelyId!, rules: finalRules, loaded: true };
     } catch (err: any) {
       console.error('Error loading rules:', err);
       toast.error('Hiba a szabályok betöltésekor');
@@ -219,11 +288,14 @@ export function KezelesiSzabalyokTab({
   }, [telephelyId]);
 
   useEffect(() => {
-    // Only fetch if cache is empty or for a different telephely
-    // When cached, data is already in state from the useState initializer
-    if (!rulesCache.loaded || rulesCache.telephelyId !== telephelyId) {
+    // Always fetch latest data on mount.
+    // If we have cached data, loadRules will fetch silently in the background.
+    loadRules();
+    
+    const unsubscribe = subscribeToSzotarChanges(() => {
       loadRules();
-    }
+    });
+    return () => unsubscribe();
   }, [loadRules, telephelyId]);
 
   // --- Supabase Realtime: subscribe to treatment_rules INSERT events ---
@@ -235,66 +307,80 @@ export function KezelesiSzabalyokTab({
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'treatment_rules',
           filter: `clinic_id=eq.${telephelyId}`,
         },
-        async (payload: { new: { id: string } }) => {
-          // Helper to fetch a rule with its visits + items
-          const fetchRuleWithDetails = async (ruleId: string) => {
-            const { data, error } = await supabase
-              .from('treatment_rules')
-              .select(`
-                *,
-                visits:rule_visits(
-                  *,
-                  items:rule_items(*)
-                )
-              `)
-              .eq('id', ruleId)
-              .single();
-            return { data, error };
-          };
-
-          const countItems = (rule: any) =>
-            (rule.visits || []).reduce((sum: number, v: any) => sum + (v.items?.length || 0), 0);
-
-          // Wait 2s before first fetch — processPdf inserts visits/items
-          // AFTER the rule row, so the Realtime event fires too early.
-          await new Promise(r => setTimeout(r, 2000));
-
-          let { data: newRule, error } = await fetchRuleWithDetails(payload.new.id);
-
-          if (error || !newRule) {
-            console.error('Error fetching new rule via Realtime:', error);
+        async (payload: any) => {
+          if (payload.eventType === 'DELETE') {
+            updateRulesState(prev => prev.filter(r => r.id !== payload.old.id));
             return;
           }
 
-          // If still 0 items, retry once after 3s (n8n + DB round-trip can be slow)
-          if (countItems(newRule) === 0) {
-            await new Promise(r => setTimeout(r, 3000));
-            const retry = await fetchRuleWithDetails(payload.new.id);
-            if (!retry.error && retry.data) {
-              newRule = retry.data;
-            }
+          if (payload.eventType === 'UPDATE') {
+            updateRulesState(prev => prev.map(r => 
+              r.id === payload.new.id ? { ...r, ...payload.new } : r
+            ));
+            return;
           }
 
-          const ruleWithDetails = {
-            ...newRule,
-            visits: (newRule.visits || [])
-              .sort((a: any, b: any) => a.display_order - b.display_order)
-              .map((visit: any) => ({
-                ...visit,
-                items: (visit.items || [])
-                  .sort((a: any, b: any) => a.display_order - b.display_order),
-              })),
-          } as TreatmentRule;
+          if (payload.eventType === 'INSERT') {
+            // Helper to fetch a rule with its visits + items
+            const fetchRuleWithDetails = async (ruleId: string) => {
+              const { data, error } = await supabase
+                .from('treatment_rules')
+                .select(`
+                  *,
+                  visits:rule_visits(
+                    *,
+                    items:rule_items(*)
+                  )
+                `)
+                .eq('id', ruleId)
+                .single();
+              return { data, error };
+            };
 
-          setRules((prev) => {
-            if (prev.some((r) => r.id === ruleWithDetails.id)) return prev;
-            return [ruleWithDetails, ...prev];
-          });
+            const countItems = (rule: any) =>
+              (rule.visits || []).reduce((sum: number, v: any) => sum + (v.items?.length || 0), 0);
+
+            // Wait 2s before first fetch — processPdf inserts visits/items
+            // AFTER the rule row, so the Realtime event fires too early.
+            await new Promise(r => setTimeout(r, 2000));
+
+            let { data: newRule, error } = await fetchRuleWithDetails(payload.new.id);
+
+            if (error || !newRule) {
+              console.error('Error fetching new rule via Realtime:', error);
+              return;
+            }
+
+            // If still 0 items, retry once after 3s (n8n + DB round-trip can be slow)
+            if (countItems(newRule) === 0) {
+              await new Promise(r => setTimeout(r, 3000));
+              const retry = await fetchRuleWithDetails(payload.new.id);
+              if (!retry.error && retry.data) {
+                newRule = retry.data;
+              }
+            }
+
+            const ruleWithDetails = {
+              ...newRule,
+              visits: (newRule.visits || [])
+                .sort((a: any, b: any) => a.display_order - b.display_order)
+                .map((visit: any) => ({
+                  ...visit,
+                  items: (visit.items || [])
+                    .sort((a: any, b: any) => a.display_order - b.display_order),
+                })),
+            } as TreatmentRule;
+
+            updateRulesState((prev) => {
+              if (prev.some((r) => r.id === ruleWithDetails.id)) return prev;
+              return [ruleWithDetails, ...prev];
+            });
+          }
         }
       )
       .subscribe();
@@ -559,6 +645,46 @@ export function KezelesiSzabalyokTab({
         setLinkedToggleConfirmOpen(true);
         return;
       }
+      
+      // 1. Check for unmapped items
+      const allItems = rule.visits?.flatMap(v => v.items) || [];
+      const hasUnmappedItems = allItems.some(i => !i.item_id);
+      
+      if (hasUnmappedItems) {
+        toast.error("A szabály nem aktiválható, mert olyan tételt tartalmaz, ami nincs szótári elemhez kötve (hiányzó azonosító).");
+        return;
+      }
+
+      // 2. Check for missing values in the mapped items (name, category, price)
+      const itemIds = allItems.map(i => i.item_id).filter(Boolean) as string[];
+      if (itemIds.length > 0) {
+        try {
+          const { data: dbItems, error } = await supabase
+            .from('clinic_treatment_items_stdl')
+            .select('id, name, category, price, is_active')
+            .in('id', itemIds);
+            
+          if (!error && dbItems) {
+            // A) Check for missing values
+            const invalidItems = dbItems.filter(i => !i.name || !i.category || i.price === null || i.price === undefined);
+            if (invalidItems.length > 0) {
+              toast.error("A szabály nem aktiválható, mert hiányos adatú tételeket tartalmaz (pl. hiányzó ár vagy kategória). Kérjük, pótolja a szótárban!");
+              return;
+            }
+
+            // B) Check for inactive items (existing logic)
+            const inactiveItems = dbItems.filter(i => !i.is_active);
+            if (inactiveItems.length > 0) {
+              setPendingActivationRule(rule);
+              setInactiveItemsToActivate(inactiveItems);
+              setActivateWarningOpen(true);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error checking item status:", err);
+        }
+      }
     }
 
     // If this rule is part of a multi-selection, toggle all selected
@@ -583,6 +709,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: newValue })
         .in('id', idsToToggle);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error toggling aktiv:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -619,10 +746,59 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: true })
         .eq('id', targetId);
       if (err2) throw err2;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error linked toggle:', err);
       toast.error('Hiba a státusz módosításakor');
       loadRules(); // Revert on error
+    }
+  };
+
+  const handleConfirmActivationWithItems = async () => {
+    if (!pendingActivationRule?.id) return;
+    
+    setActivateWarningOpen(false);
+    
+    // The items to activate
+    const itemIdsToActivate = inactiveItemsToActivate.map(i => i.id);
+    const ruleIdsToToggle = selectedIds.has(pendingActivationRule.id) && selectedIds.size > 1
+      ? Array.from(selectedIds)
+      : [pendingActivationRule.id];
+      
+    // Optimistic update for rules
+    const toggleSet = new Set(ruleIdsToToggle);
+    updateRulesState(prev => prev.map(r =>
+      toggleSet.has(r.id!) ? { ...r, aktiv: true } : r
+    ));
+    toast.success('Szabály és a kapcsolódó tételek aktiválva');
+
+    try {
+      // 1. Activate the items
+      if (itemIdsToActivate.length > 0) {
+        const { error: itemErr } = await supabase
+          .from('clinic_treatment_items_stdl')
+          .update({ is_active: true })
+          .in('id', itemIdsToActivate);
+        if (itemErr) throw itemErr;
+        
+        // Dispatch global event so KezelesiTetelekTab reloads if needed
+        import('@/lib/szotarEvents').then(m => m.notifySzotarDataChanged());
+      }
+      
+      // 2. Activate the rules
+      const { error: ruleErr } = await supabase
+        .from('treatment_rules')
+        .update({ aktiv: true })
+        .in('id', ruleIdsToToggle);
+      if (ruleErr) throw ruleErr;
+      notifyRulesDataChanged();
+    } catch (err: any) {
+      console.error('Error activating rule with items:', err);
+      toast.error('Hiba az aktiválás során');
+      loadRules(); // Revert
+    } finally {
+      setPendingActivationRule(null);
+      setInactiveItemsToActivate([]);
     }
   };
 
@@ -650,6 +826,7 @@ export function KezelesiSzabalyokTab({
         .update({ aktiv: newValue })
         .in('id', ids);
       if (error) throw error;
+      notifyRulesDataChanged();
     } catch (err: any) {
       console.error('Error bulk toggling:', err);
       toast.error('Hiba a státusz módosításakor');
@@ -874,6 +1051,7 @@ export function KezelesiSzabalyokTab({
           telephely_id: telephelyId,
           user_id: user.id,
           regenerate: isRegenerate,
+          mode: 'flexi',
         },
       });
 
@@ -1002,13 +1180,14 @@ export function KezelesiSzabalyokTab({
             </GalaxyButton>
             <GalaxyButton
               onClick={handleGenerateFromDictionary}
-              disabled={generating || backgroundProcessing || loading}
+              disabled={generating || backgroundProcessing || loading || szotarLoading || !hasSzotar}
               className="relative"
+              title={(!hasSzotar && !szotarLoading) ? "A generáláshoz előbb legalább 1 elemet fel kell vennie a FlexiDent szótárba" : undefined}
             >
-              {(generating || backgroundProcessing || loading) && (
+              {(generating || backgroundProcessing || loading || szotarLoading) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              {loading ? 'Szabályok betöltése...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szabályok újragenerálása' : 'Generálás szótárból')}
+              {(loading || szotarLoading) ? 'Betöltés...' : (generating || backgroundProcessing) ? 'Generálás...' : (rules.length > 0 ? 'Szabályok újragenerálása' : 'Generálás szótárból')}
             </GalaxyButton>
           </div>
         </div>
@@ -1135,7 +1314,7 @@ export function KezelesiSzabalyokTab({
                     >
                       Kategória <SortIcon column="category" />
                     </TableHead>
-                    <TableHead className="w-[350px]">Szemantikus leírás</TableHead>
+
                     <TableHead
                       className="w-[100px] text-center cursor-pointer select-none hover:text-foreground transition-colors"
                       onClick={() => toggleSort('visits')}
@@ -1160,7 +1339,7 @@ export function KezelesiSzabalyokTab({
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
@@ -1168,7 +1347,7 @@ export function KezelesiSzabalyokTab({
                     </TableRow>
                   ) : filteredRules.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="h-32">
+                      <TableCell colSpan={8} className="h-32">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <FileText className="h-8 w-8 mb-2 opacity-50" />
                           <p>{searchTerm || categoryFilter !== 'all' ? 'Nincs találat' : 'Még nincsenek szabályok'}</p>
@@ -1272,19 +1451,7 @@ export function KezelesiSzabalyokTab({
                               <span className="text-muted-foreground text-sm">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <div className="max-w-[350px]">
-                              {rule.semantic_description ? (
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {rule.semantic_description}
-                                </p>
-                              ) : (
-                                <span className="text-muted-foreground text-xs italic">
-                                  Nincs leírás
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
+
                           <TableCell className="text-center">
                             <Badge variant="secondary">
                               {rule.visits?.length || 0}
@@ -1485,6 +1652,30 @@ export function KezelesiSzabalyokTab({
         confirmText="Aktiválás"
         cancelText="Mégse"
         onConfirm={handleConfirmLinkedToggle}
+        variant="warning"
+      />
+      {/* Activate Rule with Inactive Items Confirmation */}
+      <ConfirmDialog
+        open={activateWarningOpen}
+        onOpenChange={setActivateWarningOpen}
+        title="Inaktív tételek aktiválása"
+        description={
+          <div className="space-y-2">
+            <p>
+              A kiválasztott kezelési szabály bekapcsolásához a benne szereplő inaktív kezelési tételeket is aktiválni kell.
+            </p>
+            <p className="font-semibold text-sm mt-2 text-foreground">Érintett tételek:</p>
+            <ul className="list-disc pl-5 text-sm">
+              {inactiveItemsToActivate.map(item => (
+                <li key={item.id}>{item.name}</li>
+              ))}
+            </ul>
+            <p className="mt-4">Biztosan folytatja?</p>
+          </div>
+        }
+        confirmText="Aktiválás"
+        cancelText="Mégse"
+        onConfirm={handleConfirmActivationWithItems}
         variant="warning"
       />
     </AnimatedCard>

@@ -31,7 +31,7 @@ interface UseVoiceJobHistoryReturn {
   pollJob: (jobId: string) => Promise<VoiceJob | null>;
 }
 
-const MAX_HISTORY_ITEMS = 50;
+const MAX_HISTORY_ITEMS = 200;
 
 export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHistoryReturn {
   const { user } = useAuth();
@@ -70,6 +70,8 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
       }
       if (treatnotePatientId) {
         query = query.eq('treatnote_patient_id', treatnotePatientId);
+      } else {
+        query = query.is('treatnote_patient_id', null);
       }
 
       const { data, error: fetchError } = await query
@@ -143,7 +145,7 @@ export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHist
             const newJob = payload.new as VoiceJob;
             // Only add if it belongs to the active telephely and matching patient
             if (activeTelephelyId && newJob.telephely_id !== activeTelephelyId) return;
-            if (treatnotePatientId && newJob.treatnote_patient_id !== treatnotePatientId) return;
+            if (treatnotePatientId ? newJob.treatnote_patient_id !== treatnotePatientId : newJob.treatnote_patient_id !== null) return;
             
             setJobs(prev => [newJob, ...prev].slice(0, MAX_HISTORY_ITEMS));
           } else if (payload.eventType === 'UPDATE') {

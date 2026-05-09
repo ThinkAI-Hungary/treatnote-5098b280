@@ -9,17 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import {
-  Shield, Users, FolderTree, Plus,
-  AlertTriangle,
-  Building2, Eye, EyeOff, Loader2, RefreshCw, Mic
+  Shield, Users, Plus, AlertTriangle,
+  Building2, Eye, EyeOff, Loader2, RefreshCw, Activity
 } from 'lucide-react';
 import { FileManager } from '@/components/admin/FileManager';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { CompanyManagement } from '@/components/admin/CompanyManagement';
-import { ErrorLogsTab } from '@/components/admin/ErrorLogsTab';
-import { VoiceJobsTab } from '@/components/admin/VoiceJobsTab';
-import { GlobalHistoryTab } from '@/components/admin/GlobalHistoryTab';
 import { CaptchaReviewTab } from '@/components/admin/CaptchaReviewTab';
+import { MonitoringTab } from '@/components/admin/MonitoringTab';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -28,7 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeWithRetry } from '@/lib/supabaseHelpers';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { sanitizePathName } from '@/lib/hungarianNormalizer';
 import { USERS_DATA_CHANGED } from '@/lib/userSyncEvents';
 import { AdminUserAssignment } from '@/components/admin/AdminUserAssignment';
@@ -48,6 +45,7 @@ interface AdminUser {
   role: string;
   can_create_users: boolean;
   flexi_username: string | null;
+  is_solo: boolean;
 }
 
 interface Company {
@@ -55,6 +53,7 @@ interface Company {
   name: string;
   slug: string;
   is_active: boolean;
+  is_solo?: boolean;
 }
 
 interface Telephely {
@@ -80,7 +79,7 @@ export default function Admin() {
   const [telephelyek, setTelephelyek] = useState<Telephely[]>([]);
   const [folders, setFolders] = useState<FolderStructure[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState<string>('users');
 
   // User creation state
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -125,6 +124,16 @@ export default function Admin() {
     }
   }, [isAdmin]);
 
+  // Safety: if loadAllData hangs (e.g. auth race condition), force loading=false after 8s
+  useEffect(() => {
+    if (!isAdmin || !loading || roleLoading) return;
+    const timer = setTimeout(() => {
+      console.warn('[Admin] loading stuck, forcing false');
+      setLoading(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [isAdmin, loading, roleLoading]);
+
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -155,12 +164,17 @@ export default function Admin() {
 
   const loadAllData = async (showLoader = true) => {
     if (showLoader) setLoading(true);
-    await Promise.all([
-      loadUsersWithRoles(),
-      loadFolders(),
-      loadAllUserFolderAccess(),
-    ]);
-    if (showLoader) setLoading(false);
+    try {
+      await Promise.all([
+        loadUsersWithRoles(),
+        loadFolders(),
+        loadAllUserFolderAccess(),
+      ]);
+    } catch (err) {
+      console.error('[Admin] loadAllData error:', err);
+    } finally {
+      if (showLoader) setLoading(false);
+    }
   };
 
   // Refresh only companies/telephelyek data without full reload
@@ -195,28 +209,35 @@ export default function Admin() {
   };
 
   const loadFolders = async () => {
-    const { data } = await supabase
-      .from('folder_structure')
-      .select('*')
-      .order('folder_path');
-
-    setFolders(data || []);
+    try {
+      const { data } = await supabase
+        .from('folder_structure')
+        .select('*')
+        .order('folder_path');
+      setFolders(data || []);
+    } catch (err) {
+      console.error('[Admin] loadFolders error:', err);
+    }
   };
 
   const loadAllUserFolderAccess = async () => {
-    const { data } = await supabase
-      .from('folder_access')
-      .select('user_id, folder_id');
+    try {
+      const { data } = await supabase
+        .from('folder_access')
+        .select('user_id, folder_id');
 
-    if (data) {
-      const accessMap: Record<string, string[]> = {};
-      data.forEach(access => {
-        if (!accessMap[access.user_id]) {
-          accessMap[access.user_id] = [];
-        }
-        accessMap[access.user_id].push(access.folder_id);
-      });
-      setUserFolderAccess(accessMap);
+      if (data) {
+        const accessMap: Record<string, string[]> = {};
+        data.forEach(access => {
+          if (!accessMap[access.user_id]) {
+            accessMap[access.user_id] = [];
+          }
+          accessMap[access.user_id].push(access.folder_id);
+        });
+        setUserFolderAccess(accessMap);
+      }
+    } catch (err) {
+      console.error('[Admin] loadAllUserFolderAccess error:', err);
     }
   };
 
@@ -486,7 +507,7 @@ export default function Admin() {
   // Signal loading to sidebar indicator
   usePageLoadingSignal(roleLoading || loading);
 
-  // Single loading gate
+  // Gate on both role and data loading to avoid rendering with empty state
   if (roleLoading || loading) {
     return null;
   }
@@ -554,7 +575,6 @@ export default function Admin() {
                 value="files"
                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
               >
-                <FolderTree className="h-4 w-4" />
                 Fájlkezelő
               </TabsTrigger>
             </div>
@@ -566,25 +586,11 @@ export default function Admin() {
               Cégek és telephelyek
             </TabsTrigger>
             <TabsTrigger
-              value="errors"
+              value="monitoring"
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
             >
-              <AlertTriangle className="h-4 w-4" />
-              Hibakezelés
-            </TabsTrigger>
-            <TabsTrigger
-              value="history"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
-            >
-              <FolderTree className="h-4 w-4" />
-              Összes Előzmény
-            </TabsTrigger>
-            <TabsTrigger
-              value="voice_jobs"
-              className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary focus:ring-0 focus:outline-none"
-            >
-              <Mic className="h-4 w-4" />
-              Hang Elemzések
+              <Activity className="h-4 w-4" />
+              Monitorozás
             </TabsTrigger>
             <TabsTrigger
               value="captcha"
@@ -773,20 +779,13 @@ export default function Admin() {
               <CompanyManagement
                 companies={companies}
                 telephelyek={telephelyek}
+                users={users}
                 onDataChange={refreshCompanyData}
               />
             </TabsContent>
 
-            <TabsContent value="errors" className="space-y-6 mt-0">
-              <ErrorLogsTab />
-            </TabsContent>
-
-            <TabsContent value="history" className="space-y-6 mt-0">
-              <GlobalHistoryTab users={users} companies={companies} telephelyek={telephelyek} />
-            </TabsContent>
-
-            <TabsContent value="voice_jobs" className="space-y-6 mt-0">
-              <VoiceJobsTab />
+            <TabsContent value="monitoring" className="space-y-6 mt-0">
+              <MonitoringTab users={users} companies={companies} telephelyek={telephelyek} />
             </TabsContent>
 
             <TabsContent value="captcha" className="space-y-6 mt-0">

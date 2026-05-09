@@ -8,7 +8,7 @@ import { Book, RefreshCw, Loader2, CheckCircle, AlertCircle, User, Globe, Search
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';

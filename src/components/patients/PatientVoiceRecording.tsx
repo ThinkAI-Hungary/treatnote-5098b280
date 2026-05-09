@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { VerdiktDisplay } from '../voice/VerdiktDisplay';
 import { supabase } from '@/integrations/supabase/client';
 import { VoxisReviewPanel } from './dental-chart/VoxisReviewPanel';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 export function PatientVoiceRecording({ patientId }: { patientId: string }) {
   const { profile } = useProfile();

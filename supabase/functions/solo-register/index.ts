@@ -100,7 +100,7 @@ serve(async (req) => {
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-        const { email, password, full_name } = await req.json();
+        const { email, password, full_name, voice_recording_preference } = await req.json();
 
         // ── Validation ─────────────────────────────────────────────────────────
         if (!email || !password) {
@@ -143,7 +143,7 @@ serve(async (req) => {
             password,
             options: {
                 data: { full_name: displayName, solo_registration: true },
-                redirectTo: `${appUrl}/auth`,
+                redirectTo: `${appUrl}/auth?confirmed=true`,
             },
         });
 
@@ -225,6 +225,7 @@ serve(async (req) => {
             telephely_id: telephely.id,
             current_telephely_id: telephely.id,
             is_solo: true,
+            voice_recording_preference: voice_recording_preference || 'treatnote_native',
         };
 
         const { error: profileError } = await supabaseAdmin

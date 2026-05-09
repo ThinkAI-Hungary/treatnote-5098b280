@@ -9,11 +9,24 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, History, Stethoscope, User, Search, Maximize2, X, Hash, Filter } from 'lucide-react';
-import { format, differenceInMinutes } from 'date-fns';
+import { Loader2, History, Stethoscope, User, Search, Maximize2, X, Hash, Filter, Share2 } from 'lucide-react';
+import { format, differenceInMinutes, isToday, isYesterday, isThisWeek, isThisYear } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import statusesData from '@/components/patients/dental-chart/statuses.json';
+
+/** Apple-stílusú relatív dátumformázás magyarul */
+function formatSmartDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const time = format(d, 'HH:mm');
+  if (isToday(d))     return `Ma, ${time}`;
+  if (isYesterday(d)) return `Tegnap, ${time}`;
+  if (isThisWeek(d, { weekStartsOn: 1 }))
+    return `${format(d, 'EEEE', { locale: hu })}, ${time}`;
+  if (isThisYear(d))
+    return `${format(d, 'MMM d.', { locale: hu })} ${time}`;
+  return `${format(d, 'yyyy. MMM d.', { locale: hu })} ${time}`;
+}
 
 const statusNames: Record<string, string> = {};
 statusesData.forEach((s: any) => {
@@ -25,7 +38,7 @@ interface PatientHistoryPanelProps {
   filterType?: 'status' | 'treatment_plan' | 'all';
 }
 
-type EventType = 'status_change' | 'treatment_plan' | 'batched_status_change';
+type EventType = 'status_change' | 'treatment_plan' | 'batched_status_change' | 'share_event';
 
 interface UnifiedEvent {
   id: string;
@@ -81,16 +94,26 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
 
       if (plansError) throw plansError;
 
+      // Fetch share request events (accepted or rejected)
+      const { data: shareRequests } = await supabase
+        .from('patient_share_requests')
+        .select('id, status, resolved_at, created_at, requested_by, resolved_by, from_telephely_id, to_telephely_id, from_telephely_name_snapshot, from_company_name_snapshot, message')
+        .eq('patient_id', patientId)
+        .in('status', ['accepted', 'rejected'])
+        .not('resolved_at', 'is', null);
+
       const userIds = new Set<string>();
       statusHistory?.forEach(h => { if (h.changed_by) userIds.add(h.changed_by); });
       treatmentPlans?.forEach(p => { if (p.user_id) userIds.add(p.user_id); });
+      shareRequests?.forEach(r => {
+        if (r.requested_by) userIds.add(r.requested_by);
+        if (r.resolved_by) userIds.add(r.resolved_by);
+      });
 
       const profilesMap: Record<string, any> = {};
       if (userIds.size > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, avatar_url')
-          .in('user_id', Array.from(userIds));
+          .rpc('get_users_basic_info', { user_ids: Array.from(userIds) });
 
         if (profiles) {
           profiles.forEach(p => { profilesMap[p.user_id] = p; });
@@ -176,6 +199,31 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
           icon: <Stethoscope className="w-5 h-5 text-emerald-500" />,
           rawData: p,
           relatedTeeth: relatedTeeth as string[]
+        });
+      });
+
+      // Add share events
+      shareRequests?.forEach(r => {
+        const isAccepted = r.status === 'accepted';
+        const fromLabel = r.from_telephely_name_snapshot
+          ? `${r.from_company_name_snapshot ? r.from_company_name_snapshot + ' / ' : ''}${r.from_telephely_name_snapshot}`
+          : 'Ismeretlen telephely';
+        unified.push({
+          id: `share_${r.id}`,
+          type: 'share_event',
+          date: r.resolved_at,
+          userId: r.resolved_by || r.requested_by,
+          profile: profilesMap[r.resolved_by] || profilesMap[r.requested_by],
+          summary: isAccepted
+            ? `Megosztás elfogadva — ${fromLabel}`
+            : `Megosztás elutasítva — ${fromLabel}`,
+          icon: <Share2 className={`w-4 h-4 ${isAccepted ? 'text-violet-400' : 'text-red-400'}`} />,
+          rawData: {
+            ...r,
+            requesterProfile: profilesMap[r.requested_by] || null,
+            resolverProfile: profilesMap[r.resolved_by] || null,
+          },
+          relatedTeeth: []
         });
       });
 
@@ -313,13 +361,17 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
   const filteredEvents = useMemo(() => {
     return baseEvents.filter(ev => {
       if (filterDoctor !== 'all' && ev.userId !== filterDoctor) return false;
-      if (filterDate && !ev.date.startsWith(filterDate)) return false;
+      if (filterDate) {
+        // Compare in local timezone so the filter matches what the user sees
+        const evLocalDate = format(new Date(ev.date), 'yyyy-MM-dd');
+        if (evLocalDate !== filterDate) return false;
+      }
       if (filterTooth) {
         if (!ev.relatedTeeth?.includes(filterTooth)) return false;
       }
       return true;
     });
-  }, [events, filterDoctor, filterDate, filterTooth, filterType]);
+  }, [baseEvents, filterDoctor, filterDate, filterTooth, filterType]);
 
   const uniqueDoctors = useMemo(() => {
     const docs = new Map();
@@ -346,7 +398,7 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
             <div>
               <div className="font-semibold text-sm group-hover:text-primary transition-colors">{ev.summary}</div>
               <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                <span>{format(new Date(ev.date), 'yyyy. MMMM d. HH:mm', { locale: hu })}</span>
+                <span>{formatSmartDate(ev.date)}</span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
                   {ev.profile?.full_name || 'Ismeretlen'}
@@ -367,7 +419,7 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
       <CardHeader className="px-6 py-4 border-b bg-muted/10 pb-3 shrink-0 flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <History className="h-5 w-5 text-primary" />
-          {filterType === 'status' ? 'Státusz Napló' : filterType === 'treatment_plan' ? 'Kezelési Terv Napló' : 'Történet (Napló)'}
+          {filterType === 'status' ? 'Státusz Napló' : filterType === 'treatment_plan' ? 'Kezelési Terv Napló' : 'Napló'}
         </CardTitle>
         <Button variant="outline" size="sm" onClick={() => setShowFullHistory(true)} className="h-8 text-xs font-medium">
           <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
@@ -416,7 +468,7 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
               <span className="font-medium">{selectedEvent?.profile?.full_name || 'Ismeretlen rögzítő'}</span>
             </div>
             <span className="text-muted-foreground">
-              {selectedEvent?.date && format(new Date(selectedEvent.date), 'yyyy. MMMM d. HH:mm', { locale: hu })}
+              {selectedEvent?.date && formatSmartDate(selectedEvent.date)}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto p-6">
@@ -438,6 +490,73 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
               </div>
             )}
             {selectedEvent?.type === 'treatment_plan' && renderTreatmentPlanDetails(selectedEvent.rawData, filterTooth)}
+            {selectedEvent?.type === 'share_event' && (() => {
+              const d = selectedEvent.rawData;
+              const isAccepted = d.status === 'accepted';
+              const requesterName = d.requesterProfile?.full_name || 'Ismeretlen';
+              const resolverName  = d.resolverProfile?.full_name  || 'Ismeretlen';
+              const requesterEmail = d.requesterProfile?.email || '';
+              const resolverEmail  = d.resolverProfile?.email  || '';
+              return (
+                <div className="space-y-3 text-sm">
+                  {/* Status badge */}
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                    isAccepted
+                      ? 'bg-violet-500/10 text-violet-500 border-violet-500/30'
+                      : 'bg-red-500/10 text-red-500 border-red-500/30'
+                  }`}>
+                    <Share2 className="w-3.5 h-3.5" />
+                    {isAccepted ? 'Megosztás elfogadva' : 'Megosztás elutasítva'}
+                  </div>
+
+                  {/* Who sent */}
+                  <div className="bg-muted/30 rounded-lg p-3 border space-y-1">
+                    <div className="text-xs text-muted-foreground">Megosztást kérte</div>
+                    <div className="flex items-center gap-2 font-medium">
+                      <Avatar className="w-5 h-5 border">
+                        <AvatarImage src={d.requesterProfile?.avatar_url || ''} />
+                        <AvatarFallback className="text-[8px]"><User className="w-2.5 h-2.5" /></AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div>{requesterName}</div>
+                        {requesterEmail && <div className="text-xs text-muted-foreground font-normal">{requesterEmail}</div>}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {d.from_company_name_snapshot && <span className="text-violet-500">{d.from_company_name_snapshot} / </span>}
+                      {d.from_telephely_name_snapshot || 'Ismeretlen telephely'}
+                    </div>
+                  </div>
+
+                  {/* Who resolved */}
+                  {d.resolved_by && (
+                    <div className="bg-muted/30 rounded-lg p-3 border space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        {isAccepted ? 'Elfogadta' : 'Elutasította'}
+                      </div>
+                      <div className="flex items-center gap-2 font-medium">
+                        <Avatar className="w-5 h-5 border">
+                          <AvatarImage src={d.resolverProfile?.avatar_url || ''} />
+                          <AvatarFallback className="text-[8px]"><User className="w-2.5 h-2.5" /></AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div>{resolverName}</div>
+                          {resolverEmail && <div className="text-xs text-muted-foreground font-normal">{resolverEmail}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional message */}
+                  {d.message && (
+                    <div className="bg-muted/20 rounded-lg p-3 border">
+                      <div className="text-xs text-muted-foreground mb-1">Üzenet</div>
+                      <div>{d.message}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
@@ -448,7 +567,7 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
           <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between bg-muted/5">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <History className="h-6 w-6 text-primary" />
-              Teljes Történet Napló
+              Napló
             </DialogTitle>
           </DialogHeader>
 
@@ -544,7 +663,7 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
                                 <div>
                                   <div className="font-semibold text-sm">{ev.summary}</div>
                                   <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                                    <span>{format(new Date(ev.date), 'yyyy. MMMM d. HH:mm', { locale: hu })}</span>
+                                    <span>{formatSmartDate(ev.date)}</span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
                                       <Avatar className="w-4 h-4 border">

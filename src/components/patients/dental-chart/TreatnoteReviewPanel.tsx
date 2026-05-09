@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, ChevronRight, Save, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { useProfile } from '@/hooks/useProfile';
 
 interface TreatnoteReviewPanelProps {

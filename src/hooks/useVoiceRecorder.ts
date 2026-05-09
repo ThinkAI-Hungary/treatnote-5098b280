@@ -1,6 +1,6 @@
 // @ts-ignore
 import fixWebmDuration from 'fix-webm-duration';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface UseVoiceRecorderOptions {
   onRecordingComplete?: (blob: Blob, duration: number) => void;
@@ -33,12 +33,29 @@ export function useVoiceRecorder({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  // Keep the stream alive between recordings — avoids repeated permission prompts
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  // When recording started (ms), updated after each resume
   const segmentStartRef = useRef<number>(0);
-  // Total elapsed seconds before current segment
   const accumulatedRef = useRef<number>(0);
+
+  // Stable refs so callbacks don't force re-creation of startRecording
+  const onRecordingCompleteRef = useRef(onRecordingComplete);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onRecordingCompleteRef.current = onRecordingComplete; }, [onRecordingComplete]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
+  // Release the microphone when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -56,9 +73,27 @@ export function useVoiceRecorder({
     }, 100);
   }, [clearTimer]);
 
+  /** Returns an active MediaStream — reuses the existing one if still alive */
+  const getStream = useCallback(async (): Promise<MediaStream> => {
+    // Reuse if all tracks are still live
+    if (streamRef.current && streamRef.current.getTracks().every(t => t.readyState === 'live')) {
+      return streamRef.current;
+    }
+    // Request a fresh stream (shows permission dialog only if not yet granted)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    streamRef.current = stream;
+    return stream;
+  }, []);
+
   const startRecording = useCallback(async () => {
     try {
-      // Reset state
+      // Reset audio state
       chunksRef.current = [];
       setAudioBlob(null);
       setAudioUrl(null);
@@ -66,14 +101,7 @@ export function useVoiceRecorder({
       setFinalDuration(0);
       accumulatedRef.current = 0;
 
-      // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      const stream = await getStream();
 
       const mediaRecorder = new MediaRecorder(stream, {
         audioBitsPerSecond: 128000,
@@ -88,10 +116,9 @@ export function useVoiceRecorder({
       };
 
       mediaRecorder.onstop = () => {
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
+        // ⚠️  Do NOT stop stream tracks here — keep the stream alive for the
+        // next recording so the browser won't re-prompt for microphone access.
 
-        // Capture final duration before clearing timer
         const segmentSecs = segmentStartRef.current
           ? (Date.now() - segmentStartRef.current) / 1000
           : 0;
@@ -99,49 +126,41 @@ export function useVoiceRecorder({
         setFinalDuration(total);
         clearTimer();
 
-        // Create blob
         const rawBlob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
-        
-        // Fix duration if it's a WebM blob, ensuring cross-browser playback
+
         if (mediaRecorder.mimeType.includes('webm')) {
-          fixWebmDuration(rawBlob, total * 1000, { logger: false }).then((fixedBlob: Blob) => {
-            setAudioBlob(fixedBlob);
-            const url = URL.createObjectURL(fixedBlob);
-            setAudioUrl(url);
-            onRecordingComplete?.(fixedBlob, total);
-          }).catch((err: any) => {
-            console.error('Failed to fix WebM duration', err);
-            // Fallback to raw blob
-            setAudioBlob(rawBlob);
-            const url = URL.createObjectURL(rawBlob);
-            setAudioUrl(url);
-            onRecordingComplete?.(rawBlob, total);
-          });
+          fixWebmDuration(rawBlob, total * 1000, { logger: false })
+            .then((fixedBlob: Blob) => {
+              setAudioBlob(fixedBlob);
+              setAudioUrl(URL.createObjectURL(fixedBlob));
+              onRecordingCompleteRef.current?.(fixedBlob, total);
+            })
+            .catch((err: any) => {
+              console.error('Failed to fix WebM duration', err);
+              setAudioBlob(rawBlob);
+              setAudioUrl(URL.createObjectURL(rawBlob));
+              onRecordingCompleteRef.current?.(rawBlob, total);
+            });
         } else {
           setAudioBlob(rawBlob);
-          const url = URL.createObjectURL(rawBlob);
-          setAudioUrl(url);
-          onRecordingComplete?.(rawBlob, total);
+          setAudioUrl(URL.createObjectURL(rawBlob));
+          onRecordingCompleteRef.current?.(rawBlob, total);
         }
       };
 
-      mediaRecorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
-        onError?.(new Error('Recording error occurred'));
+      mediaRecorder.onerror = () => {
+        onErrorRef.current?.(new Error('Recording error occurred'));
       };
 
-      // Start recording
-      mediaRecorder.start(); // Collect single chunk to avoid WebM duration bugs
+      mediaRecorder.start();
       setIsRecording(true);
       setIsPaused(false);
-
-      // Start duration timer
       startTimer();
     } catch (error) {
       console.error('Error starting recording:', error);
-      onError?.(error as Error);
+      onErrorRef.current?.(error as Error);
     }
-  }, [onRecordingComplete, onError, startTimer, clearTimer]);
+  }, [getStream, startTimer, clearTimer]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -154,7 +173,6 @@ export function useVoiceRecorder({
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       mediaRecorderRef.current.pause();
-      // Accumulate elapsed time from this segment
       const segmentSecs = (Date.now() - segmentStartRef.current) / 1000;
       accumulatedRef.current += segmentSecs;
       segmentStartRef.current = 0;
@@ -172,14 +190,8 @@ export function useVoiceRecorder({
   }, [isRecording, isPaused, startTimer]);
 
   const resetRecording = useCallback(() => {
-    // Clean up any existing URL
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
     clearTimer();
-
-    // Reset all state
     chunksRef.current = [];
     setAudioBlob(null);
     setAudioUrl(null);
@@ -189,6 +201,7 @@ export function useVoiceRecorder({
     setIsPaused(false);
     accumulatedRef.current = 0;
     segmentStartRef.current = 0;
+    // Stream stays alive — no need to release it here
   }, [audioUrl, clearTimer]);
 
   return {

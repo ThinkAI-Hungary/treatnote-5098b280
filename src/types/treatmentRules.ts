@@ -5,6 +5,7 @@ export type TargetToothType = 'all' | 'pillar_only' | 'pontic_only';
 
 export interface RuleItem {
   id?: string;
+  item_id?: string;
   visit_id?: string;
   name: string;
   quantity: number;
@@ -42,7 +43,6 @@ export interface TreatmentRule {
 export const SCALING_OPTIONS: { value: ScalingType; label: string }[] = [
   { value: 'per_tooth', label: 'Foganként' },
   { value: 'per_case', label: 'Esetenként' },
-  { value: 'fix', label: 'Fix' },
 ];
 
 export const TARGET_TOOTH_OPTIONS: { value: TargetToothType; label: string }[] = [

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -44,6 +44,8 @@ export function ErrorLogsTab() {
     const [deleting, setDeleting] = useState(false);
     const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
     const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+    const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
+    const DEFAULT_GROUP_LIMIT = 10;
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     // Keyboard navigation for lightbox
@@ -69,8 +71,7 @@ export function ErrorLogsTab() {
         const { data, error } = await supabase
             .from('error_logs')
             .select('*')
-            .order('created_at', { ascending: false })
-            .limit(100);
+            .order('created_at', { ascending: false });
 
         if (error) {
             toast.error('Hiba a logok betöltésekor');
@@ -287,8 +288,8 @@ export function ErrorLogsTab() {
 
     return (
         <>
-            <AnimatedCard>
-                <div className="flex items-center justify-between mb-6">
+            <AnimatedCard className="overflow-x-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-y-2 mb-6">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5 text-orange-400" />
                         Hibakezelés
@@ -298,9 +299,9 @@ export function ErrorLogsTab() {
                             </Badge>
                         )}
                     </h2>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {categories.length > 0 && (
-                            <div className="w-56">
+                            <div className="w-44">
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                     <SelectTrigger className="border-primary/20 h-9">
                                         <SelectValue placeholder="Minden hiba" />
@@ -346,14 +347,18 @@ export function ErrorLogsTab() {
                     </div>
                 ) : (
                     <div className="space-y-8">
-                        {filteredGroups.map(([groupName, groupLogs]) => (
+                        {filteredGroups.map(([groupName, groupLogs]) => {
+                            const limit = groupLimits[groupName] ?? DEFAULT_GROUP_LIMIT;
+                            const visibleLogs = groupLogs.slice(0, limit);
+                            const remaining = groupLogs.length - visibleLogs.length;
+                            return (
                             <div key={groupName} className="space-y-3">
                                 <div className="flex items-center gap-3 border-b border-primary/10 pb-2">
                                      <h3 className="text-base font-semibold text-foreground/90">{groupName}</h3>
                                      <Badge variant="outline" className="text-xs bg-primary/5">{groupLogs.length} eset</Badge>
                                 </div>
                                 <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-primary/20">
-                                    {groupLogs.map((log) => {
+                                    {visibleLogs.map((log) => {
                                         const isExpanded = expandedIds.has(log.id);
                                         const severity = SEVERITY_CONFIG[log.severity] || SEVERITY_CONFIG.error;
                                         const isCopied = copiedId === log.id;
@@ -366,7 +371,7 @@ export function ErrorLogsTab() {
                                     {/* Header row */}
                                     <button
                                         onClick={() => handleExpand(log)}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                                        className="w-full min-w-0 flex items-center gap-2 px-4 py-3 text-left overflow-hidden"
                                     >
                                         {isExpanded
                                             ? <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -377,26 +382,26 @@ export function ErrorLogsTab() {
                                             {severity.label}
                                         </Badge>
 
-                                        <span className="font-medium truncate flex-1">{log.summary}</span>
+                                        <span className="font-medium truncate flex-1 min-w-0">{log.summary}</span>
 
-                                        <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                        <span className="hidden md:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                             <Globe className="h-3 w-3" />
                                             {log.domain || '—'}
                                         </span>
 
-                                        <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                        <span className="hidden md:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                             <Terminal className="h-3 w-3" />
                                             {log.script_name}
                                         </span>
 
                                         {log.screenshot_urls?.length > 0 && (
-                                            <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                            <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                                 <ImageIcon className="h-3 w-3" />
                                                 {log.screenshot_urls.length}
                                             </span>
                                         )}
 
-                                        <span className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                                        <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                             <Database className="h-3 w-3" />
                                             {computeLogSize(log)}
                                         </span>
@@ -463,7 +468,7 @@ export function ErrorLogsTab() {
                                             {log.metadata && Object.keys(log.metadata).length > 0 && (
                                                 <div>
                                                     <h4 className="text-sm font-medium text-muted-foreground mb-2">Metadata</h4>
-                                                    <pre className="text-xs bg-black/30 rounded-md p-3 overflow-x-auto border border-primary/10">
+                                                    <pre className="text-xs bg-black/30 rounded-md p-3 overflow-x-auto max-w-full border border-primary/10 whitespace-pre-wrap break-all">
                                                         {JSON.stringify(log.metadata, null, 2)}
                                                     </pre>
                                                 </div>
@@ -472,7 +477,7 @@ export function ErrorLogsTab() {
                                             {/* Full log */}
                                             <div>
                                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Teljes napló</h4>
-                                                <pre className="text-xs bg-black/30 rounded-md p-3 overflow-x-auto max-h-96 border border-primary/10 whitespace-pre-wrap">
+                                                <pre className="text-xs bg-black/30 rounded-md p-3 overflow-x-auto max-w-full max-h-96 border border-primary/10 whitespace-pre-wrap break-words">
                                                     {log.full_log}
                                                 </pre>
                                             </div>
@@ -527,8 +532,17 @@ export function ErrorLogsTab() {
                             );
                         })}
                                 </div>
+                                {remaining > 0 && (
+                                    <button
+                                        onClick={() => setGroupLimits(prev => ({ ...prev, [groupName]: (prev[groupName] ?? DEFAULT_GROUP_LIMIT) + 20 }))}
+                                        className="mt-1 ml-2 text-xs text-primary/70 hover:text-primary transition-colors py-1 px-2 rounded hover:bg-primary/10"
+                                    >
+                                        + {remaining} további eset mutatása
+                                    </button>
+                                )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </AnimatedCard>

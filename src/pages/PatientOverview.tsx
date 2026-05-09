@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, BriefcaseMedical } from 'lucide-react';
+import { User, BriefcaseMedical, Share2, Building2, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 import { DentalChart } from '@/components/patients/dental-chart';
 import { useProfile } from '@/hooks/useProfile';
@@ -27,6 +27,37 @@ export default function PatientOverview() {
 
   // Selected Teeth State
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+
+  // Shared telephelyes
+  type SharedTelephely = { id: string; name: string; companyName: string | null };
+  const [sharedWith, setSharedWith] = useState<SharedTelephely[]>([]);
+
+  // Shared telephely section collapsed by default
+  const [sharedExpanded, setSharedExpanded] = useState(false);
+
+  useEffect(() => {
+    const ids: string[] = patient?.telephely_ids || [];
+    if (ids.length < 2) { setSharedWith([]); return; }
+    (async () => {
+      const { data: tRows } = await supabase
+        .from('telephely')
+        .select('id, name, display_name, company_id')
+        .in('id', ids);
+      if (!tRows) return;
+      const companyIds = [...new Set(tRows.map((t: any) => t.company_id).filter(Boolean))];
+      let companyMap = new Map<string, string>();
+      if (companyIds.length > 0) {
+        const { data: companies } = await supabase
+          .rpc('get_companies_basic_info', { company_ids: companyIds });
+        companyMap = new Map((companies || []).map((c: any) => [c.id, c.display_name || c.name || null]));
+      }
+      setSharedWith(tRows.map((t: any) => ({
+        id: t.id,
+        name: t.display_name || t.name,
+        companyName: t.company_id ? (companyMap.get(t.company_id) || null) : null,
+      })));
+    })();
+  }, [patient?.telephely_ids]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
@@ -95,10 +126,56 @@ export default function PatientOverview() {
         </Card>
       </div>
 
+      {/* ── Megosztás info (only if patient is shared with multiple telephelyes) ── */}
+      {sharedWith.length > 1 && (
+        <Card className="border-violet-500/20 bg-violet-500/5">
+          {/* Clickable header */}
+          <button
+            className="w-full text-left"
+            onClick={() => setSharedExpanded(prev => !prev)}
+          >
+            <CardHeader className="py-2 px-4">
+              <CardTitle className="text-sm flex items-center gap-2 text-violet-600 dark:text-violet-300 font-medium">
+                <Share2 className="w-3.5 h-3.5" /> Megosztva
+                <span className="text-xs font-normal text-violet-400 ml-1">{sharedWith.length} telephely</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 ml-auto transition-transform duration-200 ${
+                    sharedExpanded ? 'rotate-0' : '-rotate-90'
+                  }`}
+                />
+              </CardTitle>
+            </CardHeader>
+          </button>
+          {/* Collapsible content */}
+          {sharedExpanded && (
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {sharedWith.map(t => (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-background text-sm"
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+                    <span>
+                      {t.companyName && (
+                        <span className="font-semibold text-violet-500 dark:text-violet-300">{t.companyName}</span>
+                      )}
+                      {t.companyName && <span className="text-muted-foreground mx-1">/</span>}
+                      <span className="text-foreground">{t.name}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {/* ── SECTION 1: DENTAL CHART (first view, full width) ── */}
       <div className="w-full">
         <DentalChart 
-          patientId={patient.id} 
+          patientId={patient.id}
+          toothScale={1.5}
           readonly={true} 
           onSelectionChange={setSelectedTeeth}
         />

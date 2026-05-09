@@ -1,12 +1,15 @@
 import { useEffect, useState, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
+import { useSzotarStdl } from '@/hooks/useSzotarStdl';
 import { supabase } from '@/integrations/supabase/client';
 import {
   isSzotarGenerating,
@@ -19,18 +22,21 @@ import {
   Users, Calendar, Stethoscope, TrendingUp,
   Globe, TestTube, Link2, BookOpen, ClipboardList,
   CheckCircle2, Circle,
-  Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle
+  Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { PageLoader } from '@/components/PageLoader';
 import { usePageLoadingSignal } from '@/contexts/PageLoadingContext';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { DomainDialog } from '@/components/klinika/DomainDialog';
 import { ProbaPaciensDialog } from '@/components/klinika/ProbaPaciensDialog';
+import { NativeSzotarDialog } from '@/components/klinika/NativeSzotarDialog';
+import { NativeRulesDialog } from '@/components/klinika/NativeRulesDialog';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
+import { DashboardModeSwitcher } from '@/components/dashboard/DashboardModeSwitcher';
 
 interface OnboardingStep {
   id: string;
@@ -50,10 +56,10 @@ interface KlinikaAdminContact {
   full_name: string | null;
   phone: string | null;
 }
-
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const { isKlinikaAdmin, isAdmin, isInitialized: rolesInitialized } = useCachedRoles();
   // Active telephely / company IDs — declared early so useFlexiConnection can use it
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
@@ -66,6 +72,12 @@ export default function Dashboard() {
     isLoading: szotarLoading, refresh: refreshSzotar,
   } = useSzotar();
 
+  const {
+    hasSzotarNative, hasNativeRules,
+    isLoading: szotarStdlLoading,
+    refresh: refreshSzotarStdl,
+  } = useSzotarStdl();
+
   const [hasRules, setHasRules] = useState(false);
   const [rulesLoading, setRulesLoading] = useState(true);
   const [klinikaAdmins, setKlinikaAdmins] = useState<KlinikaAdminContact[]>([]);
@@ -73,10 +85,13 @@ export default function Dashboard() {
   const [recentExaminations, setRecentExaminations] = useState(0);
   const [statsLoading, setStatsLoading] = useState(true);
 
+
   // Dialog states
   const [domainDialogOpen, setDomainDialogOpen] = useState(false);
   const [probaDialogOpen, setProbaDialogOpen] = useState(false);
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
+  const [nativeSzotarDialogOpen, setNativeSzotarDialogOpen] = useState(false);
+  const [nativeRulesDialogOpen, setNativeRulesDialogOpen] = useState(false);
 
   // Generation state lives in a module-level store so it survives navigation
   const szotarGenerating = useSyncExternalStore(subscribeGenerationStore, isSzotarGenerating);
@@ -86,16 +101,16 @@ export default function Dashboard() {
   const [flexiConnectionFailed, setFlexiConnectionFailed] = useState(false);
 
 
-  // Fetch treatment_rules count
+  // Fetch flexi treatment_rules count
   useEffect(() => {
     async function fetchRules() {
       if (!activeTelephelyId) { setHasRules(false); setRulesLoading(false); return; }
       try {
-        const { count } = await supabase
+        const { count: flexiCount } = await supabase
           .from('treatment_rules')
           .select('id', { count: 'exact', head: true })
           .eq('clinic_id', activeTelephelyId);
-        setHasRules((count || 0) > 0);
+        setHasRules((flexiCount || 0) > 0);
       } catch { setHasRules(false); }
       finally { setRulesLoading(false); }
     }
@@ -143,70 +158,122 @@ export default function Dashboard() {
   // ── Szabályok generálása szótárból webhook (delegates to module-level store) ──
   const handleGenerateRules = useCallback(() => {
     if (!activeTelephelyId || !user) return;
-    startSzabalyokGeneration(activeTelephelyId, user.id, hasRules, () => setHasRules(true));
-  }, [activeTelephelyId, user, hasRules]);
+    const mode = profile?.voice_recording_preference === 'treatnote_native' ? 'native' : 'flexi';
+    startSzabalyokGeneration(activeTelephelyId, user.id, mode === 'native' ? hasNativeRules : hasRules, () => setHasRules(true), mode);
+  }, [activeTelephelyId, user, hasRules, hasNativeRules, profile?.voice_recording_preference]);
+
+  const [hasAckMode, setHasAckMode] = useState(false);
+
+  useEffect(() => {
+    if (user?.id && rolesInitialized && !profileLoading) {
+      if (isKlinikaAdmin) {
+        const ack = localStorage.getItem(`mode_ack_${user.id}`);
+        const dbMode = profile?.voice_recording_preference;
+        if (ack || dbMode) {
+          setHasAckMode(true);
+          if (!ack && dbMode) {
+            localStorage.setItem(`mode_ack_${user.id}`, 'true');
+          }
+        } else {
+          setHasAckMode(false);
+        }
+      } else {
+        setHasAckMode(true);
+      }
+    }
+  }, [user?.id, rolesInitialized, isKlinikaAdmin, profile?.voice_recording_preference, profileLoading]);
 
   // Gate on all step-affecting loading states so the dashboard renders stable.
   // The user prefers a slightly longer load over a flash of partial/wrong step data.
-  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading;
+  const isLoading = authLoading || profileLoading || !rolesInitialized || isFlexiLoading || szotarLoading || rulesLoading || szotarStdlLoading;
 
-  const allSteps = useMemo<OnboardingStep[]>(() => [
-    {
-      id: 'domain',
-      icon: Globe,
-      title: 'FlexiDent domain beállítása',
-      description: 'Adja meg a klinika FlexiDent domain címét a rendszer összekapcsolásához.',
-      completed: hasFlexiDomain,
-      adminOnly: true,
-      actionLabel: hasFlexiDomain ? 'Módosítás' : 'Domain megadása',
-      currentValue: flexiDomain || null,
-      editable: true,
-      warning: flexiConnectionFailed ? 'A domain helytelen lehet. Kérjük ellenőrizze!' : null,
-    },
-    {
-      id: 'proba',
-      icon: TestTube,
-      title: 'Próba páciens ID megadása',
-      description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
-      completed: hasProbaPaciens,
-      adminOnly: true,
-      actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
-      currentValue: probaPaciensNeve || null,
-      editable: true,
-    },
-    {
-      id: 'flexi',
-      icon: Link2,
-      title: 'FlexiDent fiók csatlakoztatása',
-      description: 'Csatlakoztassa saját FlexiDent fiókját a páciensadatok szinkronizálásához.',
-      completed: !isFlexiLoading && !!isFlexiConnected,
-      loading: isFlexiLoading, // keeps step neutral while the async DB check resolves
-      adminOnly: false,
-      actionLabel: isFlexiConnected ? 'Újracsatlakozás' : 'Flexi csatlakoztatás',
-      currentValue: flexiUsername || null,
-      editable: true,
-    },
-    {
-      id: 'szotar',
-      icon: BookOpen,
-      title: 'Szótár generálása',
-      description: 'Generálja le a kezelési szótárt a hangfelismerés pontosításához.',
-      completed: hasSzotar,
-      adminOnly: true,
-      actionLabel: szotarGenerating ? 'Generálás...' : 'Szótár generálása',
-    },
-    {
-      id: 'rules',
-      icon: ClipboardList,
-      title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
-      description: hasRules
-        ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
-        : 'Generálja le a kezelési szabályokat a szótár alapján.',
-      completed: hasRules,
-      adminOnly: true,
-      actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
-    },
-  ], [hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
+  const currentMode = profile?.voice_recording_preference;
+  const isNativeMode = currentMode === 'treatnote_native';
+
+  const allSteps = useMemo<OnboardingStep[]>(() => {
+    if (isNativeMode) {
+      return [
+        {
+          id: 'szotar_native',
+          icon: BookOpen,
+          title: 'Kezelési tételek beállítása',
+          description: 'Rögzítse vagy töltse fel a klinika kezelési tételeit.',
+          completed: hasSzotarNative,
+          adminOnly: true,
+          actionLabel: 'Tételek szerkesztése',
+          editable: true,
+        },
+        {
+          id: 'rules_native',
+          icon: ClipboardList,
+          title: 'Kezelési szabályok beállítása',
+          description: 'Rögzítse vagy töltse fel a klinika kezelési szabályait. Fontos: A rendszer működéséhez legalább egy aktív szabályra van szükség!',
+          completed: hasNativeRules,
+          adminOnly: true,
+          actionLabel: 'Szabályok szerkesztése',
+          editable: true,
+        }
+      ];
+    }
+
+    return [
+      {
+        id: 'domain',
+        icon: Globe,
+        title: 'FlexiDent domain beállítása',
+        description: 'Adja meg a klinika FlexiDent domain címét a rendszer összekapcsolásához.',
+        completed: hasFlexiDomain,
+        adminOnly: true,
+        actionLabel: hasFlexiDomain ? 'Módosítás' : 'Domain megadása',
+        currentValue: flexiDomain || null,
+        editable: true,
+        warning: flexiConnectionFailed ? 'A domain helytelen lehet. Kérjük ellenőrizze!' : null,
+      },
+      {
+        id: 'proba',
+        icon: TestTube,
+        title: 'Próba páciens ID megadása',
+        description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
+        completed: hasProbaPaciens,
+        adminOnly: true,
+        actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
+        currentValue: probaPaciensNeve || null,
+        editable: true,
+      },
+      {
+        id: 'flexi',
+        icon: Link2,
+        title: 'FlexiDent fiók csatlakoztatása',
+        description: 'Csatlakoztassa saját FlexiDent fiókját a páciensadatok szinkronizálásához.',
+        completed: !isFlexiLoading && !!isFlexiConnected,
+        loading: isFlexiLoading, // keeps step neutral while the async DB check resolves
+        adminOnly: false,
+        actionLabel: isFlexiConnected ? 'Újracsatlakozás' : 'Flexi csatlakoztatás',
+        currentValue: flexiUsername || null,
+        editable: true,
+      },
+      {
+        id: 'szotar',
+        icon: BookOpen,
+        title: 'Szótár generálása',
+        description: 'Generálja le a kezelési szótárt a hangfelismerés pontosításához.',
+        completed: hasSzotar,
+        adminOnly: true,
+        actionLabel: szotarGenerating ? 'Generálás...' : 'Szótár generálása',
+      },
+      {
+        id: 'rules',
+        icon: ClipboardList,
+        title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
+        description: hasRules
+          ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
+          : 'Generálja le a kezelési szabályokat a szótár alapján.',
+        completed: hasRules,
+        adminOnly: true,
+        actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
+      },
+    ];
+  }, [isNativeMode, hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasSzotarNative, hasRules, hasNativeRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
 
   const isKlinikaAdminOrAdmin = isKlinikaAdmin || isAdmin;
   const userOwnSteps = useMemo(() => allSteps.filter(s => !s.adminOnly), [allSteps]);
@@ -234,6 +301,12 @@ export default function Dashboard() {
         break;
       case 'rules':
         handleGenerateRules();
+        break;
+      case 'rules_native':
+        setNativeRulesDialogOpen(true);
+        break;
+      case 'szotar_native':
+        setNativeSzotarDialogOpen(true);
         break;
     }
   };
@@ -287,7 +360,7 @@ export default function Dashboard() {
   ];
 
   // Only enable the tour after all async data has settled so allComplete is accurate
-  const tourDataReady = !isLoading && !szotarLoading && !rulesLoading && !isFlexiLoading;
+  const tourDataReady = !isLoading && !szotarLoading && !rulesLoading && !isFlexiLoading && hasAckMode;
 
   const {
     showTour: showDashTour,
@@ -309,150 +382,174 @@ export default function Dashboard() {
     return () => window.removeEventListener('taskbar-info', handler);
   }, [startDashTour]);
 
-  if (isLoading) {
+  const initialLoadRef = useRef(false);
+  if (!isLoading) {
+    initialLoadRef.current = true;
+  }
+
+  if (isLoading && !initialLoadRef.current) {
     return null;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      <DashboardModeSwitcher 
+        currentMode={currentMode} 
+        telephelyId={activeTelephelyId} 
+        userId={user?.id || null} 
+        isKlinikaAdmin={isKlinikaAdmin} 
+        onModeChanged={() => {
+          setHasAckMode(true);
+          if (refetchProfile) {
+            refetchProfile();
+          }
+        }}
+      />
 
-      {/* Header */}
-      <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
+      {/* Header and Steps - Hidden until mode is acknowledged */}
+      {hasAckMode && (
+        <>
+          {/* Header */}
+          <div data-tour="dashboard-header" className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/10 dark:border-sparkle-blue/20">
 
 
-        <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
-              !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
-            )}
-            style={allComplete
-              ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
-              : undefined
-            }
-          >
-            {allComplete ? (
-              <PartyPopper className="h-7 w-7 text-white" />
-            ) : (
-              <Stethoscope className="h-7 w-7 text-white" />
-            )}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {allComplete
-                ? 'Minden beállítás kész :) — használja az alkalmazást teljes mértékben!'
-                : 'Kövesse az alábbi lépéseket a rendszer beállításához.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {!allComplete && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-muted-foreground">Beállítás állapota</span>
-              <span className="text-primary font-semibold">{completedCount}/{totalCount} kész</span>
-            </div>
-            <div className="h-2.5 rounded-full bg-muted/50 overflow-hidden">
+            <div className="flex items-center gap-4">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
+                className={cn(
+                  "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
+                  !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
+                )}
+                style={allComplete
+                  ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
+                  : undefined
+                }
+              >
+                {allComplete ? (
+                  <PartyPopper className="h-7 w-7 text-white" />
+                ) : (
+                  <Stethoscope className="h-7 w-7 text-white" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  {allComplete
+                    ? 'Minden beállítás kész :) — használja az alkalmazást teljes mértékben!'
+                    : 'Kövesse az alábbi lépéseket a rendszer beállításához.'}
+                </p>
+              </div>
             </div>
+
+            {/* Progress bar */}
+            {!allComplete && (
+              <div className="mt-4">
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="text-muted-foreground">Beállítás állapota</span>
+                  <span className="text-primary font-semibold">{completedCount}/{totalCount} kész</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-muted/50 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
 
-      {/* Onboarding steps */}
-      {!allComplete && (
-        <div data-tour="dashboard-steps" className="space-y-3">
-          {isKlinikaAdminOrAdmin ? (
-            /* ── Klinika Admin / Admin: actionable steps ── */
-            allSteps.map((step, idx) => {
-              // A loading step is neither "complete" nor "the next actionable step" —
-              // treat it as a placeholder so subsequent real steps can take its place.
-              const isFirstIncomplete =
-                !step.completed && !step.loading &&
-                allSteps.slice(0, idx).every(s => s.completed || s.loading);
-              return (
-                <StepCard
-                  key={step.id}
-                  step={step}
-                  index={idx}
-                  isCurrent={isFirstIncomplete}
-                  isProcessing={isStepProcessing(step.id)}
-                  onAction={() => handleStepAction(step.id)}
-                />
-              );
-            })
-          ) : (
-            /* ── Felhasználó ── */
-            <>
-              {userOwnSteps.map((step, idx) => (
-                <StepCard
-                  key={step.id}
-                  step={step}
-                  index={idx}
-                  isCurrent={!step.completed && !step.loading}
-                  isProcessing={isStepProcessing(step.id)}
-                  onAction={() => handleStepAction(step.id)}
-                />
-              ))}
 
-              {/* Admin-managed missing items shown as read-only */}
-              {adminMissingSteps.length > 0 && (
-                <Card className="border-yellow-500/30 bg-yellow-500/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <UserCog className="h-5 w-5 text-yellow-500" />
-                      A Klinika Admin által elvégzendő lépések
-                    </CardTitle>
-                    <CardDescription>
-                      Az alábbi beállításokat a Klinika Adminisztrátor tudja elvégezni.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <ul className="space-y-2">
-                      {adminMissingSteps.map(step => (
-                        <li key={step.id} className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <Circle className="h-4 w-4 text-yellow-500/60 flex-shrink-0" />
-                          <span>{step.title}</span>
-                        </li>
-                      ))}
-                    </ul>
 
-                    {klinikaAdmins.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Klinika Admin elérhetősége:</p>
-                        <div className="space-y-1.5">
-                          {klinikaAdmins.map((admin, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              <UserCog className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
-                              <span className="font-medium">{admin.full_name || 'Ismeretlen'}</span>
-                              {admin.phone && (
-                                <>
-                                  <span className="text-muted-foreground">·</span>
-                                  <a href={`tel:${admin.phone}`} className="flex items-center gap-1 text-primary hover:underline">
-                                    <Phone className="h-3 w-3" />
-                                    {admin.phone}
-                                  </a>
-                                </>
-                              )}
-                            </div>
+          {/* Onboarding steps */}
+          {!allComplete && (
+            <div data-tour="dashboard-steps" className="space-y-3">
+              {isKlinikaAdminOrAdmin ? (
+                /* ── Klinika Admin / Admin: actionable steps ── */
+                allSteps.map((step, idx) => {
+                  // A loading step is neither "complete" nor "the next actionable step" —
+                  // treat it as a placeholder so subsequent real steps can take its place.
+                  const isFirstIncomplete =
+                    !step.completed && !step.loading &&
+                    allSteps.slice(0, idx).every(s => s.completed || s.loading);
+                  return (
+                    <StepCard
+                      key={step.id}
+                      step={step}
+                      index={idx}
+                      isCurrent={isFirstIncomplete}
+                      isProcessing={isStepProcessing(step.id)}
+                      onAction={() => handleStepAction(step.id)}
+                    />
+                  );
+                })
+              ) : (
+                /* ── Felhasználó ── */
+                <>
+                  {userOwnSteps.map((step, idx) => (
+                    <StepCard
+                      key={step.id}
+                      step={step}
+                      index={idx}
+                      isCurrent={!step.completed && !step.loading}
+                      isProcessing={isStepProcessing(step.id)}
+                      onAction={() => handleStepAction(step.id)}
+                    />
+                  ))}
+
+                  {/* Admin-managed missing items shown as read-only */}
+                  {adminMissingSteps.length > 0 && (
+                    <Card className="border-yellow-500/30 bg-yellow-500/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <UserCog className="h-5 w-5 text-yellow-500" />
+                          A Klinika Admin által elvégzendő lépések
+                        </CardTitle>
+                        <CardDescription>
+                          Az alábbi beállításokat a Klinika Adminisztrátor tudja elvégezni.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <ul className="space-y-2">
+                          {adminMissingSteps.map(step => (
+                            <li key={step.id} className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <Circle className="h-4 w-4 text-yellow-500/60 flex-shrink-0" />
+                              <span>{step.title}</span>
+                            </li>
                           ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </ul>
+
+                        {klinikaAdmins.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Klinika Admin elérhetősége:</p>
+                            <div className="space-y-1.5">
+                              {klinikaAdmins.map((admin, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                  <UserCog className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
+                                  <span className="font-medium">{admin.full_name || 'Ismeretlen'}</span>
+                                  {admin.phone && (
+                                    <>
+                                      <span className="text-muted-foreground">·</span>
+                                      <a href={`tel:${admin.phone}`} className="flex items-center gap-1 text-primary hover:underline">
+                                        <Phone className="h-3 w-3" />
+                                        {admin.phone}
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
               )}
-            </>
+            </div>
           )}
-        </div>
+        </>
       )}
 
 
@@ -483,6 +580,18 @@ export default function Dashboard() {
         }}
         onError={() => setFlexiConnectionFailed(true)}
         telephelyId={activeTelephelyId ?? null}
+      />
+      <NativeSzotarDialog
+        open={nativeSzotarDialogOpen}
+        onOpenChange={setNativeSzotarDialogOpen}
+        telephelyId={activeTelephelyId}
+        onSaved={() => refreshSzotarStdl()}
+      />
+      <NativeRulesDialog
+        open={nativeRulesDialogOpen}
+        onOpenChange={setNativeRulesDialogOpen}
+        telephelyId={activeTelephelyId}
+        onSaved={() => refreshSzotarStdl()}
       />
 
       {/* Dashboard onboarding tour */}

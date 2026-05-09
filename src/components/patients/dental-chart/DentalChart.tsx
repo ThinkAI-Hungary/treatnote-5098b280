@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Loader2, Rows3, ArrowUp, ArrowDown, Grid2X2, MousePointerClick, Link2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 
 import { ToothModel } from './types';
 import { ZsigmondyCross } from './ZsigmondyCross';
 import { ToothEditorPanel } from './ToothEditorPanel';
 import { ADULT_TEETH } from './constants';
 import { BridgeConfigurator, type BridgeConfig } from './BridgeConfigurator';
+import { fetchCombinedTreatmentItems } from '@/lib/treatmentItems';
 
 // ============ Preset tooth selections ============
 
@@ -113,15 +114,18 @@ export function DentalChart({
       let cueMap: Record<string, { visual_icon: string; visual_color: string }> = {};
 
       if (itemIds.length > 0) {
-        const { data: catalogItems } = await supabase
-          .from('clinic_treatment_items_stdl' as any)
-          .select('id, visual_icon, visual_color')
-          .in('id', itemIds);
-
-        if (catalogItems) {
-          (catalogItems as any[]).forEach(ci => {
-            cueMap[ci.id] = { visual_icon: ci.visual_icon, visual_color: ci.visual_color };
-          });
+        const telephelyId = profile?.current_telephely_id || profile?.telephely_id;
+        if (telephelyId) {
+          try {
+            const allItems = await fetchCombinedTreatmentItems(telephelyId);
+            const catalogItems = allItems.filter(item => itemIds.includes(item.id));
+            
+            catalogItems.forEach(ci => {
+              cueMap[ci.id] = { visual_icon: ci.visual_icon, visual_color: ci.visual_color };
+            });
+          } catch (error) {
+            console.error('Failed to fetch combined items for markers:', error);
+          }
         }
       }
 
@@ -157,6 +161,31 @@ export function DentalChart({
     window.addEventListener('dental-chart-updated', handleUpdate);
     return () => window.removeEventListener('dental-chart-updated', handleUpdate);
   }, [fetchChart, fetchMarkers]);
+
+  // ─── Supabase Realtime: keep all users in sync ───
+  useEffect(() => {
+    if (!patientId) return;
+
+    const channel = supabase
+      .channel(`dental_chart_patient_${patientId}`)
+      .on(
+        'postgres_changes' as any,
+        {
+          event: '*',
+          schema: 'public',
+          table: 'dental_chart',
+          filter: `patient_id=eq.${patientId}`,
+        },
+        () => {
+          fetchChart();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [patientId, fetchChart]);
 
   // ============ Click handling with multi-select ============
 
@@ -455,99 +484,106 @@ export function DentalChart({
         )}
       </div>
 
-      {/* The chart itself */}
-      <CardContent className="w-full overflow-x-auto pb-4">
-        <div className="w-full mx-auto px-2 sm:px-6 pt-4 pb-2">
-          <ZsigmondyCross 
-            data={data} 
-            onToothClick={handleToothClick} 
-            showBabyTeeth={showBabyTeeth}
-            selectedTooth={selectedTooth}
-            selectedTeeth={selectedTeeth}
-            treatmentMarkersMap={treatmentMarkersMap}
-            bridgePreview={bridgePreview}
-            scale={toothScale}
-          />
+      <CardContent className="w-full p-4 flex flex-col xl:flex-row gap-6">
+        {/* Left Side: The chart itself */}
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <div className="w-full min-w-max mx-auto pt-4 pb-2">
+            <ZsigmondyCross 
+              data={data} 
+              onToothClick={handleToothClick} 
+              showBabyTeeth={showBabyTeeth}
+              selectedTooth={selectedTooth}
+              selectedTeeth={selectedTeeth}
+              treatmentMarkersMap={treatmentMarkersMap}
+              bridgePreview={bridgePreview}
+              scale={toothScale}
+            />
+          </div>
         </div>
-      </CardContent>
 
-      {/* Multi-select bulk toolbar */}
-      {isMultiSelect && !readonly && (
-        <div className="px-4 pb-4 sm:px-6 animate-in slide-in-from-bottom-2 fade-in duration-200">
-          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="font-bold text-blue-700 dark:text-blue-400">
-                  {selectedTeeth.length} fog kijelölve
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Fogak: {selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}
-                </p>
-              </div>
-              {!bridgeConfigMode && (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkStatusChange('missing')}
-                    className="text-xs border-red-200 hover:bg-red-50 hover:text-red-700"
-                  >
-                    Foghiány
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleBulkStatusChange('healthy')}
-                    className="text-xs border-green-200 hover:bg-green-50 hover:text-green-700"
-                  >
-                    Egészséges
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setBridgeConfigMode(true)}
-                    className="text-xs gap-1 bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Link2 className="w-3.5 h-3.5" />
-                    Híd konfigurálása
-                  </Button>
+        {/* Right Side: Editors */}
+        {((isMultiSelect && !readonly) || (selectedTooth && !isMultiSelect && !readonly)) && (
+          <div className="w-full xl:w-[450px] shrink-0 flex flex-col gap-4">
+            {/* Multi-select bulk toolbar */}
+            {isMultiSelect && !readonly && (
+              <div className="animate-in slide-in-from-right-2 fade-in duration-200">
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 shadow-sm">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-blue-700 dark:text-blue-400">
+                        {selectedTeeth.length} fog kijelölve
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                        Fogak: {selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}
+                      </p>
+                    </div>
+                    {!bridgeConfigMode && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleBulkStatusChange('missing')}
+                          className="text-xs border-red-200 hover:bg-red-50 hover:text-red-700"
+                        >
+                          Foghiány
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleBulkStatusChange('healthy')}
+                          className="text-xs border-green-200 hover:bg-green-50 hover:text-green-700"
+                        >
+                          Egészséges
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setBridgeConfigMode(true)}
+                          className="text-xs gap-1 bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Link2 className="w-3.5 h-3.5" />
+                          Híd
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bridge Configurator Panel */}
+                  {bridgeConfigMode && (
+                    <div className="mt-4 pt-4 border-t border-purple-200/30">
+                      <BridgeConfigurator
+                        selectedTeeth={selectedTeeth}
+                        toothData={data}
+                        onConfirm={handleCreateBridge}
+                        onCancel={() => { setBridgeConfigMode(false); setBridgePreview(null); }}
+                        onPreviewChange={setBridgePreview}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Bridge Configurator Panel */}
-            {bridgeConfigMode && (
-              <div className="mt-4 pt-4 border-t border-purple-200/30">
-                <BridgeConfigurator
-                  selectedTeeth={selectedTeeth}
-                  toothData={data}
-                  onConfirm={handleCreateBridge}
-                  onCancel={() => { setBridgeConfigMode(false); setBridgePreview(null); }}
-                  onPreviewChange={setBridgePreview}
+            {/* Single tooth editor */}
+            {selectedTooth && !isMultiSelect && !readonly && (
+              <div className="animate-in slide-in-from-right-2 fade-in duration-200 h-full">
+                <ToothEditorPanel 
+                  key={selectedTooth}
+                  toothNumber={selectedTooth}
+                  initialData={data[selectedTooth]}
+                  onSave={(d) => {
+                    // Auto-save silently, do not close the editor
+                    handleSaveTooth(d, true);
+                  }}
+                  onCancel={() => {
+                    setSelectedTooth(null);
+                    setSelectedTeeth([]);
+                  }}
                 />
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Single tooth editor */}
-      {selectedTooth && !isMultiSelect && !readonly && (
-        <div className="px-4 pb-4 sm:px-6 sm:pb-6">
-          <ToothEditorPanel 
-            key={selectedTooth}
-            toothNumber={selectedTooth}
-            initialData={data[selectedTooth]}
-            onSave={(d) => {
-              // Auto-save silently, do not close the editor
-              handleSaveTooth(d, true);
-            }}
-            onCancel={() => {
-              setSelectedTooth(null);
-              setSelectedTeeth([]);
-            }}
-          />
-        </div>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }

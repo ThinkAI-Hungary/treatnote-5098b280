@@ -1,0 +1,5047 @@
+[
+  {
+    "name": "Első komplex fogorvosi vizsgálat",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "első vizsgálat",
+      "komplex vizsgálat",
+      "st.praes.",
+      "stomatológiai vizsgálat",
+      "fogászati alapvizsgálat"
+    ],
+    "sort_order": 0
+  },
+  {
+    "name": "Kontroll vizsgálat (15 perc)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "kontroll",
+      "kontroll 15",
+      "rövid kontroll",
+      "recall"
+    ],
+    "sort_order": 1
+  },
+  {
+    "name": "Kontroll vizsgálat (30 perc)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "kontroll 30",
+      "hosszú kontroll"
+    ],
+    "sort_order": 2
+  },
+  {
+    "name": "Sürgősségi vizsgálat",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "akut",
+      "sürgősségi",
+      "ügyeleti",
+      "fájdalom miatti vizsgálat"
+    ],
+    "sort_order": 3
+  },
+  {
+    "name": "Konzultáció (15 perc)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "konz",
+      "konzi",
+      "rövid konzultáció",
+      "tanácsadás"
+    ],
+    "sort_order": 4
+  },
+  {
+    "name": "Konzultáció (30 perc)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "konz 30",
+      "standard konzultáció"
+    ],
+    "sort_order": 5
+  },
+  {
+    "name": "Konzultáció (60 perc)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "konz 60",
+      "hosszú konzultáció",
+      "részletes konzultáció"
+    ],
+    "sort_order": 6
+  },
+  {
+    "name": "Online/videó konzultáció",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "online konzi",
+      "skype konz",
+      "zoom konzultáció",
+      "távkonzultáció"
+    ],
+    "sort_order": 7
+  },
+  {
+    "name": "Második vélemény konzultáció",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "second opinion",
+      "véleménykérés",
+      "szakorvosi vélemény"
+    ],
+    "sort_order": 8
+  },
+  {
+    "name": "Ismétlő konzultáció",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "ismétlő konzi",
+      "újabb konzultáció",
+      "follow-up konzultáció"
+    ],
+    "sort_order": 9
+  },
+  {
+    "name": "Páciens dokumentáció kiállítása",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "dokumentáció",
+      "leírás",
+      "kórleírás",
+      "orvosi igazolás"
+    ],
+    "sort_order": 10
+  },
+  {
+    "name": "Szakvélemény kiállítása",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "szakvélemény",
+      "igazolás",
+      "orvosi szakvélemény"
+    ],
+    "sort_order": 11
+  },
+  {
+    "name": "Góckutatás (CBCT/OP elemzés alapján)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "góckutatás",
+      "gócvizsgálat",
+      "fókuszvizsgálat"
+    ],
+    "sort_order": 12
+  },
+  {
+    "name": "Vitalitásvizsgálat",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "vitalitás",
+      "vitálteszt",
+      "hidegteszt",
+      "electric pulp test",
+      "EPT"
+    ],
+    "sort_order": 13
+  },
+  {
+    "name": "OP panoráma röntgen",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "OP",
+      "panoráma",
+      "panorámaröntgen",
+      "orthopantomogram",
+      "OPG"
+    ],
+    "sort_order": 14
+  },
+  {
+    "name": "PA fogászati röntgen",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "PA",
+      "kis röntgen",
+      "periapikális",
+      "fogfilm",
+      "RTG"
+    ],
+    "sort_order": 15
+  },
+  {
+    "name": "Bitewing röntgen",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "bitewing",
+      "harapási röntgen",
+      "szárnyas röntgen"
+    ],
+    "sort_order": 16
+  },
+  {
+    "name": "CBCT (kis volumenű, fogászati)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "CBCT",
+      "cone beam",
+      "3D röntgen",
+      "kis CBCT"
+    ],
+    "sort_order": 17
+  },
+  {
+    "name": "CBCT (nagy volumenű)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "nagy CBCT",
+      "teljes CBCT",
+      "nagy térfogatú CBCT"
+    ],
+    "sort_order": 18
+  },
+  {
+    "name": "Endodonciai CBCT (egy fog, kis volumen)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "endo CBCT",
+      "fókusz CBCT",
+      "5x5 CBCT"
+    ],
+    "sort_order": 19
+  },
+  {
+    "name": "Teleröntgen",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "tele",
+      "teleröntgen",
+      "kefalometriás",
+      "cefalometriás röntgen"
+    ],
+    "sort_order": 20
+  },
+  {
+    "name": "Sinus röntgen",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "sinus RTG",
+      "melléküreg röntgen",
+      "orrmelléküreg felvétel"
+    ],
+    "sort_order": 21
+  },
+  {
+    "name": "CBCT/röntgen kiadása pendrive-on",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "röntgen kiadás",
+      "CBCT pendrive",
+      "képkiadás"
+    ],
+    "sort_order": 22
+  },
+  {
+    "name": "Digitális szkennelés (1 fogív)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "szkennelés",
+      "intraorális szken",
+      "digitális lenyomat",
+      "iTero",
+      "TRIOS",
+      "Primescan"
+    ],
+    "sort_order": 23
+  },
+  {
+    "name": "Digitális szkennelés (2 fogív)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "teljes szkennelés",
+      "alsó-felső szken"
+    ],
+    "sort_order": 24
+  },
+  {
+    "name": "Lenyomatvétel alginátos (egyszerű)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "alginát lenyomat",
+      "tanulmányi lenyomat",
+      "preliminary lenyomat"
+    ],
+    "sort_order": 25
+  },
+  {
+    "name": "Lenyomatvétel precíziós szilikon",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "precíziós lenyomat",
+      "szilikon lenyomat",
+      "A-szilikon",
+      "polivinil sziloxán"
+    ],
+    "sort_order": 26
+  },
+  {
+    "name": "Lenyomatvétel egyéni kanállal",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "egyéni kanalas",
+      "individuális kanál",
+      "funkcionális lenyomat"
+    ],
+    "sort_order": 27
+  },
+  {
+    "name": "Egyéni kanál készítése",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "egyéni kanál",
+      "individual tray"
+    ],
+    "sort_order": 28
+  },
+  {
+    "name": "Harapásrögzítés (alkalmanként)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "harapás",
+      "bite",
+      "interocclusal record",
+      "harapási regisztráció"
+    ],
+    "sort_order": 29
+  },
+  {
+    "name": "Arcíves harapásregisztráció",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "arcív",
+      "facebow",
+      "arcíves bemérés"
+    ],
+    "sort_order": 30
+  },
+  {
+    "name": "Axiográfos ízületi bemérés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "axiográf",
+      "axiográfia",
+      "ízületbemérés",
+      "ízületi pálya rögzítés"
+    ],
+    "sort_order": 31
+  },
+  {
+    "name": "3D nyomtatott modell (db)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "3D modell",
+      "nyomtatott modell",
+      "tanulmányi modell"
+    ],
+    "sort_order": 32
+  },
+  {
+    "name": "Wax-up (felviaszolás, foganként)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "wax up",
+      "felviaszolás",
+      "diagnosztikai felviaszolás",
+      "tervezési viaszolás"
+    ],
+    "sort_order": 33
+  },
+  {
+    "name": "Mock-up (vizualizáció szájban, foganként)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "mock up",
+      "vizualizáció",
+      "próba szájban",
+      "esztétikai próba"
+    ],
+    "sort_order": 34
+  },
+  {
+    "name": "Vizualizáció rögzítve (hosszútávú próba, foganként)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "hosszú mock up",
+      "tartós vizualizáció",
+      "long term mock up"
+    ],
+    "sort_order": 35
+  },
+  {
+    "name": "Vizualizáció dublírozása (fogívenként)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "mock up dublírozás",
+      "próba másolat"
+    ],
+    "sort_order": 36
+  },
+  {
+    "name": "Digitális mosolytervezés (DSD)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "DSD",
+      "smile design",
+      "mosolytervezés",
+      "smiledesign"
+    ],
+    "sort_order": 37
+  },
+  {
+    "name": "Tasakmérés / parodontális státusz",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "tasakmérés",
+      "paro státusz",
+      "paroprobálás",
+      "szondázás",
+      "paro charting"
+    ],
+    "sort_order": 38
+  },
+  {
+    "name": "Diagnodent lézeres szuvasodásmérés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "diagnodent",
+      "lézeres caries",
+      "szuvasodásmérés"
+    ],
+    "sort_order": 39
+  },
+  {
+    "name": "Sialometria (nyáltermelés vizsgálat)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "sialometria",
+      "nyál",
+      "nyáltermelés",
+      "nyálmennyiség"
+    ],
+    "sort_order": 40
+  },
+  {
+    "name": "Genetikai/bakteriológiai paro teszt",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "paro teszt",
+      "baktérium teszt",
+      "genetikai teszt",
+      "PerioSafe"
+    ],
+    "sort_order": 41
+  },
+  {
+    "name": "PCR teszt",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "PCR",
+      "patogén PCR",
+      "baktérium PCR"
+    ],
+    "sort_order": 42
+  },
+  {
+    "name": "Szövettani vizsgálat",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "szövettan",
+      "hisztológia",
+      "biopszia"
+    ],
+    "sort_order": 43
+  },
+  {
+    "name": "Lágyrész mintavétel (biopszia)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "biopszia",
+      "mintavétel",
+      "lágyrészbiopszia",
+      "incisionalis biopszia"
+    ],
+    "sort_order": 44
+  },
+  {
+    "name": "ICT komputer-vezérelt érzéstelenítés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "ICT",
+      "számítógépes érzéstelenítés",
+      "Quick Sleeper",
+      "computer assisted anesthesia",
+      "CCLAD"
+    ],
+    "sort_order": 45
+  },
+  {
+    "name": "Infiltrációs érzéstelenítés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "infiltráció",
+      "szúrás",
+      "szuri",
+      "érzéstelenítés"
+    ],
+    "sort_order": 46
+  },
+  {
+    "name": "Vezetéses érzéstelenítés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "mandibuláris blokk",
+      "vezetéses",
+      "n. alveolaris inferior",
+      "alveolaris érzéstelenítés"
+    ],
+    "sort_order": 47
+  },
+  {
+    "name": "Intraligamentális érzéstelenítés",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "intraligamentális",
+      "PDL érzéstelenítés"
+    ],
+    "sort_order": 48
+  },
+  {
+    "name": "Felszíni anesztézia (gél)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "felszíni érzéstelenítés",
+      "gél",
+      "EMLA",
+      "topikális anesztézia"
+    ],
+    "sort_order": 49
+  },
+  {
+    "name": "Tudatos szedáció (Dormicum)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "szedáció",
+      "tudatos szedáció",
+      "Dormicum",
+      "midazolam"
+    ],
+    "sort_order": 50
+  },
+  {
+    "name": "Nitrogén-oxidul szedáció (kacaj-gáz)",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "N2O",
+      "kacaj-gáz",
+      "nitrogén-oxidul",
+      "inhalációs szedáció"
+    ],
+    "sort_order": 51
+  },
+  {
+    "name": "Kezelési terv elkészítése",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "kezelési terv",
+      "terápiás terv",
+      "treatment plan"
+    ],
+    "sort_order": 52
+  },
+  {
+    "name": "Árajánlat készítése",
+    "category": "Vizsgálat és diagnosztika",
+    "aliases": [
+      "árajánlat",
+      "ajánlat",
+      "kalkuláció"
+    ],
+    "sort_order": 53
+  },
+  {
+    "name": "Szájhigiénés felmérés és tanácsadás (30 perc)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "szájhigiéné felmérés",
+      "szájhigiénia",
+      "tanácsadás",
+      "fogmosás oktatás"
+    ],
+    "sort_order": 54
+  },
+  {
+    "name": "Egyéni szájhigiénés instrukció (gyermek)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "gyermek szájhigiéné",
+      "gyerek oktatás",
+      "fogmosás oktatás gyermek"
+    ],
+    "sort_order": 55
+  },
+  {
+    "name": "Professzionális UH fogkőeltávolítás (felnőtt)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "depurálás",
+      "UH",
+      "ultrahangos fogkő",
+      "scaling",
+      "fogkőleszedés"
+    ],
+    "sort_order": 56
+  },
+  {
+    "name": "Professzionális fogkőeltávolítás (gyermek)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "depurálás gyermek",
+      "fogkőleszedés gyerek",
+      "gyermek scaling"
+    ],
+    "sort_order": 57
+  },
+  {
+    "name": "Air-flow / Prophy-jet polírozás",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "airflow",
+      "prophy jet",
+      "homokfúvó",
+      "polírozás",
+      "air polishing"
+    ],
+    "sort_order": 58
+  },
+  {
+    "name": "Air-flow / Prophy-jet polírozás (gyermek)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "airflow gyerek",
+      "prophy jet gyermek"
+    ],
+    "sort_order": 59
+  },
+  {
+    "name": "Komplex dentálhigiénés kezelés (UH + Prophy-jet, felnőtt)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "DH",
+      "komplex DH",
+      "fogkő+polírozás",
+      "kombinált tisztítás",
+      "szájhigi"
+    ],
+    "sort_order": 60
+  },
+  {
+    "name": "Komplex dentálhigiénés kezelés (gyermek)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "DH gyermek",
+      "kombinált gyerek",
+      "gyermek dentálhigiénia"
+    ],
+    "sort_order": 61
+  },
+  {
+    "name": "Íny alatti fogkőeltávolítás kvadránsonként",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "subgingivális depurálás",
+      "íny alatti scaling",
+      "kvadráns scaling"
+    ],
+    "sort_order": 62
+  },
+  {
+    "name": "Sonicflex tasakkezelés (teljes fogazat)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "sonicflex",
+      "paro endo",
+      "tasakkezelés",
+      "piezo tasak"
+    ],
+    "sort_order": 63
+  },
+  {
+    "name": "Root planing kvadránsonként",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "root planing",
+      "gyökérfelszín simítás",
+      "RP",
+      "gyökérsimítás"
+    ],
+    "sort_order": 64
+  },
+  {
+    "name": "Fluoridálás (Duraphat lakk)",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "fluor",
+      "fluoridálás",
+      "Duraphat",
+      "fluorid lakk"
+    ],
+    "sort_order": 65
+  },
+  {
+    "name": "Fluorid ionoforézis",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "ionoforézis",
+      "fluorid ionoforézis"
+    ],
+    "sort_order": 66
+  },
+  {
+    "name": "Fluor Protector",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "fluor protector",
+      "Ivoclar fluor",
+      "UV fluor"
+    ],
+    "sort_order": 67
+  },
+  {
+    "name": "Tooth Mousse alkalmazás",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "tooth mousse",
+      "CPP-ACP",
+      "MI Paste",
+      "remineralizáló"
+    ],
+    "sort_order": 68
+  },
+  {
+    "name": "Plakkfestés és oktatás",
+    "category": "Dentálhigiénia",
+    "aliases": [
+      "plakkfestés",
+      "festő tabletta",
+      "disclosing tablet"
+    ],
+    "sort_order": 69
+  },
+  {
+    "name": "Frontfog tömés (1 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "front 1F",
+      "metsző tömés 1F",
+      "kompozit front 1F",
+      "esztétikus tömés"
+    ],
+    "sort_order": 70
+  },
+  {
+    "name": "Frontfog tömés (2 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "front 2F",
+      "metsző tömés 2F",
+      "kompozit front 2F"
+    ],
+    "sort_order": 71
+  },
+  {
+    "name": "Frontfog tömés (3 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "front 3F",
+      "metsző tömés 3F",
+      "kompozit front 3F",
+      "élpótlás+tömés"
+    ],
+    "sort_order": 72
+  },
+  {
+    "name": "Frontfog tömés (4+ felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "front 4F",
+      "metsző tömés 4F",
+      "kiterjesztett front tömés"
+    ],
+    "sort_order": 73
+  },
+  {
+    "name": "Kisőrlő tömés (1 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "premoláris 1F",
+      "kisörlő 1F",
+      "kompozit kisőrlő 1F",
+      "P1F"
+    ],
+    "sort_order": 74
+  },
+  {
+    "name": "Kisőrlő tömés (2 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "premoláris 2F",
+      "kisörlő 2F",
+      "MOD kisőrlő 2F",
+      "P2F"
+    ],
+    "sort_order": 75
+  },
+  {
+    "name": "Kisőrlő tömés (3+ felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "premoláris 3F",
+      "kisörlő 3F",
+      "MOD kisőrlő",
+      "P3F"
+    ],
+    "sort_order": 76
+  },
+  {
+    "name": "Nagyőrlő tömés (1 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "moláris 1F",
+      "nagyörlő 1F",
+      "kompozit moláris 1F",
+      "M1F"
+    ],
+    "sort_order": 77
+  },
+  {
+    "name": "Nagyőrlő tömés (2 felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "moláris 2F",
+      "nagyörlő 2F",
+      "MOD moláris 2F",
+      "M2F"
+    ],
+    "sort_order": 78
+  },
+  {
+    "name": "Nagyőrlő tömés (3+ felszín)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "moláris 3F",
+      "nagyörlő 3F",
+      "MOD moláris",
+      "M3F"
+    ],
+    "sort_order": 79
+  },
+  {
+    "name": "Fognyaki tömés",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "V. osztály",
+      "cervicalis tömés",
+      "fognyak tömés",
+      "abráziós tömés"
+    ],
+    "sort_order": 80
+  },
+  {
+    "name": "Élpótlás (frontfog)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "élpótlás",
+      "incisalis pótlás",
+      "inciso pótlás"
+    ],
+    "sort_order": 81
+  },
+  {
+    "name": "Direkt korona (kompozit, foganként)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "direkt korona",
+      "kompozit korona",
+      "build-up korona"
+    ],
+    "sort_order": 82
+  },
+  {
+    "name": "Felépítés kompozittal (csap nélkül)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "felépítés",
+      "build up",
+      "kompozit felépítés",
+      "core build up"
+    ],
+    "sort_order": 83
+  },
+  {
+    "name": "Felépítés rövid üvegszálas kompozittal (everX)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "everX",
+      "short fiber",
+      "üvegszálas kompozit",
+      "biomimetikus felépítés"
+    ],
+    "sort_order": 84
+  },
+  {
+    "name": "Üvegszálas csap behelyezése",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "glass fiber post",
+      "üvegszálas csap",
+      "fiber post",
+      "gyökércsap"
+    ],
+    "sort_order": 85
+  },
+  {
+    "name": "Csapos felépítés (üvegszálas csap + kompozit)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "csapos felépítés",
+      "csap+felépítés",
+      "post and core"
+    ],
+    "sort_order": 86
+  },
+  {
+    "name": "Régi csap eltávolítása",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "csap eltávolítás",
+      "régi csap eltávolítása",
+      "post removal"
+    ],
+    "sort_order": 87
+  },
+  {
+    "name": "Direkt felépítés injektálásos technikával",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "injekciós technika",
+      "inject technique",
+      "injektálásos",
+      "sín alatti kompozit"
+    ],
+    "sort_order": 88
+  },
+  {
+    "name": "Direkt pulpasapkázás (vitálterápia, frontfog)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "vitálterápia front",
+      "direkt pulpa cap front",
+      "MTA front"
+    ],
+    "sort_order": 89
+  },
+  {
+    "name": "Direkt pulpasapkázás (vitálterápia, kisőrlő)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "vitálterápia kisőrlő",
+      "direkt pulpa cap premoláris"
+    ],
+    "sort_order": 90
+  },
+  {
+    "name": "Direkt pulpasapkázás (vitálterápia, nagyőrlő)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "vitálterápia nagyőrlő",
+      "direkt pulpa cap moláris"
+    ],
+    "sort_order": 91
+  },
+  {
+    "name": "Indirekt pulpasapkázás",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "indirekt pulpa cap",
+      "alábélelés mély szuvasodásnál"
+    ],
+    "sort_order": 92
+  },
+  {
+    "name": "Alábélelés MTA-val",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "MTA alábélelés",
+      "MTA",
+      "Biodentine"
+    ],
+    "sort_order": 93
+  },
+  {
+    "name": "Alábélelés Ledermix-szel",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "ledermix",
+      "kortizonos alábélelés",
+      "gyulladáscsillapító alábélelés"
+    ],
+    "sort_order": 94
+  },
+  {
+    "name": "Ideiglenes tömés (üvegionomer)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "ideiglenes tömés",
+      "GIC",
+      "üvegionomer",
+      "fuji"
+    ],
+    "sort_order": 95
+  },
+  {
+    "name": "Ideiglenes tömés (Cavit/cinkoxid-eugenol)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "cavit",
+      "ZOE",
+      "cinkoxid eugenol",
+      "ideiglenes lezárás"
+    ],
+    "sort_order": 96
+  },
+  {
+    "name": "Inlay/Onlay (kompozit)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "kompozit inlay",
+      "kompozit onlay",
+      "kompozit betét"
+    ],
+    "sort_order": 97
+  },
+  {
+    "name": "Inlay/Onlay (kerámia, e-max)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "e-max inlay",
+      "kerámia inlay",
+      "porcelán betét",
+      "kerámia onlay"
+    ],
+    "sort_order": 98
+  },
+  {
+    "name": "Inlay/Onlay (cirkon)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "cirkon inlay",
+      "cirkon onlay",
+      "zirkónium betét"
+    ],
+    "sort_order": 99
+  },
+  {
+    "name": "Tömés-csiszolás / korrekció",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "korrekció",
+      "csiszolás",
+      "adjusztálás",
+      "polish"
+    ],
+    "sort_order": 100
+  },
+  {
+    "name": "Mozgófogak ideiglenes sínezése (kompozit)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "sínezés",
+      "kompozit sín",
+      "mobilis fog rögzítés",
+      "temporary splint"
+    ],
+    "sort_order": 101
+  },
+  {
+    "name": "Mozgófogak sínezése merevítőrosttal (Ribbond/Everstick)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "ribbond",
+      "everstick",
+      "fiber splint",
+      "merevítőrostos sínezés",
+      "Transmularis"
+    ],
+    "sort_order": 102
+  },
+  {
+    "name": "Kihúzott fog visszaragasztása sínezéssel",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "saját fog visszaragasztás",
+      "reimplantáció kompozittal",
+      "kihúzott fog pótlás"
+    ],
+    "sort_order": 103
+  },
+  {
+    "name": "Kofferdam izolálás",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "kofferdam",
+      "gumikendő",
+      "izolálás",
+      "rubber dam"
+    ],
+    "sort_order": 104
+  },
+  {
+    "name": "Mikroszkópos diagnosztika (repedés/álút)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "mikroszkóp diag",
+      "repedéskeresés",
+      "álút keresés",
+      "operating microscope diag"
+    ],
+    "sort_order": 105
+  },
+  {
+    "name": "Mikroszkópos kiegészítő kezelés preparáláshoz",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "mikroszkóp prepa",
+      "magnification",
+      "preparálás mikroszkóppal"
+    ],
+    "sort_order": 106
+  },
+  {
+    "name": "Diagnosztikus direkt héj (Mock-up szájban, foganként)",
+    "category": "Konzerváló fogászat",
+    "aliases": [
+      "mock up szájban",
+      "próba kompozittal",
+      "tervezési héj"
+    ],
+    "sort_order": 107
+  },
+  {
+    "name": "Trepanálás (megnyitás)",
+    "category": "Endodoncia",
+    "aliases": [
+      "trepanálás",
+      "access opening",
+      "fogmegnyitás",
+      "kavitás kialakítás"
+    ],
+    "sort_order": 108
+  },
+  {
+    "name": "Pulpektómia (élő pulpa eltávolítás)",
+    "category": "Endodoncia",
+    "aliases": [
+      "pulpektómia",
+      "pulp extirpation",
+      "élő ideg eltávolítás"
+    ],
+    "sort_order": 109
+  },
+  {
+    "name": "Pulpotomia",
+    "category": "Endodoncia",
+    "aliases": [
+      "pulpotomia",
+      "pulp amputation",
+      "részleges pulpa eltávolítás"
+    ],
+    "sort_order": 110
+  },
+  {
+    "name": "Gyökérkezelés első kezelés - 1 csatorna (frontfog)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökérkezelés front",
+      "GYK 1 csat",
+      "RC 1 channel",
+      "root canal front",
+      "frontfog gyk"
+    ],
+    "sort_order": 111
+  },
+  {
+    "name": "Gyökérkezelés első kezelés - 2 csatorna (kisőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökérkezelés kisőrlő",
+      "GYK 2 csat",
+      "RC 2 channel",
+      "kisőrlő gyk"
+    ],
+    "sort_order": 112
+  },
+  {
+    "name": "Gyökérkezelés első kezelés - 3 csatorna (nagyőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökérkezelés nagyőrlő 3",
+      "GYK 3 csat",
+      "moláris gyk 3"
+    ],
+    "sort_order": 113
+  },
+  {
+    "name": "Gyökérkezelés első kezelés - 4 csatorna (nagyőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökérkezelés nagyőrlő 4",
+      "GYK 4 csat",
+      "moláris gyk 4",
+      "MB2"
+    ],
+    "sort_order": 114
+  },
+  {
+    "name": "Gyökértömés - 1 csatorna (frontfog)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökértömés front",
+      "GYT 1 csat",
+      "root filling 1",
+      "frontfog GYT"
+    ],
+    "sort_order": 115
+  },
+  {
+    "name": "Gyökértömés - 2 csatorna (kisőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökértömés kisőrlő",
+      "GYT 2 csat",
+      "root filling 2"
+    ],
+    "sort_order": 116
+  },
+  {
+    "name": "Gyökértömés - 3 csatorna (nagyőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökértömés nagyőrlő 3",
+      "GYT 3 csat",
+      "moláris GYT 3"
+    ],
+    "sort_order": 117
+  },
+  {
+    "name": "Gyökértömés - 4 csatorna (nagyőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "gyökértömés nagyőrlő 4",
+      "GYT 4 csat",
+      "moláris GYT 4"
+    ],
+    "sort_order": 118
+  },
+  {
+    "name": "Gyökércsatorna átöblítés és gyógyszeres zárás",
+    "category": "Endodoncia",
+    "aliases": [
+      "átöblítés",
+      "gyógyszeres zárás",
+      "CHX zárás",
+      "kalcium-hidroxid",
+      "interim dressing"
+    ],
+    "sort_order": 119
+  },
+  {
+    "name": "Kálcium-hidroxidos gyógyszeres zárás",
+    "category": "Endodoncia",
+    "aliases": [
+      "Ca(OH)2",
+      "kalcium-hidroxid",
+      "gyógyszeres zárás",
+      "UltraCal"
+    ],
+    "sort_order": 120
+  },
+  {
+    "name": "Régi gyökértömés eltávolítása csatornánként (front/kisőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "GYT eltávolítás",
+      "reendo front",
+      "revíziós front",
+      "RCT retreatment 1"
+    ],
+    "sort_order": 121
+  },
+  {
+    "name": "Régi gyökértömés eltávolítása csatornánként (nagyőrlő)",
+    "category": "Endodoncia",
+    "aliases": [
+      "GYT eltávolítás moláris",
+      "reendo moláris",
+      "revíziós moláris"
+    ],
+    "sort_order": 122
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés első kezelés - 1 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 1",
+      "mikroszkópos endo 1",
+      "microscope RC 1"
+    ],
+    "sort_order": 123
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés első kezelés - 2 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 2",
+      "mikroszkópos endo 2",
+      "microscope RC 2"
+    ],
+    "sort_order": 124
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés első kezelés - 3 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 3",
+      "mikroszkópos endo 3",
+      "microscope RC 3"
+    ],
+    "sort_order": 125
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés első kezelés - 4 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 4",
+      "mikroszkópos endo 4",
+      "microscope RC 4"
+    ],
+    "sort_order": 126
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés második kezelés - 1 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 1 második",
+      "mikroszkópos endo második 1"
+    ],
+    "sort_order": 127
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés második kezelés - 2 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 2 második",
+      "mikroszkópos endo második 2"
+    ],
+    "sort_order": 128
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés második kezelés - 3 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 3 második",
+      "mikroszkópos endo második 3"
+    ],
+    "sort_order": 129
+  },
+  {
+    "name": "Mikroszkópos gyökérkezelés második kezelés - 4 csatorna",
+    "category": "Endodoncia",
+    "aliases": [
+      "MGYK 4 második",
+      "mikroszkópos endo második 4"
+    ],
+    "sort_order": 130
+  },
+  {
+    "name": "Mikroszkópos revízió - GYT eltávolítás (front/kisőrlő, csatornánként)",
+    "category": "Endodoncia",
+    "aliases": [
+      "mikroszkópos revízió",
+      "micro retreatment front",
+      "MGYT-elt 1"
+    ],
+    "sort_order": 131
+  },
+  {
+    "name": "Mikroszkópos revízió - GYT eltávolítás (nagyőrlő, csatornánként)",
+    "category": "Endodoncia",
+    "aliases": [
+      "mikroszkópos revízió moláris",
+      "micro retreatment molar",
+      "MGYT-elt M"
+    ],
+    "sort_order": 132
+  },
+  {
+    "name": "Mikroszkópos betört műszer eltávolítása",
+    "category": "Endodoncia",
+    "aliases": [
+      "betört reszelő",
+      "broken file removal",
+      "műszertörés"
+    ],
+    "sort_order": 133
+  },
+  {
+    "name": "Mikroszkópos csap eltávolítás",
+    "category": "Endodoncia",
+    "aliases": [
+      "csap eltávolítás mikroszkóppal",
+      "post removal",
+      "gyökércsap eltávolítás"
+    ],
+    "sort_order": 134
+  },
+  {
+    "name": "Mikroszkópos extra kezelés bonyolult csatornánál",
+    "category": "Endodoncia",
+    "aliases": [
+      "extra mikroszkóp",
+      "comlex canal",
+      "kalcifikált csatorna",
+      "MB2 keresés"
+    ],
+    "sort_order": 135
+  },
+  {
+    "name": "Apexifikáció / apexogenezis",
+    "category": "Endodoncia",
+    "aliases": [
+      "apexifikáció",
+      "apexogenezis",
+      "nyitott apex",
+      "MTA apikál"
+    ],
+    "sort_order": 136
+  },
+  {
+    "name": "Belső fogfehérítés (devitális, foganként)",
+    "category": "Endodoncia",
+    "aliases": [
+      "belső fehérítés",
+      "internal bleaching",
+      "walking bleach"
+    ],
+    "sort_order": 137
+  },
+  {
+    "name": "Intracanaliris üvegszálas csap (Dentapreg PinPost)",
+    "category": "Endodoncia",
+    "aliases": [
+      "intracanal post",
+      "pinpost",
+      "fiber post intracanal"
+    ],
+    "sort_order": 138
+  },
+  {
+    "name": "Parapulparis üvegszálas csap (Dentapreg)",
+    "category": "Endodoncia",
+    "aliases": [
+      "parapulpáris csap",
+      "kis csap",
+      "pin"
+    ],
+    "sort_order": 139
+  },
+  {
+    "name": "E-max kerámiahéj (foganként)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "e-max héj",
+      "kerámia héj",
+      "porcelán héj",
+      "veneer",
+      "lithium-diszilikát héj"
+    ],
+    "sort_order": 140
+  },
+  {
+    "name": "Préselt kerámia héj (Empress)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "empress héj",
+      "empress",
+      "leucit kerámia héj"
+    ],
+    "sort_order": 141
+  },
+  {
+    "name": "Veneer-lay",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "veneer-lay",
+      "kombinált héj-onlay",
+      "wraparound veneer"
+    ],
+    "sort_order": 142
+  },
+  {
+    "name": "Renamel direkt héj belső színezéssel",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "renamel",
+      "kompozit héj rétegezve",
+      "cosmedent héj"
+    ],
+    "sort_order": 143
+  },
+  {
+    "name": "Direkt kompozit héj (foganként)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "direkt veneer",
+      "kompozit héj",
+      "chairside veneer"
+    ],
+    "sort_order": 144
+  },
+  {
+    "name": "Házi sínes fogfehérítés (alsó-felső)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "otthoni fehérítés",
+      "sínes fehérítés",
+      "home bleaching",
+      "carbamid peroxid"
+    ],
+    "sort_order": 145
+  },
+  {
+    "name": "Rendelői fogfehérítés (in-office)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "rendelői fehérítés",
+      "chair-side fehérítés",
+      "Zoom",
+      "Beyond"
+    ],
+    "sort_order": 146
+  },
+  {
+    "name": "Kombinált fogfehérítés (rendelői + házi)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "kombinált fehérítés",
+      "in-office + home"
+    ],
+    "sort_order": 147
+  },
+  {
+    "name": "Belső fogfehérítés (1 fogon, devitális)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "belső fehérítés",
+      "elszíneződött fog",
+      "walking bleach"
+    ],
+    "sort_order": 148
+  },
+  {
+    "name": "Fehérítősín készítése (alsó-felső, lenyomatra)",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "fehérítősín",
+      "whitening tray",
+      "bleaching tray"
+    ],
+    "sort_order": 149
+  },
+  {
+    "name": "Fehérítő utántöltő gél",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "fehérítő gél",
+      "carbamid gél",
+      "fehérítő utántöltő"
+    ],
+    "sort_order": 150
+  },
+  {
+    "name": "Fogékszer felragasztás",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "fogékszer",
+      "jewel",
+      "tooth gem"
+    ],
+    "sort_order": 151
+  },
+  {
+    "name": "Fogékszer eltávolítás",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "fogékszer levétel",
+      "jewel removal"
+    ],
+    "sort_order": 152
+  },
+  {
+    "name": "Smile design / mosolytervezés",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "DSD",
+      "smile design",
+      "esztétikai tervezés"
+    ],
+    "sort_order": 153
+  },
+  {
+    "name": "Élpótlás esztétikai célból",
+    "category": "Esztétikai fogászat",
+    "aliases": [
+      "élpótlás",
+      "inciso",
+      "esztétikai élpótlás"
+    ],
+    "sort_order": 154
+  },
+  {
+    "name": "Preparálás (foganként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "prepa",
+      "preparálás",
+      "csiszolás",
+      "brúsz",
+      "tooth preparation"
+    ],
+    "sort_order": 155
+  },
+  {
+    "name": "Fémkerámia korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "FK",
+      "fémkerámia",
+      "porcelán fűzött fém",
+      "PFM"
+    ],
+    "sort_order": 156
+  },
+  {
+    "name": "Cirkon korona (monolit)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "cirkon",
+      "monolit cirkon",
+      "zirkónium korona"
+    ],
+    "sort_order": 157
+  },
+  {
+    "name": "Cirkon korona (réteges)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "réteges cirkon",
+      "porcelán fűzött cirkon",
+      "esztétikus cirkon"
+    ],
+    "sort_order": 158
+  },
+  {
+    "name": "E-max kerámia korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "e-max korona",
+      "lithium-diszilikát korona"
+    ],
+    "sort_order": 159
+  },
+  {
+    "name": "Empress kerámia korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "empress korona",
+      "leucit korona"
+    ],
+    "sort_order": 160
+  },
+  {
+    "name": "Hídtag (fémkerámia)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "FK hídtag",
+      "fémkerámia híd egység",
+      "pontic FK"
+    ],
+    "sort_order": 161
+  },
+  {
+    "name": "Hídtag (cirkon)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "cirkon hídtag",
+      "zirkon pontic"
+    ],
+    "sort_order": 162
+  },
+  {
+    "name": "Hídtag (E-max)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "e-max hídtag",
+      "kerámia pontic"
+    ],
+    "sort_order": 163
+  },
+  {
+    "name": "Inlay-elhorgonyzású cirkon híd (egy fog pótlás)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "inlay híd",
+      "adhezív híd cirkon",
+      "inlay-retained bridge"
+    ],
+    "sort_order": 164
+  },
+  {
+    "name": "Maryland híd (kerámia szárny)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "maryland",
+      "szárnyas híd",
+      "adhezív híd",
+      "RBB"
+    ],
+    "sort_order": 165
+  },
+  {
+    "name": "Implantátumon csavarozott fémkerámia korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "csavarozott FK",
+      "screw retained PFM",
+      "átmenőcsavaros FK"
+    ],
+    "sort_order": 166
+  },
+  {
+    "name": "Implantátumon csavarozott cirkon korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "csavarozott cirkon",
+      "screw retained cirkon",
+      "átmenőcsavaros cirkon"
+    ],
+    "sort_order": 167
+  },
+  {
+    "name": "Implantátumon cementezett korona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "cementezett implantátum korona",
+      "cement retained",
+      "ragasztott implantátum korona"
+    ],
+    "sort_order": 168
+  },
+  {
+    "name": "Hosszútávú ideiglenes korona (laborban készült, PMMA)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "PMMA korona",
+      "long term temp",
+      "hosszútávú provizórium"
+    ],
+    "sort_order": 169
+  },
+  {
+    "name": "Hosszútávú ideiglenes híd (PMMA)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "PMMA híd",
+      "hosszútávú ideiglenes híd",
+      "long term temp bridge"
+    ],
+    "sort_order": 170
+  },
+  {
+    "name": "Hosszútávú ideiglenes korona implantátumra (CAD/CAM)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "CAD/CAM provizórium",
+      "implantátum ideiglenes korona",
+      "titánbázis provizórium"
+    ],
+    "sort_order": 171
+  },
+  {
+    "name": "Ideiglenes korona rendelőben készítve",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "chairside ideiglenes",
+      "provizórium rendelőben",
+      "protemp"
+    ],
+    "sort_order": 172
+  },
+  {
+    "name": "Ideiglenes híd készítés A1/A3 fóliából",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "fóliahúzott provizórium",
+      "szívóformázott híd",
+      "deep draw temporary"
+    ],
+    "sort_order": 173
+  },
+  {
+    "name": "Sapka ideiglenes célra (foganként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "sapka",
+      "provisional shell",
+      "ideiglenes sapka"
+    ],
+    "sort_order": 174
+  },
+  {
+    "name": "All-on-4 csavarozott ideiglenes híd (PMMA, állcsontonként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "all on 4 ideiglenes",
+      "all-on-4 PMMA",
+      "csavarozott PMMA híd"
+    ],
+    "sort_order": 175
+  },
+  {
+    "name": "All-on-4 csavarozott végleges cirkon híd (állcsontonként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "all on 4 cirkon",
+      "all-on-4 final",
+      "csavarozott cirkon híd 4 implantátumon"
+    ],
+    "sort_order": 176
+  },
+  {
+    "name": "All-on-6 csavarozott végleges cirkon híd (állcsontonként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "all on 6 cirkon",
+      "all-on-6 final",
+      "csavarozott cirkon híd 6 implantátumon"
+    ],
+    "sort_order": 177
+  },
+  {
+    "name": "Hosszútávú ideiglenes híd Ivotion-erősített (állcsontonként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "Ivotion híd",
+      "teljes íves provizórium",
+      "fémmel erősített PMMA"
+    ],
+    "sort_order": 178
+  },
+  {
+    "name": "Teleszkóp korona (CAD/CAM primer + szekunder, foganként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "teleszkóp",
+      "teleszkóp korona",
+      "primer-szekunder"
+    ],
+    "sort_order": 179
+  },
+  {
+    "name": "Precíziós rögzítőelem (db)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "precíziós elem",
+      "attachment",
+      "rögzítőelem"
+    ],
+    "sort_order": 180
+  },
+  {
+    "name": "Precíziós elhorgonyzású fogmű fém alaplemeze",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "precíziós alaplemez",
+      "kombinált munka alaplemez"
+    ],
+    "sort_order": 181
+  },
+  {
+    "name": "Sapkapróba",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "sapkapróba",
+      "coping try-in"
+    ],
+    "sort_order": 182
+  },
+  {
+    "name": "Vázpróba",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "vázpróba",
+      "framework try-in",
+      "substruktúra próba"
+    ],
+    "sort_order": 183
+  },
+  {
+    "name": "Nyerspróba (biszkvitpróba)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "biszkvitpróba",
+      "nyers próba",
+      "bisque try-in"
+    ],
+    "sort_order": 184
+  },
+  {
+    "name": "Fogpróba (rögzített pótlásnál színpróba)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "fogpróba",
+      "színpróba",
+      "shade try-in"
+    ],
+    "sort_order": 185
+  },
+  {
+    "name": "Próbaragasztás (ideiglenes ragasztás)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "próbaragasztás",
+      "TempBond",
+      "ideiglenes cementezés"
+    ],
+    "sort_order": 186
+  },
+  {
+    "name": "Végleges ragasztás (rögzített pótlásnál)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "végleges ragasztás",
+      "cementezés",
+      "adhezív ragasztás",
+      "RelyX",
+      "Variolink"
+    ],
+    "sort_order": 187
+  },
+  {
+    "name": "Korona levétel (átvágott koronánként)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "korona átvágás",
+      "korona levétel",
+      "crown sectioning"
+    ],
+    "sort_order": 188
+  },
+  {
+    "name": "Korona visszaragasztás (végleges)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "recementezés",
+      "korona visszaragasztás",
+      "recementation"
+    ],
+    "sort_order": 189
+  },
+  {
+    "name": "Ideiglenes visszaragasztás",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "ideiglenes visszaragasztás",
+      "temp recement"
+    ],
+    "sort_order": 190
+  },
+  {
+    "name": "Protetikai munka beragasztása / fogmű átadás",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "fogmű átadás",
+      "munka beragasztás",
+      "delivery"
+    ],
+    "sort_order": 191
+  },
+  {
+    "name": "Merevítőrostos direkt híd (egy fog hiány)",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "direkt híd",
+      "fiber bridge",
+      "everstick híd",
+      "biomimetic bridge"
+    ],
+    "sort_order": 192
+  },
+  {
+    "name": "RSVP ideiglenes héj",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "RSVP",
+      "ideiglenes héj",
+      "temp veneer"
+    ],
+    "sort_order": 193
+  },
+  {
+    "name": "Porcelán borítású fémkorona",
+    "category": "Fogpótlástan – rögzített",
+    "aliases": [
+      "PFM",
+      "porcelán fűzött fém"
+    ],
+    "sort_order": 194
+  },
+  {
+    "name": "Teljes kivehető fogsor akrilát (egy állcsont)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "akrilát fogsor",
+      "teljes fogsor",
+      "complete denture"
+    ],
+    "sort_order": 195
+  },
+  {
+    "name": "Teljes kivehető fogsor BPS (egy állcsont)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "BPS",
+      "biofunkcionális fogsor",
+      "Ivoclar BPS"
+    ],
+    "sort_order": 196
+  },
+  {
+    "name": "BPS fogsor individualizált alaplemezzel (egy állcsont)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "egyedi BPS",
+      "gnatológiai BPS",
+      "funkcionális BPS"
+    ],
+    "sort_order": 197
+  },
+  {
+    "name": "Teljes fogsor (Ivotion 3D nyomtatott)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "Ivotion fogsor",
+      "3D nyomtatott fogsor",
+      "digital denture"
+    ],
+    "sort_order": 198
+  },
+  {
+    "name": "Részleges kivehető fogsor (akrilát)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "részleges fogsor",
+      "RPF akrilát",
+      "partial denture"
+    ],
+    "sort_order": 199
+  },
+  {
+    "name": "Részleges kivehető fogsor (fémlemezes, kapcsos)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "fémlemezes fogsor",
+      "öntött kapcsos",
+      "cast partial",
+      "kapocs",
+      "CoCr partial"
+    ],
+    "sort_order": 200
+  },
+  {
+    "name": "Valplast 1 fogas pótlás",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "valplast 1 fog",
+      "flexibilis 1 fog",
+      "nylon 1 fog"
+    ],
+    "sort_order": 201
+  },
+  {
+    "name": "Valplast részleges (1-2 fog, front)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "valplast 1-2 front",
+      "kis valplast"
+    ],
+    "sort_order": 202
+  },
+  {
+    "name": "Valplast részleges (3-4 fog)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "valplast 3-4",
+      "közepes valplast"
+    ],
+    "sort_order": 203
+  },
+  {
+    "name": "Valplast teljes fogsor",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "teljes valplast",
+      "nylon fogsor"
+    ],
+    "sort_order": 204
+  },
+  {
+    "name": "Valplast javítása (foganként)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "valplast javítás",
+      "nylon javítás"
+    ],
+    "sort_order": 205
+  },
+  {
+    "name": "Lokátoros kivehető fogsor (2 implantátumon)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "lokátor 2",
+      "locator 2",
+      "overdenture 2 implantátum"
+    ],
+    "sort_order": 206
+  },
+  {
+    "name": "Lokátoros kivehető fogsor (4 implantátumon)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "lokátor 4",
+      "locator 4",
+      "overdenture 4 implantátum"
+    ],
+    "sort_order": 207
+  },
+  {
+    "name": "Stéges kivehető fogsor (4 implantátumon)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "stég 4",
+      "bar 4",
+      "gerendás 4 implantátum"
+    ],
+    "sort_order": 208
+  },
+  {
+    "name": "Stéges kivehető fogsor (6 implantátumon)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "stég 6",
+      "bar 6",
+      "gerendás 6 implantátum"
+    ],
+    "sort_order": 209
+  },
+  {
+    "name": "Variokugel elhorgonyzás",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "variokugel",
+      "gömbös elhorgonyzás",
+      "ball attachment"
+    ],
+    "sort_order": 210
+  },
+  {
+    "name": "Lokátor matrica cseréje",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "lokátor matrica",
+      "locator insert csere",
+      "nylon csere"
+    ],
+    "sort_order": 211
+  },
+  {
+    "name": "Fogsor alábélelés (közvetlen, kemény)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "alábélelés direkt",
+      "chairside reline",
+      "kemény alábélelés"
+    ],
+    "sort_order": 212
+  },
+  {
+    "name": "Fogsor alábélelés (közvetett, laborban)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "laboratóriumi alábélelés",
+      "indirekt reline"
+    ],
+    "sort_order": 213
+  },
+  {
+    "name": "Fogsor lágy alábélelés (Mollosil/szilikon)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "lágy alábélelés",
+      "szilikon alábélelés",
+      "soft reline"
+    ],
+    "sort_order": 214
+  },
+  {
+    "name": "Fogsor javítás (törés)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "fogsor törés",
+      "törött fogsor javítás",
+      "denture repair"
+    ],
+    "sort_order": 215
+  },
+  {
+    "name": "Fogsor javítás (fog/kapocs pótlása)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "fog beragasztás fogsorba",
+      "kapocs pótlás",
+      "tooth add"
+    ],
+    "sort_order": 216
+  },
+  {
+    "name": "Ideiglenes fogsor (3D nyomtatott, állcsontonként)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "3D ideiglenes fogsor",
+      "nyomtatott ideiglenes fogsor"
+    ],
+    "sort_order": 217
+  },
+  {
+    "name": "Ideiglenes fogsor (akrilát, állcsontonként)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "akrilát ideiglenes",
+      "sürgősségi fogsor",
+      "immediate denture"
+    ],
+    "sort_order": 218
+  },
+  {
+    "name": "Ideiglenes fogsor laborban (Ivoclar fogakkal)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "Ivoclar ideiglenes",
+      "ideiglenes fogsor labor",
+      "long term provisional denture"
+    ],
+    "sort_order": 219
+  },
+  {
+    "name": "Tanulmányi lenyomat (alginát, állcsontonként)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "tanulmányi lenyomat",
+      "alginát",
+      "preliminary impression"
+    ],
+    "sort_order": 220
+  },
+  {
+    "name": "Lenyomati díj (precíziós szilikon, állcsontonként)",
+    "category": "Fogpótlástan – kivehető",
+    "aliases": [
+      "precíziós lenyomat",
+      "szilikon lenyomat",
+      "funkcionális lenyomat"
+    ],
+    "sort_order": 221
+  },
+  {
+    "name": "Fogbeültetés (premium implantátum, foganként)",
+    "category": "Implantológia",
+    "aliases": [
+      "implantátum",
+      "fogbeültetés",
+      "implant placement",
+      "Nobel",
+      "Straumann",
+      "Astra"
+    ],
+    "sort_order": 222
+  },
+  {
+    "name": "Fogbeültetés (közép-kategória implantátum, foganként)",
+    "category": "Implantológia",
+    "aliases": [
+      "középkategóriás implantátum",
+      "Dentium",
+      "AlphaBio",
+      "Bionika",
+      "MIS"
+    ],
+    "sort_order": 223
+  },
+  {
+    "name": "Fogbeültetés (sürgősségi/azonnali, foganként)",
+    "category": "Implantológia",
+    "aliases": [
+      "azonnali implantáció",
+      "immediate implant",
+      "sürgősségi implantáció"
+    ],
+    "sort_order": 224
+  },
+  {
+    "name": "Cirkon (kerámia) implantátum",
+    "category": "Implantológia",
+    "aliases": [
+      "cirkon implantátum",
+      "zirkónium implantátum",
+      "Nobel Pearl",
+      "Straumann Pure",
+      "kerámia implantátum"
+    ],
+    "sort_order": 225
+  },
+  {
+    "name": "Mini implantátum (pin)",
+    "category": "Implantológia",
+    "aliases": [
+      "mini implantátum",
+      "pin implant",
+      "kisátmérőjű implant"
+    ],
+    "sort_order": 226
+  },
+  {
+    "name": "Műtéti sablon készítés (statikus navigáció)",
+    "category": "Implantológia",
+    "aliases": [
+      "surgical guide",
+      "fúrósablon",
+      "navigáció",
+      "Smart Guide",
+      "implant guide"
+    ],
+    "sort_order": 227
+  },
+  {
+    "name": "3D digitális implantációs tervezés",
+    "category": "Implantológia",
+    "aliases": [
+      "3D tervezés",
+      "implantációs tervezés",
+      "coDiagnostix",
+      "Blue Sky Plan"
+    ],
+    "sort_order": 228
+  },
+  {
+    "name": "Implantátum felszabadítás (gyógyulás után)",
+    "category": "Implantológia",
+    "aliases": [
+      "implant uncovering",
+      "II. fázis sebészet",
+      "második műtét",
+      "exposure"
+    ],
+    "sort_order": 229
+  },
+  {
+    "name": "Ínyformázó csavar behelyezése",
+    "category": "Implantológia",
+    "aliases": [
+      "healing",
+      "gyógyulási csavar",
+      "ínyformázó",
+      "tissue former",
+      "gingiva former"
+    ],
+    "sort_order": 230
+  },
+  {
+    "name": "Egyedi gyógyulási csavar (CAD/CAM)",
+    "category": "Implantológia",
+    "aliases": [
+      "egyedi healing",
+      "custom healing",
+      "emergence profile shaping"
+    ],
+    "sort_order": 231
+  },
+  {
+    "name": "Implantátum eltávolítás (műtéti)",
+    "category": "Implantológia",
+    "aliases": [
+      "implantátum eltávolítás",
+      "implant explantation",
+      "implant removal"
+    ],
+    "sort_order": 232
+  },
+  {
+    "name": "Implantátumon betört csavar eltávolítása",
+    "category": "Implantológia",
+    "aliases": [
+      "betört csavar",
+      "broken screw removal",
+      "abutment screw fracture"
+    ],
+    "sort_order": 233
+  },
+  {
+    "name": "Peri-implantitis kezelés (kürettálás)",
+    "category": "Implantológia",
+    "aliases": [
+      "peri-implantitis",
+      "implantátum kürettálás",
+      "implantátum tisztítás"
+    ],
+    "sort_order": 234
+  },
+  {
+    "name": "Hybenx kezelés peri-implantitisnél",
+    "category": "Implantológia",
+    "aliases": [
+      "hybenx",
+      "implantátum dekontamináció",
+      "periimplantitis kezelés"
+    ],
+    "sort_order": 235
+  },
+  {
+    "name": "Csontpótlás (extrakciós zsugorodás megelőzés, frontfog/kisőrlő)",
+    "category": "Implantológia",
+    "aliases": [
+      "socket preservation front",
+      "alveolus megőrzés",
+      "ridge preservation 1"
+    ],
+    "sort_order": 236
+  },
+  {
+    "name": "Csontpótlás (extrakciós zsugorodás megelőzés, nagyőrlő)",
+    "category": "Implantológia",
+    "aliases": [
+      "socket preservation moláris",
+      "alveolus megőrzés moláris",
+      "ridge preservation M"
+    ],
+    "sort_order": 237
+  },
+  {
+    "name": "Csontpótlás állcsontgerinc szélesítésére",
+    "category": "Implantológia",
+    "aliases": [
+      "GBR",
+      "guided bone regeneration",
+      "gerincszélesítés",
+      "ridge augmentation"
+    ],
+    "sort_order": 238
+  },
+  {
+    "name": "Csontpótlás vertikális augmentáció",
+    "category": "Implantológia",
+    "aliases": [
+      "vertikális augmentáció",
+      "magassági csontpótlás",
+      "vertical GBR"
+    ],
+    "sort_order": 239
+  },
+  {
+    "name": "Sinuslift zárt technika",
+    "category": "Implantológia",
+    "aliases": [
+      "zárt sinuslift",
+      "crestal sinuslift",
+      "Summers technika",
+      "osteotom sinuslift"
+    ],
+    "sort_order": 240
+  },
+  {
+    "name": "Sinuslift nyitott technika",
+    "category": "Implantológia",
+    "aliases": [
+      "nyitott sinuslift",
+      "laterális sinuslift",
+      "window sinuslift"
+    ],
+    "sort_order": 241
+  },
+  {
+    "name": "Sinusperforáció zárás",
+    "category": "Implantológia",
+    "aliases": [
+      "sinus zárás",
+      "membránperforáció zárás",
+      "Schneider perforáció"
+    ],
+    "sort_order": 242
+  },
+  {
+    "name": "Csontblokk transzplantáció (autogén)",
+    "category": "Implantológia",
+    "aliases": [
+      "csontblokk",
+      "autogén blokk",
+      "J-graft",
+      "onlay graft"
+    ],
+    "sort_order": 243
+  },
+  {
+    "name": "Sajátcsont gyűjtés csontkaparóval",
+    "category": "Implantológia",
+    "aliases": [
+      "safescraper",
+      "csontkaparás",
+      "micross",
+      "smartscraper",
+      "csontgyűjtés"
+    ],
+    "sort_order": 244
+  },
+  {
+    "name": "Lágyszövet augmentáció (kötőszöveti graft)",
+    "category": "Implantológia",
+    "aliases": [
+      "CTG",
+      "kötőszöveti graft",
+      "connective tissue graft",
+      "szájpadgraft"
+    ],
+    "sort_order": 245
+  },
+  {
+    "name": "Recesszió fedés (Mucograft)",
+    "category": "Implantológia",
+    "aliases": [
+      "recesszió fedés",
+      "root coverage",
+      "recessziófedés",
+      "Mucograft"
+    ],
+    "sort_order": 246
+  },
+  {
+    "name": "Feszes íny képzése implantátum felszabadítással",
+    "category": "Implantológia",
+    "aliases": [
+      "feszes íny",
+      "attached gingiva",
+      "kerathinizált íny pótlás",
+      "FGG"
+    ],
+    "sort_order": 247
+  },
+  {
+    "name": "Mikroimplantátum fogszabályozási céllal",
+    "category": "Implantológia",
+    "aliases": [
+      "TAD",
+      "temporary anchorage device",
+      "orthodontic mini-implant",
+      "mikroimplantátum orto"
+    ],
+    "sort_order": 248
+  },
+  {
+    "name": "Felépítőfej standard (titán)",
+    "category": "Implantológia",
+    "aliases": [
+      "abutment",
+      "titán abutment",
+      "stock abutment",
+      "standard felépítőfej"
+    ],
+    "sort_order": 249
+  },
+  {
+    "name": "Egyedi felépítőfej (CAD/CAM titán)",
+    "category": "Implantológia",
+    "aliases": [
+      "custom abutment",
+      "egyedi titán abutment",
+      "CAD/CAM abutment"
+    ],
+    "sort_order": 250
+  },
+  {
+    "name": "Egyedi felépítőfej (cirkon)",
+    "category": "Implantológia",
+    "aliases": [
+      "cirkon abutment",
+      "cirkon felépítőfej",
+      "zirconia abutment"
+    ],
+    "sort_order": 251
+  },
+  {
+    "name": "Multiunit átépítő (csavarozott pótlásokhoz)",
+    "category": "Implantológia",
+    "aliases": [
+      "multiunit",
+      "MUA",
+      "multi-unit abutment",
+      "hídfej csavarozott"
+    ],
+    "sort_order": 252
+  },
+  {
+    "name": "Titán bázis (Ti-base)",
+    "category": "Implantológia",
+    "aliases": [
+      "Ti-base",
+      "titán bázis",
+      "hibrid abutment alapja"
+    ],
+    "sort_order": 253
+  },
+  {
+    "name": "Átmenőcsavar (prosthetic screw)",
+    "category": "Implantológia",
+    "aliases": [
+      "prosthetic screw",
+      "átmenőcsavar",
+      "abutment screw"
+    ],
+    "sort_order": 254
+  },
+  {
+    "name": "Ideiglenes felépítőfej",
+    "category": "Implantológia",
+    "aliases": [
+      "temp abutment",
+      "ideiglenes abutment",
+      "provisional abutment"
+    ],
+    "sort_order": 255
+  },
+  {
+    "name": "Parodontológiai szakvizsgálat",
+    "category": "Parodontológia",
+    "aliases": [
+      "paro szakvizsgálat",
+      "paro vizsgálat",
+      "periodontal exam"
+    ],
+    "sort_order": 256
+  },
+  {
+    "name": "Parodontológiai szakvizsgálat tasakméréssel",
+    "category": "Parodontológia",
+    "aliases": [
+      "paro státusz",
+      "paro charting",
+      "tasakmérés"
+    ],
+    "sort_order": 257
+  },
+  {
+    "name": "Zárt kürett (foganként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "zárt kürett",
+      "closed curettage",
+      "paro kürett 1 fog",
+      "SRP foganként"
+    ],
+    "sort_order": 258
+  },
+  {
+    "name": "Zárt kürett (kvadránsonként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "zárt kürett kvadráns",
+      "SRP kvadráns",
+      "closed curettage QD"
+    ],
+    "sort_order": 259
+  },
+  {
+    "name": "Zárt kürett (állcsontonként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "zárt kürett egész fogív",
+      "paro állcsont",
+      "SRP teljes ív"
+    ],
+    "sort_order": 260
+  },
+  {
+    "name": "Zárt kürett (teljes száj, full mouth disinfection)",
+    "category": "Parodontológia",
+    "aliases": [
+      "FMD",
+      "full mouth disinfection",
+      "teljes száj kürett",
+      "24 órás protokoll"
+    ],
+    "sort_order": 261
+  },
+  {
+    "name": "Nyitott kürett 1 fogra",
+    "category": "Parodontológia",
+    "aliases": [
+      "nyitott kürett 1",
+      "open flap 1 fog",
+      "paro lebenyes 1"
+    ],
+    "sort_order": 262
+  },
+  {
+    "name": "Nyitott kürett 2 fogra",
+    "category": "Parodontológia",
+    "aliases": [
+      "nyitott kürett 2",
+      "open flap 2 fog"
+    ],
+    "sort_order": 263
+  },
+  {
+    "name": "Nyitott kürett 3 fogra",
+    "category": "Parodontológia",
+    "aliases": [
+      "nyitott kürett 3",
+      "open flap 3 fog"
+    ],
+    "sort_order": 264
+  },
+  {
+    "name": "Nyitott kürett 4+ fogra",
+    "category": "Parodontológia",
+    "aliases": [
+      "nyitott kürett 4",
+      "open flap 4 fog",
+      "kiterjesztett nyitott kürett"
+    ],
+    "sort_order": 265
+  },
+  {
+    "name": "Emdogain regeneratív parodontális műtét (anyagdíj nélkül)",
+    "category": "Parodontológia",
+    "aliases": [
+      "emdogain műtét",
+      "EMD",
+      "enamel matrix derivative",
+      "regeneratív paro"
+    ],
+    "sort_order": 266
+  },
+  {
+    "name": "GTR irányított szövetregeneráció",
+    "category": "Parodontológia",
+    "aliases": [
+      "GTR",
+      "guided tissue regeneration",
+      "membrános paro műtét"
+    ],
+    "sort_order": 267
+  },
+  {
+    "name": "Recesszió fedés I. (egyszerű)",
+    "category": "Parodontológia",
+    "aliases": [
+      "recesszió fedés 1",
+      "root coverage simple",
+      "CAF"
+    ],
+    "sort_order": 268
+  },
+  {
+    "name": "Recesszió fedés II. (összetett)",
+    "category": "Parodontológia",
+    "aliases": [
+      "recesszió fedés 2",
+      "root coverage complex",
+      "tunnel",
+      "VISTA"
+    ],
+    "sort_order": 269
+  },
+  {
+    "name": "Funkcionális koronahosszabbító műtét (foganként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "koronahosszabbítás 1",
+      "crown lengthening 1",
+      "esztétikai koronahosszabbítás"
+    ],
+    "sort_order": 270
+  },
+  {
+    "name": "Funkcionális koronahosszabbító műtét (kvadránsonként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "koronahosszabbítás kvadráns",
+      "crown lengthening QD"
+    ],
+    "sort_order": 271
+  },
+  {
+    "name": "Mucogingivális sebészet",
+    "category": "Parodontológia",
+    "aliases": [
+      "mucogingivális",
+      "MGS",
+      "periodontal plastic surgery"
+    ],
+    "sort_order": 272
+  },
+  {
+    "name": "Gingivectomia",
+    "category": "Parodontológia",
+    "aliases": [
+      "gingivectomia",
+      "íny eltávolítás",
+      "GIN"
+    ],
+    "sort_order": 273
+  },
+  {
+    "name": "Gingivoplasztika / ínykorrekció",
+    "category": "Parodontológia",
+    "aliases": [
+      "gingivoplasztika",
+      "íny formázás",
+      "esztétikai ínykorrekció"
+    ],
+    "sort_order": 274
+  },
+  {
+    "name": "Frenulum plasztika - felső ajakfék",
+    "category": "Parodontológia",
+    "aliases": [
+      "felső ajakfék",
+      "frenulum plasztika",
+      "labial frenectomy"
+    ],
+    "sort_order": 275
+  },
+  {
+    "name": "Frenulum plasztika - alsó ajakfék",
+    "category": "Parodontológia",
+    "aliases": [
+      "alsó ajakfék",
+      "alsó frenulum plasztika"
+    ],
+    "sort_order": 276
+  },
+  {
+    "name": "Nyelvfék felvágás (frenotomia)",
+    "category": "Parodontológia",
+    "aliases": [
+      "nyelvfék",
+      "lingual frenectomy",
+      "nyelvfék vágás",
+      "tongue tie"
+    ],
+    "sort_order": 277
+  },
+  {
+    "name": "Soft-laser (lézerterápia, alkalmanként)",
+    "category": "Parodontológia",
+    "aliases": [
+      "soft laser",
+      "lézerterápia",
+      "low level laser",
+      "LLLT"
+    ],
+    "sort_order": 278
+  },
+  {
+    "name": "Parodontológia kontroll",
+    "category": "Parodontológia",
+    "aliases": [
+      "paro kontroll",
+      "periodontal recall",
+      "tasak kontroll"
+    ],
+    "sort_order": 279
+  },
+  {
+    "name": "Parodontológia műtét utáni kontroll",
+    "category": "Parodontológia",
+    "aliases": [
+      "posztop paro kontroll",
+      "paro műtéti kontroll"
+    ],
+    "sort_order": 280
+  },
+  {
+    "name": "Foghúzás egyszerű (db)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "extr",
+      "extractio",
+      "fog kihúzása",
+      "simple extraction",
+      "foghúzás"
+    ],
+    "sort_order": 281
+  },
+  {
+    "name": "Foghúzás varrattal (db)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "extr varrattal",
+      "szuturás extractio",
+      "extraction with suture"
+    ],
+    "sort_order": 282
+  },
+  {
+    "name": "Műtéti foghúzás (feltárással)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "műtéti extractio",
+      "surgical extraction",
+      "feltárásos foghúzás"
+    ],
+    "sort_order": 283
+  },
+  {
+    "name": "Műtéti bölcsességfog eltávolítás (felső)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "felső 8-as eltávolítás",
+      "maxilla 8",
+      "wisdom tooth UP",
+      "felső bölcsességfog"
+    ],
+    "sort_order": 284
+  },
+  {
+    "name": "Műtéti bölcsességfog eltávolítás (alsó)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "alsó 8-as eltávolítás",
+      "mandibula 8",
+      "wisdom tooth LO",
+      "alsó bölcsességfog"
+    ],
+    "sort_order": 285
+  },
+  {
+    "name": "Retinált bölcsességfog eltávolítása (impactált)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "retinált 8",
+      "impacted molar",
+      "csontba zárt 8-as"
+    ],
+    "sort_order": 286
+  },
+  {
+    "name": "Tejfog eltávolítás érzéstelenítés nélkül",
+    "category": "Szájsebészet",
+    "aliases": [
+      "tejfoghúzás",
+      "deciduous extraction",
+      "érzéstelenítés nélkül tejfog"
+    ],
+    "sort_order": 287
+  },
+  {
+    "name": "Tejfog eltávolítás érzéstelenítéssel",
+    "category": "Szájsebészet",
+    "aliases": [
+      "tejfoghúzás érzéstelenítve",
+      "tejfog extr injekcióval"
+    ],
+    "sort_order": 288
+  },
+  {
+    "name": "Gyökér eltávolítása (Dissectio)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "dissectio",
+      "gyökér disszekció",
+      "root resection"
+    ],
+    "sort_order": 289
+  },
+  {
+    "name": "Pericoronitis kezelés",
+    "category": "Szájsebészet",
+    "aliases": [
+      "pericoronitis",
+      "operculectomia",
+      "íny gyulladás 8-as"
+    ],
+    "sort_order": 290
+  },
+  {
+    "name": "Alveolitis kezelés",
+    "category": "Szájsebészet",
+    "aliases": [
+      "alveolitis",
+      "szárazfog",
+      "dry socket",
+      "csíkkezelés"
+    ],
+    "sort_order": 291
+  },
+  {
+    "name": "Csíkcsere (alveolitis)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "csíkcsere",
+      "alvogyl csere",
+      "tampon csere"
+    ],
+    "sort_order": 292
+  },
+  {
+    "name": "Tályog megnyitás (incizió)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "abscessus",
+      "tályog megnyitás",
+      "incision and drainage",
+      "incizió"
+    ],
+    "sort_order": 293
+  },
+  {
+    "name": "Cisztektómia",
+    "category": "Szájsebészet",
+    "aliases": [
+      "cystectomia",
+      "cisztektómia",
+      "gyökércsúcs ciszta műtét"
+    ],
+    "sort_order": 294
+  },
+  {
+    "name": "Gyökércsúcs reszekció - frontfog",
+    "category": "Szájsebészet",
+    "aliases": [
+      "resectio front",
+      "gyökércsúcs reszekció front",
+      "apicoectomy front"
+    ],
+    "sort_order": 295
+  },
+  {
+    "name": "Gyökércsúcs reszekció - kisőrlő",
+    "category": "Szájsebészet",
+    "aliases": [
+      "resectio kisőrlő",
+      "apicoectomy premolar"
+    ],
+    "sort_order": 296
+  },
+  {
+    "name": "Gyökércsúcs reszekció - nagyőrlő",
+    "category": "Szájsebészet",
+    "aliases": [
+      "resectio nagyőrlő",
+      "apicoectomy molar"
+    ],
+    "sort_order": 297
+  },
+  {
+    "name": "Reszekció reoperáció",
+    "category": "Szájsebészet",
+    "aliases": [
+      "reszekció reop",
+      "reapikoektomia",
+      "újraműtét"
+    ],
+    "sort_order": 298
+  },
+  {
+    "name": "Retrográd gyökértömés (csatornánként)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "retrográd GYT",
+      "MTA root end filling",
+      "reverse root canal filling"
+    ],
+    "sort_order": 299
+  },
+  {
+    "name": "Sinus zárás (oroantrális kommunikáció)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "sinus zárás",
+      "OAC",
+      "oroantrális zárás",
+      "MAS műtét"
+    ],
+    "sort_order": 300
+  },
+  {
+    "name": "Lágyrész kimetszés",
+    "category": "Szájsebészet",
+    "aliases": [
+      "lágyrész kimetszés",
+      "excisio",
+      "soft tissue excision"
+    ],
+    "sort_order": 301
+  },
+  {
+    "name": "Lágyrész kimetszés szövettani vizsgálattal",
+    "category": "Szájsebészet",
+    "aliases": [
+      "excisio + szövettan",
+      "excisional biopsy"
+    ],
+    "sort_order": 302
+  },
+  {
+    "name": "Nyálkahártya elváltozás eltávolítása",
+    "category": "Szájsebészet",
+    "aliases": [
+      "mucosa elváltozás",
+      "fibroma",
+      "epulis",
+      "mucocele eltávolítás"
+    ],
+    "sort_order": 303
+  },
+  {
+    "name": "Implantátum műtéti eltávolítása",
+    "category": "Szájsebészet",
+    "aliases": [
+      "implant explantation",
+      "implantátum eltávolítás műtéti"
+    ],
+    "sort_order": 304
+  },
+  {
+    "name": "Implantátum felszabadítás II. fázis",
+    "category": "Szájsebészet",
+    "aliases": [
+      "implant uncovering",
+      "II. fázis",
+      "exposure"
+    ],
+    "sort_order": 305
+  },
+  {
+    "name": "Varratszedés",
+    "category": "Szájsebészet",
+    "aliases": [
+      "varratszedés",
+      "suture removal",
+      "szutura kivétel"
+    ],
+    "sort_order": 306
+  },
+  {
+    "name": "Hemostasis (vérzéscsillapítás)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "hemostasis",
+      "vérzéscsillapítás",
+      "posztextrakciós vérzés"
+    ],
+    "sort_order": 307
+  },
+  {
+    "name": "Sialolithiasis (nyálkő eltávolítás)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "nyálkő",
+      "sialolith",
+      "nyálcsator nyitás"
+    ],
+    "sort_order": 308
+  },
+  {
+    "name": "Műtéti előkészítés (Hygitech steril takarás)",
+    "category": "Szájsebészet",
+    "aliases": [
+      "steril takarás",
+      "műtéti előkészítés",
+      "hygitech",
+      "surgical drape"
+    ],
+    "sort_order": 309
+  },
+  {
+    "name": "Apikális kürettálás",
+    "category": "Szájsebészet",
+    "aliases": [
+      "apikális kürett",
+      "apical curettage"
+    ],
+    "sort_order": 310
+  },
+  {
+    "name": "Gyermek első vizsgálat (adaptáció)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "gyermek vizsgálat",
+      "adaptáció",
+      "első találkozás",
+      "tell-show-do"
+    ],
+    "sort_order": 311
+  },
+  {
+    "name": "Gyermek kontroll vizsgálat",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "gyermek kontroll",
+      "recall pediatric"
+    ],
+    "sort_order": 312
+  },
+  {
+    "name": "Tejfog tömés (1 felszín)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog 1F",
+      "deciduous filling 1F",
+      "tejfog tömés 1 felszín"
+    ],
+    "sort_order": 313
+  },
+  {
+    "name": "Tejfog tömés (2+ felszín)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog 2F",
+      "deciduous filling 2F",
+      "MOD tejfog"
+    ],
+    "sort_order": 314
+  },
+  {
+    "name": "Tejfog ideiglenes gyógyszeres tömése",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog gyógyszeres",
+      "cariostatic",
+      "SDF",
+      "ezüst-diamin-fluorid"
+    ],
+    "sort_order": 315
+  },
+  {
+    "name": "Tejfog trepanálás",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog trepanálás",
+      "tejfog megnyitás"
+    ],
+    "sort_order": 316
+  },
+  {
+    "name": "Pulpotomia tejfogon",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "pulpotomia tejfog",
+      "formokrezol pulpotomia",
+      "MTA pulpotomia"
+    ],
+    "sort_order": 317
+  },
+  {
+    "name": "Tejfog gyökértömés (pulpektómia)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog GYT",
+      "tejfog pulpektómia",
+      "root filling deciduous"
+    ],
+    "sort_order": 318
+  },
+  {
+    "name": "Tejfog stainless steel korona (SSC)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "SSC",
+      "preformált korona",
+      "tejfog acél korona",
+      "Hall korona",
+      "Hall technique"
+    ],
+    "sort_order": 319
+  },
+  {
+    "name": "Tejfog cirkon korona",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfog cirkon korona",
+      "esztétikus tejfog korona",
+      "zirconia ped crown"
+    ],
+    "sort_order": 320
+  },
+  {
+    "name": "Tejfog eltávolítás (alkalmanként)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "tejfoghúzás",
+      "tejfog extr",
+      "deciduous extraction"
+    ],
+    "sort_order": 321
+  },
+  {
+    "name": "Helyfenntartó (rögzített, band-loop / lingual ív)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "helyfenntartó",
+      "space maintainer",
+      "band-loop",
+      "Nance"
+    ],
+    "sort_order": 322
+  },
+  {
+    "name": "Helyfenntartó (kivehető)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "kivehető helyfenntartó",
+      "removable space maintainer"
+    ],
+    "sort_order": 323
+  },
+  {
+    "name": "Barázdazárás (felszíni)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "barázdazárás",
+      "sealant",
+      "sealing",
+      "fissure sealant"
+    ],
+    "sort_order": 324
+  },
+  {
+    "name": "Kiterjesztett barázdazárás",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "kiterjesztett sealant",
+      "preventive resin restoration",
+      "PRR"
+    ],
+    "sort_order": 325
+  },
+  {
+    "name": "Kinetikus preparációval végzett barázdazárás (EtchMaster)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "kinetikus prep",
+      "airabrasion sealant",
+      "EtchMaster"
+    ],
+    "sort_order": 326
+  },
+  {
+    "name": "Fluoridálás (gyermek, alkalmanként)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "fluor gyerek",
+      "Duraphat gyerek",
+      "fluor lakk gyermek"
+    ],
+    "sort_order": 327
+  },
+  {
+    "name": "Anyák tanácsadás (csecsemő/kisded)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "anyatanácsadás",
+      "infant counseling",
+      "early childhood prevention"
+    ],
+    "sort_order": 328
+  },
+  {
+    "name": "Játékos adaptáció (külön ülés)",
+    "category": "Gyermekfogászat",
+    "aliases": [
+      "adaptáció",
+      "tell-show-do",
+      "gyerek adaptáció",
+      "behavior management"
+    ],
+    "sort_order": 329
+  },
+  {
+    "name": "Fogszabályozó páciens vizsgálat",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto vizsgálat",
+      "fogszabályozás vizsgálat",
+      "ortodonciai vizsgálat"
+    ],
+    "sort_order": 330
+  },
+  {
+    "name": "Fogszabályozási dokumentáció (fotó + lenyomat/szken)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto dokumentáció",
+      "orto fotó",
+      "orto lenyomat",
+      "orthodontic records"
+    ],
+    "sort_order": 331
+  },
+  {
+    "name": "3D digitális orto tervezés (sínes terápia tervezés)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "3D orto tervezés",
+      "clincheck",
+      "sínes tervezés",
+      "aligner planning"
+    ],
+    "sort_order": 332
+  },
+  {
+    "name": "Kivehető fogszabályozó készülék (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "kivehető készülék",
+      "removable orto",
+      "1 fogíves kivehető"
+    ],
+    "sort_order": 333
+  },
+  {
+    "name": "Kivehető fogszabályozó készülék (bimaxilláris)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "bimaxilláris",
+      "kivehető bi",
+      "aktivátor",
+      "bimax orto"
+    ],
+    "sort_order": 334
+  },
+  {
+    "name": "Hyrax (gyors palatum expander)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "hyrax",
+      "RPE",
+      "gyors expander",
+      "palatum tágítás"
+    ],
+    "sort_order": 335
+  },
+  {
+    "name": "Quadhelix (sima gyűrűkkel)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "quadhelix",
+      "qhx",
+      "kvadhelix"
+    ],
+    "sort_order": 336
+  },
+  {
+    "name": "Quadhelix (MB gyűrűkkel)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "quadhelix MB",
+      "kvadhelix bracket gyűrű"
+    ],
+    "sort_order": 337
+  },
+  {
+    "name": "BWS (Bonded Wire Splint, 1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "BWS",
+      "bonded wire splint",
+      "ragasztott drót sín"
+    ],
+    "sort_order": 338
+  },
+  {
+    "name": "D-Gainer",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "d-gainer",
+      "distalizáló orto készülék"
+    ],
+    "sort_order": 339
+  },
+  {
+    "name": "Delaire maszk",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "delaire",
+      "fej-arc orto",
+      "FaceMask"
+    ],
+    "sort_order": 340
+  },
+  {
+    "name": "Ferdesík",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "ferdesík",
+      "inclined plane",
+      "harapás emelő ferde"
+    ],
+    "sort_order": 341
+  },
+  {
+    "name": "Ferdesík levágása",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "ferdesík eltávolítás",
+      "inclined plane removal"
+    ],
+    "sort_order": 342
+  },
+  {
+    "name": "Lingual ív / TPA / Goshgarian",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "lingual ív",
+      "TPA",
+      "trans palatal arch",
+      "Goshgarian"
+    ],
+    "sort_order": 343
+  },
+  {
+    "name": "Myofunkcionális készülék (általános)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "myo készülék",
+      "myofunctional appliance",
+      "izomtorna készülék"
+    ],
+    "sort_order": 344
+  },
+  {
+    "name": "Myobrace készülék (B/I/J/K/MBA/T)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "myobrace",
+      "MRC",
+      "preorto készülék"
+    ],
+    "sort_order": 345
+  },
+  {
+    "name": "Powerguard sorozat",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "powerguard",
+      "MRC powerguard"
+    ],
+    "sort_order": 346
+  },
+  {
+    "name": "Infant trainer (3 éves kortól)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "infant trainer",
+      "MRC infant",
+      "kisgyermek trainer"
+    ],
+    "sort_order": 347
+  },
+  {
+    "name": "Lipp trainer",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "lipp trainer",
+      "ajaktréner",
+      "lip trainer"
+    ],
+    "sort_order": 348
+  },
+  {
+    "name": "Myolay harapásemelő",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "myolay",
+      "harapásemelő myo"
+    ],
+    "sort_order": 349
+  },
+  {
+    "name": "Mikroimplantátum fogszabályozási célra (TAD)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "TAD",
+      "temporary anchorage device",
+      "mini-implantátum orto"
+    ],
+    "sort_order": 350
+  },
+  {
+    "name": "Mikroimplantátumon elhorgonyzott készülék (egyedi)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "TAD-elhorgonyzott",
+      "mini-implantátum készülék"
+    ],
+    "sort_order": 351
+  },
+  {
+    "name": "Rögzített fém készülék 1 fogív (nem önligírozó)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "fém bracket nem önligírozó",
+      "MBT",
+      "Roth fix",
+      "hagyományos bracket"
+    ],
+    "sort_order": 352
+  },
+  {
+    "name": "Rögzített fém készülék 1 fogív (önligírozó)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "önligírozó fém",
+      "self-ligating",
+      "Damon",
+      "H4",
+      "fix önligírozó"
+    ],
+    "sort_order": 353
+  },
+  {
+    "name": "Rögzített esztétikus készülék 1 fogív (nem önligírozó)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "porcelán bracket nem önligírozó",
+      "esztétikus fix",
+      "kerámia bracket"
+    ],
+    "sort_order": 354
+  },
+  {
+    "name": "Rögzített esztétikus készülék 1 fogív (önligírozó)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "porcelán önligírozó",
+      "esztétikus self-ligating",
+      "Damon Clear"
+    ],
+    "sort_order": 355
+  },
+  {
+    "name": "Lingvális rögzített készülék (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "lingual fix",
+      "incognito",
+      "lingual orto",
+      "nyelv felöli készülék"
+    ],
+    "sort_order": 356
+  },
+  {
+    "name": "Bracket visszaragasztás (fém, db)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "bracket vissza",
+      "rebonding fém",
+      "bracket rebond"
+    ],
+    "sort_order": 357
+  },
+  {
+    "name": "Bracket visszaragasztás (esztétikus, db)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "bracket vissza esztétikus",
+      "rebonding porcelán"
+    ],
+    "sort_order": 358
+  },
+  {
+    "name": "Bracket pótlás (elveszett fém bracket)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "új bracket",
+      "bracket pótlás fém",
+      "lost bracket replacement"
+    ],
+    "sort_order": 359
+  },
+  {
+    "name": "Bracket pótlás (elveszett porcelán bracket)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "új bracket porcelán",
+      "bracket pótlás esztétikus"
+    ],
+    "sort_order": 360
+  },
+  {
+    "name": "Ívcsere ívenként (fém)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "ívcsere",
+      "wire change",
+      "ortodonciai ív"
+    ],
+    "sort_order": 361
+  },
+  {
+    "name": "Ívcsere ívenként (esztétikus készüléknél)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "esztétikus ívcsere",
+      "coated wire change",
+      "epoxy wire"
+    ],
+    "sort_order": 362
+  },
+  {
+    "name": "Ív és gumicsere (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "ív+gumi 1",
+      "teljes csere 1 ív"
+    ],
+    "sort_order": 363
+  },
+  {
+    "name": "Ív és gumicsere (2 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "ív+gumi 2",
+      "teljes csere 2 ív"
+    ],
+    "sort_order": 364
+  },
+  {
+    "name": "Gumicsere (1 fogív, nem önligírozó)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "gumicsere",
+      "ligature change",
+      "elastic change"
+    ],
+    "sort_order": 365
+  },
+  {
+    "name": "Kontroll - rögzített készülékkel",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto kontroll fix",
+      "fix kontroll",
+      "adjustment fix"
+    ],
+    "sort_order": 366
+  },
+  {
+    "name": "Kontroll - kivehető készülékkel (1 készülék)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto kontroll kivehető",
+      "aktiválás kivehető 1"
+    ],
+    "sort_order": 367
+  },
+  {
+    "name": "Kontroll - kivehető készülékkel (2 készülék)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto kontroll bimax",
+      "aktiválás bimax"
+    ],
+    "sort_order": 368
+  },
+  {
+    "name": "Kontroll - készülék nélkül",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto kontroll nincs készülék",
+      "monitoring"
+    ],
+    "sort_order": 369
+  },
+  {
+    "name": "Kontroll - sínes terápia (Invisalign/aligner)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner kontroll",
+      "invisalign kontroll",
+      "sín kontroll"
+    ],
+    "sort_order": 370
+  },
+  {
+    "name": "Sínes fogszabályozás - Quick (~12 sín)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner quick",
+      "sín quick",
+      "short aligner",
+      "invisalign express"
+    ],
+    "sort_order": 371
+  },
+  {
+    "name": "Sínes fogszabályozás - Simple (~22 sín)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner simple",
+      "sín simple",
+      "aligner lite"
+    ],
+    "sort_order": 372
+  },
+  {
+    "name": "Sínes fogszabályozás - Complex (~48 sín)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner complex",
+      "sín complex",
+      "invisalign comprehensive"
+    ],
+    "sort_order": 373
+  },
+  {
+    "name": "Sínes fogszabályozás - Pro (~68 sín)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner pro",
+      "sín pro",
+      "invisalign full"
+    ],
+    "sort_order": 374
+  },
+  {
+    "name": "Sínes fogszabályozás - Unlimited (komplex)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner unlimited",
+      "sín korlátlan"
+    ],
+    "sort_order": 375
+  },
+  {
+    "name": "Sínes fogszabályozás - tervezési díj",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner tervezés",
+      "sín tervezési díj",
+      "setup díj"
+    ],
+    "sort_order": 376
+  },
+  {
+    "name": "Attachment ragasztás (foganként)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "attachment ragasztás",
+      "atch",
+      "invisalign attachment"
+    ],
+    "sort_order": 377
+  },
+  {
+    "name": "Attachment levétel (foganként)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "attachment levétel",
+      "atch eltávolítás"
+    ],
+    "sort_order": 378
+  },
+  {
+    "name": "IPR (interproximális redukció)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "IPR",
+      "stripping",
+      "interproximalis redukció"
+    ],
+    "sort_order": 379
+  },
+  {
+    "name": "Fix retainer (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "fix retainer",
+      "kötött retainer",
+      "lingual retainer",
+      "drót retainer"
+    ],
+    "sort_order": 380
+  },
+  {
+    "name": "Smilezor fix retainer",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "smilezor retainer",
+      "sz retainer fix"
+    ],
+    "sort_order": 381
+  },
+  {
+    "name": "Fix retainer csere (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "retainer csere",
+      "fix retainer csere"
+    ],
+    "sort_order": 382
+  },
+  {
+    "name": "Fix retainer javítás",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "retainer javítás",
+      "drót retainer javítás"
+    ],
+    "sort_order": 383
+  },
+  {
+    "name": "Vivera retainer (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "vivera 1",
+      "invisalign retainer 1",
+      "essix retainer 1"
+    ],
+    "sort_order": 384
+  },
+  {
+    "name": "Vivera retainer (2 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "vivera 2",
+      "invisalign retainer 2",
+      "essix retainer 2"
+    ],
+    "sort_order": 385
+  },
+  {
+    "name": "Kivehető retainer (1 fogív, vacuformed)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "essix",
+      "vacuum formed retainer",
+      "kivehető retainer"
+    ],
+    "sort_order": 386
+  },
+  {
+    "name": "Készülék eltávolítása (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "debonding",
+      "debond 1",
+      "fix levétel"
+    ],
+    "sort_order": 387
+  },
+  {
+    "name": "Rögzített készülék levétele + retenciós készülék (1 fogív)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "debond + retainer",
+      "fix levétel + vivera",
+      "debond és retainer átadás"
+    ],
+    "sort_order": 388
+  },
+  {
+    "name": "Sín átadás",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "aligner átadás",
+      "sín delivery"
+    ],
+    "sort_order": 389
+  },
+  {
+    "name": "Páciens orto viasz",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto viasz",
+      "wax",
+      "bracket viasz"
+    ],
+    "sort_order": 390
+  },
+  {
+    "name": "Tejfoghúzás (orto célzott)",
+    "category": "Fogszabályozás",
+    "aliases": [
+      "orto célú tejfoghúzás",
+      "seriális extrakció"
+    ],
+    "sort_order": 391
+  },
+  {
+    "name": "Stabilizációs (Michigan) sín",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "Michigan sín",
+      "stabilizációs sín",
+      "stab sín",
+      "occlusal splint"
+    ],
+    "sort_order": 392
+  },
+  {
+    "name": "Stabilizációs sín újraadaptálása",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "sín újraadaptálás",
+      "sín csiszolás",
+      "splint adjustment"
+    ],
+    "sort_order": 393
+  },
+  {
+    "name": "NTI-tss harapásemelő",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "NTI",
+      "NTI-tss",
+      "mini harapásemelő",
+      "anterior bite plane"
+    ],
+    "sort_order": 394
+  },
+  {
+    "name": "NTI kontroll",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "NTI kontroll",
+      "NTI adjustment"
+    ],
+    "sort_order": 395
+  },
+  {
+    "name": "Egyéni harapásemelő készítése (1 hónap követéssel)",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "egyéni harapásemelő",
+      "custom bite raiser"
+    ],
+    "sort_order": 396
+  },
+  {
+    "name": "Lions horkolásgátló készülék",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "lions",
+      "horkolásgátló",
+      "MAD",
+      "mandibular advancement"
+    ],
+    "sort_order": 397
+  },
+  {
+    "name": "Silensor horkolásgátló",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "silensor",
+      "horkolás silensor",
+      "sleep apnoe készülék"
+    ],
+    "sort_order": 398
+  },
+  {
+    "name": "TMJ-MBV horkolásgátló",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "TMJ MBV",
+      "MBV készülék",
+      "TMJ horkolásgátló"
+    ],
+    "sort_order": 399
+  },
+  {
+    "name": "TMJ-BDS készülék",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "TMJ BDS",
+      "BDS készülék"
+    ],
+    "sort_order": 400
+  },
+  {
+    "name": "Myosa S2 (TMJ MBV horkolásgátló 2. fázis)",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "myosa s2",
+      "tmj mbv 2"
+    ],
+    "sort_order": 401
+  },
+  {
+    "name": "Sportolói fogvédő (Playsafe)",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "sport fogvédő",
+      "mouthguard",
+      "playsafe",
+      "sportolói védő"
+    ],
+    "sort_order": 402
+  },
+  {
+    "name": "Sportolói fogvédő (heavy-pro)",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "playsafe heavy pro",
+      "professzionális sportfogvédő"
+    ],
+    "sort_order": 403
+  },
+  {
+    "name": "Bruxizmus elleni sín",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "bruxizmus sín",
+      "night guard",
+      "fogcsikorgató sín"
+    ],
+    "sort_order": 404
+  },
+  {
+    "name": "Műanyag bemarós sín",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "bemarós sín",
+      "tényezős sín",
+      "deprogrammáló sín"
+    ],
+    "sort_order": 405
+  },
+  {
+    "name": "Fogszorítás terápia (komplex csomag)",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "fogszorítás",
+      "clenching terápia",
+      "TMJ csomag"
+    ],
+    "sort_order": 406
+  },
+  {
+    "name": "Kiegészítő sín 1 fogívre",
+    "category": "Harapásemelők, sínek, fogvédők",
+    "aliases": [
+      "kiegészítő sín",
+      "secondary splint"
+    ],
+    "sort_order": 407
+  },
+  {
+    "name": "Csontpótló anyag (xenogén) - 0.25 g",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "xenogén csontpótló 0.25g",
+      "Cerabone 0.25",
+      "Bio-Oss kis",
+      "Xenogain 0.25"
+    ],
+    "sort_order": 408
+  },
+  {
+    "name": "Csontpótló anyag (xenogén) - 0.5 g",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "xenogén csontpótló 0.5g",
+      "Cerabone 0.5",
+      "Bio-Oss 0.5",
+      "Xenogain 0.5"
+    ],
+    "sort_order": 409
+  },
+  {
+    "name": "Csontpótló anyag (xenogén) - 1 g",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "xenogén csontpótló 1g",
+      "Cerabone 1g",
+      "Bio-Oss 1g",
+      "Xenogain 1g"
+    ],
+    "sort_order": 410
+  },
+  {
+    "name": "Csontpótló anyag (xenogén) - 2 g",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "xenogén csontpótló 2g",
+      "Cerabone 2g",
+      "Bio-Oss 2g",
+      "Xenogain 2g"
+    ],
+    "sort_order": 411
+  },
+  {
+    "name": "Csontpótló anyag (allogén)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "allogén csontpótló",
+      "maxgraft",
+      "allograft"
+    ],
+    "sort_order": 412
+  },
+  {
+    "name": "Csontpótló anyag (alloplasztikus / szintetikus)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "alloplasztikus csontpótló",
+      "béta-TCP",
+      "hidroxiapatit szintetikus"
+    ],
+    "sort_order": 413
+  },
+  {
+    "name": "Felszívódó kollagén membrán - kis (15x20 mm)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "BioGide kis",
+      "Xenoprotect 15x20",
+      "kollagén membrán kis",
+      "Mucoderm 15x20"
+    ],
+    "sort_order": 414
+  },
+  {
+    "name": "Felszívódó kollagén membrán - közepes (25x30 mm)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "kollagén membrán 25x30",
+      "Xenoprotect 25x30"
+    ],
+    "sort_order": 415
+  },
+  {
+    "name": "Felszívódó kollagén membrán - nagy (30x40 mm)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "BioGide 30x40",
+      "Xenoprotect 30x40",
+      "kollagén membrán nagy"
+    ],
+    "sort_order": 416
+  },
+  {
+    "name": "Nem-felszívódó membrán (titán-merevítésű)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Cytoplast",
+      "titán erősített membrán",
+      "nem felszívódó membrán",
+      "PTFE membrán"
+    ],
+    "sort_order": 417
+  },
+  {
+    "name": "Lágyszövet pótló anyag - kis",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Mucograft kis",
+      "Mucoderm 15x20",
+      "soft tissue graft kis"
+    ],
+    "sort_order": 418
+  },
+  {
+    "name": "Lágyszövet pótló anyag - közepes (20x30)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Mucoderm 20x30",
+      "Mucograft közepes"
+    ],
+    "sort_order": 419
+  },
+  {
+    "name": "Lágyszövet pótló anyag - nagy (30x40)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Mucoderm 30x40",
+      "Mucograft nagy"
+    ],
+    "sort_order": 420
+  },
+  {
+    "name": "Mucoderm Punch (íny graft)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "mucoderm punch",
+      "punch graft"
+    ],
+    "sort_order": 421
+  },
+  {
+    "name": "Titán csavar (membránrögzítéshez, db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "membrán csavar",
+      "titán pin",
+      "tack screw",
+      "fixáló csavar"
+    ],
+    "sort_order": 422
+  },
+  {
+    "name": "3D titánháló",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "3D titánháló",
+      "titanium mesh",
+      "customized titanium mesh"
+    ],
+    "sort_order": 423
+  },
+  {
+    "name": "Sebzáró kollagén anyag (Lyostypt)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Lyostypt",
+      "kollagén szivacs",
+      "hemostatic collagen"
+    ],
+    "sort_order": 424
+  },
+  {
+    "name": "Emdogain anyagdíj",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Emdogain anyag",
+      "EMD anyag"
+    ],
+    "sort_order": 425
+  },
+  {
+    "name": "Implantátum (premium - Nobel)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Nobel implantátum",
+      "NobelActive",
+      "NobelParallel",
+      "NobelReplace"
+    ],
+    "sort_order": 426
+  },
+  {
+    "name": "Implantátum (premium - Straumann)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Straumann",
+      "SLA",
+      "SLActive",
+      "BLT",
+      "BLX"
+    ],
+    "sort_order": 427
+  },
+  {
+    "name": "Implantátum (közép-kategória, AlphaBio)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "alphabio",
+      "AlphaBio implantátum"
+    ],
+    "sort_order": 428
+  },
+  {
+    "name": "Implantátum (közép-kategória, Dentium)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "dentium",
+      "Dentium SuperLine"
+    ],
+    "sort_order": 429
+  },
+  {
+    "name": "Implantátum (közép-kategória, MIS / Bionika)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "MIS",
+      "Bionika",
+      "hazai implantátum"
+    ],
+    "sort_order": 430
+  },
+  {
+    "name": "Cirkon implantátum (Nobel Pearl)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Nobel Pearl",
+      "cirkon implantátum"
+    ],
+    "sort_order": 431
+  },
+  {
+    "name": "Implantátum karbonszálas átmenőcsavar (Nobel Pearl)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "karbon szálas csavar",
+      "Nobel Pearl connector"
+    ],
+    "sort_order": 432
+  },
+  {
+    "name": "On1 Base CC Xeal (Nobel)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "On1 base",
+      "Nobel On1"
+    ],
+    "sort_order": 433
+  },
+  {
+    "name": "3D nyomtatott műtéti sablon",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "surgical guide",
+      "fúrósablon",
+      "drill guide",
+      "3D printed guide"
+    ],
+    "sort_order": 434
+  },
+  {
+    "name": "Anyagköltség (egyéb tétel)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "anyagköltség",
+      "anyagdíj",
+      "materials"
+    ],
+    "sort_order": 435
+  },
+  {
+    "name": "Egyéb termék/anyag (manuális)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "egyéb anyag",
+      "misc material"
+    ],
+    "sort_order": 436
+  },
+  {
+    "name": "5460-as fogkefe (1 db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Curaprox 5460",
+      "ultra puha fogkefe",
+      "sensitive fogkefe"
+    ],
+    "sort_order": 437
+  },
+  {
+    "name": "Curaprox 5460 fogkefe (3 db-os)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Curaprox 5460 csomag",
+      "fogkefe 3 db"
+    ],
+    "sort_order": 438
+  },
+  {
+    "name": "Egycsomós fogkefe",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "egycsomós",
+      "single tuft",
+      "Genius",
+      "Curaprox CS 1006"
+    ],
+    "sort_order": 439
+  },
+  {
+    "name": "Szájsebészeti fogkefe",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "posztop fogkefe",
+      "surgical toothbrush"
+    ],
+    "sort_order": 440
+  },
+  {
+    "name": "Fogköztisztító kefe (db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "fogköztisztító",
+      "interdental brush",
+      "prime"
+    ],
+    "sort_order": 441
+  },
+  {
+    "name": "Fogköztisztító kefe (5 db + 2 nyél)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "fogköztisztító csomag",
+      "prime csomag"
+    ],
+    "sort_order": 442
+  },
+  {
+    "name": "Fogköztisztító nyél (fém)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "fogköztisztító nyél",
+      "prime holder",
+      "interdental holder"
+    ],
+    "sort_order": 443
+  },
+  {
+    "name": "Superfloss fogselyem",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "superfloss",
+      "implant fogselyem",
+      "híd fogselyem"
+    ],
+    "sort_order": 444
+  },
+  {
+    "name": "Ultrafloss fogselyem",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "ultrafloss",
+      "sűrű fogselyem"
+    ],
+    "sort_order": 445
+  },
+  {
+    "name": "Fogselyem (gyári villa)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "floss villa",
+      "fogselyem villa",
+      "floss pick"
+    ],
+    "sort_order": 446
+  },
+  {
+    "name": "Plakkfestő tabletta (4 db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "plakkfesto 4",
+      "disclosing tablet 4"
+    ],
+    "sort_order": 447
+  },
+  {
+    "name": "Plakkfestő tabletta (12 db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "plakkfestő 12",
+      "disclosing tablet 12"
+    ],
+    "sort_order": 448
+  },
+  {
+    "name": "Curasept öblögető",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "curasept",
+      "CHX szájvíz",
+      "klórhexidin szájvíz"
+    ],
+    "sort_order": 449
+  },
+  {
+    "name": "Curasept perio",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "curasept perio",
+      "CHX perio öblögető"
+    ],
+    "sort_order": 450
+  },
+  {
+    "name": "Curasept implant",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "curasept implant",
+      "implantátum öblögető"
+    ],
+    "sort_order": 451
+  },
+  {
+    "name": "Tooth Mousse termék",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "tooth mousse",
+      "MI Paste",
+      "CPP-ACP krém"
+    ],
+    "sort_order": 452
+  },
+  {
+    "name": "Gengigél",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "gengigel",
+      "íny gel",
+      "hyaluronic gel"
+    ],
+    "sort_order": 453
+  },
+  {
+    "name": "Gengigél Teething",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "gengigel teething",
+      "fogzási gél"
+    ],
+    "sort_order": 454
+  },
+  {
+    "name": "ADS gél fogkrém",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "ADS",
+      "ADS gél fogkrém",
+      "sensitivity fogkrém"
+    ],
+    "sort_order": 455
+  },
+  {
+    "name": "Nyelvtisztító (2 db)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "nyelvtisztító",
+      "tongue cleaner"
+    ],
+    "sort_order": 456
+  },
+  {
+    "name": "Szájzuhany pótfej",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "szájzuhany pótfej",
+      "waterpik fej",
+      "oral irrigator tip"
+    ],
+    "sort_order": 457
+  },
+  {
+    "name": "Waterpik szájzuhany (Classic)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "WP70",
+      "waterpik classic",
+      "waterpik vezetékes"
+    ],
+    "sort_order": 458
+  },
+  {
+    "name": "Waterpik Ultra szájzuhany",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "waterpik ultra",
+      "waterpik felső kategória"
+    ],
+    "sort_order": 459
+  },
+  {
+    "name": "Waterpik Traveler szájzuhany",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "waterpik traveler",
+      "úti waterpik"
+    ],
+    "sort_order": 460
+  },
+  {
+    "name": "Waterpik for Kids",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "waterpik for kids",
+      "gyermek szájzuhany"
+    ],
+    "sort_order": 461
+  },
+  {
+    "name": "Oral-B elektromos fogkefe",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Oral-B",
+      "elektromos fogkefe"
+    ],
+    "sort_order": 462
+  },
+  {
+    "name": "Oral-B pótfej (4 db-os)",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "Oral-B pótfej csomag",
+      "brush head csomag"
+    ],
+    "sort_order": 463
+  },
+  {
+    "name": "Páciens tükör",
+    "category": "Anyagok és felszerelések",
+    "aliases": [
+      "tükör",
+      "kézi tükör",
+      "hand mirror"
+    ],
+    "sort_order": 464
+  },
+  {
+    "name": "Logopédiai vizsgálat (első felmérés)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "logopédiai vizsgálat",
+      "logopédia első",
+      "speech assessment"
+    ],
+    "sort_order": 465
+  },
+  {
+    "name": "Logopédiai kontroll",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "logopédiai kontroll",
+      "speech follow-up"
+    ],
+    "sort_order": 466
+  },
+  {
+    "name": "Logopédiai terápia (alkalmanként)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "logopédiai terápia",
+      "speech therapy"
+    ],
+    "sort_order": 467
+  },
+  {
+    "name": "Logopédiai terápia testvérek (2 fő)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "logopédia testvér",
+      "speech therapy siblings"
+    ],
+    "sort_order": 468
+  },
+  {
+    "name": "Myofunkcionális szakvizsgálat",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "myofunkcionális vizsgálat",
+      "MFT",
+      "izomfunkció vizsgálat"
+    ],
+    "sort_order": 469
+  },
+  {
+    "name": "Myofunkcionális tanácsadás",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "MFT tanácsadás",
+      "myo tanácsadás"
+    ],
+    "sort_order": 470
+  },
+  {
+    "name": "Myofunkcionális kontroll (személyes)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "myo kontroll",
+      "izomfunkció kontroll"
+    ],
+    "sort_order": 471
+  },
+  {
+    "name": "Myofunkcionális kontroll (Skype/Zoom)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "online myo kontroll",
+      "távkontroll myo"
+    ],
+    "sort_order": 472
+  },
+  {
+    "name": "Myochew (rágóizom edző)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "myochew",
+      "chewing trainer"
+    ],
+    "sort_order": 473
+  },
+  {
+    "name": "Myoclean tisztítótabletta (12 db / 24 db)",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "myoclean",
+      "trainer tisztító tabletta"
+    ],
+    "sort_order": 474
+  },
+  {
+    "name": "Myotalea TLJ készülék",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "myotalea",
+      "TLJ"
+    ],
+    "sort_order": 475
+  },
+  {
+    "name": "Rágóizomrelaxáció ergonómiai szaktanácsadás",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "rágóizom relaxáció",
+      "ergonómia tanácsadás"
+    ],
+    "sort_order": 476
+  },
+  {
+    "name": "Írásos összefoglaló rágóizom relaxációhoz",
+    "category": "Logopédia és myofunkcionális",
+    "aliases": [
+      "rágóizom írásos",
+      "relaxáció dokumentáció"
+    ],
+    "sort_order": 477
+  },
+  {
+    "name": "Díjmentes kontroll",
+    "category": "Általános tételek",
+    "aliases": [
+      "díjmentes kontroll",
+      "free recall",
+      "ingyenes kontroll"
+    ],
+    "sort_order": 478
+  },
+  {
+    "name": "Díjmentes konzultáció",
+    "category": "Általános tételek",
+    "aliases": [
+      "díjmentes konzultáció",
+      "ingyenes konzultáció"
+    ],
+    "sort_order": 479
+  },
+  {
+    "name": "Késői lemondási díj",
+    "category": "Általános tételek",
+    "aliases": [
+      "lemondási díj",
+      "no-show díj",
+      "késői lemondás"
+    ],
+    "sort_order": 480
+  },
+  {
+    "name": "Készenléti díj (30 perc)",
+    "category": "Általános tételek",
+    "aliases": [
+      "készenléti",
+      "standby",
+      "on-call díj"
+    ],
+    "sort_order": 481
+  },
+  {
+    "name": "Egyéb dokumentáció elkészítése páciens kérésére",
+    "category": "Általános tételek",
+    "aliases": [
+      "egyéb dokumentáció",
+      "kustom dokumentáció",
+      "igazolás"
+    ],
+    "sort_order": 482
+  },
+  {
+    "name": "Pénzvisszafizetés",
+    "category": "Általános tételek",
+    "aliases": [
+      "refund",
+      "pénzvisszafizetés"
+    ],
+    "sort_order": 483
+  },
+  {
+    "name": "Korábbi túlfizetés korrekciója",
+    "category": "Általános tételek",
+    "aliases": [
+      "túlfizetés korrekció",
+      "overpayment correction"
+    ],
+    "sort_order": 484
+  },
+  {
+    "name": "Szállítási díj / csomagfeladás",
+    "category": "Általános tételek",
+    "aliases": [
+      "szállítási díj",
+      "csomagfeladás",
+      "posta díj"
+    ],
+    "sort_order": 485
+  },
+  {
+    "name": "Egyéb tétel (manuális)",
+    "category": "Általános tételek",
+    "aliases": [
+      "egyéb",
+      "other",
+      "manuális tétel"
+    ],
+    "sort_order": 486
+  },
+  {
+    "name": "Családtag kedvezmény (20%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "családi kedvezmény",
+      "family discount 20"
+    ],
+    "sort_order": 487
+  },
+  {
+    "name": "Testvérkedvezmény (50%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "testvér kedvezmény",
+      "sibling discount 50"
+    ],
+    "sort_order": 488
+  },
+  {
+    "name": "Dolgozói kedvezmény (20%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "dolgozói kedvezmény",
+      "staff discount 20"
+    ],
+    "sort_order": 489
+  },
+  {
+    "name": "Eseti kedvezmény (5%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 5",
+      "alkalmi kedvezmény 5"
+    ],
+    "sort_order": 490
+  },
+  {
+    "name": "Eseti kedvezmény (10%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 10",
+      "alkalmi kedvezmény 10"
+    ],
+    "sort_order": 491
+  },
+  {
+    "name": "Eseti kedvezmény (20%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 20",
+      "alkalmi kedvezmény 20"
+    ],
+    "sort_order": 492
+  },
+  {
+    "name": "Eseti kedvezmény (25%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 25",
+      "alkalmi kedvezmény 25"
+    ],
+    "sort_order": 493
+  },
+  {
+    "name": "Eseti kedvezmény (50%)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 50",
+      "alkalmi kedvezmény 50"
+    ],
+    "sort_order": 494
+  },
+  {
+    "name": "Eseti kedvezmény (100% / térítésmentes)",
+    "category": "Általános tételek",
+    "aliases": [
+      "eseti 100",
+      "térítésmentes",
+      "gesture goodwill"
+    ],
+    "sort_order": 495
+  },
+  {
+    "name": "Marketing kedvezmény (videó beleegyezésért)",
+    "category": "Általános tételek",
+    "aliases": [
+      "marketing kedvezmény",
+      "videó beleegyezés kedvezmény"
+    ],
+    "sort_order": 496
+  },
+  {
+    "name": "Lenyomati díj előrefizetve",
+    "category": "Általános tételek",
+    "aliases": [
+      "lenyomati előleg",
+      "impression deposit"
+    ],
+    "sort_order": 497
+  },
+  {
+    "name": "Garancia visszafizetés (NTI/Silensor stb.)",
+    "category": "Általános tételek",
+    "aliases": [
+      "garancia visszafizetés",
+      "warranty refund"
+    ],
+    "sort_order": 498
+  },
+  {
+    "name": "NOGAG hányinger elleni por (5 db)",
+    "category": "Általános tételek",
+    "aliases": [
+      "nogag",
+      "hányinger elleni por",
+      "antiemetic powder"
+    ],
+    "sort_order": 499
+  }
+]

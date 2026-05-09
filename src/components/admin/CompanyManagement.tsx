@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building2, Plus, Trash2, ChevronDown, ChevronRight, Loader2, MapPin, PowerOff, RotateCcw, FolderOpen, Folder } from 'lucide-react';
+import { Building2, Plus, Trash2, ChevronDown, ChevronRight, Loader2, MapPin, PowerOff, RotateCcw, FolderOpen, Folder, User, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -17,6 +17,7 @@ interface Company {
   name: string;
   slug: string;
   is_active: boolean;
+  is_solo?: boolean;
 }
 
 interface Telephely {
@@ -25,16 +26,34 @@ interface Telephely {
   company_id: string;
 }
 
+interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  company_id: string | null;
+  company_name: string | null;
+  telephely_id: string | null;
+  telephely_name: string | null;
+  is_solo?: boolean;
+}
+
 interface CompanyManagementProps {
   companies: Company[];
   telephelyek: Telephely[];
+  users?: AdminUser[];
   onDataChange: () => void;
 }
 
-export function CompanyManagement({ companies, telephelyek, onDataChange }: CompanyManagementProps) {
+export function CompanyManagement({ companies, telephelyek, users = [], onDataChange }: CompanyManagementProps) {
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [companiesFolderOpen, setCompaniesFolderOpen] = useState(true);  // open by default
+  const [soloFolderOpen, setSoloFolderOpen] = useState(true);            // open by default
   const [deactivatedFolderOpen, setDeactivatedFolderOpen] = useState(false);
 
+  // Partition
+  const activeAdminCompanies = companies.filter(c => c.is_active !== false && !c.is_solo);
+  const soloUsers = users.filter(u => u.is_solo === true);
+  const inactiveCompanies = companies.filter(c => c.is_active === false);
   // Company dialog state
   const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -56,8 +75,6 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
   const [pendingDeactivate, setPendingDeactivate] = useState<{ id: string; name: string } | null>(null);
   const [deactivateAnchorPosition, setDeactivateAnchorPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const activeCompanies = companies.filter(c => c.is_active !== false);
-  const inactiveCompanies = companies.filter(c => c.is_active === false);
 
   const toggleCompany = (companyId: string) => {
     setExpandedCompanies(prev => {
@@ -297,6 +314,18 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
   const renderCompanyRow = (company: Company, index: number, isDeactivated = false) => {
     const isExpanded = expandedCompanies.has(company.id);
     const companyTelephelyek = telephelyek.filter(t => t.company_id === company.id);
+    const companyUsers = users.filter(u => u.company_id === company.id);
+
+    const renderUserBadge = (user: AdminUser) => (
+      <div key={user.id} className="flex items-center gap-2 px-3 py-1.5 rounded bg-primary/5 border border-primary/10 text-xs">
+        <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        <span className="font-medium truncate">{user.full_name || user.email.split('@')[0]}</span>
+        <span className="text-muted-foreground truncate">{user.email}</span>
+        {user.telephely_name && (
+          <span className="ml-auto text-[10px] bg-primary/10 px-1.5 py-0.5 rounded text-primary/70 whitespace-nowrap">{user.telephely_name}</span>
+        )}
+      </div>
+    );
 
     return (
       <div
@@ -334,6 +363,11 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
             <span className="text-xs text-muted-foreground">
               ({companyTelephelyek.length} telephely)
             </span>
+            {companyUsers.length > 0 && (
+              <span className="flex items-center gap-1 text-xs text-primary/60">
+                <Users className="h-3 w-3" />{companyUsers.length} felhasználó
+              </span>
+            )}
             {isDeactivated && (
               <span className="text-xs text-amber-500/80 font-medium">Deaktivált</span>
             )}
@@ -390,38 +424,60 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
           </div>
         </div>
 
-        {/* Telephelyek List */}
+        {/* Expanded: Telephelyek + Users */}
         {isExpanded && (
           <div className="border-t border-primary/10 bg-background/50">
-            {companyTelephelyek.length === 0 ? (
+            {companyTelephelyek.length === 0 && companyUsers.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nincsenek telephelyek
+                Nincsenek telephelyek vagy felhasználók
               </p>
             ) : (
-              <div className="divide-y divide-primary/5">
-                {companyTelephelyek.map((telephely, tIndex) => (
-                  <div
-                    key={telephely.id}
-                    className="flex items-center justify-between p-3 pl-10 hover:bg-primary/5 transition-colors animate-fade-in"
-                    style={{ animationDelay: `${tIndex * 30}ms` }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className={cn('text-sm', isDeactivated && 'text-muted-foreground')}>{telephely.name}</span>
-                    </div>
-                    {/* Telephely delete only allowed if company is deactivated */}
-                    {isDeactivated && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => openDeleteConfirm('telephely', telephely.id, telephely.name, e, company.id)}
+              <div>
+                {/* Telephelyek with their users */}
+                {companyTelephelyek.map((telephely, tIndex) => {
+                  const telephelyUsers = companyUsers.filter(u => u.telephely_id === telephely.id);
+                  return (
+                    <div key={telephely.id} className="border-b border-primary/5 last:border-b-0">
+                      <div
+                        className="flex items-center justify-between p-3 pl-10 hover:bg-primary/5 transition-colors animate-fade-in"
+                        style={{ animationDelay: `${tIndex * 30}ms` }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className={cn('text-sm font-medium', isDeactivated && 'text-muted-foreground')}>{telephely.name}</span>
+                          {telephelyUsers.length > 0 && (
+                            <span className="text-xs text-muted-foreground">({telephelyUsers.length} user)</span>
+                          )}
+                        </div>
+                        {isDeactivated && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => openDeleteConfirm('telephely', telephely.id, telephely.name, e, company.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {/* Users under this telephely */}
+                      {telephelyUsers.length > 0 && (
+                        <div className="px-4 pb-3 pl-14 space-y-1.5">
+                          {telephelyUsers.map(renderUserBadge)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Company-level users (no telephely) */}
+                {companyUsers.filter(u => !u.telephely_id).length > 0 && (
+                  <div className="border-t border-primary/5 px-4 py-3 pl-10">
+                    <p className="text-xs text-muted-foreground mb-2">Telephely nélküli felhasználók</p>
+                    <div className="space-y-1.5">
+                      {companyUsers.filter(u => !u.telephely_id).map(renderUserBadge)}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -477,40 +533,77 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
           </Dialog>
         </div>
 
-        {/* Active companies */}
-        {activeCompanies.length === 0 && inactiveCompanies.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">Nincsenek cégek</p>
-        ) : (
-          <div className="space-y-2">
-            {activeCompanies.map((company, index) => renderCompanyRow(company, index, false))}
-          </div>
-        )}
+        <div className="space-y-4">
+        {/* ── 1. Admin-created companies (collapsible) ───────────────────── */}
+        <div className="border border-primary/15 rounded-lg overflow-hidden">
+          <button
+            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-primary/5 transition-colors"
+            onClick={() => setCompaniesFolderOpen(prev => !prev)}
+          >
+            {companiesFolderOpen
+              ? <FolderOpen className="h-4 w-4 text-primary/70 flex-shrink-0" />
+              : <Folder className="h-4 w-4 text-primary/70 flex-shrink-0" />}
+            <span className="text-sm font-medium">Céges regisztráltak</span>
+            <span className="text-xs text-muted-foreground ml-1">({activeAdminCompanies.length} cég)</span>
+            <ChevronDown className={cn('h-4 w-4 ml-auto transition-transform duration-200', companiesFolderOpen ? 'rotate-0' : '-rotate-90')} />
+          </button>
+          {companiesFolderOpen && (
+            <div className="px-3 pb-3 pt-1 space-y-2 bg-muted/5">
+              {activeAdminCompanies.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nincsenek admin-létrehozott cégek</p>
+              ) : (
+                activeAdminCompanies.map((company, index) => renderCompanyRow(company, index, false))
+              )}
+            </div>
+          )}
+        </div>
 
-        {/* Deactivated companies folder */}
+        {/* ── 2. Solo regisztráltak (collapsible) ────────────────────────── */}
+        <div className="border border-dashed border-blue-500/20 rounded-lg overflow-hidden">
+          <button
+            className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-blue-500/5 transition-colors"
+            onClick={() => setSoloFolderOpen(prev => !prev)}
+          >
+            {soloFolderOpen
+              ? <FolderOpen className="h-4 w-4 text-blue-400/70 flex-shrink-0" />
+              : <Folder className="h-4 w-4 text-blue-400/70 flex-shrink-0" />}
+            <span className="text-sm font-medium text-blue-300">Solo regisztráltak</span>
+            <span className="text-xs text-muted-foreground ml-1">({soloUsers.length} felhasználó — weboldalon regisztrált)</span>
+            <ChevronDown className={cn('h-4 w-4 ml-auto transition-transform duration-200', soloFolderOpen ? 'rotate-0' : '-rotate-90')} />
+          </button>
+          {soloFolderOpen && (
+            <div className="px-3 pb-3 pt-2 bg-blue-500/5">
+              {soloUsers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nincsenek solo regisztráltak</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {soloUsers.map(user => (
+                    <div key={user.id} className="flex items-center gap-2 px-3 py-1.5 rounded bg-blue-500/5 border border-blue-500/10 text-xs">
+                      <User className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                      <span className="font-medium truncate">{user.full_name || (user as any).email?.split('@')[0]}</span>
+                      <span className="text-muted-foreground truncate">{(user as any).email}</span>
+                      <span className="ml-auto text-[10px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 whitespace-nowrap">Solo</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── 3. Deaktivált cégek (collapsible, legalul) ─────────────────── */}
         {inactiveCompanies.length > 0 && (
-          <div className="mt-6 border border-dashed border-muted/40 rounded-lg overflow-hidden">
-            {/* Folder header */}
+          <div className="border border-dashed border-muted/40 rounded-lg overflow-hidden">
             <button
               className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/10 transition-colors text-muted-foreground"
               onClick={() => setDeactivatedFolderOpen(prev => !prev)}
             >
-              {deactivatedFolderOpen ? (
-                <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
-              ) : (
-                <Folder className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
-              )}
-              <span className="text-sm font-medium">
-                Deaktivált cégek ({inactiveCompanies.length})
-              </span>
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 ml-auto transition-transform duration-200',
-                  deactivatedFolderOpen ? 'rotate-0' : '-rotate-90'
-                )}
-              />
+              {deactivatedFolderOpen
+                ? <FolderOpen className="h-4 w-4 text-amber-500/70 flex-shrink-0" />
+                : <Folder className="h-4 w-4 text-amber-500/70 flex-shrink-0" />}
+              <span className="text-sm font-medium">Deaktivált cégek ({inactiveCompanies.length})</span>
+              <ChevronDown className={cn('h-4 w-4 ml-auto transition-transform duration-200', deactivatedFolderOpen ? 'rotate-0' : '-rotate-90')} />
             </button>
-
-            {/* Folder contents */}
             {deactivatedFolderOpen && (
               <div className="px-3 pb-3 space-y-2 bg-muted/5">
                 {inactiveCompanies.map((company, index) => renderCompanyRow(company, index, true))}
@@ -518,6 +611,7 @@ export function CompanyManagement({ companies, telephelyek, onDataChange }: Comp
             )}
           </div>
         )}
+        </div>{/* end space-y-4 */}
       </AnimatedCard>
 
       {/* Add Telephely Dialog */}

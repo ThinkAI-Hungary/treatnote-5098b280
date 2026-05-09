@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { Plus, Trash2, Loader2, Save } from 'lucide-react';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
 

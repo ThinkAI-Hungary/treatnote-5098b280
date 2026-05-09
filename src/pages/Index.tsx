@@ -26,6 +26,12 @@ const Index = () => {
 
   // Ha be van jelentkezve, azonnal a dashboardra irányítjuk
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=signup') || hash.includes('type=email_confirmation') || hash.includes('type=recovery')) {
+      navigate(`/auth${hash}`, { replace: true });
+      return;
+    }
+
     if (user) {
       navigate('/dashboard', { replace: true });
     }

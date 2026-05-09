@@ -16,22 +16,15 @@ const CLASSIFICATION_RULES: Array<TreatmentVisualCue & { keywords: string[] }> =
     visual_group: 'restorative',
     visual_color: '#3b82f6',
     visual_icon: 'filled_dot',
-    label: 'Konzerváló',
+    label: 'Konzerváló fogászat',
     keywords: ['tömés', 'kompozit', 'amalgám', 'üvegionomer', 'betét', 'inlay', 'onlay', 'overlay', 'konzerváló'],
   },
   {
     visual_group: 'prosthetic',
     visual_color: '#8b5cf6',
     visual_icon: 'ring',
-    label: 'Protetika',
-    keywords: ['korona', 'héj', 'veneer', 'fogpótlás', 'leplezés', 'laminát', 'protetik'],
-  },
-  {
-    visual_group: 'bridge',
-    visual_color: '#7c3aed',
-    visual_icon: 'double_ring',
-    label: 'Híd',
-    keywords: ['híd', 'hídtag', 'hídpillér', 'pontic'],
+    label: 'Fogpótlástan',
+    keywords: ['korona', 'héj', 'veneer', 'fogpótlás', 'leplezés', 'laminát', 'protetika', 'híd', 'pontic'],
   },
   {
     visual_group: 'surgical',
@@ -62,37 +55,44 @@ const CLASSIFICATION_RULES: Array<TreatmentVisualCue & { keywords: string[] }> =
     keywords: ['implant', 'beültetés', 'csontpótlás', 'sinus', 'membrán', 'augmentáció', 'implantátum'],
   },
   {
-    visual_group: 'preventive',
-    visual_color: '#eab308',
-    visual_icon: 'shield',
-    label: 'Prevenció',
-    keywords: ['szűrés', 'fluor', 'barázdazárás', 'higiénia', 'polírozás', 'prevenció', 'megelőz'],
+    visual_group: 'pediatric',
+    visual_color: '#f43f5e',
+    visual_icon: 'sparkle',
+    label: 'Gyermekfogászat',
+    keywords: ['gyermek', 'tej', 'tejfog'],
+  },
+  {
+    visual_group: 'orthodontic',
+    visual_color: '#10b981',
+    visual_icon: 'wavy_line',
+    label: 'Fogszabályozás',
+    keywords: ['fogszabályozás', 'bracket', 'ív', 'retainer', 'aligner'],
   },
   {
     visual_group: 'diagnostic',
     visual_color: '#64748b',
     visual_icon: 'dot_outline',
     label: 'Diagnosztika',
-    keywords: ['röntgen', 'ct', 'cbct', 'panoráma', 'diagnoszti', 'vizsgálat', 'szkenner', 'konzultáció'],
+    keywords: ['röntgen', 'ct', 'cbct', 'panoráma', 'diagnoszti', 'vizsgálat', 'szkenner', 'konzultáció', 'státusz'],
   },
   {
-    visual_group: 'aesthetic',
-    visual_color: '#ec4899',
-    visual_icon: 'sparkle',
-    label: 'Esztétika',
-    keywords: ['fehérítés', 'esztétikai', 'smile', 'bleach', 'kozmetikai'],
+    visual_group: 'other',
+    visual_color: '#94a3b8',
+    visual_icon: 'dot_outline',
+    label: 'Egyéb',
+    keywords: ['egyéb', 'other', 'fogkefe', 'paszta', 'szájvíz'],
   },
 ];
 
 /**
  * Classify a treatment item by name and optional category.
- * Returns the best-matching visual cue, or falls back to 'diagnostic' (gray).
+ * Returns the best-matching visual cue, or falls back to 'other' (gray).
  */
 export function classifyTreatmentItem(name: string, category?: string): TreatmentVisualCue {
   const text = `${name} ${category || ''}`.toLowerCase();
 
   for (const rule of CLASSIFICATION_RULES) {
-    if (rule.keywords.some(kw => text.includes(kw))) {
+    if (rule.keywords.some(kw => text.includes(kw)) || (category && category.toLowerCase() === rule.label.toLowerCase())) {
       return {
         visual_group: rule.visual_group,
         visual_color: rule.visual_color,
@@ -102,12 +102,12 @@ export function classifyTreatmentItem(name: string, category?: string): Treatmen
     }
   }
 
-  // Fallback: diagnostic (neutral gray)
+  // Fallback: other (neutral gray)
   return {
-    visual_group: 'diagnostic',
-    visual_color: '#64748b',
+    visual_group: 'other',
+    visual_color: '#94a3b8',
     visual_icon: 'dot_outline',
-    label: 'Diagnosztika',
+    label: category && category !== 'custom' ? category : 'Egyéb',
   };
 }
 
@@ -134,14 +134,14 @@ export function getVisualGroup(groupId: string): TreatmentVisualCue | undefined 
  * Predefined category options for the admin form.
  */
 export const TREATMENT_CATEGORIES = [
-  'Konzerváló',
-  'Protetika',
+  'Fogpótlástan',
   'Szájsebészet',
   'Endodontia',
   'Parodontológia',
+  'Gyermekfogászat',
+  'Fogszabályozás',
+  'Konzerváló fogászat',
   'Implantológia',
-  'Prevenció',
   'Diagnosztika',
-  'Esztétika',
   'Egyéb',
 ] as const;

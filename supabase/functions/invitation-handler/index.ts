@@ -567,7 +567,7 @@ serve(async (req) => {
 
       case "register-invited-user": {
         try {
-          const { token, password, full_name } = params;
+          const { token, password, full_name, voice_recording_preference } = params;
           if (!token || !password) {
             return new Response(JSON.stringify({ error: "Token and password are required" }), {
               status: 200,
@@ -671,6 +671,7 @@ serve(async (req) => {
               current_telephely_id: invitation.telephely_id,
               company_id: invitation.company_id,
               telephely_id: invitation.telephely_id,
+              voice_recording_preference: voice_recording_preference || 'treatnote_native',
             }, { onConflict: 'user_id' }); // Must specify user_id: profiles.id is the PK, not user_id
 
           if (profileError) {

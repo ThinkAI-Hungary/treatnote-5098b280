@@ -30,7 +30,7 @@ interface UseNativeVoiceJobHistoryReturn {
   pollJob: (jobId: string) => Promise<NativeVoiceJob | null>;
 }
 
-const MAX_HISTORY_ITEMS = 50;
+const MAX_HISTORY_ITEMS = 200;
 
 export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNativeVoiceJobHistoryReturn {
   const { user } = useAuth();
@@ -69,6 +69,8 @@ export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNative
       
       if (treatnotePatientId) {
         query = query.eq('treatnote_patient_id', treatnotePatientId);
+      } else {
+        query = query.is('treatnote_patient_id', null);
       }
 
       const { data, error: fetchError } = await query
@@ -140,7 +142,9 @@ export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNative
           if (payload.eventType === 'INSERT') {
             const newJob = payload.new as NativeVoiceJob;
             const matchesTelephely = !activeTelephelyId || newJob.telephely_id === activeTelephelyId;
-            const matchesPatient = !treatnotePatientId || newJob.treatnote_patient_id === treatnotePatientId;
+            const matchesPatient = treatnotePatientId 
+              ? newJob.treatnote_patient_id === treatnotePatientId 
+              : newJob.treatnote_patient_id === null;
             
             if (matchesTelephely && matchesPatient) {
               setJobs(prev => [newJob, ...prev].slice(0, MAX_HISTORY_ITEMS));

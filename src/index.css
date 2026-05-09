@@ -199,50 +199,47 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     transition: transform 0.1s ease;
   }
 
-  /* Hide scrollbars (scroll still works) */
-  ::-webkit-scrollbar {
+  /* Hide scrollbars (scroll still works) — but NOT on .custom-scrollbar-purple elements */
+  :not(.custom-scrollbar-purple)::-webkit-scrollbar {
     width: 0px;
     height: 0px;
   }
 
-  ::-webkit-scrollbar-track {
+  :not(.custom-scrollbar-purple)::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  ::-webkit-scrollbar-thumb {
+  :not(.custom-scrollbar-purple)::-webkit-scrollbar-thumb {
     background: transparent;
   }
 
   /* Firefox scrollbar */
-  * {
+  *:not(.custom-scrollbar-purple) {
     scrollbar-width: none;
   }
 }
 
 /* Custom Purple Scrollbar specific for high-fidelity areas */
 @layer utilities {
+  .custom-scrollbar-purple {
+    scrollbar-width: thin !important;
+    scrollbar-color: hsl(var(--primary) / 0.4) transparent !important;
+  }
   .custom-scrollbar-purple::-webkit-scrollbar {
     width: 6px !important;
     height: 6px !important;
+    display: block !important;
   }
   .custom-scrollbar-purple::-webkit-scrollbar-track {
     background: transparent !important;
-    margin-block: 4px; /* Gives some spacing at the top/bottom */
+    margin-block: 4px;
   }
   .custom-scrollbar-purple::-webkit-scrollbar-thumb {
     background: hsl(var(--primary) / 0.4) !important;
     border-radius: 9999px !important;
-    border: 2px solid transparent !important;
-    background-clip: content-box !important;
   }
   .custom-scrollbar-purple::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.6) !important;
-    border: 1px solid transparent !important;
-    background-clip: content-box !important;
-  }
-  .custom-scrollbar-purple {
-    scrollbar-width: thin !important;
-    scrollbar-color: hsl(var(--primary) / 0.4) transparent !important;
+    background: hsl(var(--primary) / 0.7) !important;
   }
 }
 
@@ -1697,4 +1694,53 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     transform: translateX(0);
     filter: drop-shadow(0 0 0px hsl(210 100% 60% / 0));
   }
+}
+
+/* ── Explicit Dialog Animations (bypassing Tailwindcss-animate) ── */
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(2rem) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dialogOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(2rem) scale(0.95);
+  }
+}
+
+.dialog-content-animated[data-state="open"] {
+  animation: dialogIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dialog-content-animated[data-state="closed"] {
+  animation: dialogOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dialogOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogOverlayOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.dialog-overlay-animated[data-state="open"] {
+  animation: dialogOverlayIn 0.2s ease-out forwards;
+}
+
+.dialog-overlay-animated[data-state="closed"] {
+  animation: dialogOverlayOut 0.2s ease-in forwards;
 }

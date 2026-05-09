@@ -24,7 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
@@ -603,38 +603,7 @@ const Profile = () => {
             </Button>
           )}
           
-          <div className="mt-6 pt-6 border-t">
-            <h4 className="text-sm font-medium mb-4">Hangfelvétel beállítások</h4>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Alapértelmezett hangfelvétel mód a Páciens Profilban</Label>
-                <Select
-                  disabled={!flexiAuth}
-                  value={(!flexiAuth ? 'treatnote_native' : profile.voice_recording_preference) || 'treatnote_native'}
-                  onValueChange={handleVoicePrefChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Válasszon módot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="treatnote_native">Beépített (Native) Rendszer</SelectItem>
-                    <SelectItem value="flexident" disabled={!flexiAuth}>
-                      Flexi-Dent integrált (Hagyományos)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {!flexiAuth ? (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Mivel nincs Flexi-Dent fiókja csatlakoztatva, csak a beépített hangfelvétel rendszer használható.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Döntse el, melyik rendszert szeretné használni alapesetben a Pácienslapon. Javasoljuk a Beépített Rendszert.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+
         </CardContent>
       </Card>
 

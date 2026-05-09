@@ -15,13 +15,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { useFlexiConnection } from '@/hooks/useFlexiConnection';
 import { useSzotar } from '@/hooks/useSzotar';
+import { useSzotarStdl } from '@/hooks/useSzotarStdl';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { useProfile } from '@/hooks/useProfile';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import { usePageLoading } from '@/contexts/PageLoadingContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { ChevronUp as ChevronUpIcon, Building } from 'lucide-react';
 import {
   Sidebar,
@@ -285,6 +286,7 @@ export function AppSidebar() {
   }, [isPageLoading]);
 
   const { hasSzotar, hasProbaPaciens, hasFlexiDomain, isLoading: szotarLoading } = useSzotar();
+  const { hasSzotarNative, hasNativeRules, isLoading: szotarStdlLoading } = useSzotarStdl();
   const { admins: klinikaAdmins, isLoading: adminsLoading } = useKlinikaAdmins();
   const depsInitialLoadRef = useRef(true);
 
@@ -369,21 +371,32 @@ export function AppSidebar() {
     fetchRules();
   }, [activeTelephelyId]);
 
-  // Re-fetch rules when a generation completes (from any page)
+  // Re-fetch rules when a generation completes (from any page) or when backend updates it
   useEffect(() => {
-    const unsubscribe = subscribeToRulesChanges(() => {
+    const fetchRulesCount = async () => {
       if (!activeTelephelyId) return;
-      (async () => {
-        try {
-          const { count } = await supabase
-            .from('treatment_rules')
-            .select('id', { count: 'exact', head: true })
-            .eq('clinic_id', activeTelephelyId);
-          setHasRules((count || 0) > 0);
-        } catch { /* ignore */ }
-      })();
-    });
-    return unsubscribe;
+      try {
+        const { count } = await supabase
+          .from('treatment_rules')
+          .select('id', { count: 'exact', head: true })
+          .eq('clinic_id', activeTelephelyId);
+        setHasRules((count || 0) > 0);
+      } catch { /* ignore */ }
+    };
+
+    const unsubscribeEvents = subscribeToRulesChanges(fetchRulesCount);
+
+    if (!activeTelephelyId) return unsubscribeEvents;
+
+    const channel = supabase
+      .channel(`sidebar-rules-${activeTelephelyId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'treatment_rules', filter: `clinic_id=eq.${activeTelephelyId}` }, fetchRulesCount)
+      .subscribe();
+
+    return () => {
+      unsubscribeEvents();
+      supabase.removeChannel(channel);
+    };
   }, [activeTelephelyId]);
 
   // Fetch all telephely memberships for the user
@@ -671,7 +684,11 @@ export function AppSidebar() {
   }, [profile, user, navigate]);
 
   // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
-  const allOnboardingComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
+  const isNativeMode = profile?.voice_recording_preference === 'treatnote_native';
+  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
+  const nativeComplete = hasNativeRules; // if there is at least 1 active native rule, consider it complete
+  
+  const allOnboardingComplete = nativeComplete || flexiComplete;
   const showProtectedItems = allOnboardingComplete;
 
   // Bump animKey whenever protected items first become visible → triggers CSS float-in animation
@@ -683,7 +700,7 @@ export function AppSidebar() {
     prevShowProtectedRef.current = showProtectedItems;
   }, [showProtectedItems]);
 
-  const depsCurrentlyLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading;
+  const depsCurrentlyLoading = szotarLoading || adminsLoading || rulesLoading || isFlexiLoading || szotarStdlLoading;
 
   if (depsCurrentlyLoading && depsInitialLoadRef.current) {
     return (
@@ -996,33 +1013,22 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => {
-                // For now, Páciensek menu is restricted to admin only per user request
-                if (item.requiresAdmin && !isAdmin) return null;
+                // Páciensek: visible to global admins, OR native mode users who completed native onboarding
+                if (item.requiresAdmin && !isAdmin && !(isNativeMode && nativeComplete)) return null;
 
                 if (item.requiresFlexi || item.requiresSzotar) {
-                  // Solo: always show, gated only on license
-                  if (isSolo) {
-                    const { isDisabled, disabledContent } = getHangfelvételDisabledState(item);
-                    return (
-                      <StaticMenuItem
-                        key={`${item.title}-solo`}
-                        item={item}
-                        collapsed={collapsed}
-                        tourId={(item as any).tourId}
-                        isDisabled={isDisabled}
-                        disabledContent={disabledContent}
-                        onDisabledClick={isDisabled ? handleBuySoloLicense : undefined}
-                      />
-                    );
-                  }
-                  // Non-solo: hide entirely when onboarding incomplete
-                  if (!showProtectedItems) return null;
+                  if (isNativeMode) return null;
+
+                  const { isDisabled, disabledContent } = getHangfelvételDisabledState(item);
                   return (
                     <StaticMenuItem
                       key={`${item.title}-${menuAnimKey}`}
                       item={item}
                       collapsed={collapsed}
                       tourId={(item as any).tourId}
+                      isDisabled={isDisabled}
+                      disabledContent={disabledContent}
+                      onDisabledClick={isDisabled && isSolo ? handleBuySoloLicense : undefined}
                     />
                   );
                 }

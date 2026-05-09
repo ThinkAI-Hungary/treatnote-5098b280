@@ -219,7 +219,8 @@ async function saveEmbeddings(
   supabase: any,
   ruleId: string,
   semanticDescription: string | null,
-  items: { name: string }[]
+  items: { name: string }[],
+  mode: string
 ): Promise<{ success: number; failed: number }> {
   const stats = { success: 0, failed: 0 };
 
@@ -278,9 +279,10 @@ async function saveEmbeddings(
     }
 
     // Direct insert/upsert to treatment_embeddings table
+    const table = mode === 'native' ? 'treatment_embeddings_stdl' : 'treatment_embeddings';
     const embeddingVector = `[${embeddings[i].join(',')}]`;
     const { error } = await supabase
-      .from('treatment_embeddings')
+      .from(table)
       .upsert({
         treatment_rule_id: ruleId,
         text_source: uniqueTexts[i].text,
@@ -448,7 +450,8 @@ async function updateJobStatus(
 async function processWebhookResult(
   result: WebhookResult,
   telephely_id: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  mode: string
 ): Promise<{ inserted: number; duplicates: number; errors: number; embeddingStats: { success: number; failed: number } }> {
   const stats = { inserted: 0, duplicates: 0, errors: 0, embeddingStats: { success: 0, failed: 0 } };
 
@@ -465,8 +468,9 @@ async function processWebhookResult(
 
     console.log(`[Protocol ${result.protocolId}] Inserting: ${extraction.fogalom}`);
 
+    const rulesTable = mode === 'native' ? 'treatment_rules_stdl' : 'treatment_rules';
     const { data: ruleData, error: ruleError } = await supabase
-      .from('treatment_rules')
+      .from(rulesTable)
       .insert({
         clinic_id: telephely_id,
         name: extraction.fogalom,
@@ -493,8 +497,9 @@ async function processWebhookResult(
     const visits = extraction.parsed?.visits || [];
     for (let vi = 0; vi < visits.length; vi++) {
       const visit = visits[vi];
+      const visitsTable = mode === 'native' ? 'rule_visits_stdl' : 'rule_visits';
       const { data: visitData, error: visitError } = await supabase
-        .from('rule_visits')
+        .from(visitsTable)
         .insert({
           rule_id: ruleData.id,
           visit_number: visit.visit_no || vi + 1,
@@ -521,8 +526,9 @@ async function processWebhookResult(
           display_order: ii,
         }));
 
+        const itemsTable = mode === 'native' ? 'rule_items_stdl' : 'rule_items';
         const { error: itemsError } = await supabase
-          .from('rule_items')
+          .from(itemsTable)
           .insert(itemsToInsert);
 
         if (itemsError) {
@@ -538,7 +544,8 @@ async function processWebhookResult(
       supabase,
       ruleData.id,
       extraction.semantic_description || null,
-      allItems
+      allItems,
+      mode
     );
     stats.embeddingStats.success += ruleEmbeddingStats.success;
     stats.embeddingStats.failed += ruleEmbeddingStats.failed;
@@ -559,18 +566,19 @@ async function processWebhooksAndImport(
   supabase: SupabaseClient,
   // deno-lint-ignore no-explicit-any
   jobMap: Map<number, any>, // protocolId -> job row
-  regenerate: boolean
+  regenerate: boolean,
+  mode: string
 ): Promise<void> {
   const timestamp = new Date().toISOString();
 
   console.log(`[Background ${eventId}] Starting webhook processing (batch: ${batchId})...`);
 
   try {
-    // If regenerating, wipe only dictionary-generated base rules (alapszabaly=true), preserving PDF-uploaded/edited rules
     if (regenerate) {
+      const rulesTable = mode === 'native' ? 'treatment_rules_stdl' : 'treatment_rules';
       console.log(`[Background ${eventId}] REGENERATE mode — deleting alapszabaly rules for telephely ${telephely_id}`);
       const { error: deleteError, count } = await supabase
-        .from('treatment_rules')
+        .from(rulesTable)
         .delete({ count: 'exact' })
         .eq('clinic_id', telephely_id)
         .eq('alapszabaly', true);
@@ -640,7 +648,7 @@ async function processWebhooksAndImport(
 
         if (result.success) {
           // Process and insert rules
-          const stats = await processWebhookResult(result, telephely_id, supabase);
+          const stats = await processWebhookResult(result, telephely_id, supabase, mode);
           totalInserted += stats.inserted;
           totalDuplicates += stats.duplicates;
           totalErrors += stats.errors;
@@ -717,7 +725,8 @@ serve(async (req) => {
   try {
     // Parse request body
     const body = await req.json();
-    const { telephely_id, user_id, regenerate } = body;
+    const { telephely_id, user_id, regenerate, mode } = body;
+    const resolvedMode = mode === 'native' ? 'native' : 'flexi';
 
     if (!telephely_id) {
       return new Response(
@@ -757,9 +766,10 @@ serve(async (req) => {
     }
 
     // Fetch szotar_kezelesek for this telephely
-    console.log(`Fetching szotar_kezelesek for telephely: ${telephely_id}`);
+    const szotarTable = resolvedMode === 'native' ? 'clinic_treatment_items_stdl' : 'szotar_kezelesek';
+    console.log(`Fetching dictionary from ${szotarTable} for telephely: ${telephely_id}`);
     const { data: kezelesekData, error: kezelesekError } = await supabase
-      .from('szotar_kezelesek')
+      .from(szotarTable)
       .select('id, name, category')
       .eq('telephely_id', telephely_id);
 
@@ -814,7 +824,8 @@ serve(async (req) => {
         kezelesek,
         supabase,
         jobMap,
-        regenerate === true
+        regenerate === true,
+        resolvedMode
       )
     );
 
