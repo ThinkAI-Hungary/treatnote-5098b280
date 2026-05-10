@@ -83,41 +83,58 @@ ${candidateList}
 Válaszolj KIZÁRÓLAG JSON-ban:
 {"pick": <sorszám vagy 0>, "confidence": <0.0-1.0>, "conditions": {}}`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 200,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
+  // Retry up to 3 times with 15s timeout per attempt
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
 
-  if (!res.ok) return null;
-  const data = await res.json() as any;
-  const text = data.content?.[0]?.text || '';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 200,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
 
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]);
-    const pick = parsed.pick as number;
-    if (pick === 0 || pick > candidates.length) return null;
+      if (!res.ok) {
+        console.warn(`[llmRefine] ${actionSlug} attempt ${attempt}: HTTP ${res.status}`);
+        continue;
+      }
 
-    const chosen = candidates[pick - 1];
-    return {
-      bestId: chosen.id,
-      bestName: chosen.name,
-      conditions: parsed.conditions || {},
-      confidence: parsed.confidence || 0.5,
-    };
-  } catch {
-    return null;
+      const data = await res.json() as any;
+      const text = data.content?.[0]?.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) continue;
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      const pick = parsed.pick as number;
+      if (pick === 0 || pick > candidates.length) return null;
+
+      const chosen = candidates[pick - 1];
+      return {
+        bestId: chosen.id,
+        bestName: chosen.name,
+        conditions: parsed.conditions || {},
+        confidence: parsed.confidence || 0.5,
+      };
+    } catch (err: any) {
+      clearTimeout(timer);
+      console.warn(`[llmRefine] ${actionSlug} attempt ${attempt} failed: ${err.name === 'AbortError' ? 'timeout' : err.message}`);
+      // continue to next attempt
+    }
   }
+
+  console.warn(`[llmRefine] ${actionSlug}: all 3 attempts failed, falling back to embedding`);
+  return null;
 }
 
 // ── Main Operations ──
@@ -128,7 +145,17 @@ interface SzotarItem {
   category?: string;
 }
 
-async function runMappingPipeline(telephelyId: string, supabase: any): Promise<any> {
+// ── Composite confidence scoring ──
+
+function compositeConfidence(embSim: number, llmConf: number, actionName: string, szName: string): number {
+  const aw = actionName.toLowerCase().split(/\s+/);
+  const sw = szName.toLowerCase().split(/\s+/);
+  const hits = aw.filter(w => w.length >= 3 && sw.some(s => s.includes(w) || w.includes(s)));
+  const nameOverlap = hits.length / Math.max(aw.length, 1);
+  return 0.3 * embSim + 0.45 * llmConf + 0.25 * nameOverlap;
+}
+
+async function runMappingPipeline(telephelyId: string, supabase: any, onProgress?: (pct: number, msg: string) => void): Promise<any> {
   // 1. Fetch szótár items
   const { data: szotarItems, error: szError } = await supabase
     .from('szotar_kezelesek')
@@ -139,11 +166,15 @@ async function runMappingPipeline(telephelyId: string, supabase: any): Promise<a
   if (szError) throw new Error(`Failed to fetch szótár: ${szError.message}`);
   if (!szotarItems?.length) throw new Error('No szótár items found for this telephely');
 
-  // 2. Generate embeddings for szótár items
-  const szotarTexts = szotarItems.map((i: SzotarItem) => i.name);
+  onProgress?.(5, `${szotarItems.length} szótár tétel betöltve. Embedding generálás...`);
+
+  // 2. Generate ENRICHED embeddings for szótár items (name + category for better disambiguation)
+  const szotarTexts = szotarItems.map((i: SzotarItem) => `${i.name}${i.category ? ` (${i.category})` : ''}`);
   const szotarEmbVectors = await getEmbeddings(szotarTexts);
   const szotarEmbeddings = new Map<string, number[]>();
   szotarItems.forEach((item: SzotarItem, i: number) => szotarEmbeddings.set(item.id, szotarEmbVectors[i]));
+
+  onProgress?.(15, 'Szótár embedding kész. Akciók embedding generálás...');
 
   // 3. Generate embeddings for atomic actions
   const actionTexts = ATOMIC_ACTIONS.map(a => a.embeddingText);
@@ -151,61 +182,200 @@ async function runMappingPipeline(telephelyId: string, supabase: any): Promise<a
   const actionEmbeddings = new Map<string, number[]>();
   ATOMIC_ACTIONS.forEach((a, i) => actionEmbeddings.set(a.slug, actionEmbVectors[i]));
 
-  // 4. Embedding matching + LLM refinement
+  onProgress?.(20, `Embedding kész. Matching indítása (${ATOMIC_ACTIONS.length} akció)...`);
+
+  // 4. Embedding matching — split into fast-path and LLM-needed
   const results: any[] = [];
-  const topK = 10;
+  const topK = 5; // top 5 candidates per action
   const minSimilarity = 0.35;
+
+  interface PendingAction {
+    action: typeof ATOMIC_ACTIONS[0];
+    candidates: { id: string; name: string; similarity: number }[];
+    topItem: { szotarItem: SzotarItem; similarity: number };
+  }
+  const pendingLLM: PendingAction[] = [];
 
   for (const action of ATOMIC_ACTIONS) {
     const actionEmb = actionEmbeddings.get(action.slug);
     if (!actionEmb) continue;
 
-    // Score all szótár items
     const scored: { szotarItem: SzotarItem; similarity: number }[] = [];
     for (const item of szotarItems as SzotarItem[]) {
       const itemEmb = szotarEmbeddings.get(item.id);
       if (!itemEmb) continue;
-      const sim = cosineSimilarity(actionEmb, itemEmb);
-      scored.push({ szotarItem: item, similarity: sim });
+      scored.push({ szotarItem: item, similarity: cosineSimilarity(actionEmb, itemEmb) });
     }
     scored.sort((a, b) => b.similarity - a.similarity);
     const filtered = scored.slice(0, topK).filter(c => c.similarity >= minSimilarity);
-
     if (filtered.length === 0) continue;
 
-    // LLM refinement
     const candidates = filtered.map(c => ({ id: c.szotarItem.id, name: c.szotarItem.name, similarity: c.similarity }));
-    const llmResult = await llmRefine(action.slug, action.nameHu, action.category, action.embeddingText, candidates);
+    const top = filtered[0];
 
-    if (llmResult) {
-      results.push({
-        atomicActionSlug: action.slug,
-        atomicActionName: action.nameHu,
-        szotarKezelesId: llmResult.bestId,
-        szotarKezelesName: llmResult.bestName,
-        conditions: llmResult.conditions,
-        confidence: llmResult.confidence,
-        method: 'llm_refined',
-      });
-    } else {
-      const top = filtered[0];
+    // Fast-path: strong embedding + name overlap
+    const nameWords = action.nameHu.toLowerCase().split(/[\s,\-()]+/).filter(w => w.length > 2);
+    const szNameLower = top.szotarItem.name.toLowerCase();
+    const nameOverlap = nameWords.filter(w => szNameLower.includes(w)).length / Math.max(nameWords.length, 1);
+
+    if (top.similarity >= 0.55 && nameOverlap >= 0.5) {
       results.push({
         atomicActionSlug: action.slug,
         atomicActionName: action.nameHu,
         szotarKezelesId: top.szotarItem.id,
         szotarKezelesName: top.szotarItem.name,
         conditions: {},
-        confidence: top.similarity,
-        method: 'embedding',
+        confidence: compositeConfidence(top.similarity, 0.85, action.nameHu, top.szotarItem.name),
+        method: 'embedding_high',
+        topCandidates: candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, sim: +c.similarity.toFixed(3) })),
       });
+    } else {
+      pendingLLM.push({ action, candidates, topItem: top });
     }
   }
 
-  // 5. Save to Supabase
+  console.log(`[V2 Onboarding] Fast-path: ${results.length}, pending LLM: ${pendingLLM.length}`);
+  onProgress?.(30, `${results.length} egyértelmű. ${pendingLLM.length} tétel LLM finomításra vár...`);
+
+  // 5. Batch LLM refinement — 8 actions per call
+  const BATCH_SIZE = 8;
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+
+  for (let batchIdx = 0; batchIdx < pendingLLM.length; batchIdx += BATCH_SIZE) {
+    const batch = pendingLLM.slice(batchIdx, batchIdx + BATCH_SIZE);
+    const batchNum = Math.floor(batchIdx / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(pendingLLM.length / BATCH_SIZE);
+
+    onProgress?.(
+      30 + Math.round(((batchIdx + batch.length) / pendingLLM.length) * 50),
+      `LLM batch ${batchNum}/${totalBatches} (${batch.length} akció)...`
+    );
+
+    if (!apiKey) {
+      // No API key — use embedding fallback for all
+      for (const p of batch) {
+        results.push({
+          atomicActionSlug: p.action.slug, atomicActionName: p.action.nameHu,
+          szotarKezelesId: p.topItem.szotarItem.id, szotarKezelesName: p.topItem.szotarItem.name,
+          conditions: {}, confidence: p.topItem.similarity * 0.6, method: 'embedding',
+          topCandidates: p.candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, sim: +c.similarity.toFixed(3) })),
+        });
+      }
+      continue;
+    }
+
+    // Build batch prompt
+    const actionsBlock = batch.map((p, i) => {
+      const candStr = p.candidates.map((c, j) => `  ${j + 1}. "${c.name}" (sim: ${c.similarity.toFixed(3)})`).join('\n');
+      return `### AKCIÓ ${i + 1}\n- Azonosító: ${p.action.slug}\n- Megnevezés: ${p.action.nameHu}\n- Kategória: ${p.action.category}\n- Leírás: ${p.action.embeddingText}\nJelöltek:\n${candStr}`;
+    }).join('\n\n');
+
+    const batchPrompt = `Te egy magyar fogászati számlázási rendszer szakértője vagy.
+
+FELADAT: ${batch.length} atomi klinikai beavatkozást kell a klinika szótárának legjobban illő tételéhez rendelned.
+
+SZABÁLYOK:
+1. Az atomi akció egy KONKRÉT BEAVATKOZÁSI LÉPÉS, NEM a végtermék.
+2. Ha a szótárban van pontos egyezés, MINDIG azt válaszd.
+3. NE válassz végtermék-tételt ha a keresett akció csak egy lépés.
+4. Ha EGYIK sem illik, válaszolj pick: 0-val.
+
+${actionsBlock}
+
+Válaszolj KIZÁRÓLAG JSON tömbbel, ${batch.length} elemmel:
+[{"action_index": 1, "pick": <sorszám vagy 0>, "confidence": <0.0-1.0>}, ...]`;
+
+    // Retry batch up to 3 times
+    let batchResults: any[] | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30_000);
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            messages: [{ role: 'user', content: batchPrompt }],
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) { console.warn(`[batch] attempt ${attempt}: HTTP ${res.status}`); continue; }
+        const data = await res.json() as any;
+        const text = data.content?.[0]?.text || '';
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          batchResults = JSON.parse(jsonMatch[0]);
+          break;
+        }
+      } catch (err: any) {
+        clearTimeout(timer);
+        console.warn(`[batch ${batchNum}] attempt ${attempt}: ${err.name === 'AbortError' ? 'timeout' : err.message}`);
+      }
+    }
+
+    // Process batch results
+    for (let i = 0; i < batch.length; i++) {
+      const p = batch[i];
+      const llmPick = batchResults?.find((r: any) => r.action_index === i + 1);
+
+      if (llmPick && llmPick.pick > 0 && llmPick.pick <= p.candidates.length) {
+        const chosen = p.candidates[llmPick.pick - 1];
+        const embSim = p.candidates.find(c => c.id === chosen.id)?.similarity || 0;
+        results.push({
+          atomicActionSlug: p.action.slug, atomicActionName: p.action.nameHu,
+          szotarKezelesId: chosen.id, szotarKezelesName: chosen.name,
+          conditions: {}, confidence: compositeConfidence(embSim, llmPick.confidence || 0.5, p.action.nameHu, chosen.name),
+          method: 'llm_refined',
+          topCandidates: p.candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, sim: +c.similarity.toFixed(3) })),
+        });
+      } else {
+        // LLM said no match or batch failed — use embedding fallback
+        results.push({
+          atomicActionSlug: p.action.slug, atomicActionName: p.action.nameHu,
+          szotarKezelesId: p.topItem.szotarItem.id, szotarKezelesName: p.topItem.szotarItem.name,
+          conditions: {}, confidence: p.topItem.similarity * 0.6, method: 'embedding',
+          topCandidates: p.candidates.slice(0, 3).map(c => ({ id: c.id, name: c.name, sim: +c.similarity.toFixed(3) })),
+        });
+      }
+    }
+  }
+
+  const fastCount = results.filter(r => r.method === 'embedding_high').length;
+  const llmCount = results.filter(r => r.method === 'llm_refined').length;
+  const embCount = results.filter(r => r.method === 'embedding').length;
+  console.log(`[V2 Onboarding] Final split: ${fastCount} fast-path, ${llmCount} LLM-refined, ${embCount} embedding-fallback (total: ${results.length})`);
+
+  onProgress?.(82, 'Ütközés-ellenőrzés...');
+  const szotarUsage = new Map<string, string[]>();
+  for (const r of results) {
+    const uses = szotarUsage.get(r.szotarKezelesId) || [];
+    uses.push(r.atomicActionSlug);
+    szotarUsage.set(r.szotarKezelesId, uses);
+  }
+  const collisions = [...szotarUsage.entries()]
+    .filter(([, slugs]) => slugs.length > 1)
+    .map(([id, slugs]) => ({
+      szotarId: id,
+      szotarName: results.find(r => r.szotarKezelesId === id)?.szotarKezelesName,
+      actions: slugs,
+    }));
+  if (collisions.length > 0) {
+    console.log(`[V2 Onboarding] ⚠️ ${collisions.length} collision(s) detected:`);
+    for (const c of collisions) {
+      console.log(`  "${c.szotarName}" → ${c.actions.join(', ')}`);
+    }
+  }
+
+  onProgress?.(85, 'Mentés adatbázisba...');
+
+  // 6. Save to Supabase
   // Clear old mappings
   await supabase.from('v2_clinic_mappings').delete().eq('telephely_id', telephelyId);
 
-  // Insert new mappings
+  // Insert new mappings (with top_candidates for review UI)
   const rows = results.map(r => ({
     telephely_id: telephelyId,
     szotar_kezeles_id: r.szotarKezelesId,
@@ -231,6 +401,8 @@ async function runMappingPipeline(telephelyId: string, supabase: any): Promise<a
     high,
     medium: med,
     low,
+    collisions: collisions.length,
+    collisionDetails: collisions,
     mappings: results,
   };
 }
@@ -559,13 +731,28 @@ serve(async (req: Request) => {
       case 'run-mapping': {
         // Run in background to avoid 150s timeout
         // The mapping pipeline does 60+ LLM calls and takes 3-5 minutes
-        const backgroundTask = (async () => {
+         const backgroundTask = (async () => {
           try {
             console.log(`[V2 Onboarding] Starting mapping for ${telephelyId}`);
-            const result = await runMappingPipeline(telephelyId, supabase);
+
+            // Progress callback writes to v2_clinic_defaults
+            const updateProgress = async (pct: number, msg: string) => {
+              await supabase.from('v2_clinic_defaults').upsert({
+                telephely_id: telephelyId,
+                overrides: {
+                  onboarding_status: 'running',
+                  onboarding_started_at: new Date().toISOString(),
+                  progress_percent: pct,
+                  progress_message: msg,
+                },
+              }, { onConflict: 'telephely_id' });
+            };
+
+            const result = await runMappingPipeline(telephelyId, supabase, updateProgress);
             console.log(`[V2 Onboarding] Base mapping completed: ${result.total} mappings saved`);
             
             // Auto-seed condition variants after base mapping
+            await updateProgress(90, 'Variánsok generálása...');
             console.log(`[V2 Onboarding] Starting variant seeding...`);
             const variantResult = await seedVariants(telephelyId, supabase);
             console.log(`[V2 Onboarding] Variants completed: ${variantResult.totalInserted} variants seeded`);
@@ -663,6 +850,45 @@ serve(async (req: Request) => {
           status: data?.overrides?.onboarding_status || 'not_started',
           mappings_count: mappingCount?.length || 0,
           details: data?.overrides || {},
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'reset-telephely': {
+        // Delete all V2 data for this telephely (service role bypasses RLS)
+        const { error: e1 } = await supabase.from('v2_clinic_mappings').delete().eq('telephely_id', telephelyId);
+        if (e1) console.error('reset mappings:', e1);
+        const { error: e2 } = await supabase.from('v2_clinic_defaults').delete().eq('telephely_id', telephelyId);
+        if (e2) console.error('reset defaults:', e2);
+        // Delete custom protocol templates (keep global ones)
+        const { error: e3 } = await supabase.from('v2_protocol_templates').delete().eq('telephely_id', telephelyId).eq('is_global', false);
+        if (e3) console.error('reset protocols:', e3);
+
+        console.log(`[V2 Onboarding] Reset telephely ${telephelyId}: mappings, defaults, custom protocols deleted`);
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Telephely alaphelyzetbe állítva. Mapping-ek, alapértelmezések és egyedi protokollok törölve.',
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'reset-profile': {
+        // Clear szótár, flexi domain, próba páciens, flexi auth
+        const { error: e1 } = await supabase.from('szotar_kezelesek').delete().eq('telephely_id', telephelyId);
+        if (e1) console.error('reset szotar_kezelesek:', e1);
+        const { error: e2 } = await supabase.from('szotar').delete().eq('telephely_id', telephelyId);
+        if (e2) console.error('reset szotar:', e2);
+        const { error: e3 } = await supabase.from('telephely').update({ flexi_domain: null, probapaciens_neve: null }).eq('id', telephelyId);
+        if (e3) console.error('reset telephely fields:', e3);
+        const { error: e4 } = await supabase.from('flexi_auth').delete().eq('telephely_id', telephelyId);
+        if (e4) console.error('reset flexi_auth:', e4);
+
+        console.log(`[V2 Onboarding] Reset profile for telephely ${telephelyId}: szótár, flexi domain, próba páciens, flexi auth deleted`);
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Profil alaphelyzetbe állítva. Szótár, FlexiDent domain, próba páciens és bejelentkezési adatok törölve.',
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

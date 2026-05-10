@@ -216,6 +216,7 @@ export function useVoiceRecorder({
     resetRecording,
     audioBlob,
     audioUrl,
+    stream: streamRef.current,
   };
 }
 

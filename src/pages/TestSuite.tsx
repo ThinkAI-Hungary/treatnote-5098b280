@@ -4,7 +4,7 @@
 // Only visible to zsolt@gmail.com
 // ============================================================
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import {
   FlaskConical, Play, Sparkles, Loader2,
   ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, XCircle,
   Clock, Search, FileText, Cpu, Shield, ArrowRight, Zap, List,
-  Brain,
+  Brain, Upload,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
@@ -88,6 +88,27 @@ export default function TestSuite() {
   // Assessment
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [assessing, setAssessing] = useState(false);
+
+  // Flexi RPA upload
+  const [paciensId, setPaciensId] = useState('31377837');
+  const [rpaUploading, setRpaUploading] = useState(false);
+  const [rpaResult, setRpaResult] = useState<any>(null);
+  const [rpaError, setRpaError] = useState<string | null>(null);
+
+  // Auto-load probapaciens_neve for the test patient
+  useEffect(() => {
+    if (!telephelyId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('telephely')
+        .select('probapaciens_neve')
+        .eq('id', telephelyId)
+        .maybeSingle();
+      if (data?.probapaciens_neve) {
+        setPaciensId(data.probapaciens_neve);
+      }
+    })();
+  }, [telephelyId]);
 
   const activeRun = runs.find(r => r.id === activeRunId) || null;
 
@@ -174,6 +195,30 @@ export default function TestSuite() {
       setRunning(false);
     }
   }, [inputText, telephelyId, runAssessment]);
+
+  // ── Flexi RPA upload ──
+
+  const handleFlexiUpload = useCallback(async () => {
+    if (!activeRun?.result?.rpaOutput?.vizitek || !paciensId.trim()) return;
+    setRpaUploading(true);
+    setRpaResult(null);
+    setRpaError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('v2-trigger-rpa', {
+        body: {
+          vizitek: activeRun.result.rpaOutput.vizitek,
+          paciensId: paciensId.trim(),
+        },
+      });
+      if (error) throw error;
+      setRpaResult(data);
+    } catch (err: any) {
+      console.error('RPA upload error:', err);
+      setRpaError(err.message || 'Ismeretlen hiba');
+    } finally {
+      setRpaUploading(false);
+    }
+  }, [activeRun, paciensId]);
 
 
 
@@ -450,6 +495,99 @@ export default function TestSuite() {
                 </div>
               ) : null}
             </div>
+
+            {/* ── Flexi Upload ── */}
+            {activeRun?.result?.rpaOutput?.vizitek?.length > 0 && (
+              <div className="space-y-2 border-t border-black/10 pt-3">
+                <div className="flex items-center gap-1.5">
+                  <Upload className="h-3.5 w-3.5 text-black/50" />
+                  <label className="text-xs font-medium uppercase tracking-wide text-black/50">Flexi Feltöltés</label>
+                </div>
+
+                <Input
+                  placeholder="PaciensID (pl. 12345)"
+                  value={paciensId}
+                  onChange={e => setPaciensId(e.target.value)}
+                  className="text-xs h-8 border-black/20"
+                />
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs border-black/20"
+                  onClick={handleFlexiUpload}
+                  disabled={rpaUploading || !paciensId.trim()}
+                >
+                  {rpaUploading ? (
+                    <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" />Feltöltés...</>
+                  ) : (
+                    <><Upload className="h-3 w-3 mr-1.5" />Feltöltés FlexiDent-be</>
+                  )}
+                </Button>
+
+                {/* RPA Result */}
+                {rpaResult && (
+                  <div className={cn(
+                    "rounded px-2.5 py-2 border text-xs",
+                    rpaResult.ok === 1 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                  )}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {rpaResult.ok === 1 ?
+                        <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> :
+                        <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
+                      <span className={cn("font-mono text-[10px] uppercase font-semibold",
+                        rpaResult.ok === 1 ? 'text-green-600' : 'text-red-600'
+                      )}>
+                        {rpaResult.ok === 1 ? 'SIKERES' : 'HIBA'}
+                      </span>
+                      {rpaResult.elapsed_seconds && (
+                        <span className="text-[9px] text-black/40 ml-auto">{rpaResult.elapsed_seconds}s</span>
+                      )}
+                    </div>
+                    {rpaResult.ok === 1 && rpaResult.report && (
+                      <p className="text-black/70 leading-snug">
+                        {rpaResult.report.bement?.length || 0} tétel betöltve
+                        {rpaResult.report.kihagyott?.length > 0 && (
+                          <span className="text-red-600"> ({rpaResult.report.kihagyott.length} kihagyva)</span>
+                        )}
+                      </p>
+                    )}
+                    {rpaResult.ok !== 1 && rpaResult.error && (
+                      <p className="text-red-600 leading-snug">{rpaResult.error}</p>
+                    )}
+                    {rpaResult.url && (
+                      <a href={rpaResult.url} target="_blank" rel="noopener" className="text-blue-600 underline block mt-1 truncate">
+                        {rpaResult.url}
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* RPA Debug Logs */}
+                {rpaResult && (rpaResult.debug_log?.length > 0 || rpaResult.stderr || rpaResult.stdout) && (
+                  <details className="mt-1" open={rpaResult.ok !== 1}>
+                    <summary className="text-[10px] text-black/40 cursor-pointer hover:text-black/60">
+                      RPA Logs {rpaResult.debug_log?.length ? `(${rpaResult.debug_log.length} sor)` : ''}
+                    </summary>
+                    <pre className="text-[9px] text-black/60 mt-1 bg-black/5 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto font-mono leading-tight">
+{rpaResult.debug_log?.length > 0
+  ? rpaResult.debug_log.join('\n')
+  : [rpaResult.stdout, rpaResult.stderr].filter(Boolean).join('\n--- STDERR ---\n') || 'Nincs log'}
+                    </pre>
+                  </details>
+                )}
+
+                {rpaError && (
+                  <div className="rounded px-2.5 py-2 border text-xs bg-red-50 border-red-200">
+                    <div className="flex items-center gap-1.5">
+                      <XCircle className="h-3 w-3 text-red-500 shrink-0" />
+                      <span className="font-mono text-[10px] uppercase text-red-600 font-semibold">HIBA</span>
+                    </div>
+                    <p className="text-red-600 leading-snug">{rpaError}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

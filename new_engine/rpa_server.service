@@ -1,0 +1,19 @@
+[Unit]
+Description=TreatNote RPA HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/voice-recorder/playground/TreatNote/SCRIPTS
+ExecStart=/usr/bin/python3 /opt/voice-recorder/playground/TreatNote/SCRIPTS/rpa_server.py
+Environment=RPA_PORT=8900
+Environment=RPA_SECRET=tn_rpa_2026_s3cur3_k3y
+Environment=TREATNOTE_DEBUG=1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

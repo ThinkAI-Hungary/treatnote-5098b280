@@ -80,10 +80,17 @@ DIAGNOSZTIKA:
 2. Ha a kimenetben "extra" akciók vannak: NE jelöld hallucinációnak, ha azok a template részei! Ellenőrizd az atomicActions listát — ha a template tartalmazza, az HELYES.
 3. Ha multi-visit vizitek jelennek meg (Vizit 2, 3...): Ez HELYES — a template jövőbeli üléseket is tartalmaz.
 4. UNMAPPED: KIZÁRÓLAG a "Nem párosított" listát nézd! Ha ott "nincs" áll, akkor NINCS mapping hiba. NE találj ki mapping_miss-t ha a lista üres!
-5. MAPPING_WRONG: Nézd meg a "Párosított" listában a szótár neveket — logikus-e az adott akcióhoz? Pl. "trepanalas → tejfog trepanálás" ROSSZ ha a fog egy felnőtt fog (FDI 11-48). Pl. "infiltracios_anesztezia → ICT érzéstelenítés" HELYES.
+5. MAPPING_WRONG: Nézd meg a "Párosított" listában a szótár neveket — logikus-e az adott akcióhoz? Pl. "trepanalas → tejfog trepanálás" ROSSZ ha a fog egy felnőtt fog (FDI 11-48). Pl. "infiltracios_anesztezia → ICT érzéstelenítés" HELYES. Ha a szótár név "tejfog"-ot tartalmaz de felnőtt fogról van szó: ez KONFIGURÁCIÓS HIBA (severity: warning), NEM pipeline hiba.
 6. VALÓDI extraction_miss: Csak akkor, ha a fogorvos KIMONDOTT egy kezelést és az NEM jelenik meg sehol a pipeline-ban.
 7. VALÓDI extraction_hallucination: Csak ha egy akció NEM template része ÉS nem említett a diktálásban.
-8. Score 90+ és PASS ha: minden kezelés felismert, template helyes, mapping rendben. Score 70-89 és WARN ha: kisebb hiányosságok. Score <70 és FAIL ha: kezelés hiányzik vagy kritikus mapping hiba.
+8. HÍDPÓTLÁSOK (Bridges) — NAGYON FONTOS:
+   - Ha a fogorvos HIDAT említ (pl. "22-28 híd"), a helyes template a "hid_elso_ules" vagy hasonló híd-template. NE jelöld hallucination-nak!
+   - A "hid_elso_ules" template a KORONA template kiterjesztése — tartalmaz korona_preparacio-t, ideiglenes_korona-t, stb. Ez HELYES, nem hallucináció.
+   - Egy hídnál KIZÁRÓLAG a PILLÉRFOGAK (abutments) kapnak kezelést. A köztes fogak (hézagfogak/pontics) NEM kapnak sem preparációt, sem ideiglenes koronát, sem cementálást.
+   - Példa: "22-28 híd, 23 is pillér" → pillérfogak: 22, 23, 28. Pontics: 24, 25, 26, 27. A kimenetben CSAK a 22, 23, 28 fogakon lesz preparáció/ideiglenes korona/cementálás — ez 100% HELYES!
+   - NE jelöld EXTRACTION_MISS-nek ha a pontic fogakról (24, 25, 26, 27) "hiányzik" a preparáció — azok NEM kapnak preparációt.
+   - NE jelöld EXTRACTION_HALLUCINATION-nak a hid_elso_ules template-et — ha a fogorvos hidat mond, ez a template HELYES.
+9. Score 90+ és PASS ha: minden kezelés felismert, template helyes, mapping rendben (mapping_wrong severity:warning nem csökkenti 90 alá). Score 70-89 és WARN ha: kisebb hiányosságok. Score <70 és FAIL ha: kezelés hiányzik vagy kritikus pipeline hiba.
 
 Légy PONTOS. Használj "template_correct" type-ot, ha egy template felismerés és kifejtés helyes volt.`;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Pencil, Sparkles, ArrowRight, GitBranch } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Pencil, Sparkles, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,22 +41,16 @@ interface V2MappingTabProps {
 
 // ─── Confidence helpers ──────────────────────────────────────────────────────
 
-function confidenceColor(c: number): string {
-  if (c >= 0.8) return 'text-green-500';
-  if (c >= 0.5) return 'text-yellow-500';
-  return 'text-red-500';
+function confidenceLabel(c: number): string {
+  if (c >= 0.7) return 'Jó';
+  if (c >= 0.4) return 'Átnézendő';
+  return 'Sürgős';
 }
 
 function confidenceBg(c: number): string {
-  if (c >= 0.8) return 'bg-green-500/10 border-green-500/20 text-green-500';
-  if (c >= 0.5) return 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500';
-  return 'bg-red-500/10 border-red-500/20 text-red-500';
-}
-
-function confidenceLevel(c: number): string {
-  if (c >= 0.8) return 'high';
-  if (c >= 0.5) return 'medium';
-  return 'low';
+  if (c >= 0.7) return 'bg-green-500/10 border-green-500/20 text-green-600';
+  if (c >= 0.4) return 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600';
+  return 'bg-red-500/10 border-red-500/20 text-red-600';
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -76,6 +70,22 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const [selectedSzotarId, setSelectedSzotarId] = useState<string | null>(null);
   const [selectedSzotarName, setSelectedSzotarName] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Review card state
+  interface ReviewMapping {
+    id: string;
+    atomic_action_slug: string;
+    szotar_kezeles_id: string | null;
+    szotar_kezeles_name: string | null;
+    confidence: number;
+    reviewed: boolean;
+  }
+  const [reviewMappings, setReviewMappings] = useState<ReviewMapping[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editingReviewSzId, setEditingReviewSzId] = useState<string | null>(null);
+  const [editingReviewSearch, setEditingReviewSearch] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   // ─── Data Loading ────────────────────────────────────────────────────────
 
@@ -118,20 +128,185 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
 
   useEffect(() => { loadMappings(); loadSzotar(); }, [loadMappings, loadSzotar]);
 
-  // ─── Run onboarding ──────────────────────────────────────────────────────
+  // ─── Review mappings (non-Jó, unreviewed) ──────────────────────────────
+
+  const loadReviewMappings = useCallback(async () => {
+    if (!telephelyId) return;
+    try {
+      const { data, error } = await supabase
+        .from('v2_clinic_mappings' as any)
+        .select('id, atomic_action_slug, szotar_kezeles_id, szotar_kezeles_name, confidence, reviewed')
+        .eq('telephely_id', telephelyId)
+        .eq('reviewed', false)
+        .lt('confidence', 0.7)
+        .order('confidence');
+      if (!error) setReviewMappings((data || []) as unknown as ReviewMapping[]);
+    } catch { /* ignore */ }
+  }, [telephelyId]);
+
+  useEffect(() => { loadReviewMappings(); }, [loadReviewMappings]);
+
+  const handleApproveReview = async (mapping: ReviewMapping, newSzId?: string, newSzName?: string) => {
+    setApprovingId(mapping.id);
+    try {
+      const update: Record<string, unknown> = { reviewed: true, reviewed_at: new Date().toISOString() };
+      if (newSzId) {
+        update.szotar_kezeles_id = newSzId;
+        update.szotar_kezeles_name = newSzName;
+        update.confidence = 1.0;
+      }
+      const { error } = await supabase.from('v2_clinic_mappings' as any).update(update).eq('id', mapping.id);
+      if (error) throw error;
+      
+      setReviewMappings(prev => prev.filter(m => m.id !== mapping.id));
+      setEditingReviewId(null);
+      toast.success('Mapping jóváhagyva!');
+      loadMappings();
+    } catch (err: any) {
+      toast.error('Hiba a mentés során: ' + (err.message || ''));
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleApproveAllReview = async () => {
+    setApprovingId('all');
+    try {
+      for (const m of reviewMappings) {
+        const { error } = await supabase.from('v2_clinic_mappings' as any)
+          .update({ reviewed: true, reviewed_at: new Date().toISOString() })
+          .eq('id', m.id);
+        if (error) throw error;
+      }
+      setReviewMappings([]);
+      toast.success(`${reviewMappings.length} mapping jóváhagyva!`);
+      loadMappings();
+    } catch (err: any) {
+      toast.error('Hiba az összes jóváhagyásakor: ' + (err.message || ''));
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const filteredReviewSzotar = useMemo(() => {
+    if (!editingReviewSearch) return szotarItems.slice(0, 30);
+    const q = editingReviewSearch.toLowerCase();
+    return szotarItems.filter(s => s.name.toLowerCase().includes(q)).slice(0, 30);
+  }, [szotarItems, editingReviewSearch]);
+
+  // ─── Run onboarding with progress polling ─────────────────────────────
+
+  const [progressPct, setProgressPct] = useState<number | null>(null);
+  const [progressMsg, setProgressMsg] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollStartRef = useRef<number>(0);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollStartRef.current = Date.now();
+    pollRef.current = setInterval(async () => {
+      // 5-minute safety timeout
+      if (Date.now() - pollStartRef.current > 5 * 60 * 1000) {
+        stopPolling();
+        setOnboardingRunning(false);
+        setProgressPct(null);
+        setProgressMsg('');
+        toast.error('Mapping pipeline időtúllépés — ellenőrizze a szótár állapotát és próbálja újra.');
+        return;
+      }
+
+      try {
+        const { data } = await supabase.functions.invoke('v2-onboarding', {
+          body: { operation: 'check-status', telephelyId },
+        });
+        if (!data) return;
+
+        if (data.status === 'running') {
+          setProgressPct(data.details?.progress_percent ?? 0);
+          setProgressMsg(data.details?.progress_message ?? 'Folyamatban...');
+
+          // Stale detection: if still "running" but no progress_percent after 60s, it likely crashed
+          const startedAt = data.details?.onboarding_started_at;
+          if (startedAt && !data.details?.progress_percent) {
+            const elapsed = Date.now() - new Date(startedAt).getTime();
+            if (elapsed > 60_000) {
+              stopPolling();
+              setOnboardingRunning(false);
+              setProgressPct(null);
+              setProgressMsg('');
+              toast.error('A pipeline nem indult el — ellenőrizze, hogy van-e szótár a telephelyhez.');
+              return;
+            }
+          }
+        } else if (data.status === 'completed') {
+          setProgressPct(100);
+          setProgressMsg('Kész!');
+          stopPolling();
+          setOnboardingRunning(false);
+          toast.success('Mapping pipeline elkészült!');
+          setTimeout(() => {
+            setProgressPct(null);
+            setProgressMsg('');
+            loadMappings();
+          }, 1500);
+        } else if (data.status === 'error') {
+          stopPolling();
+          setOnboardingRunning(false);
+          setProgressPct(null);
+          setProgressMsg('');
+          toast.error('Hiba a mapping pipeline-ban: ' + (data.details?.onboarding_error || 'Ismeretlen'));
+        } else {
+          // Status is 'not_started' or unknown — pipeline didn't start
+          stopPolling();
+          setOnboardingRunning(false);
+          setProgressPct(null);
+          setProgressMsg('');
+        }
+      } catch { /* retry on next tick */ }
+    }, 3000);
+  }, [telephelyId, stopPolling, loadMappings]);
+
+  // Check if pipeline is already running on mount
+  useEffect(() => {
+    if (!telephelyId) return;
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke('v2-onboarding', {
+          body: { operation: 'check-status', telephelyId },
+        });
+        if (data?.status === 'running') {
+          setOnboardingRunning(true);
+          setProgressPct(data.details?.progress_percent ?? 0);
+          setProgressMsg(data.details?.progress_message ?? 'Folyamatban...');
+          startPolling();
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => stopPolling();
+  }, [telephelyId, startPolling, stopPolling]);
 
   const runOnboarding = async () => {
     setOnboardingRunning(true);
+    setProgressPct(0);
+    setProgressMsg('Pipeline indítása...');
     try {
       const { data, error } = await supabase.functions.invoke('v2-onboarding', {
         body: { operation: 'run-mapping', telephelyId },
       });
       if (error) throw error;
-      toast.success('V2 mapping pipeline elindult a háttérben. Néhány perc múlva frissítsen.');
+      startPolling();
     } catch (err: any) {
       toast.error('Hiba: ' + (err.message || ''));
-    } finally {
       setOnboardingRunning(false);
+      setProgressPct(null);
+      setProgressMsg('');
     }
   };
 
@@ -190,9 +365,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
         r.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.all.some(m => (m.szotar_kezeles_name || '').toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesConf = confidenceFilter === 'all' ||
-        (confidenceFilter === 'high' && r.generic.confidence >= 0.8) ||
-        (confidenceFilter === 'medium' && r.generic.confidence >= 0.5 && r.generic.confidence < 0.8) ||
-        (confidenceFilter === 'low' && r.generic.confidence < 0.5) ||
+        (confidenceFilter === 'jo' && r.generic.confidence >= 0.7) ||
+        (confidenceFilter === 'atnezendo' && r.generic.confidence >= 0.4 && r.generic.confidence < 0.7) ||
+        (confidenceFilter === 'surgos' && r.generic.confidence < 0.4) ||
         (confidenceFilter === 'reviewed' && r.generic.reviewed) ||
         (confidenceFilter === 'unreviewed' && !r.generic.reviewed);
       return matchesSearch && matchesConf;
@@ -202,9 +377,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const stats = useMemo(() => ({
     total: slugRows.length,
     variants: mappings.length - slugRows.length,
-    high: slugRows.filter(r => r.generic.confidence >= 0.8).length,
-    medium: slugRows.filter(r => r.generic.confidence >= 0.5 && r.generic.confidence < 0.8).length,
-    low: slugRows.filter(r => r.generic.confidence < 0.5).length,
+    jo: slugRows.filter(r => r.generic.confidence >= 0.7).length,
+    atnezendo: slugRows.filter(r => r.generic.confidence >= 0.4 && r.generic.confidence < 0.7).length,
+    surgos: slugRows.filter(r => r.generic.confidence < 0.4).length,
     reviewed: slugRows.filter(r => r.generic.reviewed).length,
   }), [slugRows, mappings]);
 
@@ -305,10 +480,6 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
               <RefreshCw className="h-4 w-4 mr-1.5" />
               Frissítés
             </Button>
-            <Button variant="outline" size="sm" onClick={runVariantSeeding} disabled={variantsRunning}>
-              {variantsRunning ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <GitBranch className="h-4 w-4 mr-1.5" />}
-              Variánsok
-            </Button>
             <Button size="sm" onClick={runOnboarding} disabled={onboardingRunning}>
               {onboardingRunning ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
               Mapping futtatása
@@ -316,21 +487,154 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
           </div>
         </div>
 
+        {/* Progress bar */}
+        {progressPct !== null && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{progressMsg}</span>
+              <span className="font-mono font-medium text-primary">{progressPct}%</span>
+            </div>
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Stats bar */}
         <div className="flex items-center gap-3 mt-4 flex-wrap">
-          <Badge variant="outline" className="bg-green-500/10 border-green-500/20 text-green-500">
-            🟢 {stats.high} high
+          <Badge variant="outline" className="bg-green-500/10 border-green-500/20 text-green-600">
+            🟢 {stats.jo} Jó
           </Badge>
-          <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-500">
-            🟡 {stats.medium} medium
+          <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-600">
+            🟡 {stats.atnezendo} Átnézendő
           </Badge>
-          <Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-500">
-            🔴 {stats.low} low
+          <Badge variant="outline" className="bg-red-500/10 border-red-500/20 text-red-600">
+            🔴 {stats.surgos} Sürgős
           </Badge>
           <Badge variant="outline" className="bg-blue-500/10 border-blue-500/20 text-blue-500">
-            ✓ {stats.reviewed} reviewed
+            ✓ {stats.reviewed} Ellenőrzött
           </Badge>
         </div>
+
+        {/* Collapsible review section */}
+        {reviewMappings.length > 0 && (
+          <div className="mt-4 border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setReviewOpen(!reviewOpen)}
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm font-medium">Átnézésre váró mapping-ek</span>
+                <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                  {reviewMappings.length}
+                </Badge>
+              </div>
+              <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', reviewOpen && 'rotate-180')} />
+            </button>
+            {reviewOpen && (
+              <div>
+                <div className="px-4 py-2 border-b flex items-center justify-between bg-muted/30">
+                  <span className="text-xs text-muted-foreground">Ezek az automata hozzárendelések nem egyértelműek. Kérjük, ellenőrizze vagy javítsa őket.</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleApproveAllReview}
+                    disabled={approvingId === 'all'}
+                    className="gap-1.5 h-7 text-xs shrink-0"
+                  >
+                    {approvingId === 'all' ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                    Összes jóváhagyása
+                  </Button>
+                </div>
+                <ScrollArea className={reviewMappings.length > 6 ? 'h-[360px]' : undefined}>
+                  <div className="divide-y">
+                    {reviewMappings.map(m => (
+                      <div key={m.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-muted/30 transition-colors">
+                        <div className="w-[180px] shrink-0">
+                          <span className="text-sm font-medium">{actionName(m.atomic_action_slug)}</span>
+                          <span className="block text-[10px] text-muted-foreground font-mono">{m.atomic_action_slug}</span>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        {editingReviewId === m.id ? (
+                          <div className="flex-1 space-y-1.5">
+                            <div className="relative">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <Input
+                                placeholder="Keresés a szótárban..."
+                                value={editingReviewSearch}
+                                onChange={e => setEditingReviewSearch(e.target.value)}
+                                className="h-8 pl-8 text-xs"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="max-h-32 overflow-y-auto border rounded-md">
+                              {filteredReviewSzotar.map(sz => (
+                                <button
+                                  key={sz.id}
+                                  onClick={() => setEditingReviewSzId(sz.id)}
+                                  className={cn(
+                                    'w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
+                                    editingReviewSzId === sz.id && 'bg-primary/10 text-primary'
+                                  )}
+                                >
+                                  {sz.name}
+                                  {sz.category && <span className="text-muted-foreground ml-1.5">[{sz.category}]</span>}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex gap-1.5">
+                              <Button
+                                size="sm" className="h-7 text-xs"
+                                disabled={!editingReviewSzId || approvingId === m.id}
+                                onClick={() => {
+                                  const sz = szotarItems.find(s => s.id === editingReviewSzId);
+                                  if (sz) handleApproveReview(m, sz.id, sz.name);
+                                }}
+                              >
+                                {approvingId === m.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                Mentés
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingReviewId(null); setEditingReviewSzId(null); setEditingReviewSearch(''); }}>
+                                Mégse
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">{m.szotar_kezeles_name || '—'}</span>
+                          </div>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-[10px] px-1.5 shrink-0',
+                            confidenceBg(m.confidence)
+                          )}
+                        >
+                          {confidenceLabel(m.confidence)}
+                        </Badge>
+                        {editingReviewId !== m.id && (
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingReviewId(m.id); setEditingReviewSzId(null); setEditingReviewSearch(''); }} title="Szótár tétel módosítása">
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleApproveReview(m)} disabled={approvingId === m.id} title="Jóváhagyás">
+                              {approvingId === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Search & filter */}
         <div className="flex items-center gap-3 mt-3">
@@ -349,11 +653,11 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Összes</SelectItem>
-              <SelectItem value="high">🟢 High ≥0.8</SelectItem>
-              <SelectItem value="medium">🟡 Medium</SelectItem>
-              <SelectItem value="low">🔴 Low &lt;0.5</SelectItem>
-              <SelectItem value="reviewed">✓ Reviewed</SelectItem>
-              <SelectItem value="unreviewed">✗ Unreviewed</SelectItem>
+              <SelectItem value="jo">🟢 Jó</SelectItem>
+              <SelectItem value="atnezendo">🟡 Átnézendő</SelectItem>
+              <SelectItem value="surgos">🔴 Sürgős</SelectItem>
+              <SelectItem value="reviewed">✓ Ellenőrzött</SelectItem>
+              <SelectItem value="unreviewed">✗ Nem ellenőrzött</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -388,7 +692,7 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
                     key={row.slug}
                     className={cn(
                       "group transition-colors cursor-pointer",
-                      !row.generic.reviewed && row.generic.confidence < 0.5 && "bg-red-500/5"
+                      !row.generic.reviewed && row.generic.confidence < 0.4 && "bg-red-500/5"
                     )}
                     onClick={() => openEditDialog(row)}
                   >
@@ -418,8 +722,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={cn("text-xs font-mono", confidenceBg(row.generic.confidence))}>
-                        {(row.generic.confidence * 100).toFixed(0)}%
+                      <Badge variant="outline" className={cn("text-xs", confidenceBg(row.generic.confidence))}>
+                        {confidenceLabel(row.generic.confidence)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
@@ -483,8 +787,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <Badge variant="outline" className="text-[10px] shrink-0">{condLabel}</Badge>
-                          <Badge variant="outline" className={cn("text-[10px] font-mono shrink-0", confidenceBg(v.confidence))}>
-                            {(v.confidence * 100).toFixed(0)}%
+                          <Badge variant="outline" className={cn("text-[10px] shrink-0", confidenceBg(v.confidence))}>
+                            {confidenceLabel(v.confidence)}
                           </Badge>
                           {v.reviewed
                             ? <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />

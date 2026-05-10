@@ -100,7 +100,7 @@ serve(async (req) => {
     const finalFilename = filename || audio.name;
     const estimatedDuration = Math.round(audio.size / 16000);
 
-    // Create job record
+    // Create job record (matching v2-test-text pattern)
     const { data: jobData, error: jobError } = await supabaseAdmin
       .from('native_voice_jobs')
       .insert({
@@ -108,26 +108,25 @@ serve(async (req) => {
         company_id: companyId || null,
         telephely_id: telephelyId || null,
         mode,
-        treatnote_patient_id: treatnotePatientId,
         status: 'processing',
-        audio_filename: finalFilename,
-        duration_seconds: estimatedDuration,
+        progress_percent: 5,
+        progress_message: 'Feldolgozás indítása...',
       })
       .select('id')
       .single();
 
     if (jobError || !jobData) {
-      console.error("Failed to create native job:", jobError);
+      console.error("Failed to create native job:", JSON.stringify(jobError));
       await logErrorToDatabase(supabaseAdmin, {
         script_name: 'native-voice-webhook',
         summary: 'Feldolgozási sor (job) létrehozása sikertelen',
-        full_log: jobError || 'Nincs hibaüzenet',
+        full_log: jobError ? JSON.stringify(jobError) : 'Nincs hibaüzenet',
         user_id: userId,
         company_id: companyId,
         telephely_id: telephelyId
       });
       return new Response(
-        JSON.stringify({ error: "Belső hiba: nem sikerült a feldolgozási sort létrehozni. Kérjük, próbálja újra." }),
+        JSON.stringify({ error: `Belső hiba: nem sikerült a feldolgozási sort létrehozni. ${jobError?.message || ''} ${jobError?.details || ''}`.trim() }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -141,7 +140,7 @@ serve(async (req) => {
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     const apiKeys = { openai: openaiApiKey || "", elevenlabs: elevenlabsApiKey || "", anthropic: anthropicApiKey || "" };
-    const ctx = { userId, companyId, telephelyId, logErrorToDatabase };
+    const ctx = { userId, companyId, telephelyId, paciensId: treatnotePatientId, treatnotePatientId, logErrorToDatabase };
     let backgroundProcessing;
     if (mode === 'treatnote') {
       backgroundProcessing = processTreatnoteInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);

@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, telephelyId, userId } = await req.json();
+    const { text, telephelyId, userId, enableThinking } = await req.json();
 
     if (!text || !telephelyId) {
       return new Response(
@@ -71,6 +71,7 @@ serve(async (req) => {
       telephelyId,
       text,
       supabase,
+      enableThinking: enableThinking || false,
       onProgress: jobId ? async (percent, message) => {
         await supabase.from('native_voice_jobs').update({ progress_percent: percent, progress_message: message }).eq('id', jobId);
       } : undefined,

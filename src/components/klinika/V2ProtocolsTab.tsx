@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, Pencil, Trash2, RefreshCw, Package, ChevronDown, ChevronUp, Plus, X, GripVertical, RotateCcw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Search, Loader2, Pencil, Trash2, RefreshCw, Package, ChevronDown, ChevronUp, Plus, X, GripVertical, RotateCcw, CheckCircle2, AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AnimatedCard } from './AnimatedCard';
@@ -53,6 +54,7 @@ function catLabel(cat: string): string {
   return CATEGORIES.find(c => c.value === cat)?.label || cat;
 }
 
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function V2ProtocolsTab({ telephelyId }: V2ProtocolsTabProps) {
@@ -78,6 +80,7 @@ export function V2ProtocolsTab({ telephelyId }: V2ProtocolsTabProps) {
   const [dragInfo, setDragInfo] = useState<{ visitIdx: number; actionIdx: number } | null>(null);
   const [dragOverInfo, setDragOverInfo] = useState<{ visitIdx: number; actionIdx: number } | null>(null);
 
+
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   const loadTemplates = useCallback(async () => {
@@ -102,6 +105,8 @@ export function V2ProtocolsTab({ telephelyId }: V2ProtocolsTabProps) {
   }, [telephelyId]);
 
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
+
+
 
   // ─── Filtering ───────────────────────────────────────────────────────────
 

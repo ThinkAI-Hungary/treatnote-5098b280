@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
-import { Loader2, Mic, Copy, Check, QrCode, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mic, Copy, Check, QrCode, Eye, EyeOff, RotateCcw, AlertTriangle, Trash2 } from 'lucide-react';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { useProfile } from '@/hooks/useProfile';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 interface KezelopanelTabProps {
   telephelyId: string | null;
@@ -18,6 +19,11 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(false);
+
+  // Reset dialog state
+  const [resetTelephelyOpen, setResetTelephelyOpen] = useState(false);
+  const [resetProfileOpen, setResetProfileOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     setCurrentMode(profile?.voice_recording_preference || null);
@@ -71,6 +77,45 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
       toast.error('Hiba történt a módosításkor: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Reset handlers ──
+
+  const handleResetTelephely = async () => {
+    if (!telephelyId) return;
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('v2-onboarding', {
+        body: { operation: 'reset-telephely', telephelyId },
+      });
+      if (error) throw error;
+      toast.success(data?.message || 'Telephely mapping-ek és beállítások törölve!');
+      setResetTelephelyOpen(false);
+    } catch (err: any) {
+      console.error('Reset telephely error:', err);
+      toast.error('Hiba: ' + (err.message || 'Ismeretlen hiba'));
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleResetProfile = async () => {
+    if (!telephelyId) return;
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('v2-onboarding', {
+        body: { operation: 'reset-profile', telephelyId },
+      });
+      if (error) throw error;
+      toast.success(data?.message || 'Szótár, FlexiDent domain, próba páciens és bejelentkezési adatok törölve!');
+      setResetProfileOpen(false);
+      if (refetch) refetch();
+    } catch (err: any) {
+      console.error('Reset profile error:', err);
+      toast.error('Hiba: ' + err.message);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -175,6 +220,104 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
           </div>
         </CardContent>
       </AnimatedCard>
+
+      {/* ── Alaphelyzetbe állítás (Danger zone) ──────────────────────────── */}
+      <AnimatedCard>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <CardTitle className="text-base text-red-500">Veszélyes műveletek</CardTitle>
+          </div>
+          <CardDescription>
+            Ezek a műveletek visszavonhatatlanul törölnek adatokat. Körültekintően használja!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div>
+              <p className="text-sm font-medium">Telephely alaphelyzetbe állítása</p>
+              <p className="text-xs text-muted-foreground">Törli a V2 mapping-eket, protokoll testreszabásokat és az onboarding állapotot.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-500 shrink-0"
+              onClick={() => setResetTelephelyOpen(true)}
+              disabled={!telephelyId}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+              Visszaállítás
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border border-red-500/20 bg-red-500/5">
+            <div>
+              <p className="text-sm font-medium">Profil alaphelyzetbe állítása</p>
+              <p className="text-xs text-muted-foreground">Törli a szótárt, FlexiDent domaint, próba páciens ID-t és FlexiDent bejelentkezési adatokat.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-500 shrink-0"
+              onClick={() => setResetProfileOpen(true)}
+              disabled={!telephelyId}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Visszaállítás
+            </Button>
+          </div>
+        </CardContent>
+      </AnimatedCard>
+
+      {/* ── Telephely reset confirmation ──────────────────────────────────── */}
+      <Dialog open={resetTelephelyOpen} onOpenChange={setResetTelephelyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <AlertTriangle className="h-5 w-5" />
+              Telephely alaphelyzetbe állítása
+            </DialogTitle>
+            <DialogDescription>
+              Ez a művelet törli az összes V2 mapping-et és protokoll testreszabást ehhez a telephelyhez.
+              Az újrafuttatáshoz a Mapping fülön kell majd újra indítani az automata hozzárendelést.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetTelephelyOpen(false)} disabled={resetting}>
+              Mégse
+            </Button>
+            <Button variant="destructive" onClick={handleResetTelephely} disabled={resetting}>
+              {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
+              Törlés és visszaállítás
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Profile reset confirmation ────────────────────────────────────── */}
+      <Dialog open={resetProfileOpen} onOpenChange={setResetProfileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <AlertTriangle className="h-5 w-5" />
+              Profil alaphelyzetbe állítása
+            </DialogTitle>
+            <DialogDescription>
+              Ez a művelet törli a teljes szótárt, a FlexiDent domain beállítást, a próba páciens azonosítót,
+              és a FlexiDent bejelentkezési adatokat. Az onboarding folyamatot újra el kell majd végezni.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetProfileOpen(false)} disabled={resetting}>
+              Mégse
+            </Button>
+            <Button variant="destructive" onClick={handleResetProfile} disabled={resetting}>
+              {resetting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Trash2 className="h-4 w-4 mr-1.5" />}
+              Minden törlése
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

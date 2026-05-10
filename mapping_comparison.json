@@ -1,0 +1,1989 @@
+{
+  "summary": {
+    "originalMapped": 83,
+    "improvedMapped": 83,
+    "totalActions": 83,
+    "changedMappings": 30,
+    "confidenceImproved": 2,
+    "confidenceDecreased": 74,
+    "collisions": 6,
+    "origAvgConf": 0.867,
+    "imprAvgConf": 0.709
+  },
+  "changedMappings": [
+    {
+      "slug": "kompozit_tomes_1_felszin",
+      "name": "Kompozit tömés (1 felszín)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Frontfog 1 vagy 2 felszínű tömés",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Nagyőrlő tömés (1 felszínű tömés)",
+        "conf": 0.607,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.243
+    },
+    {
+      "slug": "amalgam_eltavolitas",
+      "name": "Amalgám eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.5416,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Régi csap eltávolítása/csap",
+        "conf": 0.352,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.19
+    },
+    {
+      "slug": "barzdazaras",
+      "name": "Barázdazárás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Barázdazárás (felszíni) kinetikus preparációs (EtchMaster aluminium kerámiaporos tisztítóval) mélytisztítással",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kiterjesztett barázdazárás",
+        "conf": 0.813,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.087
+    },
+    {
+      "slug": "csatorna_feltaras",
+      "name": "Csatornafeltárás és tágítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Mikroszkópos gyökérkezelés 2 csatorna 2. kezelés",
+        "conf": 0.7347,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Mikroszkópos gyökérkezelés 1 csatorna első kezelés",
+        "conf": 0.645,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.09
+    },
+    {
+      "slug": "gyokertomes",
+      "name": "Gyökértömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Gyökércsatorna átöblítés és gyógyszeres zárás - Dental Excellence",
+        "conf": 0.6941,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Gyökérkezelés gyökértöméssel front fogon( első kezelés 40.000, gyökértömés 40.000 )",
+        "conf": 0.762,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": 0.068
+    },
+    {
+      "slug": "csapos_felepites",
+      "name": "Csapos felépítés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Felépítés Cosmedent Cosmecore™ felépítőanyaggal",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Intracanalis Dentapreg PinPost™ üvegrost csap a felépítő tömés jobb rögzítésére",
+        "conf": 0.673,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.177
+    },
+    {
+      "slug": "fedotomes",
+      "name": "Fedőtömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Ideiglenes tömés üvgionomer tömőanyaggal",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Ideiglenes tömés üvegionomer tömőanyaggal",
+        "conf": 0.783,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.067
+    },
+    {
+      "slug": "gyokerkezeles_csatornankent",
+      "name": "Gyökérkezelés (csatornánként)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Mikroszkópos gyökérkezelés 4 csatorna 2. kezelés",
+        "conf": 0.757,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Mikroszkópos gyökérkezelés 1 csatorna első kezelés",
+        "conf": 0.723,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.034
+    },
+    {
+      "slug": "tomes_eltavolitas",
+      "name": "Tömés eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.6472,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Régi csap eltávolítása/csap",
+        "conf": 0.644,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.003
+    },
+    {
+      "slug": "emax_korona",
+      "name": "E.max préskerámia korona",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "E-max koronák",
+        "conf": 0.559,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.341
+    },
+    {
+      "slug": "implant_korona",
+      "name": "Korona implantátumra",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Átmenőcsavaros rögzítésű fém kerámia korona implantátumhoz",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Átmenőcsavaros cirkon korona implantátumokba/db",
+        "conf": 0.738,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.162
+    },
+    {
+      "slug": "fogszin_meghatarozas",
+      "name": "Fogszín meghatározás",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Fehérítősín készítése 2 fogívre alginát lenyomatra vagy scannelés",
+        "conf": 0.5214,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Fogpróba",
+        "conf": 0.342,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.179
+    },
+    {
+      "slug": "egyeni_kanal",
+      "name": "Egyéni kanál",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Precíziós lenyomat alapján injektálásos technikával készülő kivehető műanyag ideiglenes fogpótlás 3 fogig",
+        "conf": 0.5721,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Lenyomati díj egyéni kanállal, állcsontonként",
+        "conf": 0.753,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": 0.181
+    },
+    {
+      "slug": "varratszedes",
+      "name": "Varratszedés",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Parodontológia műtét utáni kontroll",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Varratszedés",
+        "conf": 0.792,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.008
+    },
+    {
+      "slug": "sebellatas",
+      "name": "Sebellátás / sebtoilette",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.5605,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Extractio, fogeltávolítás varrattal/db",
+        "conf": 0.364,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.197
+    },
+    {
+      "slug": "vestibulum_plasztika",
+      "name": "Vesztibulum plasztika",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Mucogingivális sebészet",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Gingiva-plasztika",
+        "conf": 0.675,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.175
+    },
+    {
+      "slug": "implantatum_beultes",
+      "name": "Implantátum beültetés",
+      "category": "implantacio",
+      "orig": {
+        "match": "Fogbeültetés foganként NobelActive TiUltra (Nobel-Biocare)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Straumann implantátum",
+        "conf": 0.736,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.164
+    },
+    {
+      "slug": "abutment",
+      "name": "Felépítő fej (abutment)",
+      "category": "implantacio",
+      "orig": {
+        "match": "Felépítőfej implantátumra",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Felépítő fej (Nobel-Biocare)",
+        "conf": 0.756,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.144
+    },
+    {
+      "slug": "csontpotlas",
+      "name": "Csontpótlás",
+      "category": "implantacio",
+      "orig": {
+        "match": "Bio-oss csontpótló anyag /gramm (Geistlich, Svájc) – szakmai aranystandard: 25 éves tapasztalat, a legtöbbet használt ilyen termék)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Creos csontpótló Xenogain 0.50 g",
+        "conf": 0.619,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.281
+    },
+    {
+      "slug": "membran",
+      "name": "Membrán alkalmazás",
+      "category": "implantacio",
+      "orig": {
+        "match": "BioGide membrán, mérettől függően 25x25cm",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "BioGide membrán, mérettől függően 30x40cm",
+        "conf": 0.707,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.193
+    },
+    {
+      "slug": "parodontologiai_vizsgalat",
+      "name": "Parodontológiai vizsgálat",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Fogágy állapotfelmérés, tasakmérés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Parodontológia szakvizsgálat tasakméréssel",
+        "conf": 0.875,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.025
+    },
+    {
+      "slug": "intraoralis_rtg",
+      "name": "Intraorális röntgen",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "PA digitális röntgen felvétel",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "RTG felvétel: kis méretű, fogászati RTG film",
+        "conf": 0.576,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.324
+    },
+    {
+      "slug": "intraoralis_scan",
+      "name": "Intraorális szkenner",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "CT Nagy térfogatú fogászati CBCT felvétel",
+        "conf": 0.6232,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.498,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.125
+    },
+    {
+      "slug": "fotodokumentacio",
+      "name": "Fotódokumentáció",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "Egyéb dokumentáció elkészítése a páciens kérésére",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése",
+        "conf": 0.775,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.075
+    },
+    {
+      "slug": "vezetekes_anesztezia",
+      "name": "Vezetéses érzéstelenítés",
+      "category": "kozos",
+      "orig": {
+        "match": "ICT érzéstelenítés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Íny alatti fogkőeltávolítás érzéstelenítéssel / kvadránsonként",
+        "conf": 0.327,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.573
+    },
+    {
+      "slug": "lezer_kezeles",
+      "name": "Lézer kezelés",
+      "category": "kozos",
+      "orig": {
+        "match": "Kiegészítő készülék kiegészítő kezelés",
+        "conf": 0.7,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Diagnodent, lézeres fogszuvasodásmérés (teljes fogsor)",
+        "conf": 0.596,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.104
+    },
+    {
+      "slug": "invisalign_aligner",
+      "name": "Invisalign / aligner kezelés",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Smilezor sínes fogszabályozás Quick (12 sínes)",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kontroll Invisaligne",
+        "conf": 0.676,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.124
+    },
+    {
+      "slug": "harapasemelo_sin",
+      "name": "Harapásemelő sín / bruxizmus sín",
+      "category": "kozos",
+      "orig": {
+        "match": "Stabilizációs harapásemelő sín - az ár tartalmazza a sín újra készítését 2 alkalommal",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Stabilizációs sín",
+        "conf": 0.714,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.186
+    },
+    {
+      "slug": "occlusio_beallitas",
+      "name": "Occlusio beállítás / becsiszolás",
+      "category": "kozos",
+      "orig": {
+        "match": "Arcíves harapásrögzítés rágóizom relaxációs harapásvétellel alkalmanként",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogsorérintkezés becsiszolása első alkalom",
+        "conf": 0.583,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.217
+    },
+    {
+      "slug": "fog_transzformalas",
+      "name": "Fog transzformálás",
+      "category": "kozos",
+      "orig": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.5704,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Korrekció",
+        "conf": 0.467,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.103
+    }
+  ],
+  "collisions": [
+    {
+      "actions": [
+        "ideiglenes_tomes",
+        "fedotomes"
+      ],
+      "szotarId": "9c360aa1-3419-49d3-8a07-2ea4da560885",
+      "szotarName": "Ideiglenes tömés üvegionomer tömőanyaggal"
+    },
+    {
+      "actions": [
+        "amalgam_eltavolitas",
+        "tomes_eltavolitas"
+      ],
+      "szotarId": "b1537ac7-36aa-4d2f-8b57-bdbcbc569d1a",
+      "szotarName": "Régi csap eltávolítása/csap"
+    },
+    {
+      "actions": [
+        "csatorna_feltaras",
+        "gyokerkezeles_csatornankent"
+      ],
+      "szotarId": "d54a2cdd-9d22-47b6-8774-52463e00623e",
+      "szotarName": "Mikroszkópos gyökérkezelés 1 csatorna első kezelés"
+    },
+    {
+      "actions": [
+        "lenyomatvetel",
+        "scan_body",
+        "intraoralis_scan"
+      ],
+      "szotarId": "887b50d5-7d4f-4f18-bd59-9180b7dc31cd",
+      "szotarName": "Digitális lenyomat állcsontonként"
+    },
+    {
+      "actions": [
+        "cirkon_korona",
+        "hidtag"
+      ],
+      "szotarId": "14ae7cdb-4f6d-4043-b97e-f12d8201ed3b",
+      "szotarName": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db"
+    },
+    {
+      "actions": [
+        "fotodokumentacio",
+        "fogszab_lenyomat"
+      ],
+      "szotarId": "daedf174-2e99-4c8b-87df-cf2db838f250",
+      "szotarName": "Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése"
+    }
+  ],
+  "fullComparison": [
+    {
+      "slug": "kompozit_tomes_1_felszin",
+      "name": "Kompozit tömés (1 felszín)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Frontfog 1 vagy 2 felszínű tömés",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Nagyőrlő tömés (1 felszínű tömés)",
+        "conf": 0.607,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.243
+    },
+    {
+      "slug": "kompozit_tomes_tobb_felszin",
+      "name": "Kompozit tömés (több felszín)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Nagyőrlő direkt restauráció (2 vagy több felszínű tömés)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Nagyőrlő direkt restauráció (2 vagy több felszínű tömés)",
+        "conf": 0.72,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.18
+    },
+    {
+      "slug": "frontfog_tomes",
+      "name": "Frontfog tömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Frontfog 1 vagy 2 felszínű tömés",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Frontfog 1 vagy 2 felszínű tömés",
+        "conf": 0.843,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.107
+    },
+    {
+      "slug": "ideiglenes_tomes",
+      "name": "Ideiglenes tömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Ideiglenes tömés üvegionomer tömőanyaggal",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Ideiglenes tömés üvegionomer tömőanyaggal",
+        "conf": 0.902,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.048
+    },
+    {
+      "slug": "caries_eltavolitas",
+      "name": "Caries eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.6042,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.363,
+        "method": "embedding_fallback"
+      },
+      "changed": false,
+      "confDelta": -0.241
+    },
+    {
+      "slug": "amalgam_eltavolitas",
+      "name": "Amalgám eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.5416,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Régi csap eltávolítása/csap",
+        "conf": 0.352,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.19
+    },
+    {
+      "slug": "barzdazaras",
+      "name": "Barázdazárás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Barázdazárás (felszíni) kinetikus preparációs (EtchMaster aluminium kerámiaporos tisztítóval) mélytisztítással",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kiterjesztett barázdazárás",
+        "conf": 0.813,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.087
+    },
+    {
+      "slug": "biomimetikus_ladaemeles",
+      "name": "Biomimetikus ládaemelés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Biomimetikus ládaemelés",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Biomimetikus ládaemelés",
+        "conf": 0.837,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.113
+    },
+    {
+      "slug": "direkt_hej",
+      "name": "Direkt kompozit héj",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Direkt héj, foganként",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Direkt héj, foganként",
+        "conf": 0.684,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.266
+    },
+    {
+      "slug": "trepanalas",
+      "name": "Trepanálás (hozzáférés)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "tejfog trepanálás",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "tejfog trepanálás",
+        "conf": 0.618,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.282
+    },
+    {
+      "slug": "csatorna_feltaras",
+      "name": "Csatornafeltárás és tágítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Mikroszkópos gyökérkezelés 2 csatorna 2. kezelés",
+        "conf": 0.7347,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Mikroszkópos gyökérkezelés 1 csatorna első kezelés",
+        "conf": 0.645,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.09
+    },
+    {
+      "slug": "csatorna_atoblites",
+      "name": "Csatorna átöblítés és gyógyszeres zárás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Gyökércsatorna átöblítés és gyógyszeres zárás alkalmanként",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Gyökércsatorna átöblítés és gyógyszeres zárás alkalmanként",
+        "conf": 0.817,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.083
+    },
+    {
+      "slug": "gyokertomes",
+      "name": "Gyökértömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Gyökércsatorna átöblítés és gyógyszeres zárás - Dental Excellence",
+        "conf": 0.6941,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Gyökérkezelés gyökértöméssel front fogon( első kezelés 40.000, gyökértömés 40.000 )",
+        "conf": 0.762,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": 0.068
+    },
+    {
+      "slug": "csapos_felepites",
+      "name": "Csapos felépítés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Felépítés Cosmedent Cosmecore™ felépítőanyaggal",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Intracanalis Dentapreg PinPost™ üvegrost csap a felépítő tömés jobb rögzítésére",
+        "conf": 0.673,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.177
+    },
+    {
+      "slug": "direkt_felszin_felepites",
+      "name": "Direkt felépítés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Direkt felépítés injektálásos technikával",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Direkt felépítés injektálásos technikával",
+        "conf": 0.87,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.08
+    },
+    {
+      "slug": "fedotomes",
+      "name": "Fedőtömés",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Ideiglenes tömés üvgionomer tömőanyaggal",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Ideiglenes tömés üvegionomer tömőanyaggal",
+        "conf": 0.783,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.067
+    },
+    {
+      "slug": "gyokerkezeles_csatornankent",
+      "name": "Gyökérkezelés (csatornánként)",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Mikroszkópos gyökérkezelés 4 csatorna 2. kezelés",
+        "conf": 0.757,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Mikroszkópos gyökérkezelés 1 csatorna első kezelés",
+        "conf": 0.723,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.034
+    },
+    {
+      "slug": "gyokertomes_eltavolitas",
+      "name": "Gyökértömés eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása nagyőrlő fog esetén csatornánként",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Régi gyökértömés eltávolítása nagyőrlő fog esetén csatornánként",
+        "conf": 0.872,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.078
+    },
+    {
+      "slug": "tomes_eltavolitas",
+      "name": "Tömés eltávolítás",
+      "category": "konzervalo_fogaszat",
+      "orig": {
+        "match": "Régi gyökértömés eltávolítása kisörlő esetén / csatorna - Dental Excellence",
+        "conf": 0.6472,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Régi csap eltávolítása/csap",
+        "conf": 0.644,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.003
+    },
+    {
+      "slug": "korona_preparacio",
+      "name": "Korona preparáció",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Preparálás",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Preparálás",
+        "conf": 0.576,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.374
+    },
+    {
+      "slug": "lenyomatvetel",
+      "name": "Lenyomatvétel",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.815,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.085
+    },
+    {
+      "slug": "harapasrogzites",
+      "name": "Harapásrögzítés",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Arcíves harapásrögzítés rágóizom relaxációs harapásvétellel alkalmanként",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Arcíves harapásrögzítés rágóizom relaxációs harapásvétellel alkalmanként",
+        "conf": 0.795,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.105
+    },
+    {
+      "slug": "ideiglenes_korona",
+      "name": "Ideiglenes korona",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Ideiglenes korona foganként, rendelő által készített",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Ideiglenes korona foganként, rendelő által készített",
+        "conf": 0.862,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.088
+    },
+    {
+      "slug": "vazproba",
+      "name": "Vázpróba",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Vázpróba",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Vázpróba",
+        "conf": 0.863,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.087
+    },
+    {
+      "slug": "korona_cementalas",
+      "name": "Korona/híd cementálás (átadás)",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Protetikai munka beragasztása, átadása",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Protetikai munka beragasztása, átadása",
+        "conf": 0.59,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.36
+    },
+    {
+      "slug": "fem_keramia_korona",
+      "name": "Fém-kerámia korona",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Fém kerámia korona",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fém kerámia korona",
+        "conf": 0.876,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.074
+    },
+    {
+      "slug": "cirkon_korona",
+      "name": "Cirkónium korona",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.7,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.2
+    },
+    {
+      "slug": "emax_korona",
+      "name": "E.max préskerámia korona",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "E-max koronák",
+        "conf": 0.559,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.341
+    },
+    {
+      "slug": "hidtag",
+      "name": "Hídtag",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Cirkon korona , Empress, E-max fémmentes korona, hídtag /db",
+        "conf": 0.778,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.072
+    },
+    {
+      "slug": "inlay_onlay",
+      "name": "Inlay / Onlay betét",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Betét -inlay, onlay",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Betét -inlay, onlay",
+        "conf": 0.789,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.161
+    },
+    {
+      "slug": "veneer_hej",
+      "name": "Héjkerámia (veneer)",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "E-max porcelán héj",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "E-max porcelán héj",
+        "conf": 0.741,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.209
+    },
+    {
+      "slug": "implant_korona",
+      "name": "Korona implantátumra",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Átmenőcsavaros rögzítésű fém kerámia korona implantátumhoz",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Átmenőcsavaros cirkon korona implantátumokba/db",
+        "conf": 0.738,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.162
+    },
+    {
+      "slug": "implant_ideiglenes_korona",
+      "name": "Ideiglenes korona implantátumra",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Átmenőcsavaros ideiglenes korona Nobel ideiglenes felépítményre",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Átmenőcsavaros ideiglenes korona Nobel ideiglenes felépítményre",
+        "conf": 0.828,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.072
+    },
+    {
+      "slug": "fogszin_meghatarozas",
+      "name": "Fogszín meghatározás",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Fehérítősín készítése 2 fogívre alginát lenyomatra vagy scannelés",
+        "conf": 0.5214,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Fogpróba",
+        "conf": 0.342,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.179
+    },
+    {
+      "slug": "korona_levetel",
+      "name": "Korona levétel / átvágás",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Korona levétel átvágott koronánként",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Korona levétel átvágott koronánként",
+        "conf": 0.762,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.188
+    },
+    {
+      "slug": "hosszutavu_ideiglenes",
+      "name": "Hosszútávú ideiglenes korona/híd",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Hosszútávú ideiglenes korona foganként - labor által készített",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Hosszútávú ideiglenes korona foganként - labor által készített",
+        "conf": 0.878,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.022
+    },
+    {
+      "slug": "egyeni_kanal",
+      "name": "Egyéni kanál",
+      "category": "fogpotlastan",
+      "orig": {
+        "match": "Precíziós lenyomat alapján injektálásos technikával készülő kivehető műanyag ideiglenes fogpótlás 3 fogig",
+        "conf": 0.5721,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Lenyomati díj egyéni kanállal, állcsontonként",
+        "conf": 0.753,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": 0.181
+    },
+    {
+      "slug": "extractio_egyszeru",
+      "name": "Extractio (egyszerű)",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Extractio, fogeltávolítás/db",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Extractio, fogeltávolítás/db",
+        "conf": 0.76,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.14
+    },
+    {
+      "slug": "extractio_sebeszeti",
+      "name": "Extractio (sebészeti feltárásból)",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.733,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.217
+    },
+    {
+      "slug": "varratszedes",
+      "name": "Varratszedés",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Parodontológia műtét utáni kontroll",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Varratszedés",
+        "conf": 0.792,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.008
+    },
+    {
+      "slug": "sebellatas",
+      "name": "Sebellátás / sebtoilette",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.5605,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Extractio, fogeltávolítás varrattal/db",
+        "conf": 0.364,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.197
+    },
+    {
+      "slug": "frenulektomia",
+      "name": "Frenulektómia",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Nyelvfékfelvágás- alsó ajakfék plasztika",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Nyelvfékfelvágás- alsó ajakfék plasztika",
+        "conf": 0.596,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.304
+    },
+    {
+      "slug": "vestibulum_plasztika",
+      "name": "Vesztibulum plasztika",
+      "category": "szajsebeszet",
+      "orig": {
+        "match": "Mucogingivális sebészet",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Gingiva-plasztika",
+        "conf": 0.675,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.175
+    },
+    {
+      "slug": "implantatum_beultes",
+      "name": "Implantátum beültetés",
+      "category": "implantacio",
+      "orig": {
+        "match": "Fogbeültetés foganként NobelActive TiUltra (Nobel-Biocare)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Straumann implantátum",
+        "conf": 0.736,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.164
+    },
+    {
+      "slug": "gyogyulasi_sapka",
+      "name": "Gyógyulási sapka behelyezés",
+      "category": "implantacio",
+      "orig": {
+        "match": "Gyógyulási sapka multiunit fejre Nobel",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Gyógyulási sapka multiunit fejre Nobel",
+        "conf": 0.813,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.137
+    },
+    {
+      "slug": "abutment",
+      "name": "Felépítő fej (abutment)",
+      "category": "implantacio",
+      "orig": {
+        "match": "Felépítőfej implantátumra",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Felépítő fej (Nobel-Biocare)",
+        "conf": 0.756,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.144
+    },
+    {
+      "slug": "scan_body",
+      "name": "Scan body",
+      "category": "implantacio",
+      "orig": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.49,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.36
+    },
+    {
+      "slug": "csontpotlas",
+      "name": "Csontpótlás",
+      "category": "implantacio",
+      "orig": {
+        "match": "Bio-oss csontpótló anyag /gramm (Geistlich, Svájc) – szakmai aranystandard: 25 éves tapasztalat, a legtöbbet használt ilyen termék)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Creos csontpótló Xenogain 0.50 g",
+        "conf": 0.619,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.281
+    },
+    {
+      "slug": "membran",
+      "name": "Membrán alkalmazás",
+      "category": "implantacio",
+      "orig": {
+        "match": "BioGide membrán, mérettől függően 25x25cm",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "BioGide membrán, mérettől függően 30x40cm",
+        "conf": 0.707,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.193
+    },
+    {
+      "slug": "sinus_lift_nyilt",
+      "name": "Sinus lift (nyílt)",
+      "category": "implantacio",
+      "orig": {
+        "match": "Arcüreg emelés (sinuslift) a beültetéshez elegendő csontvastagság elérésére - nyílt technika",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Arcüreg emelés (sinuslift) a beültetéshez elegendő csontvastagság elérésére - nyílt technika",
+        "conf": 0.899,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.051
+    },
+    {
+      "slug": "sinus_lift_zart",
+      "name": "Sinus lift (zárt)",
+      "category": "implantacio",
+      "orig": {
+        "match": "Arcüreg emelés (sinuslift), a beültetéshez elegendő csontvastagság elérésére - zárt technika",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Arcüreg emelés (sinuslift), a beültetéshez elegendő csontvastagság elérésére - zárt technika",
+        "conf": 0.898,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.052
+    },
+    {
+      "slug": "socket_prezervacio",
+      "name": "Socket prezervació (alveolus)",
+      "category": "implantacio",
+      "orig": {
+        "match": "Csontpótlás: egy fog húzási helyének feltöltésére front és premoláris fog esetén",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Csontpótlás: egy fog húzási helyének feltöltésére front és premoláris fog esetén",
+        "conf": 0.537,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.363
+    },
+    {
+      "slug": "navigalt_sebeszet",
+      "name": "Navigált sebészeti sablon",
+      "category": "implantacio",
+      "orig": {
+        "match": "Smart Guide digitális előfúró sablon",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Smart Guide digitális előfúró sablon",
+        "conf": 0.689,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.211
+    },
+    {
+      "slug": "muteti_elokeszites",
+      "name": "Műtéti előkészítés",
+      "category": "implantacio",
+      "orig": {
+        "match": "Műtéti előkészítés Hygitech egyszerhasználatos steril takarókkal, műszervédőkkel (a továbbiakban felsorolt kezelésekhez hozzáadandó)",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Műtéti előkészítés Hygitech egyszerhasználatos steril takarókkal, műszervédőkkel (a továbbiakban felsorolt kezelésekhez hozzáadandó)",
+        "conf": 0.901,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.049
+    },
+    {
+      "slug": "depuralas",
+      "name": "Depurálás (fogkőeltávolítás + polírozás)",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Depurálás - Professzionális fogkőeltávolítás és Prophy Jet polírozás -felnőtt és rögzített fogszabályozós gyermek",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Depurálás - Professzionális fogkőeltávolítás és Prophy Jet polírozás -felnőtt és rögzített fogszabályozós gyermek",
+        "conf": 0.817,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.133
+    },
+    {
+      "slug": "zart_kurett",
+      "name": "Zárt kürett",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Zárt kürett egy quadráns",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Zárt kürett egy quadráns",
+        "conf": 0.882,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.068
+    },
+    {
+      "slug": "nyilt_kurett",
+      "name": "Nyílt kürett (lebenyműtét)",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Nyitott kürett egy fogra Emdogain anyagköltség nélkül",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Nyitott kürett egy fogra Emdogain anyagköltség nélkül",
+        "conf": 0.633,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.267
+    },
+    {
+      "slug": "parodontologiai_vizsgalat",
+      "name": "Parodontológiai vizsgálat",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Fogágy állapotfelmérés, tasakmérés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Parodontológia szakvizsgálat tasakméréssel",
+        "conf": 0.875,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.025
+    },
+    {
+      "slug": "air_flow",
+      "name": "Air-flow / biofilm terápia",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Polírozás fogászati Prohy Jet homokfúvó készülékkel",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Polírozás fogászati Prohy Jet homokfúvó készülékkel",
+        "conf": 0.527,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.323
+    },
+    {
+      "slug": "inygrafit",
+      "name": "Kötőszöveti graft",
+      "category": "parodontologia",
+      "orig": {
+        "match": "Szájpadlás kötőszöveti augmentáció",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Szájpadlás kötőszöveti augmentáció",
+        "conf": 0.695,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.155
+    },
+    {
+      "slug": "konzultacio",
+      "name": "Konzultáció / betegvizsgálat",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "Első betegvizsgálat, konzultáció Orvosnál ( 30 perc )",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Első betegvizsgálat, konzultáció Orvosnál ( 30 perc )",
+        "conf": 0.754,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.146
+    },
+    {
+      "slug": "intraoralis_rtg",
+      "name": "Intraorális röntgen",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "PA digitális röntgen felvétel",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "RTG felvétel: kis méretű, fogászati RTG film",
+        "conf": 0.576,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.324
+    },
+    {
+      "slug": "panorama_rtg",
+      "name": "Panoráma röntgen",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "OP Digitális panoráma röntgen felvétel",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "OP Digitális panoráma röntgen felvétel",
+        "conf": 0.867,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.083
+    },
+    {
+      "slug": "cbct",
+      "name": "CBCT (3D CT)",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "CT Nagy térfogatú fogászati CBCT felvétel",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "CT Nagy térfogatú fogászati CBCT felvétel",
+        "conf": 0.763,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.187
+    },
+    {
+      "slug": "intraoralis_scan",
+      "name": "Intraorális szkenner",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "CT Nagy térfogatú fogászati CBCT felvétel",
+        "conf": 0.6232,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Digitális lenyomat állcsontonként",
+        "conf": 0.498,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.125
+    },
+    {
+      "slug": "fotodokumentacio",
+      "name": "Fotódokumentáció",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "Egyéb dokumentáció elkészítése a páciens kérésére",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése",
+        "conf": 0.775,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.075
+    },
+    {
+      "slug": "mosolytervezes",
+      "name": "Mosolytervezés / Smile Design",
+      "category": "diagnosztika",
+      "orig": {
+        "match": "Számítógépes mosolytervezés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Számítógépes mosolytervezés",
+        "conf": 0.643,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.257
+    },
+    {
+      "slug": "infiltracios_anesztezia",
+      "name": "Infiltrációs érzéstelenítés",
+      "category": "kozos",
+      "orig": {
+        "match": "ICT érzéstelenítés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "ICT érzéstelenítés",
+        "conf": 0.579,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.321
+    },
+    {
+      "slug": "vezetekes_anesztezia",
+      "name": "Vezetéses érzéstelenítés",
+      "category": "kozos",
+      "orig": {
+        "match": "ICT érzéstelenítés",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Íny alatti fogkőeltávolítás érzéstelenítéssel / kvadránsonként",
+        "conf": 0.327,
+        "method": "embedding_fallback"
+      },
+      "changed": true,
+      "confDelta": -0.573
+    },
+    {
+      "slug": "intraligamentaris_anesztezia",
+      "name": "Intraligamentáris érzéstelenítés",
+      "category": "kozos",
+      "orig": {
+        "match": "Számítógépes érzéstelenítés Quick Sleeper készülékkel",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Számítógépes érzéstelenítés Quick Sleeper készülékkel",
+        "conf": 0.729,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.171
+    },
+    {
+      "slug": "kofferdam",
+      "name": "Kofferdam izolálás",
+      "category": "kozos",
+      "orig": {
+        "match": "Kofferdam",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kofferdam",
+        "conf": 0.756,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.194
+    },
+    {
+      "slug": "ecseteles",
+      "name": "Ecsetelés / fluoridálás",
+      "category": "kozos",
+      "orig": {
+        "match": "Fluorid lakkozás",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fluorid lakkozás",
+        "conf": 0.648,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.252
+    },
+    {
+      "slug": "lezer_kezeles",
+      "name": "Lézer kezelés",
+      "category": "kozos",
+      "orig": {
+        "match": "Kiegészítő készülék kiegészítő kezelés",
+        "conf": 0.7,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Diagnodent, lézeres fogszuvasodásmérés (teljes fogsor)",
+        "conf": 0.596,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.104
+    },
+    {
+      "slug": "feherites_rendeloi",
+      "name": "Fogfehérítés (rendelői)",
+      "category": "kozos",
+      "orig": {
+        "match": "Rendelői fogfehérítés",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Rendelői fogfehérítés",
+        "conf": 0.847,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.103
+    },
+    {
+      "slug": "feherites_otthoni",
+      "name": "Fogfehérítés (otthoni)",
+      "category": "kozos",
+      "orig": {
+        "match": "Fogfehérítés, sínes, két hetes, otthoni, alsó, felső fogíven. ( Tartalmazza a lenyomat vagy scannelés ,a sín és fehérítő anyag árát )",
+        "conf": 0.95,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogfehérítés, sínes, két hetes, otthoni, alsó, felső fogíven. ( Tartalmazza a lenyomat vagy scannelés ,a sín és fehérítő anyag árát )",
+        "conf": 0.82,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.13
+    },
+    {
+      "slug": "rogzitett_keszulek_atadas",
+      "name": "Rögzített fogszabályozó készülék átadás",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Rögzített fém fogszabályozó készülék egy fogívre (önligírozó)",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Rögzített fém fogszabályozó készülék egy fogívre (önligírozó)",
+        "conf": 0.793,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.107
+    },
+    {
+      "slug": "fogszab_aktivalas",
+      "name": "Fogszabályozó készülék aktiválás",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Ív és gumicsere egy fogív",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Ív és gumicsere egy fogív",
+        "conf": 0.669,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.231
+    },
+    {
+      "slug": "invisalign_aligner",
+      "name": "Invisalign / aligner kezelés",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Smilezor sínes fogszabályozás Quick (12 sínes)",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kontroll Invisaligne",
+        "conf": 0.676,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.124
+    },
+    {
+      "slug": "retainer",
+      "name": "Retainer",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Kivehető retainer egy fogívre",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Kivehető retainer egy fogívre",
+        "conf": 0.839,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.061
+    },
+    {
+      "slug": "fogszab_lenyomat",
+      "name": "Fogszabályozás lenyomat + kezelési terv",
+      "category": "fogszabalyozas",
+      "orig": {
+        "match": "Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése",
+        "conf": 0.85,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogszabályozási célból készített fotó dokumentáció és digitális lenyomatok készítése",
+        "conf": 0.722,
+        "method": "batch_llm"
+      },
+      "changed": false,
+      "confDelta": -0.128
+    },
+    {
+      "slug": "harapasemelo_sin",
+      "name": "Harapásemelő sín / bruxizmus sín",
+      "category": "kozos",
+      "orig": {
+        "match": "Stabilizációs harapásemelő sín - az ár tartalmazza a sín újra készítését 2 alkalommal",
+        "conf": 0.9,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Stabilizációs sín",
+        "conf": 0.714,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.186
+    },
+    {
+      "slug": "occlusio_beallitas",
+      "name": "Occlusio beállítás / becsiszolás",
+      "category": "kozos",
+      "orig": {
+        "match": "Arcíves harapásrögzítés rágóizom relaxációs harapásvétellel alkalmanként",
+        "conf": 0.8,
+        "method": "llm"
+      },
+      "impr": {
+        "match": "Fogsorérintkezés becsiszolása első alkalom",
+        "conf": 0.583,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.217
+    },
+    {
+      "slug": "fog_transzformalas",
+      "name": "Fog transzformálás",
+      "category": "kozos",
+      "orig": {
+        "match": "Extractio(fogeltávolítás) műtéti feltárásból, bölcsességfog",
+        "conf": 0.5704,
+        "method": "embedding"
+      },
+      "impr": {
+        "match": "Korrekció",
+        "conf": 0.467,
+        "method": "batch_llm"
+      },
+      "changed": true,
+      "confDelta": -0.103
+    }
+  ]
+}

@@ -149,8 +149,63 @@ export function expandProtocols(protocols: ProtocolInstance[]): ExpandResult {
       });
     }
 
-    // --- Inject future visit actions from multi-visit template ---
+    // --- Bridge pillar replication (template-driven) ---
+    // If this protocol has multiple pillar teeth (detected from korona_preparacio),
+    // ensure ALL per_tooth actions defined in the template exist for every pillar.
+    // The protocol template is the source of truth for which actions are needed.
     if (multiVisit) {
+      // Step 1: Detect pillar teeth from extracted korona_preparacio actions
+      const pillarTeeth: number[] = [];
+      for (const action of protocol.atomicActions) {
+        if (action.slug === 'korona_preparacio') {
+          const fdi = action.parameters.tooth_fdi as number;
+          if (fdi && !pillarTeeth.includes(fdi)) pillarTeeth.push(fdi);
+        }
+      }
+      pillarTeeth.sort((a, b) => a - b);
+
+      // Step 2: Only apply bridge replication if multiple pillars
+      if (pillarTeeth.length > 1) {
+        // Step 3: For EACH visit in the template, check its per_tooth actions
+        for (const visitDef of multiVisit) {
+          for (const actionSlug of visitDef.actions) {
+            const def = ACTION_BY_SLUG.get(actionSlug);
+            if (!def || !TOOTH_SPECIFIC_SCALING.includes(def.scaling)) continue;
+
+            // Find which pillar teeth already have this action in rawItems for this visit
+            const existingTeeth = new Set<number>();
+            for (const item of rawItems) {
+              if (item.actionSlug === actionSlug &&
+                  item.localVisitNum === visitDef.visit &&
+                  item.protocolIndex === pi &&
+                  item.toothFdi) {
+                existingTeeth.add(item.toothFdi);
+              }
+            }
+
+            // Add missing pillar teeth
+            for (const fdi of pillarTeeth) {
+              if (existingTeeth.has(fdi)) continue;
+
+              const phase = resolvePhase(actionSlug, getDominantPhase(visitDef.actions));
+              rawItems.push({
+                actionSlug,
+                actionName: def.nameHu,
+                toothFdi: fdi,
+                quantity: 1,
+                scaling: def.scaling,
+                parameters: { tooth_fdi: fdi },
+                localVisitNum: visitDef.visit,
+                templateSlug,
+                clinicalPhase: phase,
+                protocolIndex: pi,
+              });
+            }
+          }
+        }
+      }
+
+      // Step 4: Inject future visit actions that weren't covered at all
       for (const visitDef of multiVisit) {
         if (coveredVisits.has(visitDef.visit)) continue;
 
@@ -158,13 +213,20 @@ export function expandProtocols(protocols: ProtocolInstance[]): ExpandResult {
           const def = ACTION_BY_SLUG.get(actionSlug);
           if (!def) continue;
 
+          // Skip if already added by bridge replication above
+          const alreadyExists = rawItems.some(
+            item => item.actionSlug === actionSlug &&
+                    item.localVisitNum === visitDef.visit &&
+                    item.protocolIndex === pi
+          );
+          if (alreadyExists) continue;
+
+          // Standard: single item (non-tooth-specific or single-tooth)
           const futureParams: Record<string, unknown> = {};
           if (protocol.parameters.tooth_fdi) futureParams.tooth_fdi = protocol.parameters.tooth_fdi;
           if (protocol.parameters.brand) futureParams.brand = protocol.parameters.brand;
 
-          // For future visits, determine dominant phase from THAT visit's actions
-          const visitActionSlugs = visitDef.actions;
-          const visitDominant = getDominantPhase(visitActionSlugs);
+          const visitDominant = getDominantPhase(visitDef.actions);
           const phase = resolvePhase(actionSlug, visitDominant);
 
           const toothFdi = resolveToothFdi(futureParams, protocol.parameters, def.scaling);

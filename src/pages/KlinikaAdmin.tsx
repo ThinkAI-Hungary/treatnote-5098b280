@@ -48,6 +48,7 @@ import { ElofizetesTab } from '@/components/klinika/ElofizetesTab';
 import { SzotarTab } from '@/components/klinika/SzotarTab';
 import { V2MappingTab } from '@/components/klinika/V2MappingTab';
 import { V2ProtocolsTab } from '@/components/klinika/V2ProtocolsTab';
+import { ClinicalInterviewWizard } from '@/components/klinika/ClinicalInterviewWizard';
 import { StarField } from '@/components/klinika/StarField';
 import { AnimatedCard } from '@/components/klinika/AnimatedCard';
 import { GalaxyButton } from '@/components/klinika/GalaxyButton';
@@ -427,6 +428,7 @@ export default function KlinikaAdmin() {
 
   // Create user state
   const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [interviewWizardOpen, setInterviewWizardOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserConfirmPassword, setNewUserConfirmPassword] = useState('');
@@ -827,7 +829,7 @@ export default function KlinikaAdmin() {
               className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary/20 data-[state=active]:to-accent/20 data-[state=active]:text-primary"
             >
               <Book className="h-4 w-4" />
-              Kezelési tervek
+              Szótár
             </TabsTrigger>
             <TabsTrigger
               value="v2-mapping"
@@ -1288,7 +1290,23 @@ export default function KlinikaAdmin() {
             </TabsContent>
 
             <TabsContent value="v2-protokollok" className="mt-0">
+              <div className="mb-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInterviewWizardOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Klinikai interjú
+                </Button>
+              </div>
               <V2ProtocolsTab telephelyId={telephelyId} />
+              <ClinicalInterviewWizard
+                open={interviewWizardOpen}
+                onOpenChange={setInterviewWizardOpen}
+                telephelyId={telephelyId}
+              />
             </TabsContent>
 
             <TabsContent value="elofizetes" className="mt-0">

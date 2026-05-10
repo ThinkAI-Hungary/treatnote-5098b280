@@ -105,6 +105,21 @@ export async function startSzotarGeneration(
                             body: { telephely_id: telephelyId },
                         })
                         .catch(() => { });
+
+                    // Auto-trigger V2 mapping (szótár → atomic action mapping)
+                    // This makes the V2 engine work immediately — zero manual config
+                    supabase.functions
+                        .invoke('v2-onboarding', {
+                            body: { operation: 'run-mapping', telephelyId },
+                        })
+                        .then((res) => {
+                            if (res.data?.total) {
+                                console.log(`[V2] Auto-mapping complete: ${res.data.total}/${res.data.totalActions} actions mapped`);
+                            }
+                        })
+                        .catch((err) => {
+                            console.warn('[V2] Auto-mapping failed (non-critical):', err);
+                        });
                 }
 
                 if (Date.now() - startedAt > 180_000) {

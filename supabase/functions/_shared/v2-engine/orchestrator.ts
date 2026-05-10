@@ -24,6 +24,8 @@ export interface PipelineInput {
   supabase: SupabaseClient;
   // Optional progress callback
   onProgress?: (percent: number, message: string) => Promise<void>;
+  // Enable Claude's extended thinking for extraction
+  enableThinking?: boolean;
 }
 
 export interface PipelineOutput {
@@ -60,8 +62,50 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineOutput>
   // Stage 2: Extract
   await progress(25, 'Klinikai akciók kinyerése (AI)...');
   t0 = Date.now();
-  const extraction = await extractActions(transcription.transcript);
+
+  // Auto-detect complexity: enable thinking for multi-treatment plans
+  let useThinking = input.enableThinking || false;
+  if (!useThinking) {
+    const text = transcription.transcript.toLowerCase();
+    // Count distinct tooth mentions — numeric FDI AND Hungarian words
+    const toothMentions = new Set<string>();
+    // Numeric: "21", "36", etc.
+    const fdiPattern = /\b([1-4][1-8])\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = fdiPattern.exec(text)) !== null) toothMentions.add(m[1]);
+    // Hungarian tooth words: "huszonegyes", "harminchatosra", "tizennégy", etc.
+    const huToothWords = [
+      /tizenegy/g, /tizenkett/g, /tizenhárm|tizenhárom/g, /tizennégy/g,
+      /tizenöt/g, /tizenhat/g, /tizenhét/g, /tizennyolc/g,
+      /huszonegy/g, /huszonkett/g, /huszonhárm|huszonhárom/g, /huszonné/g,
+      /huszonöt/g, /huszonhat/g, /huszonhét/g, /huszonnyolc/g,
+      /harmincegy/g, /harminckettő|harminckét/g, /harminchárom/g, /harmincné/g,
+      /harmincöt/g, /harminchat/g, /harminchét/g, /harmincnyolc/g,
+      /negyvenegy/g, /negyvenkettő|negyvenkét/g, /negyvenhárom/g, /negyvenné/g,
+      /negyvenöt/g, /negyvenhat/g, /negyvenhét/g, /negyvennyolc/g,
+    ];
+    for (const pat of huToothWords) {
+      if (pat.test(text)) toothMentions.add(pat.source);
+    }
+    // Count treatment keywords from different clinical phases
+    const phases = new Set<string>();
+    if (/híd|hid|bridge/i.test(text)) phases.add('protetikai');
+    if (/korona|crown|cirkon|emax/i.test(text)) phases.add('protetikai');
+    if (/gyökér|endó|endo|trepanál/i.test(text)) phases.add('endo');
+    if (/tömés|tömést|kompozit|amalgám/i.test(text)) phases.add('konzervalo');
+    if (/implant|implantát/i.test(text)) phases.add('sebeszet');
+    if (/extractio|húz|eltávolít|kihúz/i.test(text)) phases.add('extractio');
+    if (/sinus|csontpótl/i.test(text)) phases.add('csontpotlas');
+    // Complex = 3+ teeth OR 2+ different clinical phases OR long text
+    useThinking = toothMentions.size >= 3 || phases.size >= 2 || text.length > 300;
+    if (useThinking) {
+      console.log(`[V2 Pipeline] Auto-enabled thinking: teeth=${toothMentions.size} phases=${phases.size} len=${text.length}`);
+    }
+  }
+
+  const extraction = await extractActions(transcription.transcript, input.telephelyId, input.supabase, useThinking);
   timing['02_extract'] = Date.now() - t0;
+  timing['02_thinking_enabled'] = useThinking ? 1 : 0;
 
   // Stage 3: Validate
   await progress(50, 'Paraméterek validálása...');

@@ -5,6 +5,143 @@
 
 import { runPipeline, type PipelineOutput } from '../_shared/v2-engine/orchestrator.ts';
 
+// ── RPA Server config ──
+const RPA_SERVER_URL = Deno.env.get('RPA_SERVER_URL') || 'http://209.38.249.101:8900';
+const RPA_SECRET = Deno.env.get('RPA_SECRET') || 'tn_rpa_2026_s3cur3_k3y';
+
+// ── AES-256-GCM decryption (same as voice-recording-webhook) ──
+async function decryptPassword(encryptedBase64: string, keyBase64: string): Promise<string> {
+  const decoder = new TextDecoder();
+  const keyData = Uint8Array.from(atob(keyBase64), c => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyData, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+  );
+  const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+  const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext);
+  return decoder.decode(decryptedData);
+}
+
+// ── Fetch Flexi credentials for a user + telephely ──
+async function fetchFlexiCredentials(supabaseAdmin: any, userId: string, telephelyId: string) {
+  const encryptionKey = Deno.env.get('FLEXI_ENCRYPTION_KEY') || '';
+
+  // Get flexi_domain from telephely
+  let flexiDomain = '';
+  const { data: telephelyData } = await supabaseAdmin
+    .from('telephely')
+    .select('flexi_domain')
+    .eq('id', telephelyId)
+    .maybeSingle();
+  if (telephelyData) flexiDomain = telephelyData.flexi_domain || '';
+
+  // Get flexi_auth — exact telephely match first, then legacy null fallback
+  let flexiData: { flexi_username: string | null; flexi_pw: string | null } | null = null;
+
+  if (telephelyId) {
+    const { data } = await supabaseAdmin
+      .from('flexi_auth')
+      .select('flexi_username, flexi_pw')
+      .eq('user_id', userId)
+      .eq('telephely_id', telephelyId)
+      .maybeSingle();
+    flexiData = data;
+  }
+
+  if (!flexiData) {
+    const { data } = await supabaseAdmin
+      .from('flexi_auth')
+      .select('flexi_username, flexi_pw')
+      .eq('user_id', userId)
+      .is('telephely_id', null)
+      .maybeSingle();
+    flexiData = data;
+  }
+
+  let flexiUsername = '';
+  let flexiPw = '';
+
+  if (flexiData) {
+    flexiUsername = flexiData.flexi_username || '';
+    if (flexiData.flexi_pw && encryptionKey) {
+      try {
+        flexiPw = await decryptPassword(flexiData.flexi_pw, encryptionKey);
+      } catch (e) {
+        console.error(`[RPA] Failed to decrypt flexi password:`, e);
+      }
+    }
+  }
+
+  return { flexiDomain, flexiUsername, flexiPw };
+}
+
+// ── Trigger RPA on remote server ──
+async function triggerRpa(
+  jobId: string,
+  vizitek: any[],
+  flexiDomain: string,
+  flexiUsername: string,
+  flexiPw: string,
+  paciensId: string,
+  supabaseAdmin: any,
+) {
+  console.log(`[RPA Job ${jobId}] Triggering RPA: domain=${flexiDomain} paciens=${paciensId} vizitek=${vizitek.length}`);
+
+  try {
+    const rpaPayload = {
+      vizitek,
+      flexi_domain: flexiDomain,
+      flexi_username: flexiUsername,
+      flexi_pw: flexiPw,
+      PaciensID: paciensId,
+    };
+
+    const response = await fetch(`${RPA_SERVER_URL}/run`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RPA-Key': RPA_SECRET,
+      },
+      body: JSON.stringify(rpaPayload),
+      signal: AbortSignal.timeout(200_000), // 200s timeout (RPA can take 2-3 minutes)
+    });
+
+    const rpaResult = await response.json();
+    console.log(`[RPA Job ${jobId}] RPA result: ok=${rpaResult.ok} step=${rpaResult.step} elapsed=${rpaResult.elapsed_seconds}s`);
+
+    // Update the job with RPA result
+    await supabaseAdmin
+      .from('native_voice_jobs')
+      .update({
+        rpa_result: rpaResult,
+        rpa_url: rpaResult.url || null,
+        rpa_status: rpaResult.ok === 1 ? 'completed' : 'error',
+      })
+      .eq('id', jobId);
+
+    if (rpaResult.ok !== 1) {
+      console.error(`[RPA Job ${jobId}] RPA failed:`, rpaResult.error || rpaResult.step);
+    }
+
+    return rpaResult;
+  } catch (error) {
+    console.error(`[RPA Job ${jobId}] RPA trigger error:`, error);
+
+    await supabaseAdmin
+      .from('native_voice_jobs')
+      .update({
+        rpa_status: 'error',
+        rpa_result: { error: error instanceof Error ? error.message : String(error) },
+      })
+      .eq('id', jobId);
+
+    return null;
+  }
+}
+
+// ── Main processor ──
+
 export async function processTreatnoteInternally(
   jobId: string,
   audioBuffer: File | null,
@@ -117,6 +254,34 @@ export async function processTreatnoteInternally(
       tokens_used: result.extraction.tokensUsed,
     };
 
+    // Generate AI assessment (Verdikt)
+    let assessment = null;
+    try {
+      const assessResponse = await supabaseAdmin.functions.invoke('v2-assess-result', {
+        body: {
+          inputText: result.transcript,
+          rpaOutput: { vizitek: result.rpaOutput.vizitek },
+          unmapped: result.mapping.unmapped,
+          protocolCount: result.extraction.protocols.length,
+          vizitCount: result.rpaOutput.vizitek.length,
+          itemCount: result.rpaOutput.vizitek.length,
+          debug: {
+            extraction: result.extraction,
+            validation: result.validation,
+            expansion: result.expansion,
+            clinicalValidation: result.clinicalValidation,
+            mapping: result.mapping,
+          },
+        },
+      });
+      if (assessResponse.data) {
+        assessment = assessResponse.data;
+        finalResult.v2.assessment = assessment;
+      }
+    } catch (assessErr) {
+      console.warn(`[Native Job ${jobId}] Failed to auto-generate assessment:`, assessErr);
+    }
+
     // Save session to v2_sessions for audit trail
     await supabaseAdmin.from('v2_sessions').insert({
       telephely_id: context.telephelyId,
@@ -150,6 +315,53 @@ export async function processTreatnoteInternally(
     }
 
     console.log(`[Native Job ${jobId}] V2 pipeline completed! (${totalMs}ms, ${result.extraction.protocols.length} protocols, ${result.rpaOutput.vizitek.length} vizitek)`);
+
+    // ── Trigger RPA (fire-and-forget after pipeline completion) ──
+    // Only trigger if we have vizitek and a paciensId
+    const paciensId = context.paciensId || '';
+    if (result.rpaOutput.vizitek.length > 0 && paciensId && context.userId && context.telephelyId) {
+      try {
+        const { flexiDomain, flexiUsername, flexiPw } = await fetchFlexiCredentials(
+          supabaseAdmin, context.userId, context.telephelyId
+        );
+
+        if (flexiDomain && flexiUsername && flexiPw) {
+          await appendTraceLog('RPA Trigger', 'processing', {
+            domain: flexiDomain,
+            paciensId,
+            vizitekCount: result.rpaOutput.vizitek.length,
+          });
+
+          const rpaResult = await triggerRpa(
+            jobId,
+            result.rpaOutput.vizitek,
+            flexiDomain,
+            flexiUsername,
+            flexiPw,
+            paciensId,
+            supabaseAdmin,
+          );
+
+          await appendTraceLog('RPA Trigger', rpaResult?.ok === 1 ? 'completed' : 'error', {
+            ok: rpaResult?.ok,
+            step: rpaResult?.step,
+            elapsed: rpaResult?.elapsed_seconds,
+            url: rpaResult?.url,
+          });
+        } else {
+          console.log(`[Native Job ${jobId}] RPA skipped — missing flexi credentials (domain=${!!flexiDomain} user=${!!flexiUsername} pw=${!!flexiPw})`);
+          await appendTraceLog('RPA Trigger', 'completed', { skipped: true, reason: 'missing_flexi_credentials' });
+        }
+      } catch (rpaError) {
+        // RPA errors should not fail the pipeline
+        console.error(`[Native Job ${jobId}] RPA trigger error (non-fatal):`, rpaError);
+        await appendTraceLog('RPA Trigger', 'error', {
+          error: rpaError instanceof Error ? rpaError.message : String(rpaError),
+        });
+      }
+    } else {
+      console.log(`[Native Job ${jobId}] RPA skipped — no vizitek or paciensId`);
+    }
 
   } catch (error) {
     console.error(`[Native Job ${jobId}] V2 pipeline error:`, error);
