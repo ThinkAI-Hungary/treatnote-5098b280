@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+type Theme = "dark" | "light" | "system" | "eaisymode";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "dark" | "light";
+  resolvedTheme: "dark" | "light" | "eaisymode";
 };
 
 // ── Cookie helpers ──────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ function setCookie(key: string, value: string) {
 
 // ── Theme resolution ────────────────────────────────────────────────────────
 
-function resolveTheme(theme: Theme): "dark" | "light" {
+function resolveTheme(theme: Theme): "dark" | "light" | "eaisymode" {
   if (theme === "system") {
     return typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -42,16 +42,14 @@ function resolveTheme(theme: Theme): "dark" | "light" {
 }
 
 function getSavedTheme(key: string, defaultTheme: Theme): Theme {
-  // Cookie takes priority, then localStorage fallback
-  const saved = getCookie(key) ?? (typeof localStorage !== "undefined" ? localStorage.getItem(key) : null);
-  if (saved === "dark" || saved === "light" || saved === "system") return saved;
+  // Always return defaultTheme (eaisymode) since the toggle buttons have been removed
   return defaultTheme;
 }
 
 // Apply class to <html> immediately to prevent any flash
-function applyThemeClass(resolved: "dark" | "light") {
+function applyThemeClass(resolved: "dark" | "light" | "eaisymode") {
   const root = document.documentElement;
-  root.classList.remove("light", "dark");
+  root.classList.remove("light", "dark", "eaisymode");
   root.classList.add(resolved);
 }
 
@@ -77,7 +75,7 @@ export function ThemeProvider({
   });
 
   // Resolve + apply class synchronously on first render
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">(() => {
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light" | "eaisymode">(() => {
     const resolved = resolveTheme(getSavedTheme(storageKey, defaultTheme));
     applyThemeClass(resolved);
     return resolved;

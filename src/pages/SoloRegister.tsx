@@ -106,11 +106,11 @@ export default function SoloRegister() {
     // ── Email confirmation pending screen ───────────────────────────────────
     if (registered) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950">
                 {!isDark && <StarField />}
                 <Card className="relative z-10 w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm text-center">
                     <CardHeader>
-                        <div className="mx-auto mb-4 h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                        <div className="mx-auto mb-4 h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center">
                             <UserPlus className="h-7 w-7 text-primary-foreground" />
                         </div>
                         <CardTitle className="text-2xl">Erősítse meg az email címét</CardTitle>
@@ -138,11 +138,11 @@ export default function SoloRegister() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950">
             {!isDark && <StarField />}
             <Card className="relative z-10 w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm">
                 <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                    <div className="mx-auto mb-4 h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center">
                         <UserPlus className="h-7 w-7 text-primary-foreground" />
                     </div>
                     <CardTitle className="text-2xl">Regisztráció</CardTitle>

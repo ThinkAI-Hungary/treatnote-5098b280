@@ -543,12 +543,12 @@ export default function Admin() {
         <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-cyan">
                 <Shield className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight galaxy-title-primary">
                 Admin Panel
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">

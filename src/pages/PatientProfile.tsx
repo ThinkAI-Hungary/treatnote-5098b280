@@ -141,11 +141,11 @@ export default function PatientProfile() {
             </Button>
           )}
           {(isKlinikaAdmin || isAdmin) && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShareOpen(true)}>
+            <Button size="sm" className="gap-1.5" onClick={() => setShareOpen(true)}>
               <Share2 className="h-3.5 w-3.5" /> Megosztás
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>Szerkesztés</Button>
+          <Button size="sm" onClick={() => setIsEditing(true)}>Szerkesztés</Button>
           <Button size="sm">Új ellátás</Button>
         </div>
       </div>

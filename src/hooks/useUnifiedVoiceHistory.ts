@@ -6,9 +6,9 @@ import type { VoiceJob } from './useVoiceJobHistory';
 
 export type UnifiedVoiceJob = (NativeVoiceJob & { isFlexi?: false }) | (VoiceJob & { isFlexi: true });
 
-export function useUnifiedVoiceHistory(treatnotePatientId?: string) {
-  const native = useNativeVoiceJobHistory(treatnotePatientId);
-  const flexi = useVoiceJobHistory(treatnotePatientId);
+export function useUnifiedVoiceHistory(treatnotePatientId?: string, enabled: boolean = true) {
+  const native = useNativeVoiceJobHistory(treatnotePatientId, enabled);
+  const flexi = useVoiceJobHistory(treatnotePatientId, enabled);
 
   const [jobs, setJobs] = useState<UnifiedVoiceJob[]>([]);
 

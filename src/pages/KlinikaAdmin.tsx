@@ -751,7 +751,7 @@ export default function KlinikaAdmin() {
               <Shield className="h-16 w-16 text-destructive/70" />
               <div className="absolute inset-0 animate-pulse-glow rounded-full" />
             </div>
-            <h3 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <h3 className="text-xl font-semibold galaxy-title-secondary">
               Hozzáférés megtagadva
             </h3>
             <p className="text-muted-foreground text-center max-w-sm mt-2">
@@ -778,12 +778,12 @@ export default function KlinikaAdmin() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-cyan">
                   <Building2 className="h-7 w-7 text-primary-foreground" />
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight galaxy-title-primary">
                   {companyName && telephelyName ? `${companyName} - ${telephelyName}` : 'Organizáció kezelése'}
                 </h1>
                 <p className="text-muted-foreground mt-1 flex items-center gap-2">

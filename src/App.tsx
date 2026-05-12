@@ -77,7 +77,7 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="klinika-theme">
+    <ThemeProvider defaultTheme="eaisymode" storageKey="klinika-theme">
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{

@@ -417,7 +417,7 @@ export default function Dashboard() {
               <div
                 className={cn(
                   "h-14 w-14 rounded-xl flex items-center justify-center transition-all duration-500 shadow-lg",
-                  !allComplete && "bg-gradient-to-br from-primary to-accent shadow-primary/30",
+                  !allComplete && "bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30",
                 )}
                 style={allComplete
                   ? { background: 'linear-gradient(to bottom right, #16a34a, #10b981)', boxShadow: '0 10px 15px -3px rgba(34,197,94,0.4)' }
@@ -431,7 +431,7 @@ export default function Dashboard() {
                 )}
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold tracking-tight galaxy-title-primary">
                   Üdvözöljük{profile?.full_name ? `, ${profile.full_name}` : ''}!
                 </h1>
                 <p className="text-muted-foreground mt-1">
