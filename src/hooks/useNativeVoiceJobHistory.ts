@@ -32,7 +32,7 @@ interface UseNativeVoiceJobHistoryReturn {
 
 const MAX_HISTORY_ITEMS = 200;
 
-export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNativeVoiceJobHistoryReturn {
+export function useNativeVoiceJobHistory(treatnotePatientId?: string, enabled: boolean = true): UseNativeVoiceJobHistoryReturn {
   const { user } = useAuth();
   const { profile } = useProfile();
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;
@@ -120,11 +120,11 @@ export function useNativeVoiceJobHistory(treatnotePatientId?: string): UseNative
   }, []);
 
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+    if (enabled) fetchJobs();
+  }, [fetchJobs, enabled]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
 
     let filterString = `user_id=eq.${user.id}`;
 

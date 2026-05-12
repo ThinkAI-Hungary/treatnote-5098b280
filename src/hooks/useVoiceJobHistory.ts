@@ -33,7 +33,7 @@ interface UseVoiceJobHistoryReturn {
 
 const MAX_HISTORY_ITEMS = 200;
 
-export function useVoiceJobHistory(treatnotePatientId?: string): UseVoiceJobHistoryReturn {
+export function useVoiceJobHistory(treatnotePatientId?: string, enabled: boolean = true): UseVoiceJobHistoryReturn {
   const { user } = useAuth();
   const { profile } = useProfile();
   const activeTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || null;

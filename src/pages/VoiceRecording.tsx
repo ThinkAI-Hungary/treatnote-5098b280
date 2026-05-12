@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Sparkles, Star, CheckCircle2 } from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Trash2, Loader2, AlertCircle, Book, Sparkles, Star, CheckCircle2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useVoiceRecorder, formatDuration } from '@/hooks/useVoiceRecorder';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,7 @@ import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory';
 import { useTheme } from '@/components/ThemeProvider';
 import { VoiceJobHistory } from '@/components/voice/VoiceJobHistory';
-import { translateRecordingError } from '@/lib/utils';
+import { translateRecordingError, cn } from '@/lib/utils';
 import { V2VerdiktDisplay } from '@/components/voice/V2VerdiktDisplay';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
@@ -44,7 +44,8 @@ export default function VoiceRecording({ treatnotePatientId }: VoiceRecordingPro
   const { hasSzotar, flexiDomain, isLoading: szotarLoading } = useSzotar();
   const { admins: klinikaAdmins } = useKlinikaAdmins();
   const { isKlinikaAdmin, isAdmin } = useCachedRoles();
-  const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useUnifiedVoiceHistory(treatnotePatientId);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const { jobs, isLoading: historyLoading, pollJob, refetch: refetchJobs } = useUnifiedVoiceHistory(treatnotePatientId, isHistoryOpen);
   const navigate = useNavigate();
 
   // ── Onboarding tour ──────────────────────────────────────────────────────
@@ -401,7 +402,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
   }, [activeTelephelyId, profileLoading]);
 
   // Signal loading to sidebar indicator
-  const _isPageLoading = profileLoading || isFlexiLoading || rulesLoading || historyLoading;
+  const _isPageLoading = profileLoading || isFlexiLoading || rulesLoading;
   usePageLoadingSignal(_isPageLoading);
 
   // Show unified loading state while critical data loads
@@ -448,12 +449,12 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center glow-purple">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-cyan">
                 <Mic className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight galaxy-title-primary">
                 Hangfelvétel
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -511,12 +512,12 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
         <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[hsl(268_42%_72%)] via-[hsl(263_28%_80%)] to-[hsl(255_13%_88%)] dark:from-primary dark:via-primary/70 dark:to-accent flex items-center justify-center glow-purple">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-purple">
                 <Mic className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[hsl(268_52%_50%)] via-[hsl(263_32%_65%)] to-[hsl(255_18%_74%)] dark:from-primary dark:via-primary/60 dark:to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight galaxy-title-purple">
                 Hangfelvétel
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -601,21 +602,9 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
             if (treatnotePatientId) return;
             setPaciensId(e.target.value.replace(/\D/g, ''));
           }}
-          disabled={isRecording || isPaciensIdLocked || !!treatnotePatientId}
+          disabled={isRecording || !!treatnotePatientId}
           className="h-9 font-mono text-center max-w-[140px]"
         />
-        {!treatnotePatientId && (
-          <Button
-            variant={isPaciensIdLocked ? "default" : "outline"}
-            size="sm"
-            className={`h-9 text-xs gap-1.5 ${isPaciensIdLocked ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
-            onClick={() => setIsPaciensIdLocked(!isPaciensIdLocked)}
-            disabled={!paciensId || isRecording}
-          >
-            {isPaciensIdLocked ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
-            {isPaciensIdLocked ? 'Zárolva' : 'Zárolás'}
-          </Button>
-        )}
         {treatnotePatientId && paciensId && (
           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /> Csatolva
@@ -631,15 +620,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
             {formatDuration(audioUrl ? (finalDuration || duration) : duration)}
           </div>
 
-          {/* Recording status */}
-          {isRecording && (
-            <div className="flex items-center gap-2 mb-6">
-              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} />
-              <span className="text-sm text-muted-foreground">
-                {isPaused ? 'Szüneteltetve' : 'Felvétel folyamatban...'}
-              </span>
-            </div>
-          )}
+
 
           {/* Main Mic Button */}
           <div className="relative" data-tour="vr-record-btn">
@@ -659,54 +640,74 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
             </Button>
           </div>
 
-          {/* Secondary controls when recording */}
-          {isRecording && (
-            <div className="flex items-center gap-3 mt-6">
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleTogglePause}>
-                {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                {isPaused ? 'Folytatás' : 'Szünet'}
-              </Button>
+          {/* Hint text & Secondary controls wrapper for smooth height transition */}
+          <div className={cn(
+            "grid transition-all duration-500 ease-out w-full",
+            (audioUrl && !isRecording) ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+          )}>
+            <div className="overflow-hidden flex flex-col items-center">
+              <div className="h-14 flex items-center justify-center mt-2">
+                {!isRecording && !audioUrl && (
+                  <p className="text-sm text-muted-foreground">
+                    Kattintson a mikrofonra a felvétel indításához
+                  </p>
+                )}
+                {isRecording && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={handleTogglePause}>
+                    {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                    {isPaused ? 'Folytatás' : 'Szünet'}
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* Hint text */}
-          {!isRecording && !audioUrl && (
-            <p className="mt-6 text-sm text-muted-foreground">
-              Kattintson a mikrofonra a felvétel indításához
-            </p>
-          )}
+          </div>
         </div>
 
         {/* ── Playback + Upload bar ── */}
-        <div className="border-t bg-muted/30 px-6 py-4 space-y-3" data-tour="vr-playback">
-          <audio 
-            ref={audioRef} 
-            src={audioUrl || undefined} 
-            onEnded={() => setIsPlaying(false)} 
-            controls 
-            className={`w-full h-10 rounded-lg transition-opacity ${audioUrl ? 'opacity-100' : 'opacity-30 pointer-events-none'}`} 
-            style={{ colorScheme: 'dark' }} 
-          />
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleClearRecording} disabled={!audioUrl || isUploading || isRecording}>
-              <Trash2 className="h-4 w-4" /> Törlés
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 gap-1.5 border-0 transition-opacity"
-              style={{
-                background: isDark
-                  ? 'linear-gradient(to right, hsl(270 70% 60%), hsl(250 65% 55%), hsl(195 85% 50%))'
-                  : 'linear-gradient(to right, hsl(268 30% 82%), hsl(263 22% 87%), hsl(255 12% 92%))',
-                color: isDark ? 'white' : 'hsl(262 48% 16%)',
-                opacity: (!audioUrl || isUploading || (treatnotePatientId ? !paciensId : !isPaciensIdLocked) || isRecording) ? 0.5 : 1
-              }}
-              onClick={handleUpload}
-              disabled={!audioUrl || isUploading || (treatnotePatientId ? !paciensId : !isPaciensIdLocked) || isRecording}
+        <div 
+          className={cn(
+            "grid transition-all duration-500 ease-out",
+            audioUrl && !isRecording ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <div 
+              className={cn(
+                "border-t bg-muted/30 px-6 py-4 space-y-3 transition-all duration-500 ease-out",
+                audioUrl && !isRecording ? "translate-y-0" : "translate-y-4"
+              )}
+              data-tour="vr-playback"
             >
-              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {isUploading ? 'Feltöltés...' : 'Feltöltés'}
-            </Button>
+              <audio 
+                ref={audioRef} 
+                src={audioUrl || undefined} 
+                onEnded={() => setIsPlaying(false)} 
+                controls 
+                className="w-full h-10 rounded-lg transition-opacity opacity-100" 
+                style={{ colorScheme: 'dark' }} 
+              />
+              <div className="flex gap-3">
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={handleClearRecording} disabled={!audioUrl || isUploading || isRecording}>
+                  <Trash2 className="h-4 w-4" /> Törlés
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5 border-0 transition-opacity"
+                  style={{
+                    background: isDark
+                      ? 'linear-gradient(to right, hsl(270 70% 60%), hsl(250 65% 55%), hsl(195 85% 50%))'
+                      : 'linear-gradient(to right, hsl(268 30% 82%), hsl(263 22% 87%), hsl(255 12% 92%))',
+                    color: isDark ? 'white' : 'hsl(262 48% 16%)',
+                    opacity: (!audioUrl || isUploading || !paciensId || isRecording) ? 0.5 : 1
+                  }}
+                  onClick={handleUpload}
+                  disabled={!audioUrl || isUploading || !paciensId || isRecording}
+                >
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {isUploading ? 'Feltöltés...' : 'Feltöltés'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -750,7 +751,21 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
 
       {/* ── Recent History ── */}
       <div data-tour="vr-history">
-        <VoiceJobHistory jobs={jobs} isLoading={historyLoading} selectedJobId={selectedJobId} onSelectJob={handleSelectJob} onJobTerminated={refetchJobs} />
+        <Button 
+          variant="ghost" 
+          className="w-full flex items-center justify-center py-4 text-muted-foreground hover:bg-muted/50 rounded-xl" 
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+        >
+          <Clock className="h-4 w-4 mr-2" />
+          <span className="font-medium">Előzmények</span>
+          {isHistoryOpen ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+        </Button>
+
+        {isHistoryOpen && (
+          <div className="mt-2 animate-in fade-in slide-in-from-top-4 duration-500">
+             <VoiceJobHistory jobs={jobs} isLoading={historyLoading} selectedJobId={selectedJobId} onSelectJob={handleSelectJob} onJobTerminated={refetchJobs} />
+          </div>
+        )}
       </div>
 
 

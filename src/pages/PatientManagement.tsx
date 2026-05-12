@@ -177,12 +177,12 @@ export default function PatientManagement() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-[hsl(268_42%_72%)] via-[hsl(263_28%_80%)] to-[hsl(255_13%_88%)] dark:from-primary dark:to-accent flex items-center justify-center glow-purple">
+              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-cyan">
                 <Users className="h-7 w-7 text-primary-foreground" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[hsl(268_52%_50%)] via-[hsl(263_32%_65%)] to-[hsl(255_18%_74%)] dark:from-primary dark:via-primary/60 dark:to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight galaxy-title-purple">
                 Páciensek
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2">
@@ -191,10 +191,6 @@ export default function PatientManagement() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setIsCreating(true)} className="shrink-0 z-10 relative">
-            <Plus className="mr-2 h-4 w-4" />
-            Új páciens
-          </Button>
         </div>
       </div>
 
@@ -217,7 +213,7 @@ export default function PatientManagement() {
 
         {/* ── Páciensek tab ──────────────────────────────────────────────── */}
         <TabsContent value="patients" className="space-y-4 mt-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -227,6 +223,10 @@ export default function PatientManagement() {
                 className="pl-9"
               />
             </div>
+            <Button onClick={() => setIsCreating(true)} className="shrink-0 shadow-sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Új páciens
+            </Button>
           </div>
 
           {loading ? (

@@ -109,7 +109,12 @@ function StaticMenuItem({
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.title}</span>}
+              <span className={cn(
+                "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
+                collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100 ml-2"
+              )}>
+                {item.title}
+              </span>
             </div>
           </HoverCardTrigger>
           <HoverCardContent
@@ -150,7 +155,12 @@ function StaticMenuItem({
           onMouseEnter={() => prefetchRoute(item.url)}
         >
           <item.icon className="h-4 w-4 shrink-0 sidebar-icon-hover" />
-          {!collapsed && <span>{item.title}</span>}
+          <span className={cn(
+            "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
+            collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100 ml-2"
+          )}>
+            {item.title}
+          </span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -707,17 +717,35 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className="z-30">
         <SidebarHeader className="border-b border-sidebar-border">
           <div className={cn(
-            "flex items-center gap-2 py-3",
-            collapsed ? "px-2 justify-center" : "px-2"
+            "flex flex-col py-3",
+            collapsed ? "items-center px-2" : "items-start px-3"
           )}>
-            <div className="flex select-none h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
-              T
+            <div className="relative flex items-center justify-start w-full h-7">
+              <img 
+                src="/MOLaiRE.svg" 
+                alt="MOLaiRE" 
+                className={cn(
+                  "absolute left-0 h-7 w-auto object-contain transition-all duration-300 ease-in-out origin-left", 
+                  collapsed ? "opacity-0 scale-95 invisible" : "opacity-100 scale-100 visible"
+                )} 
+              />
+              <img 
+                src="/M.svg" 
+                alt="M" 
+                className={cn(
+                  "absolute left-0 h-6 w-auto object-contain transition-all duration-300 ease-in-out origin-left", 
+                  collapsed ? "opacity-100 scale-100 visible" : "opacity-0 scale-75 invisible"
+                )} 
+              />
             </div>
-            {!collapsed && (
-              <span className="text-lg font-semibold text-sidebar-foreground">
-                TreatNote
+            <div className={cn(
+              "transition-all duration-300 ease-in-out origin-top-left overflow-hidden",
+              collapsed ? "max-h-0 opacity-0 invisible mt-0" : "max-h-6 opacity-100 visible mt-1"
+            )}>
+              <span className="text-[10px] text-sidebar-foreground/80 font-medium whitespace-nowrap">
+                Powered by TreatNote
               </span>
-            )}
+            </div>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -992,17 +1020,35 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="z-30">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className={cn(
-          "flex items-center gap-2 py-3",
-          collapsed ? "px-2 justify-center" : "px-2"
+          "flex flex-col py-3",
+          collapsed ? "items-center px-2" : "items-start px-3"
         )}>
-          <div className="flex select-none h-8 w-8 items-center justify-center rounded-lg primary-btn-gradient dark:bg-primary dark:text-primary-foreground font-bold shrink-0 text-[hsl(262_48%_16%)] dark:text-white">
-            T
+          <div className="relative flex items-center justify-start w-full h-7">
+            <img 
+              src="/MOLaiRE.svg" 
+              alt="MOLaiRE" 
+              className={cn(
+                "absolute left-0 h-7 w-auto object-contain transition-all duration-300 ease-in-out origin-left", 
+                collapsed ? "opacity-0 scale-95 invisible" : "opacity-100 scale-100 visible"
+              )} 
+            />
+            <img 
+              src="/M.svg" 
+              alt="M" 
+              className={cn(
+                "absolute left-0 h-6 w-auto object-contain transition-all duration-300 ease-in-out origin-left", 
+                collapsed ? "opacity-100 scale-100 visible" : "opacity-0 scale-75 invisible"
+              )} 
+            />
           </div>
-          {!collapsed && (
-            <span className="text-lg font-semibold text-sidebar-foreground">
-              TreatNote
+          <div className={cn(
+            "transition-all duration-300 ease-in-out origin-top-left overflow-hidden",
+            collapsed ? "max-h-0 opacity-0 invisible mt-0" : "max-h-6 opacity-100 visible mt-1"
+          )}>
+            <span className="text-[10px] text-sidebar-foreground/80 font-medium whitespace-nowrap">
+              Powered by TreatNote
             </span>
-          )}
+          </div>
         </div>
       </SidebarHeader>
 
@@ -1162,26 +1208,30 @@ export function AppSidebar() {
                 >
                   <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage src="" />
-                    <AvatarFallback className="primary-btn-gradient dark:bg-primary dark:text-primary-foreground text-xs text-[hsl(262_48%_16%)] dark:text-white border-0">
+                    <AvatarFallback className="primary-btn-gradient dark:bg-primary dark:text-primary-foreground text-xs text-[hsl(262_48%_16%)] dark:text-white border-0 !text-white">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
-                  {!collapsed && (
-                    <div className="flex flex-col items-start text-left flex-1 min-w-0">
-                      <div className="flex items-center gap-1 text-[11px] text-primary w-full mb-0.5">
-                        <Building className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{currentOrgName} / {currentTelephelyName}</span>
-                      </div>
-                      <span className="text-sm font-medium truncate w-full">
-                        {user?.email}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/40 font-bold">
-                        {getRoleText()}
-                      </span>
+                  <div className={cn(
+                    "flex flex-col items-start text-left flex-1 min-w-0 transition-all duration-300 ease-in-out overflow-hidden",
+                    collapsed ? "max-w-0 opacity-0 ml-0" : "max-w-[200px] opacity-100 ml-2"
+                  )}>
+                    <div className="flex items-center gap-1 text-[11px] text-sidebar-foreground/90 w-full mb-0.5">
+                      <Building className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate">{currentOrgName} / {currentTelephelyName}</span>
                     </div>
-                  )}
-                  {!collapsed && memberships.length > 1 && (
-                    <ChevronUpIcon className="ml-auto h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium truncate w-full text-sidebar-foreground">
+                      {user?.email}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/40 font-bold">
+                      {getRoleText()}
+                    </span>
+                  </div>
+                  {memberships.length > 1 && (
+                    <ChevronUpIcon className={cn(
+                      "ml-auto h-4 w-4 text-sidebar-foreground/70 transition-all duration-300 ease-in-out shrink-0",
+                      collapsed ? "opacity-0 max-w-0 invisible" : "opacity-100 max-w-4 visible"
+                    )} />
                   )}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>

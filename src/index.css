@@ -129,6 +129,246 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     --nebula-pink: 300 70% 65%;
     --star-white: 60 20% 90%;
   }
+
+  .eaisymode {
+    --background: 0 0% 100%;
+    --foreground: 195 65% 15%;
+
+    --card: 170 95% 85%;
+    --card-foreground: 195 65% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 195 65% 15%;
+
+    --primary: 195 65% 15%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 170 95% 85%;
+    --secondary-foreground: 195 65% 15%;
+
+    --muted: 195 20% 90%;
+    --muted-foreground: 195 30% 40%;
+
+    --accent: 175 100% 40%;
+    --accent-foreground: 195 65% 15%;
+
+    --destructive: 0 68% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 25 95% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 195 30% 80%;
+    --input: 195 30% 80%;
+    --ring: 175 100% 45%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 195 65% 15%;
+    --sidebar-primary: 175 100% 45%;
+    --sidebar-primary-foreground: 195 65% 15%;
+    --sidebar-accent: 170 95% 85%;
+    --sidebar-accent-foreground: 195 65% 15%;
+    --sidebar-border: 195 30% 80%;
+    --sidebar-ring: 175 100% 45%;
+
+    /* Keep galaxy theme tokens thematic to Digidesk colors */
+    --galaxy-purple: 195 65% 15%;
+    --galaxy-purple-dark: 195 80% 10%;
+    --galaxy-purple-light: 195 40% 30%;
+    --sparkle-blue: 175 100% 45%;
+    --sparkle-blue-light: 170 95% 85%;
+    --sparkle-blue-dark: 175 100% 30%;
+    --nebula-pink: 170 90% 70%;
+    --star-white: 0 0% 100%;
+  }
+}
+
+/* ── EAISYMODE SPECIFIC OVERRIDES ── */
+.eaisymode body {
+  background: linear-gradient(to top right, hsl(185 80% 90%) 0%, hsl(0 0% 100%) 70%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Force pure white workspace cards in light mode for EaisyMode */
+:root.eaisymode:not(.dark), .eaisymode:not(.dark) {
+  --card: 0 0% 100%;
+}
+
+.eaisymode [data-sidebar="sidebar"] {
+  --sidebar-background: 190 80% 15%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-accent: 185 70% 30%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 190 70% 25%;
+
+  border-color: hsl(var(--sidebar-border)) !important;
+  background-color: hsl(var(--sidebar-background)) !important;
+  background-image: linear-gradient(to bottom, hsl(185 85% 38%) 0%, hsl(185 85% 38%) 56px, hsl(195 85% 15%) 100%) !important;
+}
+
+.eaisymode .sidebar-menu-gradient {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.eaisymode .sidebar-menu-gradient:hover {
+  background: hsl(185 70% 40% / 0.4) !important;
+  color: #ffffff !important;
+}
+
+.eaisymode .sidebar-menu-gradient.active {
+  background: linear-gradient(135deg, hsl(185 90% 50% / 0.3) 0%, hsl(195 90% 40% / 0.3) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 hsl(185 90% 50%) !important;
+  font-weight: 600 !important;
+}
+
+.eaisymode .layout-header {
+  background: linear-gradient(to right, hsl(185 85% 38%) 0%, hsl(185 85% 38%) 40%, transparent 100%) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Remove the vertical border between the sidebar and the layout header */
+.eaisymode .group-data-\[side\=left\]\:border-r {
+  border-right: none !important;
+}
+
+.eaisymode .layout-header [data-sidebar="trigger"],
+.eaisymode .layout-header .header-controls button {
+  color: hsl(0 0% 100%) !important;
+}
+
+.eaisymode .layout-header [data-sidebar="trigger"]:hover,
+.eaisymode .layout-header .header-controls button:hover {
+  background: hsl(0 0% 100% / 0.15) !important;
+}
+
+.eaisymode .primary-btn-gradient,
+.eaisymode .galaxy-gradient {
+  background: hsl(180 80% 85%) !important;
+  color: #000000 !important;
+  border-color: hsl(180 80% 75%) !important;
+  box-shadow: 0 1px 3px hsl(180 80% 85% / 0.3);
+}
+
+.eaisymode .primary-btn-gradient:hover,
+.eaisymode .galaxy-gradient:hover {
+  background: hsl(180 80% 75%) !important;
+  color: #000000 !important;
+}
+
+/* --- Tabs Styling --- */
+.eaisymode .tabs-list-cyan {
+  background: hsl(195 65% 22% / 0.1) !important; 
+}
+.dark.eaisymode .tabs-list-cyan {
+  background: hsl(195 65% 22% / 0.4) !important; 
+}
+
+.eaisymode .tab-trigger-cyan[data-state="active"] {
+  background: hsl(180 80% 85%) !important;
+  color: #000000 !important;
+  box-shadow: 0 1px 3px hsl(180 80% 85% / 0.3);
+}
+
+.eaisymode .tab-trigger-cyan[data-state="inactive"] {
+  background: transparent;
+  color: #000000 !important;
+}
+
+.dark.eaisymode .tab-trigger-cyan[data-state="inactive"] {
+  color: hsl(0 0% 100% / 0.8) !important; /* In dark mode, black text on dark bg is illegible, keeping it light */
+}
+
+.eaisymode .tab-trigger-cyan:hover {
+  background: hsl(180 80% 75%) !important;
+  color: #000000 !important;
+}
+
+.dark.eaisymode .tab-trigger-cyan:hover {
+  background: hsl(180 80% 75%) !important;
+  color: #000000 !important;
+}
+
+.eaisymode .hero-title-dark,
+.eaisymode .hero-title-light {
+  background: linear-gradient(to right, hsl(170 95% 85%), hsl(175 100% 45%), hsl(0 0% 100%)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+.eaisymode .bg-galaxy-header {
+  /* Standalone rounded box design */
+  background: linear-gradient(to right, hsl(195 65% 22%) 0%, hsl(195 65% 22%) 25%, hsla(195, 65%, 22%, 0) 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+@layer components {
+  .galaxy-title-primary {
+    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
+  }
+
+  .galaxy-title-secondary {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .galaxy-title-purple {
+    @apply bg-gradient-to-r from-[hsl(268_52%_50%)] via-[hsl(263_32%_65%)] to-[hsl(255_18%_74%)] dark:from-primary dark:via-primary/60 dark:to-accent bg-clip-text text-transparent;
+  }
+}
+
+.eaisymode .bg-galaxy-header .galaxy-title-primary,
+.eaisymode .bg-galaxy-header .galaxy-title-secondary,
+.eaisymode .bg-galaxy-header .galaxy-title-purple {
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-clip: initial !important;
+  -webkit-background-clip: initial !important;
+}
+
+.eaisymode .bg-galaxy-header p.text-muted-foreground {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.eaisymode .glow-blue {
+  box-shadow: 0 0 20px hsl(175 100% 45% / 0.2), 0 0 40px hsl(175 100% 45% / 0.1) !important;
+}
+
+.eaisymode .bg-galaxy-gradient,
+.eaisymode .bg-galaxy-card {
+  background: linear-gradient(145deg, hsl(195 65% 15%) 0%, hsl(195 75% 10%) 100%) !important;
+}
+
+.eaisymode .nebula-overlay::before {
+  background:
+    radial-gradient(ellipse at 20% 30%, hsl(175 100% 45% / 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, hsl(170 95% 85% / 0.05) 0%, transparent 50%) !important;
+}
+
+.eaisymode .menu-fill-effect::before {
+  background: linear-gradient(to top, hsl(175 100% 45% / 0.15) 0%, transparent 100%) !important;
+}
+
+.eaisymode .sidebar-menu-hover::before {
+  background: linear-gradient(135deg, hsl(175 100% 45% / 0.1) 0%, transparent 100%) !important;
+}
+
+.eaisymode .select-animated-outline::before {
+  background: linear-gradient(90deg, hsl(175 100% 45%) 0%, hsl(170 95% 85%) 50%, hsl(175 100% 45%) 100%) !important;
+}
+
+.eaisymode .checkbox-glow-active::before {
+  background: conic-gradient(from 0deg, hsl(175 100% 45%) 0%, hsl(170 95% 85%) 50%, hsl(175 100% 45%) 100%) !important;
+}
+
+.eaisymode .color-orb {
+  background: hsl(175 100% 45% / 0.05) !important;
 }
 
 @layer base {
@@ -225,19 +465,23 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     scrollbar-width: thin !important;
     scrollbar-color: hsl(var(--primary) / 0.4) transparent !important;
   }
+
   .custom-scrollbar-purple::-webkit-scrollbar {
     width: 6px !important;
     height: 6px !important;
     display: block !important;
   }
+
   .custom-scrollbar-purple::-webkit-scrollbar-track {
     background: transparent !important;
     margin-block: 4px;
   }
+
   .custom-scrollbar-purple::-webkit-scrollbar-thumb {
     background: hsl(var(--primary) / 0.4) !important;
     border-radius: 9999px !important;
   }
+
   .custom-scrollbar-purple::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.7) !important;
   }
@@ -822,9 +1066,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     0 0 60px 20px hsl(var(--primary) / 0.07),
     0 0 120px 40px hsl(var(--primary) / 0.04),
     inset 0 0 40px 15px hsl(var(--primary) / 0.04);
-  /* Glass distortion — blurs background behind the ring */
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  /* Glass distortion removed to fix extreme scale GPU rendering glitches */
   pointer-events: none;
   z-index: 0;
   animation: shockwaveExpand 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -841,8 +1083,13 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0.5;
   }
 
-  35% {
-    opacity: 0.35;
+  30% {
+    opacity: 0.25;
+  }
+
+  60% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(15);
   }
 
   100% {
@@ -1702,6 +1949,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 0;
     transform: translateY(2rem) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1713,6 +1961,7 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(2rem) scale(0.95);
@@ -1728,13 +1977,23 @@ Color Theme: Galaxy Purple & Sparkling Light Blue
 }
 
 @keyframes dialogOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dialogOverlayOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 .dialog-overlay-animated[data-state="open"] {
