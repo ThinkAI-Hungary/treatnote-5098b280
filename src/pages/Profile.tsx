@@ -26,11 +26,12 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
 import FlexiConnectDialog from '@/components/profile/FlexiConnectDialog';
+import { ChangePasswordDialog } from '@/components/profile/ChangePasswordDialog';
 import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { useKlinikaAdminRole } from '@/hooks/useKlinikaAdminRole';
 import { useKlinikaAdmins } from '@/hooks/useKlinikaAdmins';
 import { subscribeToTelephelyChanges } from '@/lib/telephelyEvents';
-import { X, Check, User, Building2, MapPin, Phone, Loader2, AlertCircle } from 'lucide-react';
+import { X, Check, User, Building2, MapPin, Phone, Loader2, AlertCircle, KeyRound } from 'lucide-react';
 import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
@@ -499,6 +500,25 @@ const Profile = () => {
               {loading ? 'Mentés...' : 'Változtatások mentése'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            Biztonság
+          </CardTitle>
+          <CardDescription>Jelszó és bejelentkezési adatok</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-muted/50">
+            <div>
+              <p className="font-medium text-foreground">Jelszó</p>
+              <p className="text-sm text-muted-foreground">Biztonsági okokból javasolt a jelszó rendszeres cseréje.</p>
+            </div>
+            <ChangePasswordDialog />
+          </div>
         </CardContent>
       </Card>
 

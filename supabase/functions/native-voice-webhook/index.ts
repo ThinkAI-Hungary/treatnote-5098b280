@@ -26,10 +26,15 @@ serve(async (req) => {
     const timestamp = formData.get("timestamp") as string;
     const filename = formData.get("filename") as string;
     const userId = formData.get("user_id") as string;
-    const treatnotePatientId = formData.get("treatnote_patient_id") as string;
+    const treatnotePatientIdStr = formData.get("treatnote_patient_id") as string;
+    const paciensIdStr = formData.get("paciens_id") as string;
     const overrideTranscript = formData.get("override_transcript") as string | undefined;
 
-    if (!audio || !mode || !treatnotePatientId) {
+    const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const treatnotePatientId = treatnotePatientIdStr && isValidUUID(treatnotePatientIdStr) ? treatnotePatientIdStr : null;
+    const paciensId = paciensIdStr || treatnotePatientIdStr;
+
+    if (!audio || !mode || (!treatnotePatientId && !paciensId)) {
       return new Response(
         JSON.stringify({ error: "Hiányzó kötelező mezők: hangfájl, mód, vagy beteg azonosító" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -155,7 +160,7 @@ serve(async (req) => {
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     const apiKeys = { openai: openaiApiKey || "", elevenlabs: elevenlabsApiKey || "", anthropic: anthropicApiKey || "" };
-    const ctx = { userId, companyId, telephelyId, paciensId: treatnotePatientId, treatnotePatientId, logErrorToDatabase };
+    const ctx = { userId, companyId, telephelyId, paciensId, treatnotePatientId, logErrorToDatabase };
     let backgroundProcessing;
     if (mode === 'treatnote') {
       if (isStdl) {

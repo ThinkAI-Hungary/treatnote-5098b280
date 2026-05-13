@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { cn } from '@/lib/utils';
 import type { UnifiedVoiceJob as VoiceJob } from '@/hooks/useUnifiedVoiceHistory';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { toast } from '@/hooks/useToastMessage';
 import { useState, useRef, useCallback } from 'react';
@@ -397,8 +397,6 @@ function HistoryPopup({
                             <span>{formatDuration(job.duration_seconds)}</span>
                             <span>·</span>
                             <span>{format(new Date(job.created_at), 'yyyy.MM.dd HH:mm')}</span>
-                            <span>·</span>
-                            <span>{formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: hu })}</span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1 mt-0.5">
@@ -520,7 +518,7 @@ export function NativeVoiceJobHistory({ jobs, isLoading, selectedJobId, onSelect
                           <span>{formatDuration(job.duration_seconds)}</span>
                           <span>•</span>
                           <span className="truncate">
-                            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: hu })}
+                            {format(new Date(job.created_at), 'yyyy.MM.dd HH:mm')}
                           </span>
                         </div>
                       </div>

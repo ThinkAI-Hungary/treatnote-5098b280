@@ -58,7 +58,6 @@ import { VisualCueChip } from './VisualCueChip';
 
 export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   const [items, setItems] = useState<CombinedTreatmentItem[]>([]);
-  const [useDefaultLibrary, setUseDefaultLibrary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dbCustomCategories, setDbCustomCategories] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,28 +70,24 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
   const [editingItem, setEditingItem] = useState<CombinedTreatmentItem | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // CSV import state
-  const [importing, setImporting] = useState(false);
+
 
   // ─── Data Loading ────────────────────────────────────────────────────────
 
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [telephelyRes, customCatRes] = await Promise.all([
-        supabase.from('telephely').select('use_default_library').eq('id', telephelyId).single(),
-        supabase.from('clinic_custom_categories').select('*').eq('telephely_id', telephelyId).eq('mode', 'nativ')
-      ]);
-
-      if (telephelyRes.data) {
-        setUseDefaultLibrary(telephelyRes.data.use_default_library || false);
-      }
+      const { data: customCatData } = await supabase
+        .from('clinic_custom_categories')
+        .select('*')
+        .eq('telephely_id', telephelyId)
+        .eq('mode', 'nativ');
 
       const combined = await fetchCombinedTreatmentItems(telephelyId);
       setItems(combined);
 
-      if (customCatRes.data) {
-        setDbCustomCategories(customCatRes.data);
+      if (customCatData) {
+        setDbCustomCategories(customCatData);
       }
     } catch (error: any) {
       toast.error('Hiba történt az adatok betöltésekor: ' + error.message);
@@ -101,80 +96,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     }
   }, [telephelyId]);
 
-  const handleToggleDefaultLibrary = async (checked: boolean) => {
-    try {
-      setUseDefaultLibrary(checked);
-      
-      // Update the database toggle state
-      const { error } = await supabase
-        .from('telephely')
-        .update({ use_default_library: checked })
-        .eq('id', telephelyId);
-      if (error) throw error;
-      
-      if (checked) {
-        toast.info('Központi szótár másolása folyamatban...');
-        
-        // 1. Fetch default items
-        const { data: defaultItems, error: defError } = await supabase
-          .from('default_treatment_items')
-          .select('*');
-          
-        if (defError) throw defError;
-        
-        // 2. Fetch existing custom items to avoid duplicates
-        const { data: existingItems, error: exError } = await supabase
-          .from('clinic_treatment_items_stdl')
-          .select('name')
-          .eq('telephely_id', telephelyId);
-          
-        if (exError) throw exError;
-        
-        const existingNames = new Set((existingItems || []).map(i => i.name.toLowerCase()));
-        
-        // 3. Filter missing items
-        const missingItems = (defaultItems || []).filter(item => !existingNames.has(item.name.toLowerCase()));
-        
-        // 4. Insert missing items
-        if (missingItems.length > 0) {
-          const itemsToInsert = missingItems.map(item => ({
-            telephely_id: telephelyId,
-            name: item.name,
-            category: item.category || 'Egyéb',
-            subcategory: item.subcategory,
-            price: item.price || 0,
-            visual_group: item.visual_group || 'egyeb',
-            visual_color: item.visual_color || '#94a3b8',
-            visual_icon: item.visual_icon || 'circle',
-            is_per_tooth: item.is_per_tooth ?? false,
-            applicable_statuses: item.applicable_statuses,
-            is_active: true, // Always default to active when copying
-            sort_order: item.sort_order || 999,
-            aliases: item.aliases || [],
-            is_default: true,
-            is_locked: false
-          }));
-          
-          const { error: insertError } = await supabase
-            .from('clinic_treatment_items_stdl')
-            .insert(itemsToInsert);
-            
-          if (insertError) throw insertError;
-          toast.success(`${itemsToInsert.length} új központi tétel hozzáadva a saját szótáradhoz!`);
-        } else {
-          toast.success('Központi kezelési tervek bekapcsolva (minden tétel már létezik).');
-        }
-      } else {
-        toast.success('Központi kezelési tervek kikapcsolva.');
-      }
 
-      loadItems();
-      window.dispatchEvent(new Event('SZOTAR_DATA_CHANGED'));
-    } catch (err: any) {
-      toast.error('Hiba a központi szótár másolásakor: ' + err.message);
-      setUseDefaultLibrary(!checked);
-    }
-  };
 
   const handleToggleLock = async (item: CombinedTreatmentItem) => {
     if (!item.is_default) return;
@@ -233,7 +155,6 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
-      if (!useDefaultLibrary && item.is_default && !item.is_locked) return false;
 
       const isWarning = !item.name || !item.category || item.price === null || item.price === undefined;
       if (showWarnings && !isWarning) return false;
@@ -360,66 +281,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
     }
   };
 
-  // ─── CSV Import ──────────────────────────────────────────────────────────
 
-  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-
-    setImporting(true);
-    try {
-      const text = await file.text();
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) { toast.error('A CSV fájl üres vagy hibás'); return; }
-
-      // Parse header
-      const sep = lines[0].includes(';') ? ';' : ',';
-      const header = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-      const nameIdx = header.findIndex(h => h === 'name' || h === 'név' || h === 'nev');
-      const catIdx = header.findIndex(h => h === 'category' || h === 'kategória' || h === 'kategoria');
-      const priceIdx = header.findIndex(h => h === 'price' || h === 'ár' || h === 'ar');
-
-      if (nameIdx === -1) { toast.error('Hiányzó "name" vagy "név" oszlop a CSV-ben'); return; }
-
-      const rows: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
-        const name = cols[nameIdx];
-        if (!name) continue;
-
-        const category = catIdx >= 0 ? cols[catIdx] || 'Egyéb' : 'Egyéb';
-        const price = priceIdx >= 0 ? parseInt(cols[priceIdx]?.replace(/\D/g, ''), 10) || null : null;
-        const cue = classifyTreatmentItem(name, category);
-
-        rows.push({
-          telephely_id: telephelyId,
-          name,
-          category,
-          price,
-          visual_group: cue.visual_group,
-          visual_color: cue.visual_color,
-          visual_icon: cue.visual_icon,
-        });
-      }
-
-      if (rows.length === 0) { toast.error('Nem található érvényes sor'); return; }
-
-      const { error } = await supabase
-        .from('clinic_treatment_items_stdl' as any)
-        .upsert(rows, { onConflict: 'telephely_id,name', ignoreDuplicates: true });
-
-      if (error) throw error;
-      toast.success(`${rows.length} tétel importálva`);
-      window.dispatchEvent(new Event('SZOTAR_DATA_CHANGED'));
-      loadItems();
-    } catch (err: any) {
-      console.error('CSV import error:', err);
-      toast.error('Hiba az importáláskor: ' + (err.message || ''));
-    } finally {
-      setImporting(false);
-    }
-  };
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -436,37 +298,7 @@ export function KezelesiTetelekTab({ telephelyId }: KezelesiTetelekTabProps) {
             Kezelési Tervek
             <Badge variant="secondary" className="ml-2 text-xs">{items.length} terv</Badge>
           </CardTitle>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-md border border-primary/20">
-              <Switch
-                id="use-default-library"
-                checked={useDefaultLibrary}
-                onCheckedChange={handleToggleDefaultLibrary}
-              />
-              <Label htmlFor="use-default-library" className="text-sm font-medium cursor-pointer">
-                Központi kezelési tervek használata
-              </Label>
-            </div>
-            <label htmlFor="csv-import">
-              <input
-                id="csv-import"
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={handleCsvImport}
-                disabled={importing}
-              />
-              <Button variant="outline" size="sm" asChild disabled={importing}>
-                <span className="cursor-pointer">
-                  {importing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileUp className="h-4 w-4 mr-1.5" />}
-                  CSV Import
-                </span>
-              </Button>
-            </label>
-            <Button size="sm" onClick={openNewDialog}>
-              <Plus className="h-4 w-4 mr-1.5" /> Új tétel
-            </Button>
-          </div>
+
         </div>
 
         {/* Search + filter bar */}

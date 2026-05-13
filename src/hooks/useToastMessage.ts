@@ -14,12 +14,22 @@ interface ToastInterceptor {
 }
 
 export const toast: ToastInterceptor = Object.assign(
-  (msg: string) => { useHeaderMessage.getState().showMessage(msg, 'info'); },
+  (msg: string) => { 
+    useHeaderMessage.getState().showMessage(msg, 'info'); 
+  },
   {
-    success: (msg: string) => useHeaderMessage.getState().showMessage(msg, 'success'),
-    error: (msg: string) => useHeaderMessage.getState().showMessage(msg, 'error'),
-    info: (msg: string) => useHeaderMessage.getState().showMessage(msg, 'info'),
-    warning: (msg: string) => useHeaderMessage.getState().showMessage(msg, 'error'),
+    success: (msg: string) => { 
+      useHeaderMessage.getState().showMessage(msg, 'success'); 
+    },
+    error: (msg: string) => { 
+      useHeaderMessage.getState().showMessage(msg, 'error'); 
+    },
+    info: (msg: string) => { 
+      useHeaderMessage.getState().showMessage(msg, 'info'); 
+    },
+    warning: (msg: string) => { 
+      useHeaderMessage.getState().showMessage(msg, 'error'); 
+    },
     promise: sonnerToast.promise,
     dismiss: sonnerToast.dismiss,
   }
