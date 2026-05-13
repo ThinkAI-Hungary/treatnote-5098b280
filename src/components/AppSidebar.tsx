@@ -9,6 +9,7 @@ import {
   Home,
   Loader2,
   FlaskConical,
+  ClipboardList,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,7 +60,6 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 // All menu items defined statically - no conditional rendering
 const mainMenuItems = [
-  { title: 'Főoldal', url: '/dashboard', icon: Home, tourId: 'nav-dashboard' },
   { title: 'Hangfelvétel', url: '/voice-recording', icon: Mic, requiresFlexi: true, requiresSzotar: true, tourId: 'nav-hangfelvetel' },
   { title: 'Páciensek', url: '/patients', icon: User, tourId: 'nav-patients', requiresAdmin: true },
 ];
@@ -71,6 +71,7 @@ const adminMenuItems = [
 ];
 
 const klinikaMenuItems = [
+  { title: 'Onboarding', url: '/dashboard', icon: ClipboardList, tourId: 'nav-dashboard' },
   { title: 'Klinika Admin', url: '/klinika-admin', icon: Building2, requiresKlinikaAdmin: true, tourId: 'nav-klinika-admin' },
 ];
 
@@ -693,10 +694,10 @@ export function AppSidebar() {
     }
   }, [profile, user, navigate]);
 
-  // Determine if all 5 onboarding steps are done (must be before early return — hooks below must always run)
+  // Determine if all onboarding steps are done (must be before early return — hooks below must always run)
   const isNativeMode = profile?.voice_recording_preference === 'treatnote_native';
-  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRules;
-  const nativeComplete = hasNativeRules; // if there is at least 1 active native rule, consider it complete
+  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar;
+  const nativeComplete = hasSzotarNative;
   
   const allOnboardingComplete = nativeComplete || flexiComplete;
   const showProtectedItems = allOnboardingComplete;
@@ -891,32 +892,6 @@ export function AppSidebar() {
       );
     }
 
-    // reason === 'rules'
-    if (reason === 'rules') {
-      if (isKlinikaAdmin || isAdmin) {
-        return (
-          <div className="text-sm">
-            <p>
-              Még nincsenek kezelési szabályok –{' '}
-              <button
-                onClick={() => navigate('/klinika-admin?tab=kezelesi-szabalyok')}
-                className="underline text-primary hover:text-primary/80 font-medium"
-              >
-                generálja le a szabályokat a szótárból
-              </button>
-            </p>
-          </div>
-        );
-      }
-
-      return (
-        <div className="text-sm space-y-2">
-          <p>Még nincsenek kezelési szabályok.</p>
-          {renderAdminContactInfo()}
-        </div>
-      );
-    }
-
     return null; // Should not happen if all reasons are handled
   };
 
@@ -966,14 +941,6 @@ export function AppSidebar() {
       };
     }
 
-    // 5. Check Rules fifth
-    if (item.requiresSzotar && !rulesLoading && !hasRules) {
-      return {
-        isDisabled: true,
-        disabledContent: buildHangfelvételDisabledContent('rules'),
-      };
-    }
-
     return { isDisabled: false };
   };
 
@@ -991,7 +958,6 @@ export function AppSidebar() {
     if (!hasProbaPaciens) missingSteps.push('Próba páciens ID megadása');
     if (!isFlexiConnected) missingSteps.push('FlexiDent fiók csatlakoztatása');
     if (!hasSzotar) missingSteps.push('Szótár generálása');
-    if (!hasRules) missingSteps.push('Szabályok generálása szótárból');
 
     if (isKlinikaAdmin || isAdmin) {
       return (
@@ -1122,8 +1088,8 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* Klinika - Only shown if user is klinika admin or admin AND onboarding complete */}
-        {(isKlinikaAdmin || isAdmin) && showProtectedItems && (
+        {/* Klinika - Only shown if user is klinika admin or admin */}
+        {(isKlinikaAdmin || isAdmin) && (
           <SidebarGroup
             key={`klinika-${menuAnimKey}`}
             data-tour="sidebar-klinika"

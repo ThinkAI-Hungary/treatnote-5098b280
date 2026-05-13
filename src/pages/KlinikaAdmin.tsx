@@ -167,11 +167,11 @@ export default function KlinikaAdmin() {
 
   const { hasSzotarNative, hasNativeRules, isLoading: szotarStdlLoading } = useSzotarStdl();
 
-  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar && hasRulesGuard;
-  const nativeComplete = hasSzotarNative && hasNativeRules;
+  const flexiComplete = hasFlexiDomain && hasProbaPaciens && isFlexiConnected && hasSzotar;
+  const nativeComplete = hasSzotarNative;
   
   const allOnboardingComplete = nativeComplete || flexiComplete;
-  const onboardingLoading = szotarLoading || isFlexiLoading || rulesGuardLoading || szotarStdlLoading;
+  const onboardingLoading = szotarLoading || isFlexiLoading || szotarStdlLoading;
 
 
   // Fetch licenses to show per-user license status

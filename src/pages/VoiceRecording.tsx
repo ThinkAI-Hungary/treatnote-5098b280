@@ -387,23 +387,8 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
   // Get the selected job for display
   const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null;
 
-  // Check if treatment rules exist
-  const [hasRules, setHasRules] = useState(true);
-  const [rulesLoading, setRulesLoading] = useState(true);
-  // activeTelephelyId is already declared at the top (before useFlexiConnection)
-  useEffect(() => {
-    // Wait for profile to load before checking rules
-    if (profileLoading) return;
-    if (!activeTelephelyId) { setHasRules(false); setRulesLoading(false); return; }
-    supabase
-      .from('treatment_rules')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinic_id', activeTelephelyId)
-      .then(({ count }) => { setHasRules((count || 0) > 0); setRulesLoading(false); });
-  }, [activeTelephelyId, profileLoading]);
-
   // Signal loading to sidebar indicator
-  const _isPageLoading = profileLoading || isFlexiLoading || rulesLoading;
+  const _isPageLoading = profileLoading || isFlexiLoading;
   usePageLoadingSignal(_isPageLoading);
 
   // Show unified loading state while critical data loads
@@ -506,68 +491,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
     );
   }
 
-  // Show message if treatment rules are not available
-  if (!rulesLoading && !hasRules) {
-    return (
-      <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-xl bg-galaxy-header p-6 border border-primary/20 dark:border-sparkle-blue/20">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-300 dark:from-cyan-600 dark:to-cyan-500 shadow-cyan-500/30 flex items-center justify-center glow-purple">
-                <Mic className="h-7 w-7 text-primary-foreground" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight galaxy-title-purple">
-                Hangfelvétel
-              </h1>
-              <p className="text-muted-foreground mt-1 flex items-center gap-2">
-                <Mic className="h-4 w-4" />
-                Vizsgálati jegyzőkönyv diktálása
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Kezelési szabályok szükségesek</AlertTitle>
-          <AlertDescription>
-            {isKlinikaAdmin || isAdmin ? (
-              <>
-                Nincsenek kezelési szabályok a telephelyhez -{' '}
-                <button
-                  onClick={() => navigate('/klinika-admin?tab=kezelesi-szabalyok')}
-                  className="underline font-medium hover:text-destructive-foreground/80"
-                >
-                  generálja le a szabályokat
-                </button>
-              </>
-            ) : (
-              <div className="space-y-2">
-                <p>Nincsenek kezelési szabályok a telephelyhez, kérem keresse fel klinika adminját!</p>
-                {klinikaAdmins.length > 0 && (
-                  <div>
-                    <p className="font-medium">
-                      {klinikaAdmins.length > 1 ? 'Klinika adminok:' : 'Klinika admin:'}
-                    </p>
-                    <ul className="mt-1 space-y-1">
-                      {klinikaAdmins.map((admin) => (
-                        <li key={admin.id}>
-                          {admin.full_name || 'Névtelen'}
-                          {admin.phone && <span className="ml-2">({admin.phone})</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -20,7 +20,7 @@ import {
 } from '@/lib/generationStore';
 import {
   Users, Calendar, Stethoscope, TrendingUp,
-  Globe, TestTube, Link2, BookOpen, ClipboardList,
+  Globe, TestTube, Link2, BookOpen, ClipboardList, GitBranch,
   CheckCircle2, Circle,
   Phone, UserCog, PartyPopper, Loader2, Pencil, AlertTriangle, RefreshCw
 } from 'lucide-react';
@@ -37,6 +37,8 @@ import { notifyFlexiConnectionChanged } from '@/hooks/useFlexiConnection';
 import { OnboardingTour, TourStep } from '@/components/klinika/OnboardingTour';
 import { useOnboardingTour } from '@/hooks/useOnboardingTour';
 import { DashboardModeSwitcher } from '@/components/dashboard/DashboardModeSwitcher';
+import { MappingDialog } from '@/components/klinika/MappingDialog';
+import { useMappingProgress } from '@/hooks/useMappingProgress';
 
 interface OnboardingStep {
   id: string;
@@ -50,6 +52,7 @@ interface OnboardingStep {
   currentValue?: string | null;
   editable?: boolean;
   warning?: string | null;
+  progress?: { percent: number | null; message: string; isRunning: boolean };
 }
 
 interface KlinikaAdminContact {
@@ -69,14 +72,19 @@ export default function Dashboard() {
   const {
     hasSzotar, hasProbaPaciens, hasFlexiDomain,
     flexiDomain, probaPaciensNeve,
+    hasMappings, unreviewedMappingsCount,
     isLoading: szotarLoading, refresh: refreshSzotar,
   } = useSzotar();
 
   const {
     hasSzotarNative, hasNativeRules,
+    hasMappingsNative, unreviewedMappingsCountNative,
     isLoading: szotarStdlLoading,
     refresh: refreshSzotarStdl,
   } = useSzotarStdl();
+
+  const mappingProgressFlexi = useMappingProgress(activeTelephelyId ?? null, false, hasSzotar && !hasMappings);
+  const mappingProgressNative = useMappingProgress(activeTelephelyId ?? null, true, hasSzotarNative && !hasMappingsNative);
 
   const [hasRules, setHasRules] = useState(false);
   const [rulesLoading, setRulesLoading] = useState(true);
@@ -92,6 +100,7 @@ export default function Dashboard() {
   const [flexiDialogOpen, setFlexiDialogOpen] = useState(false);
   const [nativeSzotarDialogOpen, setNativeSzotarDialogOpen] = useState(false);
   const [nativeRulesDialogOpen, setNativeRulesDialogOpen] = useState(false);
+  const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
 
   // Generation state lives in a module-level store so it survives navigation
   const szotarGenerating = useSyncExternalStore(subscribeGenerationStore, isSzotarGenerating);
@@ -202,16 +211,6 @@ export default function Dashboard() {
           adminOnly: true,
           actionLabel: 'Tételek szerkesztése',
           editable: true,
-        },
-        {
-          id: 'rules_native',
-          icon: ClipboardList,
-          title: 'Kezelési szabályok beállítása',
-          description: 'Rögzítse vagy töltse fel a klinika kezelési szabályait. Fontos: A rendszer működéséhez legalább egy aktív szabályra van szükség!',
-          completed: hasNativeRules,
-          adminOnly: true,
-          actionLabel: 'Szabályok szerkesztése',
-          editable: true,
         }
       ];
     }
@@ -230,17 +229,6 @@ export default function Dashboard() {
         warning: flexiConnectionFailed ? 'A domain helytelen lehet. Kérjük ellenőrizze!' : null,
       },
       {
-        id: 'proba',
-        icon: TestTube,
-        title: 'Próba páciens ID megadása',
-        description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
-        completed: hasProbaPaciens,
-        adminOnly: true,
-        actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
-        currentValue: probaPaciensNeve || null,
-        editable: true,
-      },
-      {
         id: 'flexi',
         icon: Link2,
         title: 'FlexiDent fiók csatlakoztatása',
@@ -253,6 +241,17 @@ export default function Dashboard() {
         editable: true,
       },
       {
+        id: 'proba',
+        icon: TestTube,
+        title: 'Próba páciens ID megadása',
+        description: 'Adjon meg egy teszt páciens nevet a rendszer teszteléséhez.',
+        completed: hasProbaPaciens,
+        adminOnly: true,
+        actionLabel: hasProbaPaciens ? 'Módosítás' : 'Próba ID megadása',
+        currentValue: probaPaciensNeve || null,
+        editable: true,
+      },
+      {
         id: 'szotar',
         icon: BookOpen,
         title: 'Szótár generálása',
@@ -260,20 +259,9 @@ export default function Dashboard() {
         completed: hasSzotar,
         adminOnly: true,
         actionLabel: szotarGenerating ? 'Generálás...' : 'Szótár generálása',
-      },
-      {
-        id: 'rules',
-        icon: ClipboardList,
-        title: hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása szótárból',
-        description: hasRules
-          ? 'Törölje a szótár alapszabályokat és generálja újra (a PDF szabályok megmaradnak).'
-          : 'Generálja le a kezelési szabályokat a szótár alapján.',
-        completed: hasRules,
-        adminOnly: true,
-        actionLabel: szabalyokGenerating ? 'Generálás...' : (hasRules ? 'Szabályok újragenerálása' : 'Szabályok generálása'),
-      },
+      }
     ];
-  }, [isNativeMode, hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasSzotarNative, hasRules, hasNativeRules, szotarGenerating, szabalyokGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
+  }, [isNativeMode, hasFlexiDomain, hasProbaPaciens, isFlexiConnected, isFlexiLoading, hasSzotar, hasSzotarNative, szotarGenerating, flexiDomain, probaPaciensNeve, flexiUsername, flexiConnectionFailed]);
 
   const isKlinikaAdminOrAdmin = isKlinikaAdmin || isAdmin;
   const userOwnSteps = useMemo(() => allSteps.filter(s => !s.adminOnly), [allSteps]);
@@ -283,6 +271,15 @@ export default function Dashboard() {
   const completedCount = allSteps.filter(s => s.completed && !s.loading).length;
   const totalCount = allSteps.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.fromAuth && allComplete && !isLoading) {
+      // Clear state to avoid loops if they navigate back
+      navigate(isNativeMode ? '/patients' : '/voice-recording', { replace: true, state: {} });
+    }
+  }, [location.state?.fromAuth, allComplete, isLoading, isNativeMode, navigate]);
 
   // Handle step click actions
   const handleStepAction = (stepId: string) => {
@@ -307,6 +304,10 @@ export default function Dashboard() {
         break;
       case 'szotar_native':
         setNativeSzotarDialogOpen(true);
+        break;
+      case 'mappings_native':
+      case 'mappings':
+        setMappingDialogOpen(true);
         break;
     }
   };
@@ -593,6 +594,12 @@ export default function Dashboard() {
         telephelyId={activeTelephelyId}
         onSaved={() => refreshSzotarStdl()}
       />
+      <MappingDialog
+        open={mappingDialogOpen}
+        onOpenChange={setMappingDialogOpen}
+        telephelyId={activeTelephelyId}
+        isStdl={isNativeMode}
+      />
 
       {/* Dashboard onboarding tour */}
       <OnboardingTour
@@ -703,21 +710,42 @@ function StepCard({
             </div>
           )}
           {/* Warning display */}
-          {step.warning && (
+          {step.warning && !step.progress?.isRunning && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs bg-amber-500/10 border border-amber-500/20 rounded-md px-2 py-1 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-3 w-3 flex-shrink-0" />
               <span>{step.warning}</span>
             </div>
           )}
+          {/* Progress display */}
+          {step.progress?.isRunning && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{step.progress.message}</span>
+                {step.progress.percent !== null && (
+                  <span className="font-mono font-medium text-primary">{step.progress.percent}%</span>
+                )}
+              </div>
+              {step.progress.percent !== null && (
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${step.progress.percent}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Action button — shown for current incomplete step OR for completed editable steps */}
-        {isCurrent && !isProcessing && step.actionLabel && !step.completed && (
+        {(isCurrent || step.progress?.isRunning) && !isProcessing && step.actionLabel && !step.completed && (
           <Button
             size="sm"
             onClick={onAction}
             className="flex-shrink-0 gap-2"
+            disabled={step.progress?.isRunning}
           >
+            {step.progress?.isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {step.actionLabel}
           </Button>
         )}

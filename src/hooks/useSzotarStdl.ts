@@ -6,6 +6,8 @@ import { subscribeToRulesChanges } from '@/lib/rulesEvents';
 interface UseSzotarStdlReturn {
   hasSzotarNative: boolean;
   hasNativeRules: boolean;
+  hasMappingsNative: boolean;
+  unreviewedMappingsCountNative: number;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -16,19 +18,23 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
 
   const [hasSzotarNative, setHasSzotarNative] = useState(false);
   const [hasNativeRules, setHasNativeRules] = useState(false);
+  const [hasMappingsNative, setHasMappingsNative] = useState(false);
+  const [unreviewedMappingsCountNative, setUnreviewedMappingsCountNative] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchNativeData = useCallback(async () => {
     if (!activeTelephelyId) {
       setHasSzotarNative(false);
       setHasNativeRules(false);
+      setHasMappingsNative(false);
+      setUnreviewedMappingsCountNative(0);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      const [telephelyRes, szotarRes, rulesRes, lockedRes] = await Promise.all([
+      const [telephelyRes, szotarRes, rulesRes, lockedRes, mappingsRes] = await Promise.all([
         supabase
           .from('telephely')
           .select('use_default_library')
@@ -47,7 +53,11 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
           .from('clinic_item_overrides')
           .select('id', { count: 'exact', head: true })
           .eq('telephely_id', activeTelephelyId)
-          .eq('is_locked', true)
+          .eq('is_locked', true),
+        supabase
+          .from('v2_clinic_mappings_stdl')
+          .select('id, reviewed')
+          .eq('telephely_id', activeTelephelyId)
       ]);
 
       const useDefault = telephelyRes.data?.use_default_library || false;
@@ -56,10 +66,24 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
       
       setHasSzotarNative(useDefault || hasCustomItems || hasLockedItems);
       setHasNativeRules((rulesRes.count || 0) > 0);
+      
+      if (mappingsRes?.error) {
+        console.error('Error fetching v2 mappings stdl:', mappingsRes.error);
+        setHasMappingsNative(false);
+        setUnreviewedMappingsCountNative(0);
+      } else if (mappingsRes?.data) {
+        setHasMappingsNative(mappingsRes.data.length > 0);
+        setUnreviewedMappingsCountNative(mappingsRes.data.filter((m: any) => !m.reviewed).length);
+      } else {
+        setHasMappingsNative(false);
+        setUnreviewedMappingsCountNative(0);
+      }
     } catch (err) {
       console.error('Error fetching native szotar/rules:', err);
       setHasSzotarNative(false);
       setHasNativeRules(false);
+      setHasMappingsNative(false);
+      setUnreviewedMappingsCountNative(0);
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +104,7 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_treatment_items_stdl', filter: `telephely_id=eq.${activeTelephelyId}` }, fetchNativeData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'treatment_rules_stdl', filter: `clinic_id=eq.${activeTelephelyId}` }, fetchNativeData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_item_overrides', filter: `telephely_id=eq.${activeTelephelyId}` }, fetchNativeData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_clinic_mappings_stdl', filter: `telephely_id=eq.${activeTelephelyId}` }, fetchNativeData)
       .subscribe();
 
     return () => {
@@ -105,6 +130,8 @@ export function useSzotarStdl(): UseSzotarStdlReturn {
   return {
     hasSzotarNative,
     hasNativeRules,
+    hasMappingsNative,
+    unreviewedMappingsCountNative,
     isLoading: isLoading || profileLoading,
     refresh: fetchNativeData,
   };

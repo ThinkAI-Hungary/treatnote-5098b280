@@ -68,9 +68,8 @@ const Auth = () => {
       return;
     }
 
-    // Normal: if already logged in (no confirmation flow), go to dashboard
     if (user && !hash.includes('type=')) {
-      navigate('/dashboard');
+      navigate('/dashboard', { state: { fromAuth: true } });
     }
   }, [user, navigate, view]);
 
@@ -98,7 +97,7 @@ const Auth = () => {
         }
       } else {
         toast.success('Üdvözöljük!');
-        navigate('/dashboard');
+        navigate('/dashboard', { state: { fromAuth: true } });
       }
     } catch (err) {
       toast.error('Váratlan hiba történt');

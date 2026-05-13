@@ -31,6 +31,8 @@ interface UseSzotarReturn {
   probaPaciensNeve: string | null;
   hasFlexiDomain: boolean;
   flexiDomain: string | null;
+  hasMappings: boolean;
+  unreviewedMappingsCount: number;
   isLoading: boolean;
   refresh: () => Promise<void>;
   startPolling: () => void;
@@ -49,7 +51,8 @@ let szotarCache: {
   szotar: null,
   szotarKezelesek: [],
   probaPaciensNeve: null,
-  flexiDomain: null,
+  hasMappings: false,
+  unreviewedMappingsCount: 0,
   loaded: false,
 };
 
@@ -59,7 +62,7 @@ export function useSzotar(): UseSzotarReturn {
 
   // Invalidate cache if telephely changed
   if (activeTelephelyId !== szotarCache.telephelyId) {
-    szotarCache = { telephelyId: activeTelephelyId, szotar: null, szotarKezelesek: [], probaPaciensNeve: null, flexiDomain: null, loaded: false };
+    szotarCache = { telephelyId: activeTelephelyId, szotar: null, szotarKezelesek: [], probaPaciensNeve: null, flexiDomain: null, hasMappings: false, unreviewedMappingsCount: 0, loaded: false };
   }
 
   const hasCachedData = szotarCache.loaded && szotarCache.telephelyId === activeTelephelyId;
@@ -67,6 +70,8 @@ export function useSzotar(): UseSzotarReturn {
   const [szotarKezelesek, setSzotarKezelesek] = useState<SzotarKezelesData[]>(hasCachedData ? szotarCache.szotarKezelesek : []);
   const [probaPaciensNeve, setProbaPaciensNeve] = useState<string | null>(hasCachedData ? szotarCache.probaPaciensNeve : null);
   const [flexiDomain, setFlexiDomain] = useState<string | null>(hasCachedData ? szotarCache.flexiDomain : null);
+  const [hasMappings, setHasMappings] = useState<boolean>(hasCachedData ? szotarCache.hasMappings : false);
+  const [unreviewedMappingsCount, setUnreviewedMappingsCount] = useState<number>(hasCachedData ? szotarCache.unreviewedMappingsCount : 0);
   const [isLoading, setIsLoading] = useState(!hasCachedData);
 
   // Debounce ref to prevent multiple rapid fetches
@@ -85,14 +90,16 @@ export function useSzotar(): UseSzotarReturn {
       setSzotarKezelesek([]);
       setProbaPaciensNeve(null);
       setFlexiDomain(null);
+      setHasMappings(false);
+      setUnreviewedMappingsCount(0);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Fetch szotar, szotar_kezelesek and telephely data in parallel
-      const [szotarResult, kezelesekResult, telephelyResult] = await Promise.all([
+      // Fetch szotar, szotar_kezelesek, telephely, and mappings data in parallel
+      const [szotarResult, kezelesekResult, telephelyResult, mappingsRes] = await Promise.all([
         supabase
           .from('szotar')
           .select('*')
@@ -109,6 +116,10 @@ export function useSzotar(): UseSzotarReturn {
           .select('probapaciens_neve, flexi_domain')
           .eq('id', activeTelephelyId)
           .maybeSingle(),
+        supabase
+          .from('v2_clinic_mappings')
+          .select('id, reviewed')
+          .eq('telephely_id', activeTelephelyId),
       ]);
 
       if (szotarResult.error) {
@@ -145,6 +156,18 @@ export function useSzotar(): UseSzotarReturn {
         setProbaPaciensNeve(telephelyResult.data?.probapaciens_neve || null);
         setFlexiDomain(telephelyResult.data?.flexi_domain || null);
       }
+      
+      if (mappingsRes?.error) {
+        console.error('Error fetching v2 mappings:', mappingsRes.error);
+        setHasMappings(false);
+        setUnreviewedMappingsCount(0);
+      } else if (mappingsRes?.data) {
+        setHasMappings(mappingsRes.data.length > 0);
+        setUnreviewedMappingsCount(mappingsRes.data.filter((m: any) => !m.reviewed).length);
+      } else {
+        setHasMappings(false);
+        setUnreviewedMappingsCount(0);
+      }
       // Update module-level cache
       szotarCache = {
         telephelyId: activeTelephelyId,
@@ -159,6 +182,8 @@ export function useSzotar(): UseSzotarReturn {
         szotarKezelesek: kezelesekResult.error ? [] : (kezelesekResult.data || []),
         probaPaciensNeve: telephelyResult.error ? null : (telephelyResult.data?.probapaciens_neve || null),
         flexiDomain: telephelyResult.error ? null : (telephelyResult.data?.flexi_domain || null),
+        hasMappings: mappingsRes?.error ? false : ((mappingsRes?.data?.length || 0) > 0),
+        unreviewedMappingsCount: mappingsRes?.error ? 0 : (mappingsRes?.data?.filter((m: any) => !m.reviewed).length || 0),
         loaded: true,
       };
     } catch (err) {
@@ -281,6 +306,25 @@ export function useSzotar(): UseSzotarReturn {
         console.log('useSzotar: Szotar kezelesek channel status:', status);
       });
 
+    const mappingsChannel = supabase
+      .channel(`v2_clinic_mappings_hook_${activeTelephelyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'v2_clinic_mappings',
+          filter: `telephely_id=eq.${activeTelephelyId}`,
+        },
+        (payload) => {
+          console.log('useSzotar: v2_clinic_mappings realtime update detected', payload.eventType);
+          debouncedFetch();
+        }
+      )
+      .subscribe((status) => {
+        console.log('useSzotar: v2_clinic_mappings channel status:', status);
+      });
+
     return () => {
       console.log('useSzotar: Cleaning up realtime subscriptions');
       if (fetchTimeoutRef.current) {
@@ -289,6 +333,7 @@ export function useSzotar(): UseSzotarReturn {
       stopAggressivePolling();
       supabase.removeChannel(szotarChannel);
       supabase.removeChannel(kezelesekChannel);
+      supabase.removeChannel(mappingsChannel);
     };
   }, [(profile as any)?.current_telephely_id, profile?.telephely_id, debouncedFetch]);
 
@@ -306,6 +351,8 @@ export function useSzotar(): UseSzotarReturn {
     probaPaciensNeve,
     hasFlexiDomain: !!flexiDomain,
     flexiDomain,
+    hasMappings,
+    unreviewedMappingsCount,
     isLoading: isLoading || profileLoading,
     refresh: fetchSzotar,
     startPolling: startAggressivePolling,
