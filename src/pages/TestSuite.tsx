@@ -72,7 +72,7 @@ const STAGES = [
 
 export default function TestSuite() {
   const { profile } = useProfile();
-  const telephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || '';
+  const profileTelephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id || '';
 
   // Input state
   const [inputText, setInputText] = useState('');
@@ -95,20 +95,43 @@ export default function TestSuite() {
   const [rpaResult, setRpaResult] = useState<any>(null);
   const [rpaError, setRpaError] = useState<string | null>(null);
 
-  // Auto-load probapaciens_neve for the test patient
+  // Company & Telephely Selectors
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [telephelyek, setTelephelyek] = useState<any[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedTelephelyId, setSelectedTelephelyId] = useState<string>('');
+
   useEffect(() => {
-    if (!telephelyId) return;
     (async () => {
-      const { data } = await supabase
-        .from('telephely')
-        .select('probapaciens_neve')
-        .eq('id', telephelyId)
-        .maybeSingle();
-      if (data?.probapaciens_neve) {
-        setPaciensId(data.probapaciens_neve);
+      const [{ data: cData }, { data: tData }] = await Promise.all([
+        supabase.from('companies').select('id, name').order('name'),
+        supabase.from('telephely').select('id, name, company_id, probapaciens_neve').order('name')
+      ]);
+      if (cData) setCompanies(cData);
+      if (tData) {
+        setTelephelyek(tData);
+        if (profileTelephelyId && !selectedTelephelyId) {
+          const t = tData.find(x => x.id === profileTelephelyId);
+          if (t) {
+            setSelectedCompanyId(t.company_id);
+            setSelectedTelephelyId(profileTelephelyId);
+            if (t.probapaciens_neve) setPaciensId(t.probapaciens_neve);
+          }
+        }
       }
     })();
-  }, [telephelyId]);
+  }, [profileTelephelyId]);
+
+  // Auto-load probapaciens_neve when telephely changes
+  useEffect(() => {
+    if (!selectedTelephelyId) return;
+    const t = telephelyek.find(x => x.id === selectedTelephelyId);
+    if (t?.probapaciens_neve) {
+      setPaciensId(t.probapaciens_neve);
+    }
+  }, [selectedTelephelyId, telephelyek]);
+
+  const activeTelephelyId = selectedTelephelyId || profileTelephelyId;
 
   const activeRun = runs.find(r => r.id === activeRunId) || null;
 
@@ -157,7 +180,7 @@ export default function TestSuite() {
   }, []);
 
   const handleRun = useCallback(async () => {
-    if (!inputText.trim() || !telephelyId) return;
+    if (!inputText.trim() || !activeTelephelyId) return;
     setRunning(true);
     setAssessment(null);
     const t0 = Date.now();
@@ -165,7 +188,7 @@ export default function TestSuite() {
 
     try {
       const { data, error } = await supabase.functions.invoke('v2-test-text', {
-        body: { text: inputText, telephelyId },
+        body: { text: inputText, telephelyId: activeTelephelyId },
       });
       if (error) throw error;
 
@@ -194,7 +217,7 @@ export default function TestSuite() {
     } finally {
       setRunning(false);
     }
-  }, [inputText, telephelyId, runAssessment]);
+  }, [inputText, activeTelephelyId, runAssessment]);
 
   // ── Flexi RPA upload ──
 
@@ -231,7 +254,7 @@ export default function TestSuite() {
         <FlaskConical className="h-5 w-5" />
         <h1 className="text-lg font-semibold">V2 Test Suite</h1>
         <Badge variant="outline" className="text-xs border-black/20">
-          {telephelyId ? telephelyId.slice(0, 8) + '...' : 'nincs telephely'}
+          {activeTelephelyId ? activeTelephelyId.slice(0, 8) + '...' : 'nincs telephely'}
         </Badge>
         {runs.length > 0 && (
           <Badge variant="outline" className="text-xs ml-auto border-black/20">
@@ -246,6 +269,31 @@ export default function TestSuite() {
         {/* ═══ Panel 1: Input ═══ */}
         <div className="w-[340px] shrink-0 border-r flex flex-col overflow-y-auto">
           <div className="p-4 space-y-4">
+            {/* Context Selectors */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium uppercase tracking-wide text-black/50">Környezet</label>
+              <Select value={selectedCompanyId} onValueChange={(v) => { setSelectedCompanyId(v); setSelectedTelephelyId(''); }}>
+                <SelectTrigger className="h-8 text-xs bg-white border-black/20 w-full">
+                  <SelectValue placeholder="Cég kiválasztása" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedTelephelyId} onValueChange={setSelectedTelephelyId} disabled={!selectedCompanyId}>
+                <SelectTrigger className="h-8 text-xs bg-white border-black/20 w-full">
+                  <SelectValue placeholder="Telephely kiválasztása" />
+                </SelectTrigger>
+                <SelectContent>
+                  {telephelyek.filter(t => t.company_id === selectedCompanyId).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* AI Generate section */}
             <div className="space-y-2">
               <label className="text-xs font-medium uppercase tracking-wide text-black/50">AI Generálás</label>

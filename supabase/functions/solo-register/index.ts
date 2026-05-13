@@ -215,7 +215,7 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: "Hiba a telephely létrehozásakor" }), {
                 status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
-        }
+
 
         // ── Pre-create the profile ──────────────────────────────────────────────
         const profilePayload = {

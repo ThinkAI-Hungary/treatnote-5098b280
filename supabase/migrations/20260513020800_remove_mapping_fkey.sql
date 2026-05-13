@@ -1,0 +1,1 @@
+ALTER TABLE v2_clinic_mappings_stdl DROP CONSTRAINT IF EXISTS v2_clinic_mappings_stdl_stdl_treatment_item_id_fkey;

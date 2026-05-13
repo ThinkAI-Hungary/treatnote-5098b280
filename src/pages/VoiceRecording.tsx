@@ -336,7 +336,8 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
       formData.append('mode', mode);
       formData.append('filename', filename);
       formData.append('timestamp', timestamp);
-      formData.append('treatnote_patient_id', treatnotePatientId || paciensId || '');
+      formData.append('treatnote_patient_id', treatnotePatientId || '');
+      formData.append('paciens_id', paciensId || '');
       if (userId) formData.append('user_id', userId);
 
       // Call native-voice-webhook (V2 engine pipeline)

@@ -857,7 +857,7 @@ export default function KlinikaAdmin() {
           {/* Tab content with min-height to prevent layout jumps */}
           <div className="min-h-[400px]">
             <TabsContent value="kezelopanel" className="space-y-6 mt-0">
-              <KezelopanelTab telephelyId={activeTelephelyId} />
+              <KezelopanelTab telephelyId={activeTelephelyId} isStdl={useNativeSzotar} />
             </TabsContent>
 
             <TabsContent value="users" className="space-y-6 mt-0">
@@ -1286,7 +1286,7 @@ export default function KlinikaAdmin() {
             </TabsContent>
 
             <TabsContent value="v2-mapping" className="mt-0">
-              <V2MappingTab telephelyId={telephelyId} />
+              <V2MappingTab telephelyId={telephelyId} isStdl={useNativeSzotar} />
             </TabsContent>
 
             <TabsContent value="v2-protokollok" className="mt-0">

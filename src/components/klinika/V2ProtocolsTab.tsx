@@ -323,7 +323,7 @@ export function V2ProtocolsTab({ telephelyId }: V2ProtocolsTabProps) {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Keresés név, trigger..."
+              placeholder="Keresés..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-9 h-9 text-sm"

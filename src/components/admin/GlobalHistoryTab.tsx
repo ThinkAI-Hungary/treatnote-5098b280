@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { toast } from '@/hooks/useToastMessage';
 import { cn } from '@/lib/utils';
@@ -467,7 +467,7 @@ export function GlobalHistoryTab({ users, companies, telephelyek }: GlobalHistor
                                             {formatDuration(job.duration_seconds)}
                                         </span>
                                         <span className="truncate min-w-[120px] text-right">
-                                            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: hu })}
+                                            {format(new Date(job.created_at), 'yyyy.MM.dd HH:mm')}
                                         </span>
                                     </div>
                                 </div>

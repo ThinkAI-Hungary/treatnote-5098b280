@@ -41,14 +41,13 @@ const Register = lazy(() => import("./pages/Register"));
 const SoloRegister = lazy(() => import("./pages/SoloRegister"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+import { GlobalAuthMessage } from "@/components/GlobalAuthMessage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Keep data fresh for 5 min — navigating back won't refetch
       staleTime: 5 * 60 * 1000,
-      // Keep unused data in cache for 10 min before garbage collection
       gcTime: 10 * 60 * 1000,
-      // Don't refetch when window regains focus (reduces flicker)
       refetchOnWindowFocus: false,
     },
   },
@@ -89,8 +88,9 @@ const App = () => {
         <TooltipProvider>
           <AuthProvider>
             <Toaster />
-            <Sonner position="top-right" />
+            <Sonner position="top-center" />
             <BrowserRouter>
+              <GlobalAuthMessage />
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />

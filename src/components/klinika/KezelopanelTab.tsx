@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 
 interface KezelopanelTabProps {
   telephelyId: string | null;
+  isStdl?: boolean;
 }
 
-export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
+export function KezelopanelTab({ telephelyId, isStdl }: KezelopanelTabProps) {
   const { profile, refetch } = useProfile();
   const [currentMode, setCurrentMode] = useState<string | null>(profile?.voice_recording_preference || null);
   const [loading, setLoading] = useState(false);
@@ -86,7 +87,8 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
     if (!telephelyId) return;
     setResetting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('v2-onboarding', {
+      const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+      const { data, error } = await supabase.functions.invoke(funcName, {
         body: { operation: 'reset-telephely', telephelyId },
       });
       if (error) throw error;
@@ -104,7 +106,8 @@ export function KezelopanelTab({ telephelyId }: KezelopanelTabProps) {
     if (!telephelyId) return;
     setResetting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('v2-onboarding', {
+      const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+      const { data, error } = await supabase.functions.invoke(funcName, {
         body: { operation: 'reset-profile', telephelyId },
       });
       if (error) throw error;

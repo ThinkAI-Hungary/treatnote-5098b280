@@ -468,6 +468,83 @@ export function buildInvitationEmailNewUser(params: {
   return { subject, htmlContent, textContent };
 }
 
+/** Jelszó visszaállítás (Forgot Password) email */
+export function buildPasswordResetEmail(params: {
+  resetUrl: string;
+  displayName?: string;
+}): { subject: string; htmlContent: string; textContent: string } {
+  const { resetUrl, displayName } = params;
+  const greeting = displayName ? `Kedves ${escapeHtml(displayName)}!` : "Kedves Felhasználó!";
+
+  const subject = "Jelszó visszaállítása – TreatNote";
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jelszó visszaállítása</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0edf7;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0edf7;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(80,50,120,0.10);">
+          <!-- Header -->
+          <tr>
+            <td style="${HEADER_BG};padding:36px 40px;text-align:center;">
+              <h1 style="margin:0;${HEADER_TEXT};font-size:26px;font-weight:700;letter-spacing:-0.5px;">TreatNote</h1>
+              <p style="margin:8px 0 0;${HEADER_SUB};font-size:14px;">Fogászati dokumentáció rendszer</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 40px 32px;">
+              <h2 style="margin:0 0 16px;color:#1e1035;font-size:22px;font-weight:600;">${greeting}</h2>
+              <p style="margin:0 0 24px;color:#4a4060;font-size:15px;line-height:1.6;">
+                Kérést kaptunk a TreatNote fiókjához tartozó jelszó visszaállítására. 
+                Ha Ön indította el a folyamatot, kérjük, kattintson az alábbi gombra az új jelszó megadásához.
+              </p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${resetUrl}"
+                   style="display:inline-block;${BTN_BG};${BTN_TEXT};text-decoration:none;padding:14px 36px;border-radius:8px;font-size:16px;font-weight:600;letter-spacing:0.2px;">
+                  Új jelszó beállítása
+                </a>
+              </div>
+            </td>
+          </tr>
+          <!-- Info box -->
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <div style="${INFO_BG};border-radius:8px;padding:16px 20px;">
+                <p style="margin:0;${INFO_TEXT};font-size:13px;line-height:1.5;">
+                  ℹ️ Ez a link <strong>24 óráig</strong> érvényes. Ha nem Ön kérte a jelszó visszaállítását, hagyja figyelmen kívül ezt az emailt, a jelszava változatlan marad.
+                </p>
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f5f0fb;padding:24px 40px;border-top:1px solid #ddd0f0;text-align:center;">
+              <p style="margin:0;color:#8878a8;font-size:12px;">
+                &copy; ${new Date().getFullYear()} TreatNote &bull; Fogászati dokumentáció rendszer<br>
+                Ez egy automatikus értesítő email, kérjük ne válaszoljon rá.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const textContent = `${greeting}\n\nKérést kaptunk a TreatNote fiókjához tartozó jelszó visszaállítására.\n\nÚj jelszó beállításához kattintson az alábbi linkre:\n${resetUrl}\n\nEz a link 24 óráig érvényes. Ha nem Ön kérte a visszaállítást, hagyja figyelmen kívül ezt az üzenetet.\n\n© ${new Date().getFullYear()} TreatNote`;
+
+  return { subject, htmlContent, textContent };
+}
+
 // ─── segéd ────────────────────────────────────────────────────────────────────
 function escapeHtml(str: string): string {
   return str

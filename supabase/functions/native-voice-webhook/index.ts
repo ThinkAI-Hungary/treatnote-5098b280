@@ -4,6 +4,7 @@ import { logErrorToDatabase } from "../_shared/logger.ts";
 import { checkRateLimit } from "../_shared/rate-limiter.ts";
 import { processVoxisInternally } from "./process-statusz-internal.ts";
 import { processTreatnoteInternally } from "./process-treatnote-internal.ts";
+import { processTreatnoteStdlInternally } from "./process-treatnote-stdl-v2.ts";
 import { processAmbulansInternally } from "./process-ambulans-internal.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,10 +26,15 @@ serve(async (req) => {
     const timestamp = formData.get("timestamp") as string;
     const filename = formData.get("filename") as string;
     const userId = formData.get("user_id") as string;
-    const treatnotePatientId = formData.get("treatnote_patient_id") as string;
+    const treatnotePatientIdStr = formData.get("treatnote_patient_id") as string;
+    const paciensIdStr = formData.get("paciens_id") as string;
     const overrideTranscript = formData.get("override_transcript") as string | undefined;
 
-    if (!audio || !mode || !treatnotePatientId) {
+    const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const treatnotePatientId = treatnotePatientIdStr && isValidUUID(treatnotePatientIdStr) ? treatnotePatientIdStr : null;
+    const paciensId = paciensIdStr || treatnotePatientIdStr;
+
+    if (!audio || !mode || (!treatnotePatientId && !paciensId)) {
       return new Response(
         JSON.stringify({ error: "Hiányzó kötelező mezők: hangfájl, mód, vagy beteg azonosító" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -37,7 +43,6 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user context BEFORE rate limiting (we need the user profile to identify the limit)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('company_id, current_telephely_id, full_name, is_solo')
@@ -54,6 +59,20 @@ serve(async (req) => {
 
     const companyId = profile.company_id;
     const telephelyId = profile.current_telephely_id;
+
+    // Determine if STDL
+    let isStdl = false;
+    if (telephelyId) {
+      const { data: telephelyData } = await supabaseAdmin
+        .from('telephely')
+        .select('flexi_domain, voice_recording_preference')
+        .eq('id', telephelyId)
+        .maybeSingle();
+        
+      if (!telephelyData?.flexi_domain || telephelyData?.voice_recording_preference === 'treatnote_native') {
+        isStdl = true;
+      }
+    }
 
     // ── Rate Limiting ─────────────────────────────────────────────────────
     // 30 requests per 15 minutes limit per user
@@ -107,6 +126,7 @@ serve(async (req) => {
         user_id: userId,
         company_id: companyId || null,
         telephely_id: telephelyId || null,
+        treatnote_patient_id: treatnotePatientId,
         mode,
         status: 'processing',
         progress_percent: 5,
@@ -140,10 +160,14 @@ serve(async (req) => {
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     const apiKeys = { openai: openaiApiKey || "", elevenlabs: elevenlabsApiKey || "", anthropic: anthropicApiKey || "" };
-    const ctx = { userId, companyId, telephelyId, paciensId: treatnotePatientId, treatnotePatientId, logErrorToDatabase };
+    const ctx = { userId, companyId, telephelyId, paciensId, treatnotePatientId, logErrorToDatabase };
     let backgroundProcessing;
     if (mode === 'treatnote') {
-      backgroundProcessing = processTreatnoteInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
+      if (isStdl) {
+        backgroundProcessing = processTreatnoteStdlInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
+      } else {
+        backgroundProcessing = processTreatnoteInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
+      }
     } else if (mode === 'ambulans') {
       backgroundProcessing = processAmbulansInternally(jobId, audio, supabaseAdmin, apiKeys, ctx, overrideTranscript);
     } else {

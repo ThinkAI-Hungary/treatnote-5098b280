@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/useToastMessage';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 
 interface VoiceJob {
@@ -193,7 +193,7 @@ export function ComplaintsAdminTab({ users, companies }: ComplaintsAdminTabProps
                                     </span>
 
                                     <span className="text-xs text-muted-foreground flex-shrink-0">
-                                        {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: hu })}
+                                        {format(new Date(job.created_at), 'yyyy.MM.dd HH:mm')}
                                     </span>
                                 </button>
 

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Pencil, Sparkles, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/useToastMessage';
 import { AnimatedCard } from './AnimatedCard';
 import { actionName } from '@/lib/atomicActionNames';
 
@@ -37,6 +37,7 @@ interface SzotarItem {
 
 interface V2MappingTabProps {
   telephelyId: string;
+  isStdl?: boolean;
 }
 
 // ─── Confidence helpers ──────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ function confidenceBg(c: number): string {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
+export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
   const [mappings, setMappings] = useState<V2Mapping[]>([]);
   const [szotarItems, setSzotarItems] = useState<SzotarItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,8 +94,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
     if (!telephelyId) return;
     setLoading(true);
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
       const { data, error } = await supabase
-        .from('v2_clinic_mappings' as any)
+        .from(tableName as any)
         .select('*')
         .eq('telephely_id', telephelyId)
         .order('atomic_action_slug');
@@ -103,7 +105,7 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
       setMappings((data || []) as unknown as V2Mapping[]);
     } catch (err: any) {
       console.error('Error loading V2 mappings:', err);
-      toast.error('Hiba a V2 mapping-ek betöltésekor');
+      toast.error('Hiba a V2 mapping-ek betöltésekor: ' + (err.message || 'Ismeretlen hiba'));
     } finally {
       setLoading(false);
     }
@@ -112,8 +114,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const loadSzotar = useCallback(async () => {
     if (!telephelyId) return;
     try {
+      const tableName = isStdl ? 'clinic_treatment_items_stdl' : 'szotar_kezelesek';
       const { data, error } = await supabase
-        .from('szotar_kezelesek' as any)
+        .from(tableName as any)
         .select('id, name, category')
         .eq('telephely_id', telephelyId)
         .order('name')
@@ -133,14 +136,30 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const loadReviewMappings = useCallback(async () => {
     if (!telephelyId) return;
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
+      const idCol = isStdl ? 'stdl_treatment_item_id' : 'szotar_kezeles_id';
+      const nameCol = isStdl ? 'stdl_treatment_item_name' : 'szotar_kezeles_name';
+      
       const { data, error } = await supabase
-        .from('v2_clinic_mappings' as any)
-        .select('id, atomic_action_slug, szotar_kezeles_id, szotar_kezeles_name, confidence, reviewed')
+        .from(tableName as any)
+        .select(`id, atomic_action_slug, ${idCol}, ${nameCol}, confidence, reviewed`)
         .eq('telephely_id', telephelyId)
         .eq('reviewed', false)
         .lt('confidence', 0.7)
         .order('confidence');
-      if (!error) setReviewMappings((data || []) as unknown as ReviewMapping[]);
+        
+      if (!error && data) {
+        // Map to common interface
+        const mapped = data.map((d: any) => ({
+          id: d.id,
+          atomic_action_slug: d.atomic_action_slug,
+          szotar_kezeles_id: d[idCol],
+          szotar_kezeles_name: d[nameCol],
+          confidence: d.confidence,
+          reviewed: d.reviewed
+        }));
+        setReviewMappings(mapped as unknown as ReviewMapping[]);
+      }
     } catch { /* ignore */ }
   }, [telephelyId]);
 
@@ -149,13 +168,19 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const handleApproveReview = async (mapping: ReviewMapping, newSzId?: string, newSzName?: string) => {
     setApprovingId(mapping.id);
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
       const update: Record<string, unknown> = { reviewed: true, reviewed_at: new Date().toISOString() };
       if (newSzId) {
-        update.szotar_kezeles_id = newSzId;
-        update.szotar_kezeles_name = newSzName;
+        if (isStdl) {
+          update.stdl_treatment_item_id = newSzId;
+          update.stdl_treatment_item_name = newSzName;
+        } else {
+          update.szotar_kezeles_id = newSzId;
+          update.szotar_kezeles_name = newSzName;
+        }
         update.confidence = 1.0;
       }
-      const { error } = await supabase.from('v2_clinic_mappings' as any).update(update).eq('id', mapping.id);
+      const { error } = await supabase.from(tableName as any).update(update).eq('id', mapping.id);
       if (error) throw error;
       
       setReviewMappings(prev => prev.filter(m => m.id !== mapping.id));
@@ -172,8 +197,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const handleApproveAllReview = async () => {
     setApprovingId('all');
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
       for (const m of reviewMappings) {
-        const { error } = await supabase.from('v2_clinic_mappings' as any)
+        const { error } = await supabase.from(tableName as any)
           .update({ reviewed: true, reviewed_at: new Date().toISOString() })
           .eq('id', m.id);
         if (error) throw error;
@@ -223,7 +249,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
       }
 
       try {
-        const { data } = await supabase.functions.invoke('v2-onboarding', {
+        const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+        const { data } = await supabase.functions.invoke(funcName, {
           body: { operation: 'check-status', telephelyId },
         });
         if (!data) return;
@@ -278,7 +305,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
     if (!telephelyId) return;
     (async () => {
       try {
-        const { data } = await supabase.functions.invoke('v2-onboarding', {
+        const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+        const { data } = await supabase.functions.invoke(funcName, {
           body: { operation: 'check-status', telephelyId },
         });
         if (data?.status === 'running') {
@@ -297,7 +325,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
     setProgressPct(0);
     setProgressMsg('Pipeline indítása...');
     try {
-      const { data, error } = await supabase.functions.invoke('v2-onboarding', {
+      const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+      const { data, error } = await supabase.functions.invoke(funcName, {
         body: { operation: 'run-mapping', telephelyId },
       });
       if (error) throw error;
@@ -314,7 +343,8 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const runVariantSeeding = async () => {
     setVariantsRunning(true);
     try {
-      const response = await supabase.functions.invoke('v2-onboarding', {
+      const funcName = isStdl ? 'v2-onboarding-stdl' : 'v2-onboarding';
+      const response = await supabase.functions.invoke(funcName, {
         body: { operation: 'seed-variants', telephelyId },
       });
       if (response.error) throw response.error;
@@ -411,15 +441,24 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
   const handleSaveVariant = async (variantId: string, szId: string, szName: string) => {
     setSaving(true);
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
+      const updateData: any = {
+        confidence: 1.0,
+        reviewed: true,
+        reviewed_at: new Date().toISOString(),
+      };
+      
+      if (isStdl) {
+        updateData.stdl_treatment_item_id = szId;
+        updateData.stdl_treatment_item_name = szName;
+      } else {
+        updateData.szotar_kezeles_id = szId;
+        updateData.szotar_kezeles_name = szName;
+      }
+
       const { error } = await supabase
-        .from('v2_clinic_mappings' as any)
-        .update({
-          szotar_kezeles_id: szId,
-          szotar_kezeles_name: szName,
-          confidence: 1.0,
-          reviewed: true,
-          reviewed_at: new Date().toISOString(),
-        })
+        .from(tableName as any)
+        .update(updateData)
         .eq('id', variantId);
 
       if (error) throw error;
@@ -439,8 +478,9 @@ export function V2MappingTab({ telephelyId }: V2MappingTabProps) {
     const newVal = !mapping.reviewed;
     setMappings(prev => prev.map(m => m.id === mapping.id ? { ...m, reviewed: newVal, reviewed_at: newVal ? new Date().toISOString() : null } : m));
     try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
       const { error } = await supabase
-        .from('v2_clinic_mappings' as any)
+        .from(tableName as any)
         .update({ reviewed: newVal, reviewed_at: newVal ? new Date().toISOString() : null })
         .eq('id', mapping.id);
       if (error) throw error;
