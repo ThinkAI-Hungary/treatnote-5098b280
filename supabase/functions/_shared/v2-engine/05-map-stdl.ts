@@ -51,7 +51,8 @@ export async function mapToClinicItemsStdl(
   const { data: mappingsRaw, error } = await supabase
     .from('v2_clinic_mappings_stdl')
     .select('stdl_treatment_item_id, stdl_treatment_item_name, atomic_action_slug, conditions, confidence, reviewed')
-    .eq('telephely_id', telephelyId);
+    .eq('telephely_id', telephelyId)
+    .eq('disabled', false);
 
   if (error) {
     throw new Error(`Failed to load v2_clinic_mappings_stdl: ${error.message}`);

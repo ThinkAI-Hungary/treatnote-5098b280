@@ -51,7 +51,8 @@ export async function mapToClinicItems(
   const { data: mappingsRaw, error } = await supabase
     .from('v2_clinic_mappings')
     .select('szotar_kezeles_id, szotar_kezeles_name, atomic_action_slug, conditions, confidence, reviewed')
-    .eq('telephely_id', telephelyId);
+    .eq('telephely_id', telephelyId)
+    .eq('disabled', false);
 
   if (error) {
     throw new Error(`Failed to load v2_clinic_mappings: ${error.message}`);
