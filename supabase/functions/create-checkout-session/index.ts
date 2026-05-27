@@ -44,7 +44,7 @@ serve(async (req) => {
     }
     const userId = user.id;
 
-    const { company_id, telephely_id, price_id, seats, items, embedded = false } = await req.json();
+    const { company_id, telephely_id, price_id, seats, items, embedded = false, mode, amount, period } = await req.json();
 
     // Validate inputs
     if (!company_id) {
@@ -54,36 +54,46 @@ serve(async (req) => {
       });
     }
 
-    // Process items (support legacy single item or multiple items)
     const normalizedItems: { price_id: string; seats: number }[] = [];
-    if (items && Array.isArray(items)) {
-      normalizedItems.push(...items);
-    } else if (price_id && seats) {
-      normalizedItems.push({ price_id, seats });
-    }
-
-    if (normalizedItems.length === 0) {
-      return new Response(JSON.stringify({ error: "Missing required fields: items or price_id/seats" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const stripeLineItems = [];
-    for (const item of normalizedItems) {
-      if (!VALID_PRICES.includes(item.price_id)) {
-        return new Response(JSON.stringify({ error: `Invalid price_id: ${item.price_id}` }), {
+
+    if (mode !== "payment") {
+      // Process items (support legacy single item or multiple items)
+      if (items && Array.isArray(items)) {
+        normalizedItems.push(...items);
+      } else if (price_id && seats) {
+        normalizedItems.push({ price_id, seats });
+      }
+
+      if (normalizedItems.length === 0) {
+        return new Response(JSON.stringify({ error: "Missing required fields: items or price_id/seats" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (typeof item.seats !== "number" || item.seats < 1 || item.seats > MAX_SEATS) {
-        return new Response(JSON.stringify({ error: `Seats for ${item.price_id} must be between 1 and ${MAX_SEATS}` }), {
+
+      for (const item of normalizedItems) {
+        if (!VALID_PRICES.includes(item.price_id)) {
+          return new Response(JSON.stringify({ error: `Invalid price_id: ${item.price_id}` }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (typeof item.seats !== "number" || item.seats < 1 || item.seats > MAX_SEATS) {
+          return new Response(JSON.stringify({ error: `Seats for ${item.price_id} must be between 1 and ${MAX_SEATS}` }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        stripeLineItems.push({ price: item.price_id, quantity: item.seats });
+      }
+    } else {
+      if (!amount || !period) {
+        return new Response(JSON.stringify({ error: "Missing required fields for payment: amount, period" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      stripeLineItems.push({ price: item.price_id, quantity: item.seats });
     }
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -176,6 +186,43 @@ serve(async (req) => {
 
     // Determine success/cancel URLs
     const origin = req.headers.get("origin") || "https://treatnote.lovable.app";
+
+    if (mode === "payment") {
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer: stripeCustomerId,
+        line_items: [
+          {
+            price_data: {
+              currency: "eur",
+              product_data: {
+                name: `TreatNote Hátralék – ${period}`,
+              },
+              unit_amount: amount * 100, // EUR subunits (cents)
+            },
+            quantity: 1,
+          },
+        ],
+        billing_address_collection: "required",
+        tax_id_collection: {
+          enabled: true,
+        },
+        success_url: `${origin}/klinika-admin?tab=elofizetes&checkout=success`,
+        cancel_url: `${origin}/klinika-admin?tab=elofizetes`,
+        metadata: {
+          company_id,
+          telephely_id,
+          user_id: userId,
+          type: "invoice_payment",
+          period
+        }
+      });
+
+      return new Response(JSON.stringify({ url: session.url }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (embedded) {
       // Embedded checkout — returns client_secret, user stays on page

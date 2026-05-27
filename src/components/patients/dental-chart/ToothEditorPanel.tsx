@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check, X, CheckCircle2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { WheelDatePicker } from '@/components/ui/wheel-date-picker';
 import { ToothModel } from './types';
-import { DENTAL_STATUSES, SURFACES } from './constants';
+import { DENTAL_STATUSES } from './constants';
 import { SurfaceId } from './toothColors';
 
 type Props = {
@@ -17,6 +13,7 @@ type Props = {
   initialData?: ToothModel;
   onSave: (data: ToothModel) => void;
   onCancel: () => void;
+  className?: string;
 };
 
 // --- VISUAL SURFACE SELECTOR ---
@@ -86,7 +83,7 @@ function SurfaceDiagram({
 }
 
 // --- MAIN COMPONENT ---
-export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }: Props) {
+export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel, className }: Props) {
   const [data, setData] = useState<Partial<ToothModel>>({
     status: 'healthy',
     surfaces: null,
@@ -227,18 +224,10 @@ export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }:
     return acc;
   }, {} as Record<string, typeof DENTAL_STATUSES>);
 
-  // Check if we need to show parodontology or prosthetics sections
-  const hasParoData = !!(data.mobility || data.pocket_depth_mm || data.gum_recession_mm || data.percussion_sensitive || data.periapical_lesion || data.dental_signs?.length);
-  const hasProsthData = !!(data.prosthetic_type || data.implant_system);
-  
-  const [showParo, setShowParo] = useState(hasParoData);
-  const [showProsth, setShowProsth] = useState(hasProsthData || activeStatuses.some(id => {
-      const g = DENTAL_STATUSES.find(s => s.id === id)?.group;
-      return g === 'Implant' || g === 'Korona' || g === 'Protézis' || g === 'Híd';
-  }));
+
 
   return (
-    <div className="w-full bg-card rounded-xl border shadow-sm mt-6 animate-in slide-in-from-bottom-2 fade-in duration-200 flex flex-col">
+    <div className={cn("w-full bg-card rounded-xl border shadow-sm overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 flex flex-col", className)}>
       {/* Header */}
       <div className="flex items-center justify-between border-b px-5 py-4 bg-muted/20 rounded-t-xl sticky top-0 z-10 backdrop-blur-sm">
         <div>
@@ -257,19 +246,22 @@ export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }:
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 divide-y md:divide-y-0 md:divide-x border-b">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 divide-y md:divide-y-0 md:divide-x flex-1 min-h-0">
         
         {/* Left Col: Status Picker (Chips) */}
-        <div className="md:col-span-8 p-5 max-h-[500px] overflow-y-auto custom-scrollbar-purple">
+        <div className="md:col-span-8 p-5 md:h-full md:max-h-none overflow-y-auto custom-scrollbar-purple">
           
           <div className="mb-6">
             <Button 
               variant={activeStatuses.length === 0 ? "default" : "outline"}
-              className={cn("w-full justify-start font-bold", activeStatuses.length === 0 && "bg-green-600 hover:bg-green-700")}
+              className={cn(
+                "w-full justify-start font-bold h-auto py-2.5 whitespace-normal text-left flex items-center", 
+                activeStatuses.length === 0 && "bg-green-600 hover:bg-green-700"
+              )}
               onClick={() => toggleStatus('healthy')}
             >
-              {activeStatuses.length === 0 && <Check className="w-4 h-4 mr-2" />}
-              Egészséges / Nincs eltérés (Minden törlése)
+              {activeStatuses.length === 0 && <Check className="w-4 h-4 mr-2 shrink-0" />}
+              <span className="whitespace-normal break-words leading-tight text-left">Egészséges / Nincs eltérés (Minden törlése)</span>
             </Button>
           </div>
 
@@ -327,7 +319,7 @@ export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }:
         </div>
 
         {/* Right Col: Surfaces & Context */}
-        <div className="md:col-span-4 p-5 bg-muted/10 flex flex-col gap-6">
+        <div className="md:col-span-4 p-5 bg-muted/10 flex flex-col gap-6 md:h-full md:overflow-y-auto">
           
           {/* Active Statuses & Surfaces Summary */}
           <div>
@@ -385,135 +377,7 @@ export function ToothEditorPanel({ toothNumber, initialData, onSave, onCancel }:
         </div>
       </div>
 
-      {/* Clinical Details Toggle */}
-      <div className="p-3 bg-muted/30 border-t flex gap-2">
-         <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs text-muted-foreground font-semibold"
-            onClick={() => setShowParo(!showParo)}
-         >
-            {showParo ? <ChevronDown className="w-3 h-3 mr-1"/> : <ChevronRight className="w-3 h-3 mr-1"/>}
-            Parodontológia & Tesztek
-         </Button>
-         <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs text-muted-foreground font-semibold"
-            onClick={() => setShowProsth(!showProsth)}
-         >
-            {showProsth ? <ChevronDown className="w-3 h-3 mr-1"/> : <ChevronRight className="w-3 h-3 mr-1"/>}
-            Protetika & Implant
-         </Button>
-      </div>
 
-      {/* Parodontology Section */}
-      {showParo && (
-        <div className="p-5 border-t bg-card grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs">Mobilitás (0-3)</Label>
-                <Select value={data.mobility?.toString() || '0'} onValueChange={(v) => setData({...data, mobility: parseInt(v) || null })}>
-                  <SelectTrigger className="h-8"><SelectValue placeholder="-" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0 (Normál)</SelectItem>
-                    <SelectItem value="1">I. fokú</SelectItem>
-                    <SelectItem value="2">II. fokú</SelectItem>
-                    <SelectItem value="3">III. fokú</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Tasakmélység (mm)</Label>
-                <Input 
-                  type="number" min="0" max="15" className="h-8"
-                  value={data.pocket_depth_mm || ''}
-                  onChange={(e) => setData({...data, pocket_depth_mm: parseFloat(e.target.value) || null})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Ínyvisszahúzódás (mm)</Label>
-                <Input 
-                  type="number" min="0" max="15" className="h-8"
-                  value={data.gum_recession_mm || ''}
-                  onChange={(e) => setData({...data, gum_recession_mm: parseFloat(e.target.value) || null})}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-3">
-             <div className="flex items-center space-x-2">
-                <Checkbox id="percuss" checked={!!data.percussion_sensitive} onCheckedChange={(c) => setData({...data, percussion_sensitive: !!c})} />
-                <Label htmlFor="percuss" className="cursor-pointer text-sm font-medium">Kopogtatás-érzékeny</Label>
-             </div>
-             <div className="flex items-center space-x-2">
-                <Checkbox id="periap" checked={!!data.periapical_lesion} onCheckedChange={(c) => setData({...data, periapical_lesion: !!c})} />
-                <Label htmlFor="periap" className="cursor-pointer text-sm font-medium">Periapikális elváltozás látható</Label>
-             </div>
-             <div className="space-y-1">
-               <Label className="text-xs">Érzékenység (Hideg, Meleg)</Label>
-               <Input 
-                 className="h-8" placeholder="Pl. Hidegre..." 
-                 value={data.sensitivity || ''}
-                 onChange={(e) => setData({...data, sensitivity: e.target.value || null})}
-               />
-             </div>
-             <div className="space-y-1">
-               <Label className="text-xs">Fogászati jelek (Kopás, Erózió)</Label>
-               <Input 
-                 className="h-8"
-                 value={(data.dental_signs || []).join(', ')}
-                 onChange={(e) => {
-                   const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                   setData({...data, dental_signs: arr.length > 0 ? arr : null});
-                 }}
-               />
-             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Prosthetics & Implant Section */}
-      {showProsth && (
-        <div className="p-5 border-t bg-card grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
-           <div className="space-y-3 bg-muted/10 p-4 rounded-lg border">
-             <h4 className="text-xs font-bold text-muted-foreground uppercase">Protetika</h4>
-             <div className="space-y-1.5">
-               <Label className="text-xs">Típus</Label>
-               <Input className="h-8" placeholder="Pl. Monolit Cirkon..." value={data.prosthetic_type || ''} onChange={(e) => setData({...data, prosthetic_type: e.target.value || null})} />
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-               <div className="space-y-1.5">
-                 <Label className="text-xs">Anyag</Label>
-                 <Input className="h-8" value={data.prosthetic_material || ''} onChange={(e) => setData({...data, prosthetic_material: e.target.value || null})} />
-               </div>
-               <div className="space-y-1.5">
-                 <Label className="text-xs">Fogszín</Label>
-                 <Input className="h-8" placeholder="A2..." value={data.prosthetic_shade || ''} onChange={(e) => setData({...data, prosthetic_shade: e.target.value || null})} />
-               </div>
-             </div>
-           </div>
-           
-           <div className="space-y-3 bg-blue-500/5 p-4 rounded-lg border border-blue-500/20">
-             <h4 className="text-xs font-bold text-blue-700/70 uppercase">Implantátum</h4>
-             <div className="space-y-1.5">
-               <Label className="text-xs">Rendszer</Label>
-               <Input className="h-8" placeholder="Pl. Straumann BLX" value={data.implant_system || ''} onChange={(e) => setData({...data, implant_system: e.target.value || null})} />
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-               <div className="space-y-1.5">
-                 <Label className="text-xs">Átmérő (mm)</Label>
-                 <Input className="h-8" type="number" step="0.1" value={data.implant_diameter || ''} onChange={(e) => setData({...data, implant_diameter: parseFloat(e.target.value) || null})} />
-               </div>
-               <div className="space-y-1.5">
-                 <Label className="text-xs">Hossz (mm)</Label>
-                 <Input className="h-8" type="number" step="0.5" value={data.implant_length || ''} onChange={(e) => setData({...data, implant_length: parseFloat(e.target.value) || null})} />
-               </div>
-             </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 }

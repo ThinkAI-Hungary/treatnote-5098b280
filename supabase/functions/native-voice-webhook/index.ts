@@ -60,6 +60,26 @@ serve(async (req) => {
     const companyId = profile.company_id;
     const telephelyId = profile.current_telephely_id;
 
+    // ── Lock ellenőrzés ────────────────────────────────────────────────────
+    // Ha a cégnek fizetetlen számlája van és lejárt a türelmi idő, blokkolunk
+    if (companyId) {
+      const { data: companyData } = await supabaseAdmin
+        .from('companies')
+        .select('is_locked, payment_status')
+        .eq('id', companyId)
+        .maybeSingle();
+
+      if (companyData?.is_locked) {
+        return new Response(
+          JSON.stringify({
+            error: "A fiók zárolva van az előző havi számla kifizetésének hiánya miatt. Kérjük, rendezze a tartozást a Számlázás oldalon.",
+            locked: true,
+          }),
+          { status: 423, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Determine if STDL
     let isStdl = false;
     if (telephelyId) {

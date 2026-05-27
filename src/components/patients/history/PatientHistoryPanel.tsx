@@ -14,6 +14,7 @@ import { format, differenceInMinutes, isToday, isYesterday, isThisWeek, isThisYe
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import statusesData from '@/components/patients/dental-chart/statuses.json';
+import { WheelDatePicker } from '@/components/ui/wheel-date-picker';
 
 /** Apple-stílusú relatív dátumformázás magyarul */
 function formatSmartDate(dateStr: string): string {
@@ -36,6 +37,9 @@ statusesData.forEach((s: any) => {
 interface PatientHistoryPanelProps {
   patientId: string;
   filterType?: 'status' | 'treatment_plan' | 'all';
+  dialogOnly?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type EventType = 'status_change' | 'treatment_plan' | 'batched_status_change' | 'share_event';
@@ -56,7 +60,13 @@ interface UnifiedEvent {
   relatedTeeth?: string[];
 }
 
-export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHistoryPanelProps) {
+export function PatientHistoryPanel({
+  patientId,
+  filterType = 'all',
+  dialogOnly = false,
+  isOpen = false,
+  onOpenChange
+}: PatientHistoryPanelProps) {
   const [events, setEvents] = useState<UnifiedEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,8 +81,10 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
   const [strictToothMatch, setStrictToothMatch] = useState(true);
 
   useEffect(() => {
-    fetchHistory();
-  }, [patientId]);
+    if (!dialogOnly || isOpen) {
+      fetchHistory();
+    }
+  }, [patientId, isOpen, dialogOnly]);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -414,6 +426,164 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
     </div>
   );
 
+  const isFullHistoryOpen = dialogOnly ? !!isOpen : showFullHistory;
+  const setFullHistoryOpen = dialogOnly ? onOpenChange : setShowFullHistory;
+
+  const dialogContentHtml = (
+    <DialogContent className="max-w-5xl w-[90vw] h-[85vh] flex flex-col p-0 overflow-hidden">
+      <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between bg-muted/5">
+        <DialogTitle className="flex items-center gap-2 text-xl">
+          <History className="h-6 w-6 text-primary" />
+          Napló
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Filters Sidebar */}
+        <div className="w-64 border-r bg-muted/10 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto custom-scrollbar-purple">
+          <div>
+            <h3 className="font-medium flex items-center gap-2 mb-3 text-sm">
+              <Filter className="h-4 w-4" /> Szűrők
+            </h3>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Fogszám</Label>
+                <Input
+                  placeholder="Pl. 11, 24"
+                  value={filterTooth}
+                  onChange={(e) => setFilterTooth(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                {filterTooth && (
+                  <div className="flex items-center space-x-2 mt-2 bg-muted/30 p-2 rounded-md border">
+                    <Switch id="strict-tooth" checked={strictToothMatch} onCheckedChange={setStrictToothMatch} />
+                    <Label htmlFor="strict-tooth" className="text-xs cursor-pointer">
+                      Kezelési tervben csak ezt a fogat mutassa
+                    </Label>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Orvos</Label>
+                <Select value={filterDoctor} onValueChange={setFilterDoctor}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Mindenki" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Mindenki</SelectItem>
+                    {uniqueDoctors.map(([id, name]) => (
+                      <SelectItem key={id} value={id}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Dátum</Label>
+                <WheelDatePicker
+                  value={filterDate || null}
+                  onChange={(date) => setFilterDate(date)}
+                  placeholder="Dátum kiválasztása"
+                />
+              </div>
+            </div>
+
+            {(filterTooth || filterDoctor !== 'all' || filterDate) && (
+              <Button
+                variant="ghost"
+                className="w-full mt-4 text-xs h-8 text-muted-foreground"
+                onClick={() => { setFilterTooth(''); setFilterDoctor('all'); setFilterDate(''); }}
+              >
+                Szűrők törlése
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Main List */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar-purple">
+            <div className="max-w-3xl mx-auto">
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-3">
+                  <Search className="w-12 h-12 opacity-20" />
+                  <p>Nincs a szűrésnek megfelelő előzmény.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredEvents.map(ev => (
+                    <div key={ev.id} className="group">
+                      <div className="bg-card border shadow-sm rounded-lg overflow-hidden">
+                        <div className="px-5 py-4 border-b bg-muted/5 flex justify-between items-center cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              {ev.icon}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-sm">{ev.summary}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                                <span>{formatSmartDate(ev.date)}</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Avatar className="w-4 h-4 border">
+                                    <AvatarImage src={ev.profile?.avatar_url || ''} />
+                                    <AvatarFallback className="text-[8px]"><User className="w-2 h-2" /></AvatarFallback>
+                                  </Avatar>
+                                  {ev.profile?.full_name || 'Ismeretlen'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-8">
+                            {selectedEvent?.id === ev.id ? 'Kevesebb' : 'Részletek'}
+                          </Button>
+                        </div>
+
+                        {/* Expandable Content */}
+                        {selectedEvent?.id === ev.id && (
+                          <div className="p-5 animate-in slide-in-from-top-2 duration-200">
+                            {ev.type === 'status_change' && renderStatusChanges(ev.rawData)}
+                            {ev.type === 'batched_status_change' && (
+                              <div className="space-y-6">
+                                {ev.batchedEvents?.map((bev: any, i: number) => (
+                                  <div key={bev.id} className="relative">
+                                    <div className="font-medium text-primary mb-2 flex items-center gap-2">
+                                      <Hash className="h-4 w-4" /> {bev.tooth_number}. fog
+                                      <span className="text-xs text-muted-foreground font-normal ml-auto">
+                                        {format(new Date(bev.changed_at), 'HH:mm')}
+                                      </span>
+                                    </div>
+                                    {renderStatusChanges(bev)}
+                                    {i < (ev.batchedEvents?.length || 0) - 1 && <div className="h-px bg-border my-4" />}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {ev.type === 'treatment_plan' && renderTreatmentPlanDetails(ev.rawData, filterTooth)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  );
+
+  if (dialogOnly) {
+    return (
+      <Dialog open={isFullHistoryOpen} onOpenChange={setFullHistoryOpen}>
+        {dialogContentHtml}
+      </Dialog>
+    );
+  }
+
   return (
     <Card className="flex flex-col h-full w-full border-border/50 shadow-sm overflow-hidden bg-background">
       <CardHeader className="px-6 py-4 border-b bg-muted/10 pb-3 shrink-0 flex flex-row items-center justify-between">
@@ -562,157 +732,8 @@ export function PatientHistoryPanel({ patientId, filterType = 'all' }: PatientHi
       </Dialog>
 
       {/* Teljes Napló Popup (Nagyképernyős) */}
-      <Dialog open={showFullHistory} onOpenChange={setShowFullHistory}>
-        <DialogContent className="max-w-5xl w-[90vw] h-[85vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between bg-muted/5">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <History className="h-6 w-6 text-primary" />
-              Napló
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex flex-1 overflow-hidden">
-            {/* Filters Sidebar */}
-            <div className="w-64 border-r bg-muted/10 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto">
-              <div>
-                <h3 className="font-medium flex items-center gap-2 mb-3 text-sm">
-                  <Filter className="h-4 w-4" /> Szűrők
-                </h3>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Fogszám</Label>
-                    <Input
-                      placeholder="Pl. 11, 24"
-                      value={filterTooth}
-                      onChange={(e) => setFilterTooth(e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                    {filterTooth && (
-                      <div className="flex items-center space-x-2 mt-2 bg-muted/30 p-2 rounded-md border">
-                        <Switch id="strict-tooth" checked={strictToothMatch} onCheckedChange={setStrictToothMatch} />
-                        <Label htmlFor="strict-tooth" className="text-xs cursor-pointer">
-                          Kezelési tervben csak ezt a fogat mutassa
-                        </Label>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Orvos</Label>
-                    <Select value={filterDoctor} onValueChange={setFilterDoctor}>
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue placeholder="Mindenki" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Mindenki</SelectItem>
-                        {uniqueDoctors.map(([id, name]) => (
-                          <SelectItem key={id} value={id}>{name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Dátum</Label>
-                    <Input
-                      type="date"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                </div>
-
-                {(filterTooth || filterDoctor !== 'all' || filterDate) && (
-                  <Button
-                    variant="ghost"
-                    className="w-full mt-4 text-xs h-8 text-muted-foreground"
-                    onClick={() => { setFilterTooth(''); setFilterDoctor('all'); setFilterDate(''); }}
-                  >
-                    Szűrők törlése
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Main List */}
-            <div className="flex-1 flex flex-col min-w-0">
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="max-w-3xl mx-auto">
-                  {filteredEvents.length === 0 ? (
-                    <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-3">
-                      <Search className="w-12 h-12 opacity-20" />
-                      <p>Nincs a szűrésnek megfelelő előzmény.</p>
-                    </div>
-                  ) : (
-                    <div className="relative border-l-2 border-primary/20 ml-4 pb-4 space-y-6">
-                      {filteredEvents.map(ev => (
-                        <div key={ev.id} className="relative pl-6 group">
-                          {/* Timeline dot */}
-                          <div className="absolute w-6 h-6 rounded-full bg-background border-2 border-primary shadow-sm -left-[13px] top-0 flex items-center justify-center z-10">
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                          </div>
-
-                          <div className="bg-card border shadow-sm rounded-lg overflow-hidden">
-                            <div className="px-5 py-4 border-b bg-muted/5 flex justify-between items-center cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => setSelectedEvent(selectedEvent?.id === ev.id ? null : ev)}>
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                  {ev.icon}
-                                </div>
-                                <div>
-                                  <div className="font-semibold text-sm">{ev.summary}</div>
-                                  <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                                    <span>{formatSmartDate(ev.date)}</span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <Avatar className="w-4 h-4 border">
-                                        <AvatarImage src={ev.profile?.avatar_url || ''} />
-                                        <AvatarFallback className="text-[8px]"><User className="w-2 h-2" /></AvatarFallback>
-                                      </Avatar>
-                                      {ev.profile?.full_name || 'Ismeretlen'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="sm" className="h-8">
-                                {selectedEvent?.id === ev.id ? 'Kevesebb' : 'Részletek'}
-                              </Button>
-                            </div>
-
-                            {/* Expandable Content */}
-                            {selectedEvent?.id === ev.id && (
-                              <div className="p-5 animate-in slide-in-from-top-2 duration-200">
-                                {ev.type === 'status_change' && renderStatusChanges(ev.rawData)}
-                                {ev.type === 'batched_status_change' && (
-                                  <div className="space-y-6">
-                                    {ev.batchedEvents?.map((bev: any, i: number) => (
-                                      <div key={bev.id} className="relative">
-                                        <div className="font-medium text-primary mb-2 flex items-center gap-2">
-                                          <Hash className="h-4 w-4" /> {bev.tooth_number}. fog
-                                          <span className="text-xs text-muted-foreground font-normal ml-auto">
-                                            {format(new Date(bev.changed_at), 'HH:mm')}
-                                          </span>
-                                        </div>
-                                        {renderStatusChanges(bev)}
-                                        {i < (ev.batchedEvents?.length || 0) - 1 && <div className="h-px bg-border my-4" />}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                {ev.type === 'treatment_plan' && renderTreatmentPlanDetails(ev.rawData, filterTooth)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
+      <Dialog open={isFullHistoryOpen} onOpenChange={setFullHistoryOpen}>
+        {dialogContentHtml}
       </Dialog>
     </Card>
   );

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -46,6 +47,7 @@ export function NativeVoiceRecordingPanel({
   const { user } = useAuth();
   const { profile } = useProfile();
   const { flexiDomain } = useSzotar();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<RecordingMode>(forceMode || 'treatnote');
   const [isUploading, setIsUploading] = useState(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
@@ -99,6 +101,14 @@ export function NativeVoiceRecordingPanel({
         if (job.status === 'completed') {
           toast.success('Felvétel sikeresen feldolgozva!');
           onJobCompleteRef.current?.(currentJobId, job.result);
+          // Rögzítjük a feldolgozást számlázási célból
+          const companyId = profile?.company_id;
+          if (companyId) {
+            const jobType = (job.mode === 'ambulans' ? 'ambulans' : job.mode === 'voxis' ? 'voxis' : 'treatnote') as 'ambulans' | 'voxis' | 'treatnote';
+            supabase.functions.invoke('record-processing-usage', {
+              body: { job_id: currentJobId, company_id: companyId, job_type: jobType },
+            }).catch((err) => console.warn('Usage recording failed:', err));
+          }
         } else if (job.status === 'error') {
           toast.error('Hiba a feldolgozás során: ' + (job.error || 'Ismeretlen hiba'));
           onJobErrorRef.current?.(currentJobId, job.error);
@@ -179,6 +189,12 @@ export function NativeVoiceRecordingPanel({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // 423 = fiók zárolva (fizetési hátralék)
+        if (response.status === 423) {
+          toast.error('A fiók zárolva van. Kérjük rendezze a tartozást a Számlázás oldalon.', { duration: 8000 });
+          navigate('/billing');
+          return;
+        }
         if (response.status === 409 && errorData.active_job_id) {
           setCurrentJobId(errorData.active_job_id);
           onJobStarted?.(errorData.active_job_id);

@@ -112,10 +112,18 @@ export function V2ProtocolsTab({ telephelyId }: V2ProtocolsTabProps) {
 
   const filteredTemplates = useMemo(() => {
     return templates.filter(t => {
+      const term = searchTerm.toLowerCase();
       const matchesSearch = !searchTerm ||
-        t.name_hu.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (t.triggers || []).some(tr => tr.toLowerCase().includes(searchTerm.toLowerCase()));
+        t.name_hu.toLowerCase().includes(term) ||
+        t.slug.toLowerCase().includes(term) ||
+        (t.triggers || []).some(tr => tr.toLowerCase().includes(term)) ||
+        (t.description || '').toLowerCase().includes(term) ||
+        // Search within step names (atomic_actions)
+        (t.atomic_actions || []).some(a => actionName(a).toLowerCase().includes(term) || a.toLowerCase().includes(term)) ||
+        // Search within visit actions
+        (t.visits || []).some(v =>
+          v.actions.some(a => actionName(a).toLowerCase().includes(term) || a.toLowerCase().includes(term))
+        );
       const matchesCat = categoryFilter === 'all' || t.category === categoryFilter;
       return matchesSearch && matchesCat;
     });

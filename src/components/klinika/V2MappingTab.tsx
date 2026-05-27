@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Pencil, Sparkles, ArrowRight, GitBranch, ChevronDown } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Pencil, Sparkles, ArrowRight, GitBranch, ChevronDown, Power } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
@@ -27,6 +27,7 @@ interface V2Mapping {
   reviewed: boolean;
   reviewed_at: string | null;
   created_at: string;
+  disabled: boolean;
 }
 
 interface SzotarItem {
@@ -399,7 +400,9 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
         (confidenceFilter === 'atnezendo' && r.generic.confidence >= 0.4 && r.generic.confidence < 0.7) ||
         (confidenceFilter === 'surgos' && r.generic.confidence < 0.4) ||
         (confidenceFilter === 'reviewed' && r.generic.reviewed) ||
-        (confidenceFilter === 'unreviewed' && !r.generic.reviewed);
+        (confidenceFilter === 'unreviewed' && !r.generic.reviewed) ||
+        (confidenceFilter === 'disabled' && r.generic.disabled) ||
+        (confidenceFilter === 'enabled' && !r.generic.disabled);
       return matchesSearch && matchesConf;
     });
   }, [slugRows, searchTerm, confidenceFilter]);
@@ -411,6 +414,7 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
     atnezendo: slugRows.filter(r => r.generic.confidence >= 0.4 && r.generic.confidence < 0.7).length,
     surgos: slugRows.filter(r => r.generic.confidence < 0.4).length,
     reviewed: slugRows.filter(r => r.generic.reviewed).length,
+    disabled: slugRows.filter(r => r.generic.disabled).length,
   }), [slugRows, mappings]);
 
   // ─── Edit dialog (multi-variant) ────────────────────────────────────────
@@ -486,6 +490,24 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
       if (error) throw error;
     } catch {
       toast.error('Hiba');
+      loadMappings();
+    }
+  };
+
+  const handleToggleDisabled = async (mapping: V2Mapping, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newVal = !mapping.disabled;
+    // Optimistic update
+    setMappings(prev => prev.map(m => m.id === mapping.id ? { ...m, disabled: newVal } : m));
+    try {
+      const tableName = isStdl ? 'v2_clinic_mappings_stdl' : 'v2_clinic_mappings';
+      const { error } = await supabase
+        .from(tableName as any)
+        .update({ disabled: newVal })
+        .eq('id', mapping.id);
+      if (error) throw error;
+    } catch {
+      toast.error('Hiba a státusz módosításakor');
       loadMappings();
     }
   };
@@ -698,6 +720,8 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
               <SelectItem value="surgos">🔴 Sürgős</SelectItem>
               <SelectItem value="reviewed">✓ Ellenőrzött</SelectItem>
               <SelectItem value="unreviewed">✗ Nem ellenőrzött</SelectItem>
+              <SelectItem value="disabled">⏸ Kikapcsolt</SelectItem>
+              <SelectItem value="enabled">▶ Aktív</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -732,17 +756,23 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
                     key={row.slug}
                     className={cn(
                       "group transition-colors cursor-pointer",
-                      !row.generic.reviewed && row.generic.confidence < 0.4 && "bg-red-500/5"
+                      row.generic.disabled && "opacity-50",
+                      !row.generic.reviewed && row.generic.confidence < 0.4 && !row.generic.disabled && "bg-red-500/5"
                     )}
                     onClick={() => openEditDialog(row)}
                   >
                     <TableCell>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm">{actionName(row.slug)}</span>
+                          <span className={cn("text-sm", row.generic.disabled && "line-through text-muted-foreground")}>{actionName(row.slug)}</span>
                           {row.variants.length > 0 && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 border-purple-500/20 text-purple-600">
                               {row.variants.length} variáns
+                            </Badge>
+                          )}
+                          {row.generic.disabled && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-gray-500/10 border-gray-500/20 text-gray-500">
+                              kikapcsolva
                             </Badge>
                           )}
                         </div>
@@ -780,14 +810,30 @@ export function V2MappingTab({ telephelyId, isStdl }: V2MappingTabProps) {
                       </button>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={e => { e.stopPropagation(); openEditDialog(row); }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-7 w-7 transition-all",
+                            row.generic.disabled
+                              ? "text-gray-400 hover:text-green-600 hover:bg-green-50 opacity-100"
+                              : "text-green-600 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100"
+                          )}
+                          onClick={e => handleToggleDisabled(row.generic, e)}
+                          title={row.generic.disabled ? 'Bekapcsolás' : 'Kikapcsolás'}
+                        >
+                          <Power className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={e => { e.stopPropagation(); openEditDialog(row); }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

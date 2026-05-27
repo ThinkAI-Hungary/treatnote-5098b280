@@ -36,6 +36,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Admin = lazy(() => import("./pages/Admin"));
 const KlinikaAdmin = lazy(() => import("./pages/KlinikaAdmin"));
+const Billing = lazy(() => import("./pages/Billing"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const Register = lazy(() => import("./pages/Register"));
 const SoloRegister = lazy(() => import("./pages/SoloRegister"));
@@ -122,6 +123,7 @@ const App = () => {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/admin" element={<ErrorBoundary><Admin /></ErrorBoundary>} />
                   <Route path="/klinika-admin" element={<KlinikaAdmin />} />
+                  <Route path="/billing" element={<Billing />} />
                 </Route>
 
                 <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />

@@ -1,17 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, Rows3, ArrowUp, ArrowDown, Grid2X2, MousePointerClick, Link2, X } from 'lucide-react';
+import { Loader2, Rows3, ArrowUp, ArrowDown, Grid2X2, MousePointerClick, Link2, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/useToastMessage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { WheelDatePicker } from '@/components/ui/wheel-date-picker';
 
 import { ToothModel } from './types';
 import { ZsigmondyCross } from './ZsigmondyCross';
 import { ToothEditorPanel } from './ToothEditorPanel';
-import { ADULT_TEETH } from './constants';
+import { ADULT_TEETH, DENTAL_STATUSES } from './constants';
 import { BridgeConfigurator, type BridgeConfig } from './BridgeConfigurator';
 import { fetchCombinedTreatmentItems } from '@/lib/treatmentItems';
 
@@ -30,32 +35,152 @@ const ALL_TEETH = [...UPPER_ALL, ...LOWER_ALL];
 
 // ============ Main Component ============
 
-export function DentalChart({ 
-  patientId, 
-  toothScale = 1,
+// Client-side cache to prevent flickering during tab transitions
+const dentalChartCache: Record<string, Record<string, ToothModel>> = {};
+const treatmentMarkersCache: Record<string, Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>>> = {};
+
+export function DentalChart({
+  patientId,
+  toothScale = 1.5,
   readonly = false,
   onSelectionChange
-}: { 
+}: {
   patientId: string;
   toothScale?: number;
   readonly?: boolean;
   onSelectionChange?: (selectedTeeth: string[]) => void;
 }) {
   const { profile } = useProfile();
-  const [data, setData] = useState<Record<string, ToothModel>>({});
-  const [loading, setLoading] = useState(true);
+
+  // Initialize from cache if available to prevent flicker on mount
+  const [data, setData] = useState<Record<string, ToothModel>>(() => {
+    return dentalChartCache[patientId] || {};
+  });
+  const [loading, setLoading] = useState(() => {
+    return !dentalChartCache[patientId];
+  });
   const [showBabyTeeth, setShowBabyTeeth] = useState(false);
 
+  console.log("[DentalChart] Render. loading:", loading, "patientId:", patientId);
+
   // Selection state
-  const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
-  const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+  const [selectedTooth, setSelectedTooth] = useState<string | null>(() => {
+    if (readonly || !patientId) return null;
+    try {
+      return localStorage.getItem(`selected_tooth_${patientId}`);
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [selectedTeeth, setSelectedTeeth] = useState<string[]>(() => {
+    if (readonly || !patientId) return [];
+    try {
+      const saved = localStorage.getItem(`selected_tooth_${patientId}`);
+      return saved ? [saved] : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Treatment plan markers
-  const [treatmentMarkersMap, setTreatmentMarkersMap] = useState<Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>>>({});
+  const [treatmentMarkersMap, setTreatmentMarkersMap] = useState<Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>>>(() => {
+    return treatmentMarkersCache[patientId] || {};
+  });
 
   // Bridge configurator state
   const [bridgeConfigMode, setBridgeConfigMode] = useState(false);
   const [bridgePreview, setBridgePreview] = useState<BridgeConfig | null>(null);
+
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Restore selected tooth from localStorage on patient change
+  useEffect(() => {
+    if (!readonly && patientId) {
+      const savedTooth = localStorage.getItem(`selected_tooth_${patientId}`);
+      if (savedTooth) {
+        setSelectedTooth(savedTooth);
+        setSelectedTeeth([savedTooth]);
+      } else {
+        setSelectedTooth(null);
+        setSelectedTeeth([]);
+      }
+    } else {
+      setSelectedTooth(null);
+      setSelectedTeeth([]);
+    }
+  }, [patientId, readonly]);
+
+  // Persist selected tooth to localStorage
+  useEffect(() => {
+    if (!readonly && patientId) {
+      if (selectedTooth) {
+        localStorage.setItem(`selected_tooth_${patientId}`, selectedTooth);
+      } else {
+        localStorage.removeItem(`selected_tooth_${patientId}`);
+      }
+    }
+  }, [selectedTooth, patientId, readonly]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  // Dynamic height tracking for Left Column
+  const rightColumnRef = useRef<HTMLDivElement>(null);
+  const crossWrapperRef = useRef<HTMLDivElement>(null);
+  const crossInnerRef = useRef<HTMLDivElement>(null);
+  const crossPrevRect = useRef<DOMRect | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const crossNaturalWidth = useRef<number>(0);
+  const [crossFitRatio, setCrossFitRatio] = useState<number | null>(null);
+  const [rightHeight, setRightHeight] = useState<number | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1280);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (readonly) return;
+    const element = rightColumnRef.current;
+    if (!element) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setRightHeight(entry.target.getBoundingClientRect().height);
+      }
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [selectedTooth, readonly]);
+
+  const updateToothField = (field: keyof ToothModel, value: any) => {
+    if (!selectedTooth) return;
+    const existing = data[selectedTooth] || { tooth_number: selectedTooth } as ToothModel;
+    const updated = { ...existing, [field]: value };
+
+    // Update local state immediately for instant feedback
+    setData(prev => ({
+      ...prev,
+      [selectedTooth]: updated
+    }));
+
+    // Debounce database save to 600ms
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      handleSaveTooth(updated, true);
+    }, 600);
+  };
 
   // ============ Data fetching ============
 
@@ -75,6 +200,7 @@ export function DentalChart({
           map[item.tooth_number] = item as ToothModel;
         });
       }
+      dentalChartCache[patientId] = map;
       setData(map);
     } catch (err: any) {
       console.error('Error fetching dental chart:', err);
@@ -85,8 +211,39 @@ export function DentalChart({
   }, [patientId]);
 
   useEffect(() => {
-    fetchChart(true);
-  }, [fetchChart]);
+    let active = true;
+    console.log("[DentalChart] useEffect loadAll start for patient:", patientId);
+
+    // If we have cached data, don't show full loading indicator to avoid flicker
+    const hasCache = !!dentalChartCache[patientId];
+    if (!hasCache) {
+      setLoading(true);
+    }
+
+    const loadAll = async () => {
+      try {
+        console.log("[DentalChart] Starting parallel fetchChart and fetchMarkers...");
+        await Promise.all([
+          fetchChart(false),
+          fetchMarkers()
+        ]);
+        console.log("[DentalChart] Parallel fetch completed.");
+      } catch (err) {
+        console.error('[DentalChart] Error loading dental data:', err);
+      } finally {
+        if (active) {
+          setLoading(false);
+          console.log("[DentalChart] Parallel fetch loadAll finished, loading set to false.");
+        }
+      }
+    };
+    loadAll();
+    return () => {
+      console.log("[DentalChart] useEffect loadAll cleanup for patient:", patientId);
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
 
   // Fetch treatment plan markers
   const fetchMarkers = useCallback(async () => {
@@ -119,7 +276,7 @@ export function DentalChart({
           try {
             const allItems = await fetchCombinedTreatmentItems(telephelyId);
             const catalogItems = allItems.filter(item => itemIds.includes(item.id));
-            
+
             catalogItems.forEach(ci => {
               cueMap[ci.id] = { visual_icon: ci.visual_icon, visual_color: ci.visual_color };
             });
@@ -142,15 +299,19 @@ export function DentalChart({
         });
       }
 
+      treatmentMarkersCache[patientId] = map;
       setTreatmentMarkersMap(map);
     } catch (err) {
       console.error('Error fetching treatment markers:', err);
     }
-  }, [patientId]);
+  }, [patientId, profile]);
 
+  // Refresh markers silently when profile loads or updates (e.g. telephely context is resolved)
   useEffect(() => {
-    fetchMarkers();
-  }, [fetchMarkers]);
+    if (profile) {
+      fetchMarkers();
+    }
+  }, [profile, fetchMarkers]);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -190,6 +351,12 @@ export function DentalChart({
   // ============ Click handling with multi-select ============
 
   const handleToothClick = useCallback((toothNum: string, event: React.MouseEvent) => {
+    // FLIP: capture cross position BEFORE any state change so the FLIP animation
+    // can animate from the true current position (e.g., centered) to the new one.
+    if (crossInnerRef.current) {
+      crossPrevRect.current = crossInnerRef.current.getBoundingClientRect();
+    }
+
     if (event.ctrlKey || event.metaKey) {
       // Multi-select toggle
       setSelectedTeeth(prev => {
@@ -236,6 +403,10 @@ export function DentalChart({
   }, []);
 
   const clearSelection = useCallback(() => {
+    // FLIP: capture cross position BEFORE state change
+    if (crossInnerRef.current) {
+      crossPrevRect.current = crossInnerRef.current.getBoundingClientRect();
+    }
     setSelectedTooth(null);
     setSelectedTeeth([]);
   }, []);
@@ -280,14 +451,14 @@ export function DentalChart({
           .from('dental_chart')
           .update(payload)
           .eq('id', targetId);
-        
+
         if (error) throw error;
       } else {
         // Insert
         const { error } = await supabase
           .from('dental_chart')
           .insert([payload]);
-        
+
         if (error) throw error;
       }
 
@@ -399,6 +570,130 @@ export function DentalChart({
 
   // ============ Render ============
 
+  // IMPORTANT: Hooks must be called before any early returns (Rules of Hooks).
+  const isMultiSelect = selectedTeeth.length > 1;
+  const isEditorOpen = ((isMultiSelect && !readonly) || (selectedTooth && !isMultiSelect && !readonly));
+  const isSingleEditorOpen = !!(selectedTooth && !isMultiSelect && !readonly);
+
+  // crossAtSide controls the cross's visual state (position, scale, padding).
+  // Opening: set to true immediately via useEffect.
+  // Closing: set to false ONLY after the panel exits the DOM (onExitComplete),
+  // so margin:auto centers in the 100%-wide column, not the 62%-wide column.
+  const [crossAtSide, setCrossAtSide] = useState(!!isEditorOpen);
+  useEffect(() => {
+    if (isEditorOpen) {
+      setCrossAtSide(true);
+    }
+    // Closing is handled by onExitComplete below
+  }, [isEditorOpen]);
+
+  // Always render at the LARGER scale — layout footprint stays constant.
+  // The visual difference when crossAtSide is handled by CSS transform: scale()
+  // which doesn't change layout, so the white background never jumps.
+  const baseScale = toothScale * 1.95;
+  const visualScaleRatio = crossAtSide ? (crossFitRatio ?? 0.64) : 1;
+
+  // Dynamically calculate cross fit ratio when crossAtSide,
+  // so the cross fills the right column with 10px margins.
+  useEffect(() => {
+    if (!crossAtSide) {
+      setCrossFitRatio(null);
+      return;
+    }
+
+    const rightCol = rightColumnRef.current;
+    const crossEl = crossInnerRef.current;
+    if (!rightCol || !crossEl) return;
+
+    // Measure the cross's natural width (at baseScale, no transform)
+    if (crossNaturalWidth.current === 0) {
+      crossNaturalWidth.current = crossEl.scrollWidth;
+    }
+
+    const calcFit = () => {
+      const availableWidth = rightCol.clientWidth - 20; // 10px padding each side
+      const naturalW = crossNaturalWidth.current || crossEl.scrollWidth;
+      if (naturalW > 0) {
+        const ratio = Math.min(1, availableWidth / naturalW);
+        setCrossFitRatio(ratio);
+      }
+    };
+
+    calcFit();
+
+    const observer = new ResizeObserver(calcFit);
+    observer.observe(rightCol);
+    return () => observer.disconnect();
+  }, [crossAtSide, baseScale]);
+
+  // FLIP animation: after crossAtSide changes, measure position delta
+  // and animate from old position to new.
+  useLayoutEffect(() => {
+    const el = crossInnerRef.current;
+    const prevRect = crossPrevRect.current;
+    if (!el || !prevRect) return;
+
+    const newRect = el.getBoundingClientRect();
+    const deltaX = prevRect.left - newRect.left;
+    const deltaY = prevRect.top - newRect.top;
+
+    if (Math.abs(deltaX) < 2 && Math.abs(deltaY) < 2) {
+      crossPrevRect.current = null;
+      return;
+    }
+
+    el.style.transition = 'none';
+    el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 0.55s cubic-bezier(0.33, 1, 0.68, 1)';
+        el.style.transform = '';
+        crossPrevRect.current = null;
+      });
+    });
+  }, [crossAtSide]);
+
+  // Smooth Card height animation: FLIP approach to detect both growing AND shrinking.
+  // Only activates after the first content change (not on initial render).
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    let isFirstRun = true;
+
+    const updateHeight = () => {
+      if (isFirstRun) {
+        // On first run, just record the natural height without setting explicit height.
+        // This ensures the cross is visible on initial render.
+        isFirstRun = false;
+        return;
+      }
+
+      const currentHeight = card.offsetHeight;
+      // Temporarily remove explicit height to measure natural content height
+      card.style.transition = 'none';
+      card.style.height = 'auto';
+      const naturalHeight = card.offsetHeight;
+
+      if (Math.abs(naturalHeight - currentHeight) > 1) {
+        // FLIP: restore old height, force reflow, then animate to new
+        card.style.height = `${currentHeight}px`;
+        void card.offsetHeight; // force reflow
+        card.style.transition = 'height 0.4s cubic-bezier(0.33, 1, 0.68, 1)';
+        card.style.height = `${naturalHeight}px`;
+      } else {
+        card.style.height = `${naturalHeight}px`;
+        card.style.transition = 'height 0.4s cubic-bezier(0.33, 1, 0.68, 1)';
+      }
+    };
+
+    const observer = new ResizeObserver(updateHeight);
+    Array.from(card.children).forEach(child => observer.observe(child));
+
+    return () => observer.disconnect();
+  }, [isEditorOpen, crossAtSide]);
+
   if (loading) {
     return (
       <Card className="w-full">
@@ -409,10 +704,8 @@ export function DentalChart({
     );
   }
 
-  const isMultiSelect = selectedTeeth.length > 1;
-
   return (
-    <Card className="w-full border-border/50 shadow-sm overflow-hidden">
+    <Card ref={cardRef} className="w-full border-border/50 shadow-sm" style={{ transition: 'height 0.4s cubic-bezier(0.33, 1, 0.68, 1)', overflow: 'clip' }}>
       <CardHeader className="bg-muted/20 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2">
@@ -423,10 +716,10 @@ export function DentalChart({
           </CardDescription>
         </div>
         <div className="flex items-center space-x-2 bg-card p-2 rounded-lg border shadow-sm">
-          <Switch 
-            id="baby-teeth" 
-            checked={showBabyTeeth} 
-            onCheckedChange={setShowBabyTeeth} 
+          <Switch
+            id="baby-teeth"
+            checked={showBabyTeeth}
+            onCheckedChange={setShowBabyTeeth}
           />
           <Label htmlFor="baby-teeth" className="cursor-pointer font-medium">Tejfogak mutatása</Label>
         </div>
@@ -484,105 +777,357 @@ export function DentalChart({
         )}
       </div>
 
-      <CardContent className="w-full p-4 flex flex-col xl:flex-row gap-6">
-        {/* Left Side: The chart itself */}
-        <div className="flex-1 min-w-0 overflow-x-auto">
-          <div className="w-full min-w-max mx-auto pt-4 pb-2">
-            <ZsigmondyCross 
-              data={data} 
-              onToothClick={handleToothClick} 
-              showBabyTeeth={showBabyTeeth}
-              selectedTooth={selectedTooth}
-              selectedTeeth={selectedTeeth}
-              treatmentMarkersMap={treatmentMarkersMap}
-              bridgePreview={bridgePreview}
-              scale={toothScale}
-            />
-          </div>
-        </div>
-
-        {/* Right Side: Editors */}
-        {((isMultiSelect && !readonly) || (selectedTooth && !isMultiSelect && !readonly)) && (
-          <div className="w-full xl:w-[450px] shrink-0 flex flex-col gap-4">
-            {/* Multi-select bulk toolbar */}
-            {isMultiSelect && !readonly && (
-              <div className="animate-in slide-in-from-right-2 fade-in duration-200">
-                <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 shadow-sm">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-bold text-blue-700 dark:text-blue-400">
-                        {selectedTeeth.length} fog kijelölve
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                        Fogak: {selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}
-                      </p>
+      <CardContent className="w-full p-4 flex flex-col-reverse xl:flex-row gap-6 justify-start xl:items-stretch">
+        {/* Left Side: Editors */}
+        <AnimatePresence mode="wait" onExitComplete={() => {
+          // Panel is now fully removed from DOM. Column is 100% wide.
+          // NOW it's safe to center the cross — margin:auto will center
+          // in the full-width column, not the 62% column.
+          if (!isEditorOpen) {
+            if (crossInnerRef.current) {
+              crossPrevRect.current = crossInnerRef.current.getBoundingClientRect();
+            }
+            setCrossAtSide(false);
+          }
+        }}>
+          {isEditorOpen && (
+            <motion.div
+              key={selectedTooth || 'bulk'}
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -15 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="w-full xl:w-[38%] xl:shrink-0 flex flex-col gap-4 xl:min-h-0"
+              style={isDesktop && rightHeight ? { height: `${rightHeight}px` } : undefined}
+            >
+              {/* Multi-select bulk toolbar */}
+              {isMultiSelect && !readonly && (
+                <div className="animate-in slide-in-from-left-2 fade-in duration-200">
+                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-blue-700 dark:text-blue-400">
+                          {selectedTeeth.length} fog kijelölve
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                          Fogak: {selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}
+                        </p>
+                      </div>
+                      {!bridgeConfigMode && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleBulkStatusChange('missing')}
+                            className="text-xs border-red-200 hover:bg-red-50 hover:text-red-700"
+                          >
+                            Foghiány
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleBulkStatusChange('healthy')}
+                            className="text-xs border-green-200 hover:bg-green-50 hover:text-green-700"
+                          >
+                            Egészséges
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => setBridgeConfigMode(true)}
+                            className="text-xs gap-1 bg-purple-600 hover:bg-purple-700"
+                          >
+                            <Link2 className="w-3.5 h-3.5" />
+                            Híd
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {!bridgeConfigMode && (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleBulkStatusChange('missing')}
-                          className="text-xs border-red-200 hover:bg-red-50 hover:text-red-700"
-                        >
-                          Foghiány
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleBulkStatusChange('healthy')}
-                          className="text-xs border-green-200 hover:bg-green-50 hover:text-green-700"
-                        >
-                          Egészséges
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => setBridgeConfigMode(true)}
-                          className="text-xs gap-1 bg-purple-600 hover:bg-purple-700"
-                        >
-                          <Link2 className="w-3.5 h-3.5" />
-                          Híd
-                        </Button>
+
+                    {/* Bridge Configurator Panel */}
+                    {bridgeConfigMode && (
+                      <div className="mt-4 pt-4 border-t border-purple-200/30">
+                        <BridgeConfigurator
+                          selectedTeeth={selectedTeeth}
+                          toothData={data}
+                          onConfirm={handleCreateBridge}
+                          onCancel={() => { setBridgeConfigMode(false); setBridgePreview(null); }}
+                          onPreviewChange={setBridgePreview}
+                        />
                       </div>
                     )}
                   </div>
+                </div>
+              )}
 
-                  {/* Bridge Configurator Panel */}
-                  {bridgeConfigMode && (
-                    <div className="mt-4 pt-4 border-t border-purple-200/30">
-                      <BridgeConfigurator
-                        selectedTeeth={selectedTeeth}
-                        toothData={data}
-                        onConfirm={handleCreateBridge}
-                        onCancel={() => { setBridgeConfigMode(false); setBridgePreview(null); }}
-                        onPreviewChange={setBridgePreview}
-                      />
-                    </div>
-                  )}
+              {/* Single tooth editor */}
+              {selectedTooth && !isMultiSelect && !readonly && (
+                <div className="h-full flex flex-col min-h-0">
+                  <ToothEditorPanel
+                    key={selectedTooth}
+                    toothNumber={selectedTooth}
+                    initialData={data[selectedTooth]}
+                    onSave={(d) => {
+                      // Auto-save silently, do not close the editor
+                      handleSaveTooth(d, true);
+                    }}
+                    onCancel={() => {
+                      // FLIP: capture cross position BEFORE state change
+                      if (crossInnerRef.current) {
+                        crossPrevRect.current = crossInnerRef.current.getBoundingClientRect();
+                      }
+                      setSelectedTooth(null);
+                      setSelectedTeeth([]);
+                    }}
+                    className="h-full mt-0 flex-1 min-h-0"
+                  />
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Right Side: The chart itself */}
+        <div
+          ref={rightColumnRef}
+          className={`w-full xl:flex-1 min-w-0 flex flex-col gap-4 ${isSingleEditorOpen ? "xl:min-h-[880px]" : ""}`}
+        >
+          {readonly ? (
+            <div className="w-full min-w-max pt-4 pb-2 flex justify-center overflow-x-auto">
+              <ZsigmondyCross
+                data={data}
+                onToothClick={handleToothClick}
+                showBabyTeeth={showBabyTeeth}
+                selectedTooth={selectedTooth}
+                selectedTeeth={selectedTeeth}
+                treatmentMarkersMap={treatmentMarkersMap}
+                bridgePreview={bridgePreview}
+                scale={baseScale}
+              />
+            </div>
+          ) : (
+            <div
+              ref={crossWrapperRef}
+              className="w-full min-w-max flex justify-center overflow-visible"
+              style={{
+                paddingTop: crossAtSide ? '10px' : '16px',
+                paddingBottom: crossAtSide ? '10px' : '8px',
+                paddingLeft: crossAtSide ? '10px' : '0',
+                paddingRight: crossAtSide ? '10px' : '0',
+              }}
+            >
+              <div
+                ref={crossInnerRef}
+                style={{
+                  marginLeft: crossAtSide ? '0' : 'auto',
+                  marginRight: crossAtSide ? undefined : 'auto',
+                }}
+              >
+                <div
+                  style={{
+                    transform: `scale(${visualScaleRatio})`,
+                    transformOrigin: crossAtSide ? 'left center' : 'center center',
+                    transition: 'transform 0.55s cubic-bezier(0.33, 1, 0.68, 1)',
+                  }}
+                >
+                  <ZsigmondyCross
+                    data={data}
+                    onToothClick={handleToothClick}
+                    showBabyTeeth={showBabyTeeth}
+                    selectedTooth={selectedTooth}
+                    selectedTeeth={selectedTeeth}
+                    treatmentMarkersMap={treatmentMarkersMap}
+                    bridgePreview={bridgePreview}
+                    scale={baseScale}
+                  />
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Single tooth editor */}
-            {selectedTooth && !isMultiSelect && !readonly && (
-              <div className="animate-in slide-in-from-right-2 fade-in duration-200 h-full">
-                <ToothEditorPanel 
-                  key={selectedTooth}
-                  toothNumber={selectedTooth}
-                  initialData={data[selectedTooth]}
-                  onSave={(d) => {
-                    // Auto-save silently, do not close the editor
-                    handleSaveTooth(d, true);
-                  }}
-                  onCancel={() => {
-                    setSelectedTooth(null);
-                    setSelectedTeeth([]);
-                  }}
-                />
-              </div>
+          {/* Spacer to push clinical detail cards to the bottom on desktop */}
+          {isSingleEditorOpen && (
+            <div className="hidden xl:block xl:flex-1" />
+          )}
+
+          {/* Parodontológia & Protetika panels statically below the teeth when selected */}
+          <AnimatePresence>
+            {isSingleEditorOpen && (
+              <motion.div
+                key={`clinical-details-${selectedTooth}`}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="w-full flex flex-col gap-4 mt-4"
+              >
+                {/* Parodontológia & Tesztek Card */}
+                <Card className="border shadow-sm overflow-hidden">
+                  <div className="p-3 bg-muted/20 border-b">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Parodontológia & Tesztek</h4>
+                  </div>
+                  <CardContent className="p-5 bg-card grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Mobilitás (0-3)</Label>
+                          <Select
+                            value={data[selectedTooth]?.mobility?.toString() || '0'}
+                            onValueChange={(v) => updateToothField('mobility', parseInt(v) || null)}
+                          >
+                            <SelectTrigger className="h-8"><SelectValue placeholder="-" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">0 (Normál)</SelectItem>
+                              <SelectItem value="1">I. fokú</SelectItem>
+                              <SelectItem value="2">II. fokú</SelectItem>
+                              <SelectItem value="3">III. fokú</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Tasakmélység (mm)</Label>
+                          <Input
+                            type="number" min="0" max="15" className="h-8"
+                            value={data[selectedTooth]?.pocket_depth_mm || ''}
+                            onChange={(e) => updateToothField('pocket_depth_mm', parseFloat(e.target.value) || null)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Ínyvisszahúzódás (mm)</Label>
+                          <Input
+                            type="number" min="0" max="15" className="h-8"
+                            value={data[selectedTooth]?.gum_recession_mm || ''}
+                            onChange={(e) => updateToothField('gum_recession_mm', parseFloat(e.target.value) || null)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="percuss"
+                          checked={!!data[selectedTooth]?.percussion_sensitive}
+                          onCheckedChange={(c) => updateToothField('percussion_sensitive', !!c)}
+                        />
+                        <Label htmlFor="percuss" className="cursor-pointer text-sm font-medium">Kopogtatás-érzékeny</Label>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Kopogtatási megjegyzés</Label>
+                        <Input
+                          className="h-8" placeholder="Pl. Érzékeny, tompa hang..."
+                          value={data[selectedTooth]?.percussion || ''}
+                          onChange={(e) => updateToothField('percussion', e.target.value || null)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2 pt-1">
+                        <Checkbox
+                          id="periap"
+                          checked={!!data[selectedTooth]?.periapical_lesion}
+                          onCheckedChange={(c) => updateToothField('periapical_lesion', !!c)}
+                        />
+                        <Label htmlFor="periap" className="cursor-pointer text-sm font-medium">Periapikális elváltozás látható</Label>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Érzékenység (Hideg, Meleg)</Label>
+                        <Input
+                          className="h-8" placeholder="Pl. Hidegre..."
+                          value={data[selectedTooth]?.sensitivity || ''}
+                          onChange={(e) => updateToothField('sensitivity', e.target.value || null)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Fogászati jelek (Kopás, Erózió)</Label>
+                        <Input
+                          className="h-8"
+                          value={(data[selectedTooth]?.dental_signs || []).join(', ')}
+                          onChange={(e) => {
+                            const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                            updateToothField('dental_signs', arr.length > 0 ? arr : null);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Protetika & Implantátum Card */}
+                <Card className="border shadow-sm overflow-hidden">
+                  <div className="p-3 bg-muted/20 border-b">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Protetika & Implantátum</h4>
+                  </div>
+                  <CardContent className="p-5 bg-card grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3 bg-muted/10 p-4 rounded-lg border">
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase">Protetika</h4>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Típus</Label>
+                        <Input
+                          className="h-8" placeholder="Pl. Monolit Cirkon..."
+                          value={data[selectedTooth]?.prosthetic_type || ''}
+                          onChange={(e) => updateToothField('prosthetic_type', e.target.value || null)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Anyag</Label>
+                          <Input
+                            className="h-8"
+                            value={data[selectedTooth]?.prosthetic_material || ''}
+                            onChange={(e) => updateToothField('prosthetic_material', e.target.value || null)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Fogszín</Label>
+                          <Input
+                            className="h-8" placeholder="A2..."
+                            value={data[selectedTooth]?.prosthetic_shade || ''}
+                            onChange={(e) => updateToothField('prosthetic_shade', e.target.value || null)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-blue-500/5 p-4 rounded-lg border border-blue-500/20">
+                      <h4 className="text-xs font-bold text-blue-700/70 uppercase">Implantátum</h4>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Rendszer</Label>
+                        <Input
+                          className="h-8" placeholder="Pl. Straumann BLX"
+                          value={data[selectedTooth]?.implant_system || ''}
+                          onChange={(e) => updateToothField('implant_system', e.target.value || null)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Átmérő (mm)</Label>
+                          <Input
+                            className="h-8" type="number" step="0.1"
+                            value={data[selectedTooth]?.implant_diameter || ''}
+                            onChange={(e) => updateToothField('implant_diameter', parseFloat(e.target.value) || null)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Hossz (mm)</Label>
+                          <Input
+                            className="h-8" type="number" step="0.5"
+                            value={data[selectedTooth]?.implant_length || ''}
+                            onChange={(e) => updateToothField('implant_length', parseFloat(e.target.value) || null)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Beültetés dátuma</Label>
+                        <WheelDatePicker
+                          value={data[selectedTooth]?.implant_date || null}
+                          onChange={(d) => updateToothField('implant_date', d)}
+                          placeholder="Válasszon dátumot..."
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
       </CardContent>
     </Card>
   );

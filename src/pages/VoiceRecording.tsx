@@ -238,7 +238,6 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
       toast.error('Hiba a felvétel során: ' + translateRecordingError(error));
     },
   });
-
   // Poll for job completion
   useEffect(() => {
     if (!currentJobId) return;
@@ -256,6 +255,15 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
             : JSON.stringify(job.result);
           setVerdikt(responseToStore, job.id);
           toast.success('Felvétel sikeresen feldolgozva!');
+
+          // Rögzítjük a feldolgozást számlázási célból
+          const companyId = profile?.company_id;
+          if (companyId) {
+            const jobType = (mode === 'ambulans' ? 'ambulans' : mode === 'voxis' ? 'voxis' : 'treatnote') as 'ambulans' | 'voxis' | 'treatnote';
+            supabase.functions.invoke('record-processing-usage', {
+              body: { job_id: currentJobId, company_id: companyId, job_type: jobType },
+            }).catch((err) => console.warn('Usage recording failed:', err));
+          }
         } else if (job.status === 'error') {
           toast.error('Hiba a feldolgozás során: ' + (job.error || 'Ismeretlen hiba'));
         }
@@ -263,7 +271,7 @@ Ambuláns adatlap pedig ambuláns lapot készít.`,
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
-  }, [currentJobId, pollJob, setVerdikt]);
+  }, [currentJobId, pollJob, setVerdikt, profile, mode]);
 
   // Get response data for verdikt display
   const verdiktResponseData = useMemo(() => {

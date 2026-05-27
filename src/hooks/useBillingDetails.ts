@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const MONTHLY_PRICE_ID = 'price_1TABODDG9IVOU80sYHim2VsD';
-
 export interface PaymentMethod {
     id: string;
     brand: string;
@@ -13,28 +11,8 @@ export interface PaymentMethod {
 }
 
 export interface BillingDetails {
-    subscription: {
-        status: string | null;
-        price_id: string | null;
-        seats: number;
-        current_period_end: string | null;
-        cancel_at_period_end: boolean;
-        telephely_id: string | null;
-    };
     payment_methods: PaymentMethod[];
-    upcoming_invoice: {
-        amount_due: number;
-        currency: string;
-        period_end: number;
-        lines: Array<{ description: string; amount: number; period: { start: number; end: number } }>;
-    } | null;
-    prices: {
-        monthly: { price_id: string; unit_amount: number; currency: string };
-        yearly: { price_id: string; unit_amount: number; currency: string } | null;
-    };
 }
-
-export const PRICE_IDS = { monthly: MONTHLY_PRICE_ID };
 
 async function invokeWithAuth(name: string, options: { body?: Record<string, unknown>; method?: string; params?: Record<string, string> } = {}) {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -97,53 +75,18 @@ export async function fetchInvoices(companyId: string) {
     return invokeWithAuth('list-invoices', { body: { company_id: companyId } });
 }
 
-export async function cancelSubscription(companyId: string, opts: { immediately?: boolean; reactivate?: boolean } = {}) {
-    return invokeWithAuth('cancel-subscription', { body: { company_id: companyId, ...opts } });
-}
-
 export async function createSetupIntent(companyId: string) {
     return invokeWithAuth('create-setup-intent', { body: { company_id: companyId } });
 }
 
-export async function createEmbeddedCheckout(companyId: string, telephelyId: string, priceId: string, seats: number) {
-    return invokeWithAuth('create-checkout-session', { body: { company_id: companyId, telephely_id: telephelyId, price_id: priceId, seats, embedded: true } });
-}
-
-export async function createEmbeddedCheckoutMultiple(companyId: string, telephelyId: string, items: { price_id: string, seats: number }[]) {
-    return invokeWithAuth('create-checkout-session', { body: { company_id: companyId, telephely_id: telephelyId, items, embedded: true } });
-}
-
-export async function updateSeats(companyId: string, newSeats: number) {
-    return invokeWithAuth('update-seats', { body: { company_id: companyId, new_seats: newSeats } });
-}
-
-export async function switchPlan(companyId: string, newPriceId: string) {
-    return invokeWithAuth('switch-plan', { body: { company_id: companyId, new_price_id: newPriceId } });
-}
-
-/** Cancel one or more individual licenses (at period end or immediately). */
-export async function cancelLicense(
-    companyId: string,
-    licenseIds: string[],
-    opts: {
-        immediately?: boolean;
-        reactivate?: boolean;
-        /** Unified atomic API: pass both to make a single net Stripe quantity update */
-        cancel_ids?: string[];
-        reactivate_ids?: string[];
-    } = {}
-) {
-    return invokeWithAuth('cancel-license', { body: { company_id: companyId, license_ids: licenseIds, ...opts } });
-}
-
-/** Switch one or more licenses between 'monthly' and 'yearly'. */
-export async function switchLicenseInterval(
-    companyId: string,
-    licenseIds: string[],
-    interval: 'monthly' | 'yearly'
-) {
-    // Routes to switch-plan which handles per-license switching when license_ids + interval are provided
-    return invokeWithAuth('switch-plan', { body: { company_id: companyId, license_ids: licenseIds, interval } });
+export async function createCheckoutSession(params: {
+    company_id: string;
+    telephely_id: string;
+    mode: 'payment' | 'subscription';
+    amount?: number;
+    period?: string;
+}) {
+    return invokeWithAuth('create-checkout-session', { body: params });
 }
 
 // Stripe zero-decimal currencies: stored without subunits, so no /100 needed.

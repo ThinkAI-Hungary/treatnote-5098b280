@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, BriefcaseMedical, Share2, Building2, ChevronDown } from 'lucide-react';
+import { User, BriefcaseMedical, Share2, Building2, ChevronDown, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
@@ -27,6 +27,9 @@ export default function PatientOverview() {
 
   // Selected Teeth State
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+
+  // History state
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Shared telephelyes
   type SharedTelephely = { id: string; name: string; companyName: string | null };
@@ -171,6 +174,22 @@ export default function PatientOverview() {
         </Card>
       )}
 
+      {/* ── SECTION 0.6: Patient Status Change Log (Napló) ── */}
+      <Card className="border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors shadow-sm">
+        <button
+          className="w-full text-left"
+          onClick={() => setHistoryOpen(true)}
+        >
+          <CardHeader className="py-2.5 px-4">
+            <CardTitle className="text-sm flex items-center gap-2 text-primary font-semibold">
+              <History className="w-4 h-4 text-primary shrink-0" />
+              <span>Napló</span>
+              <span className="text-xs font-normal text-muted-foreground ml-1">Kattintson a fogstátusz változások megtekintéséhez</span>
+            </CardTitle>
+          </CardHeader>
+        </button>
+      </Card>
+
       {/* ── SECTION 1: DENTAL CHART (first view, full width) ── */}
       <div className="w-full">
         <DentalChart 
@@ -193,10 +212,7 @@ export default function PatientOverview() {
             <SelectedTeethHistoryPanel patientId={patient.id} selectedTeeth={selectedTeeth} />
           </div>
 
-          {/* Patient Treatment History */}
-          <div className="flex-1 flex flex-col min-h-[420px]">
-            <PatientHistoryPanel patientId={patient.id} filterType="all" />
-          </div>
+
         </div>
       </div>
 
@@ -246,6 +262,14 @@ export default function PatientOverview() {
           />
         </div>
       )}
+
+      <PatientHistoryPanel 
+        patientId={patient.id} 
+        filterType="all"
+        dialogOnly={true}
+        isOpen={historyOpen} 
+        onOpenChange={setHistoryOpen} 
+      />
     </div>
   );
 }

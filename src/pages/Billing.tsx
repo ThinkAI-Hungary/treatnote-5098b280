@@ -3,24 +3,17 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCachedRoles } from '@/hooks/useCachedRoles';
 import { supabase } from '@/integrations/supabase/client';
+import { useProcessingUsage } from '@/hooks/useProcessingUsage';
 import {
-  useBillingDetails,
   fetchInvoices,
-  cancelSubscription,
   createSetupIntent,
-  createEmbeddedCheckout,
-  switchPlan,
   formatCurrency,
   formatDate,
-  PRICE_IDS,
   type PaymentMethod,
 } from '@/hooks/useBillingDetails';
 import { PaymentMethodCard } from '@/components/billing/PaymentMethodCard';
 import { InvoiceRow, type Invoice } from '@/components/billing/InvoiceRow';
-import { LicenseGrid } from '@/components/billing/LicenseGrid';
-import { CheckoutModal } from '@/components/billing/CheckoutModal';
 import { StripeProvider } from '@/components/billing/StripeProvider';
-import { TrialLicenseCard } from '@/components/billing/TrialLicenseCard';
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,13 +22,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/useToastMessage';
 import {
-  CreditCard, Users, Receipt, LayoutDashboard, RefreshCw,
-  TrendingUp, TrendingDown, Calendar, ArrowUpDown, Plus,
-  CheckCircle, AlertTriangle, XCircle, Clock, Zap, Minus,
-  ChevronRight, Shield
+  CreditCard, Receipt, LayoutDashboard, RefreshCw,
+  AlertTriangle, XCircle, CheckCircle, Plus, Shield,
+  Zap, Mic, Activity, FileText
 } from 'lucide-react';
 
-// ─── Setup Intent Form (inside Stripe Elements) ────────────────────────────
+// ─── Setup Intent Form ────────────────────────────────────────
 
 function SetupForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
   const stripe = useStripe();
@@ -48,13 +40,11 @@ function SetupForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
     if (!stripe || !elements) return;
     setSaving(true);
     setError(null);
-
     const { error: confirmErr } = await stripe.confirmSetup({
       elements,
       confirmParams: { return_url: window.location.href },
       redirect: 'if_required',
     });
-
     if (confirmErr) {
       setError(confirmErr.message || 'Hiba a kártya mentésekor');
       setSaving(false);
@@ -80,98 +70,50 @@ function SetupForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
   );
 }
 
-// ─── Status icon helper ─────────────────────────────────────────────────────
+// ─── Usage stat card ─────────────────────────────────────────
 
-function StatusIcon({ status }: { status: string | null }) {
-  switch (status) {
-    case 'active': return <CheckCircle className="h-5 w-5 text-green-500" />;
-    case 'past_due': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-    case 'canceled': return <XCircle className="h-5 w-5 text-destructive" />;
-    case 'trialing': return <Clock className="h-5 w-5 text-primary" />;
-    default: return <Shield className="h-5 w-5 text-muted-foreground" />;
-  }
-}
-
-function statusLabel(status: string | null): string {
-  const map: Record<string, string> = {
-    active: 'Aktív',
-    past_due: 'Késedelmes',
-    canceled: 'Lemondva',
-    trialing: 'Próbaidőszak',
-    incomplete: 'Feldolgozás alatt',
-  };
-  return (status && map[status]) || 'Nincs előfizetés';
-}
-
-// ─── Plan selection cards ────────────────────────────────────────────────────
-
-function PlanCard({
-  label, description, amount, currency, selected, onClick,
-  badge,
-}: {
-  label: string; description: string; amount: number; currency: string;
-  selected: boolean; onClick: () => void; badge?: string;
-}) {
+function UsageStatCard({ label, count, icon: Icon }: { label: string; count: number; icon: any }) {
   return (
-    <button
-      onClick={onClick}
-      className={`relative text-left w-full rounded-xl border p-5 transition-all duration-200 group ${selected
-        ? 'border-primary/60 bg-primary/5 dark:bg-primary/10 shadow-[0_0_20px_hsl(270_70%_60%/0.1)]'
-        : 'border-border/60 bg-card/60 hover:border-border hover:bg-card/80'
-        }`}
-    >
-      {badge && (
-        <span className="absolute top-3 right-3 text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
-          {badge}
-        </span>
-      )}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-semibold">{label}</p>
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-        </div>
-        <div className={`w-4 h-4 rounded-full border-2 mt-1 flex items-center justify-center shrink-0 transition-colors ${selected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
-          }`}>
-          {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-        </div>
+    <div className="flex flex-col gap-1.5 rounded-xl border border-border/50 bg-card/60 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
       </div>
-      <p className="mt-4 text-2xl font-bold tracking-tight">
-        {formatCurrency(amount, currency)}
-        <span className="text-sm font-normal text-muted-foreground">/hó · licencenként</span>
-      </p>
-    </button>
+      <span className="text-2xl font-bold tracking-tight">{count}</span>
+    </div>
   );
 }
 
-// ─── Main Billing page ───────────────────────────────────────────────────────
+// ─── Main Billing page ────────────────────────────────────────
 
 export default function Billing() {
   const { session } = useAuth();
-  const { isKlinikaAdmin, companyId, telephelyId, loading: rolesLoading } = useCachedRoles();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { isKlinikaAdmin, companyId, loading: rolesLoading } = useCachedRoles();
+  const [searchParams] = useSearchParams();
 
-  // Billing details
-  const { details, loading, refresh } = useBillingDetails(companyId);
+  const { usage, loading: usageLoading, refresh: refreshUsage } = useProcessingUsage(companyId);
 
-  // Invoices (loaded lazily on tab switch)
+  // Payment status from companies table
+  const [paymentStatus, setPaymentStatus] = useState<'ok' | 'overdue'>('ok');
+  const [isLocked, setIsLocked] = useState(false);
+  const [lastInvoicePeriod, setLastInvoicePeriod] = useState<string | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
+
+  // Payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [pmLoading, setPmLoading] = useState(false);
+
+  // Invoices
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
 
-  // Members (for license tab)
-  const [members, setMembers] = useState<Array<{ user_id: string; full_name: string; email?: string }>>([]);
-
   // UI state
   const [tab, setTab] = useState('overview');
-  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
   const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null);
   const [showSetupForm, setShowSetupForm] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
-  const [seatCount, setSeatCount] = useState(1);
   const [actionLoading, setActionLoading] = useState(false);
-  const [polling, setPolling] = useState(false);
-
-  // Detect dark mode
   const [isDark, setIsDark] = useState(false);
+
   useEffect(() => {
     const check = () => setIsDark(document.documentElement.classList.contains('dark'));
     check();
@@ -180,30 +122,43 @@ export default function Billing() {
     return () => obs.disconnect();
   }, []);
 
-  // Poll after checkout success
-  useEffect(() => {
-    if (searchParams.get('checkout') !== 'success') return;
-    setPolling(true);
-    const interval = setInterval(async () => {
-      if (!companyId) return;
-      const { data } = await supabase.from('companies').select('subscription_status').eq('id', companyId).single();
-      if (data?.subscription_status === 'active') {
-        setPolling(false);
-        clearInterval(interval);
-        refresh();
-        toast.success('Előfizetés aktiválva!');
-        setSearchParams(prev => {
-          const params = new URLSearchParams(prev);
-          params.delete('checkout');
-          return params;
-        }, { replace: true });
+  const loadCompanyStatus = useCallback(async () => {
+    if (!companyId) return;
+    setCompanyLoading(true);
+    try {
+      const { data } = await supabase
+        .from('companies')
+        .select('payment_status, is_locked, last_invoice_period')
+        .eq('id', companyId)
+        .single();
+      if (data) {
+        setPaymentStatus((data.payment_status as 'ok' | 'overdue') || 'ok');
+        setIsLocked(data.is_locked || false);
+        setLastInvoicePeriod(data.last_invoice_period || null);
       }
-    }, 3000);
-    const timeout = setTimeout(() => { setPolling(false); clearInterval(interval); }, 90000);
-    return () => { clearInterval(interval); clearTimeout(timeout); };
-  }, [searchParams, companyId, refresh, setSearchParams]);
+    } finally {
+      setCompanyLoading(false);
+    }
+  }, [companyId]);
 
-  // Load invoices when tab is selected
+  const loadPaymentMethods = useCallback(async () => {
+    if (!companyId || pmLoading) return;
+    setPmLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const { data, error } = await supabase.functions.invoke('get-billing-details', {
+        body: { company_id: companyId },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!error && data?.payment_methods) {
+        setPaymentMethods(data.payment_methods);
+      }
+    } finally {
+      setPmLoading(false);
+    }
+  }, [companyId]);
+
   async function loadInvoices() {
     if (!companyId || invoicesLoading) return;
     setInvoicesLoading(true);
@@ -217,38 +172,14 @@ export default function Billing() {
     }
   }
 
-  // Load members for license tab
-  const loadMembers = useCallback(async () => {
-    if (!companyId) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_id, full_name')
-      .eq('company_id', companyId);
-    if (data) setMembers(data as any);
-  }, [companyId]);
+  useEffect(() => {
+    loadCompanyStatus();
+    loadPaymentMethods();
+  }, [loadCompanyStatus, loadPaymentMethods]);
 
   useEffect(() => {
-    if (tab === 'licences') loadMembers();
     if (tab === 'invoices') loadInvoices();
   }, [tab]);
-
-  async function handleStartCheckout() {
-    if (!companyId || !details) return;
-    setActionLoading(true);
-    try {
-      const priceId = PRICE_IDS.monthly;
-      const data = await createEmbeddedCheckout(companyId, telephelyId || "", priceId, seatCount);
-      if (data?.client_secret) {
-        setCheckoutClientSecret(data.client_secret);
-      } else {
-        toast.error('Nem sikerült elindítani a fizetést');
-      }
-    } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt');
-    } finally {
-      setActionLoading(false);
-    }
-  }
 
   async function handleAddPaymentMethod() {
     if (!companyId) return;
@@ -266,51 +197,14 @@ export default function Billing() {
     }
   }
 
-  async function handleSwitchPlan() {
-    if (!companyId || !details) return;
-    const newPriceId = PRICE_IDS.monthly;
-    setActionLoading(true);
-    try {
-      await switchPlan(companyId, newPriceId);
-      toast.success('Csomag váltás sikeres!');
-      await refresh();
-    } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt');
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleCancel(immediately = false) {
-    if (!companyId) return;
-    setActionLoading(true);
-    try {
-      await cancelSubscription(companyId, { immediately });
-      toast.success(immediately ? 'Előfizetés lemondva.' : 'Lemondás ütemezve a periódus végére.');
-      await refresh();
-    } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt');
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleReactivate() {
-    if (!companyId) return;
-    setActionLoading(true);
-    try {
-      await cancelSubscription(companyId, { reactivate: true });
-      toast.success('Lemondás visszavonva!');
-      await refresh();
-    } catch (err: any) {
-      toast.error(err?.message || 'Hiba történt');
-    } finally {
-      setActionLoading(false);
-    }
+  function handleRefresh() {
+    loadCompanyStatus();
+    loadPaymentMethods();
+    refreshUsage();
   }
 
   // ── Access check ──
-  if (rolesLoading || loading) {
+  if (rolesLoading || companyLoading) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
@@ -344,12 +238,7 @@ export default function Billing() {
     );
   }
 
-  const sub = details?.subscription;
-  const isActive = sub?.status === 'active' || sub?.status === 'trialing';
-  const isPastDue = sub?.status === 'past_due';
-  const isCancelPending = sub?.cancel_at_period_end;
-  const isYearly = false;
-  const prices = details?.prices;
+  const monthName = new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -359,251 +248,135 @@ export default function Billing() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Számlázás</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Előfizetés, licencek és számlázási információk
+              Felhasználás-alapú számlázás · 1 EUR / feldolgozás
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             className="mt-1"
-            onClick={refresh}
-            disabled={loading}
+            onClick={handleRefresh}
+            disabled={companyLoading || usageLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${(companyLoading || usageLoading) ? 'animate-spin' : ''}`} />
           </Button>
         </div>
-
-        {/* Status bar */}
-        {polling && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-            Fizetés feldolgozás alatt...
-          </div>
-        )}
       </div>
 
-      {/* ── Stat cards ── */}
-      {(isActive || isPastDue) && sub && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Status */}
-          <Card className="border-border/60">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-2">Státusz</p>
-              <div className="flex items-center gap-2">
-                <StatusIcon status={sub.status} />
-                <span className="font-semibold text-sm">{statusLabel(sub.status)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Plan */}
-          <Card className="border-border/60">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-2">Csomag</p>
-              <div className="flex items-center gap-2">
-                {isYearly ? <TrendingDown className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 text-primary" />}
-                <span className="font-semibold text-sm">{isYearly ? 'Éves' : 'Havi'}</span>
-                {isYearly && <Badge className="text-[9px] px-1 h-4 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">Megtakarítás</Badge>}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Seats */}
-          <Card className="border-border/60">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-2">Licencek</p>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="font-semibold text-sm">{sub.seats} db</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Next billing */}
-          <Card className="border-border/60">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-2">
-                {isCancelPending ? 'Lejár' : 'Következő számla'}
-              </p>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="font-semibold text-sm">{formatDate(sub.current_period_end)}</span>
-              </div>
-              {isCancelPending && (
-                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Lemondásra ütemezve</p>
-              )}
-            </CardContent>
-          </Card>
+      {/* ── Lock banner ── */}
+      {isLocked && (
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-5 py-4">
+          <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-destructive text-sm">Fiókja zárolva van</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Az előző havi számla ({lastInvoicePeriod}) kifizetetlen. Kérjük mentsen el egy fizetési módot és rendezze a tartozást.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* ── Main content tabs ── */}
+      {/* ── Overdue banner (de még nincs zárolva – hónap 1–10.) ── */}
+      {!isLocked && paymentStatus === 'overdue' && (
+        <div className="flex items-start gap-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-5 py-4">
+          <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-yellow-600 dark:text-yellow-400 text-sm">Nyitott számla</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Az előző havi számla ({lastInvoicePeriod}) kifizetetlen. Ha hónap 10-ig nem rendezi, a hozzáférés szünetel.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tabs ── */}
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full justify-start h-10 bg-muted/40 border border-border/40 rounded-xl p-1">
           <TabsTrigger value="overview" className="gap-1.5 text-xs"><LayoutDashboard className="h-3.5 w-3.5" /> Áttekintés</TabsTrigger>
           <TabsTrigger value="payment" className="gap-1.5 text-xs"><CreditCard className="h-3.5 w-3.5" /> Fizetési módok</TabsTrigger>
           <TabsTrigger value="invoices" className="gap-1.5 text-xs"><Receipt className="h-3.5 w-3.5" /> Számlák</TabsTrigger>
-          <TabsTrigger value="licences" className="gap-1.5 text-xs"><Users className="h-3.5 w-3.5" /> Licencek</TabsTrigger>
         </TabsList>
 
         {/* ── Overview tab ── */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <TrialLicenseCard />
-          {(isActive || isPastDue) && sub ? (
-            <>
-              {/* Upcoming invoice */}
-              {details?.upcoming_invoice && (
-                <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-primary" />
-                        Következő számlázás
-                      </CardTitle>
-                      <span className="text-xl font-bold">
-                        {formatCurrency(details.upcoming_invoice.amount_due, details.upcoming_invoice.currency)}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-2">
-                    {details.upcoming_invoice.lines.map((line, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{line.description}</span>
-                        <span className="font-medium">{formatCurrency(line.amount, details.upcoming_invoice!.currency)}</span>
-                      </div>
-                    ))}
-                    <p className="text-xs text-muted-foreground pt-1">
-                      Esedékesség: {formatDate(details.upcoming_invoice.period_end)}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* ── Subscription management: rebilling + terminate ── */}
-              <Card className="border-border/60">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    Előfizetés kezelése
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Rebilling toggle */}
+          {/* Havi felhasználás */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Aktuális hónap – {monthName}
+                </CardTitle>
+                {paymentStatus === 'ok' && !isLocked && (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {usageLoading ? (
+                <div className="h-16 rounded-lg bg-muted/40 animate-pulse" />
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <UsageStatCard label="Ambuláns" count={usage?.byType.ambulans ?? 0} icon={Mic} />
+                    <UsageStatCard label="Státusz" count={usage?.byType.voxis ?? 0} icon={Activity} />
+                    <UsageStatCard label="Kezelési terv" count={usage?.byType.treatnote ?? 0} icon={FileText} />
+                  </div>
                   <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
                     <div>
-                      <p className="text-sm font-medium">Automatikus megújítás</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {isCancelPending
-                          ? 'Kikapcsolva – nem újul meg az időszak végén'
-                          : 'Bekapcsolva – automatikusan megújul'}
+                      <p className="text-sm text-muted-foreground">Összes feldolgozás</p>
+                      <p className="text-2xl font-bold mt-0.5">{usage?.total ?? 0} db</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Becsült számla</p>
+                      <p className="text-2xl font-bold mt-0.5 text-primary">
+                        {(usage?.estimatedHuf ?? 0).toLocaleString('hu-HU')} EUR
                       </p>
                     </div>
-                    <button
-                      onClick={() => isCancelPending ? handleReactivate() : handleCancel(false)}
-                      disabled={actionLoading}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${isCancelPending ? 'bg-muted-foreground/30' : 'bg-primary'}`}
-                      aria-label="Megújítás kapcsoló"
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${isCancelPending ? 'translate-x-1' : 'translate-x-6'}`} />
-                    </button>
                   </div>
-
-                  {isCancelPending && (
-                    <p className="text-xs text-muted-foreground px-1">
-                      Az előfizetés az időszak végén megszűnik. Kapcsold vissza a megújítást a fenntartáshoz.
-                    </p>
-                  )}
-
-                  {/* Terminate immediately */}
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full"
-                    disabled={actionLoading}
-                    onClick={() => handleCancel(true)}
-                  >
-                    {actionLoading ? 'Feldolgozás…' : 'Előfizetés azonnali lemondása'}
-                  </Button>
-                </CardContent>
-              </Card>
-
-            </>
-          ) : (
-            /* New subscription purchase */
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold mb-1">Válassz csomagot</h2>
-                <p className="text-sm text-muted-foreground">Minden csomag tartalmaz minden funkciót. A licencek száma határozza meg a felhasználókat.</p>
-              </div>
-
-              {prices && (
-                <div className="max-w-sm">
-                  <PlanCard
-                    label="Havi"
-                    description="Rugalmas, havi megújítás"
-                    amount={prices.monthly.unit_amount || 0}
-                    currency={prices.monthly.currency}
-                    selected={true}
-                    onClick={() => { }}
-                  />
-                </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    A számlát minden hónap 1-jén állítjuk ki az előző hónap felhasználása alapján.
+                  </p>
+                </>
               )}
+            </CardContent>
+          </Card>
 
-              {/* Seat count */}
-              <Card className="border-border/60">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    Licencek száma
-                  </CardTitle>
-                  <CardDescription>Hány felhasználó fér hozzá a rendszerhez?</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      className="w-10 h-10 rounded-xl border border-border/60 bg-muted/40 flex items-center justify-center hover:bg-muted/70 transition-colors disabled:opacity-40"
-                      disabled={seatCount <= 1}
-                      onClick={() => setSeatCount((s) => Math.max(1, s - 1))}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="text-3xl font-bold w-16 text-center">{seatCount}</span>
-                    <button
-                      className="w-10 h-10 rounded-xl border border-border/60 bg-muted/40 flex items-center justify-center hover:bg-muted/70 transition-colors disabled:opacity-40"
-                      disabled={seatCount >= 500}
-                      onClick={() => setSeatCount((s) => Math.min(500, s + 1))}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    {prices && (
-                      <div className="ml-4 text-sm text-muted-foreground">
-                        = <span className="font-semibold text-foreground">
-                          {formatCurrency(
-                            (selectedPlan === 'yearly' ? prices.yearly.unit_amount : prices.monthly.unit_amount) * seatCount,
-                            selectedPlan === 'yearly' ? prices.yearly.currency : prices.monthly.currency
-                          )}
-                        </span>/{selectedPlan === 'yearly' ? 'év' : 'hó'}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Fizetési módok gyors hozzáférés */}
+          {paymentMethods.length === 0 && (
+            <Card className="border-border/60 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+                <CreditCard className="h-8 w-8 text-muted-foreground/40" />
+                <div className="text-center">
+                  <p className="text-sm font-medium">Nincs mentett fizetési mód</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Mentsen el egy kártyát, hogy a havi számlák automatikusan lefussanak.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="gap-1.5 mt-1" onClick={() => setTab('payment')}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Kártya hozzáadása
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-              <Button
-                size="lg"
-                className="w-full galaxy-gradient font-semibold gap-2 h-12 text-base"
-                onClick={handleStartCheckout}
-                disabled={actionLoading}
-              >
-                <CreditCard className="h-5 w-5" />
-                {actionLoading ? 'Indítás...' : 'Előfizetés indítása'}
-              </Button>
-
-              <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
-                <Shield className="h-3 w-3" />
-                Biztonságos fizetés a Stripe által. Kártyaadatait soha nem tároljuk.
-              </p>
-            </div>
+          {paymentMethods.length > 0 && (
+            <Card className="border-border/60">
+              <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium">
+                    {paymentMethods.find(p => p.is_default)?.brand?.toUpperCase() || paymentMethods[0].brand?.toUpperCase()} ···{paymentMethods.find(p => p.is_default)?.last4 || paymentMethods[0].last4}
+                  </span>
+                  <span className="text-muted-foreground ml-2">mentett fizetési mód</span>
+                </div>
+                <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => setTab('payment')}>
+                  Kezelés
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -626,7 +399,6 @@ export default function Billing() {
             </Button>
           </div>
 
-          {/* SetupIntent form */}
           {showSetupForm && setupClientSecret && (
             <Card className="border-primary/30 bg-primary/5 dark:bg-primary/10">
               <CardHeader className="pb-3">
@@ -635,7 +407,7 @@ export default function Billing() {
               <CardContent>
                 <StripeProvider clientSecret={setupClientSecret} isDark={isDark}>
                   <SetupForm
-                    onSuccess={() => { setShowSetupForm(false); setSetupClientSecret(null); refresh(); }}
+                    onSuccess={() => { setShowSetupForm(false); setSetupClientSecret(null); loadPaymentMethods(); }}
                     onCancel={() => { setShowSetupForm(false); setSetupClientSecret(null); }}
                   />
                 </StripeProvider>
@@ -643,10 +415,9 @@ export default function Billing() {
             </Card>
           )}
 
-          {/* Saved payment methods */}
-          {details?.payment_methods && details.payment_methods.length > 0 ? (
+          {paymentMethods.length > 0 ? (
             <div className="space-y-2">
-              {details.payment_methods.map((pm) => (
+              {paymentMethods.map((pm) => (
                 <PaymentMethodCard key={pm.id} pm={pm} />
               ))}
             </div>
@@ -656,11 +427,16 @@ export default function Billing() {
                 <CreditCard className="h-10 w-10 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground text-center">
                   Nincs mentett fizetési mód.
-                  <br />Adj hozzá egyet a gombbal fentebb.
+                  <br />Adjon hozzá egyet a gombbal fentebb.
                 </p>
               </CardContent>
             </Card>
           ) : null}
+
+          <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+            <Shield className="h-3 w-3" />
+            Biztonságos fizetés a Stripe által. Kártyaadatait soha nem tároljuk.
+          </p>
         </TabsContent>
 
         {/* ── Invoices tab ── */}
@@ -691,68 +467,7 @@ export default function Billing() {
             </Card>
           )}
         </TabsContent>
-
-        {/* ── Licences tab ── */}
-        <TabsContent value="licences" className="space-y-4 mt-4">
-          <div>
-            <h2 className="text-base font-semibold">Licencek</h2>
-            <p className="text-sm text-muted-foreground">Kiosztott és szabad licencek kezelése</p>
-          </div>
-          <TrialLicenseCard />
-
-          {sub && companyId && (
-            <Card className="border-border/60">
-              <CardContent className="pt-5 pb-5">
-                <LicenseGrid
-                  companyId={companyId}
-                  totalSeats={sub.seats || 0}
-                  usedSeats={members.length}
-                  onUpdate={refresh}
-                  readOnly={!isActive && !isPastDue}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Members table */}
-          {members.length > 0 && (
-            <Card className="border-border/60 overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Tagok</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border/40">
-                  {members.map((m, i) => (
-                    <div key={m.user_id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                        {m.full_name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{m.full_name || 'Ismeretlen'}</p>
-                      </div>
-                      <Badge variant="secondary" className="ml-auto text-[10px] px-1.5">
-                        #{i + 1}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
       </Tabs>
-
-      {/* ── Checkout modal ── */}
-      {checkoutClientSecret && (
-        <CheckoutModal
-          clientSecret={checkoutClientSecret}
-          onClose={() => setCheckoutClientSecret(null)}
-          onComplete={() => {
-            setCheckoutClientSecret(null);
-            setPolling(true);
-          }}
-        />
-      )}
     </div>
   );
 }

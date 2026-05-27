@@ -54,7 +54,6 @@ import { cn } from '@/lib/utils';
 import { notifySzotarDataChanged } from '@/lib/szotarEvents';
 import { subscribeToRulesChanges } from '@/lib/rulesEvents';
 import { subscribeToMembershipChanges } from '@/lib/telephelyEvents';
-import { subscribeToLicenseChanges } from '@/lib/licenseEvents';
 import { useNotifications } from '@/hooks/useNotifications';
 
 
@@ -202,7 +201,6 @@ export function AppSidebar() {
 
   // Solo: check if the current user has an active paid license
   const isSolo = !!(profile as any)?.is_solo;
-  const [hasActiveLicense, setHasActiveLicense] = useState(false);
 
   // Shimmer lifecycle: show immediately when loading starts, fade out gracefully when loading stops
   useEffect(() => {
@@ -307,65 +305,6 @@ export function AppSidebar() {
   //   1. solo companies typically have one telephely, so the scope is equivalent
   //   2. the license's telephely_id may not always match current_telephely_id exactly
   // Realtime uses company_id filter (stable; telephely_id=null after termination isn't stable).
-  useEffect(() => {
-    if (!user || !isSolo) return;
-    const companyId = profile?.company_id;
-    const checkLicense = async () => {
-      const now = new Date().toISOString();
-      const { data } = await supabase
-        .from('licenses')
-        .select('id, expires_at')
-        .eq('assigned_user_id', user.id)
-        .eq('status', 'assigned')
-        .neq('license_type', 'trial')
-        .limit(1);
-      const row = (data ?? [])[0];
-      setHasActiveLicense(!!row && (row.expires_at === null || row.expires_at > now));
-    };
-    checkLicense();
-    if (!companyId) return;
-    const channel = supabase
-      .channel(`sidebar-license-${companyId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'licenses', filter: `company_id=eq.${companyId}` }, () => checkLicense())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, isSolo, profile?.company_id]);
-
-  // Immediately re-check license when ElofizetesTab fires the cancel event
-  // (before the Stripe webhook updates the DB)
-  useEffect(() => {
-    if (!user || !isSolo) return;
-    const recheck = async () => {
-      const now = new Date().toISOString();
-      const { data } = await supabase
-        .from('licenses')
-        .select('id, expires_at')
-        .eq('assigned_user_id', user.id)
-        .eq('status', 'assigned')
-        .neq('license_type', 'trial')
-        .limit(1);
-      const row = (data ?? [])[0];
-      setHasActiveLicense(!!row && (row.expires_at === null || row.expires_at > now));
-    };
-    return subscribeToLicenseChanges(recheck);
-  }, [user, isSolo]);
-
-  // Launch Stripe checkout for solo users without a license
-  const handleBuySoloLicense = useCallback(async () => {
-    const companyId = profile?.company_id;
-    const telephelyId = (profile as any)?.current_telephely_id || profile?.telephely_id;
-    if (!companyId) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: { company_id: companyId, price_id: 'price_1TABODDG9IVOU80sYHim2VsD', seats: 1, telephely_id: telephelyId },
-      });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error('Hiba a fizetési oldal megnyitásakor: ' + (err.message || 'Ismeretlen hiba'));
-    }
-  }, [profile]);
-
   // Fetch treatment_rules count for the active telephely
   useEffect(() => {
     async function fetchRules() {
@@ -792,19 +731,7 @@ export function AppSidebar() {
   );
 
   // Build disabled content based on what's missing (in priority order: Domain → Flexi → Próba → Szótár → Rules)
-  const buildHangfelvételDisabledContent = (reason: 'domain' | 'flexi' | 'proba' | 'szotar' | 'rules' | 'license') => {
-    if (reason === 'license') {
-      return (
-        <p className="text-sm">
-          <button
-            onClick={handleBuySoloLicense}
-            className="underline text-primary hover:text-primary/80 font-medium"
-          >
-            Vásároljon licenset a hangfelvétel használatához.
-          </button>
-        </p>
-      );
-    }
+  const buildHangfelvételDisabledContent = (reason: 'domain' | 'flexi' | 'proba' | 'szotar' | 'rules') => {
 
     if (reason === 'domain') {
       if (isKlinikaAdmin || isAdmin) {
@@ -901,11 +828,8 @@ export function AppSidebar() {
       return { isDisabled: false };
     }
 
-    // Solo shortcut: only gate on license, skip all other checks
+    // Solo shortcut: skip all other checks
     if (isSolo) {
-      if (!hasActiveLicense) {
-        return { isDisabled: true, disabledContent: buildHangfelvételDisabledContent('license') };
-      }
       return { isDisabled: false };
     }
 
@@ -1040,7 +964,7 @@ export function AppSidebar() {
                       tourId={(item as any).tourId}
                       isDisabled={isDisabled}
                       disabledContent={disabledContent}
-                      onDisabledClick={isDisabled && isSolo ? handleBuySoloLicense : undefined}
+                      onDisabledClick={undefined}
                     />
                   );
                 }

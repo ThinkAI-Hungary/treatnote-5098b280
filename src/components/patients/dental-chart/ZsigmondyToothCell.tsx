@@ -17,6 +17,7 @@ interface ZsigmondyToothCellProps {
   isUpper: boolean;
   treatmentMarkers?: TreatmentMarker[];
   className?: string;
+  scale?: number;
 }
 
 // ============ ANATOMICAL TOOTH SVG PATHS ============
@@ -326,7 +327,7 @@ function AbsentToothPlaceholder() {
 // ============ MAIN COMPONENT ============
 
 export function ZsigmondyToothCell({
-  toothNumber, tooth, isSelected, isMultiSelected = false, onClick, isUpper, treatmentMarkers, className,
+  toothNumber, tooth, isSelected, isMultiSelected = false, onClick, isUpper, treatmentMarkers, className, scale,
 }: ZsigmondyToothCellProps) {
   const numericTooth = parseInt(toothNumber, 10);
   const colors = getToothColors(tooth?.status);
@@ -349,6 +350,8 @@ export function ZsigmondyToothCell({
 
   if (tooth?.notes) tooltipLines.push(`Megjegyzés: ${tooth.notes}`);
 
+  const cellWidth = 30 * (scale || 1);
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -356,9 +359,7 @@ export function ZsigmondyToothCell({
           onClick={onClick}
           className={`
             zsigmondy-tooth-cell relative flex flex-col items-center gap-0 p-0.5 rounded-lg
-            transition-all duration-200 ease-out
             focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1
-            w-full
             ${isSelected && !isMultiSelected
               ? 'bg-primary/15 ring-2 ring-primary shadow-lg shadow-primary/20 scale-110 z-10'
               : isMultiSelected
@@ -367,6 +368,7 @@ export function ZsigmondyToothCell({
             ${colors.isAbsent ? 'opacity-40' : ''}
             ${className || ''}
           `}
+          style={{ width: `${cellWidth}px`, flex: '0 0 auto', transition: 'width 0.5s cubic-bezier(0.33, 1, 0.68, 1), height 0.5s cubic-bezier(0.33, 1, 0.68, 1), background-color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s' }}
           aria-label={`Fog ${toothNumber}`}
         >
           {/* Tooth number label */}
@@ -377,7 +379,7 @@ export function ZsigmondyToothCell({
           </span>
 
           {/* SVG tooth or absent placeholder */}
-          <div className={`relative w-full ${isUpper ? 'order-first' : 'order-last'}`}>
+          <div className={`relative w-full ${isUpper ? 'order-first' : 'order-last'}`} style={{ transform: 'scaleY(-1)' }}>
             {colors.isAbsent ? (
               <AbsentToothPlaceholder />
             ) : (
@@ -387,7 +389,7 @@ export function ZsigmondyToothCell({
                 toothNumber={numericTooth}
                 isUpper={isUpper}
                 surfacesStr={tooth?.surfaces}
-                size={40}
+                size={30 * (scale || 1)}
               />
             )}
             {/* Treatment plan marker (from dental status) */}
