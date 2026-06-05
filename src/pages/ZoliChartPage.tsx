@@ -11,6 +11,7 @@ import { ToothModel } from '@/components/patients/dental-chart/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
 import { LogOut, Loader2, Trash2 } from 'lucide-react';
+import { DENTAL_STATUSES } from '@/components/patients/dental-chart/constants';
 
 export default function ZoliChartPage() {
   const { user, loading, signOut } = useAuth();
@@ -215,27 +216,84 @@ export default function ZoliChartPage() {
           overrideData={extractedToothData}
         />
 
-        {/* Transcript + Structured text display */}
-        {jobTexts && (jobTexts.raw || jobTexts.cleaned) && (
-          <div className="w-full space-y-3 pt-2 border-t border-gray-200">
+        {/* Transcript + Extracted data display */}
+        {jobTexts && (jobTexts.raw || jobTexts.cleaned || extractedToothData) && (
+          <div className="w-full space-y-4 pt-3 border-t border-gray-200">
+
+            {/* Raw transcript */}
             {jobTexts.raw && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
                   Eredeti szöveg (hangfelismerés)
                 </div>
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 border border-gray-200 rounded p-3 leading-relaxed">
+                <div className="text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg p-3 leading-relaxed whitespace-pre-wrap">
                   {jobTexts.raw}
-                </pre>
+                </div>
               </div>
             )}
-            {jobTexts.cleaned && (
+
+            {/* Extracted tooth data table */}
+            {extractedToothData && Object.keys(extractedToothData).length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  Strukturált kimenet
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  Beírt adatok
                 </div>
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 border border-gray-200 rounded p-3 leading-relaxed">
-                  {jobTexts.cleaned}
-                </pre>
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fog</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Állapot</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Felszín</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mob.</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tasak</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Íny</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kop.érz.</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Periap.</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Megjegyzés</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(extractedToothData)
+                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                        .map(([toothNum, tooth], idx) => {
+                          const statusLabel = tooth.status
+                            ? tooth.status.split(',').map(s => {
+                                const def = DENTAL_STATUSES.find(d => d.id === s.trim());
+                                return def ? def.name : s.trim();
+                              }).join(', ')
+                            : '—';
+                          return (
+                            <tr key={toothNum} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                              <td className="px-3 py-2 font-bold text-gray-900">{toothNum}</td>
+                              <td className="px-3 py-2 text-gray-700">{statusLabel}</td>
+                              <td className="px-3 py-2 text-gray-600 font-mono">{tooth.surfaces || '—'}</td>
+                              <td className="px-3 py-2 text-gray-600">{tooth.mobility != null ? tooth.mobility : '—'}</td>
+                              <td className="px-3 py-2 text-gray-600">{tooth.pocket_depth_mm != null ? `${tooth.pocket_depth_mm} mm` : '—'}</td>
+                              <td className="px-3 py-2 text-gray-600">{tooth.gum_recession_mm != null ? `${tooth.gum_recession_mm} mm` : '—'}</td>
+                              <td className="px-3 py-2">
+                                {tooth.percussion_sensitive === true
+                                  ? <span className="text-red-600 font-semibold">Igen</span>
+                                  : tooth.percussion_sensitive === false
+                                    ? <span className="text-gray-400">Nem</span>
+                                    : '—'}
+                              </td>
+                              <td className="px-3 py-2">
+                                {tooth.periapical_lesion === true
+                                  ? <span className="text-red-600 font-semibold">Igen</span>
+                                  : tooth.periapical_lesion === false
+                                    ? <span className="text-gray-400">Nem</span>
+                                    : '—'}
+                              </td>
+                              <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={tooth.notes || ''}>
+                                {tooth.notes || '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
