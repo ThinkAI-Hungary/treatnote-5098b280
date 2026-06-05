@@ -24,6 +24,7 @@ export default function ZoliChartPage() {
 
   // Voice-extracted tooth data — shown in the chart without saving to DB
   const [extractedToothData, setExtractedToothData] = useState<Record<string, ToothModel> | undefined>(undefined);
+  const [jobTexts, setJobTexts] = useState<{ raw: string; cleaned: string } | null>(null);
 
   // Load patient details
   useEffect(() => {
@@ -63,6 +64,11 @@ export default function ZoliChartPage() {
         }
       });
       setExtractedToothData(newData);
+      // Show raw and cleaned text
+      setJobTexts({
+        raw: (job as any).raw_audio_text || '',
+        cleaned: (job as any).claude_cleaned_text || '',
+      });
     }
   }, [unifiedJobs, selectedNativeJobId, patientId]);
 
@@ -77,6 +83,7 @@ export default function ZoliChartPage() {
         .eq('patient_id', patientId);
       if (error) throw error;
       setExtractedToothData({});
+      setJobTexts(null);
       toast.success("Összes státusz adat sikeresen törölve!");
     } catch (err: any) {
       console.error("Error resetting patient status:", err);
@@ -191,6 +198,7 @@ export default function ZoliChartPage() {
             onJobStarted={(jobId) => {
               setSelectedNativeJobId(jobId);
               setExtractedToothData({}); // clear chart for fresh start on each new recording
+              setJobTexts(null);
               unifiedRefetch();
             }}
             onJobComplete={(jobId) => {
@@ -206,6 +214,32 @@ export default function ZoliChartPage() {
           readonly={false}
           overrideData={extractedToothData}
         />
+
+        {/* Transcript + Structured text display */}
+        {jobTexts && (jobTexts.raw || jobTexts.cleaned) && (
+          <div className="w-full space-y-3 pt-2 border-t border-gray-200">
+            {jobTexts.raw && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  Eredeti szöveg (hangfelismerés)
+                </div>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 border border-gray-200 rounded p-3 leading-relaxed">
+                  {jobTexts.raw}
+                </pre>
+              </div>
+            )}
+            {jobTexts.cleaned && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  Strukturált kimenet
+                </div>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans bg-gray-50 border border-gray-200 rounded p-3 leading-relaxed">
+                  {jobTexts.cleaned}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
