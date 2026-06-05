@@ -309,15 +309,8 @@ const Auth = () => {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div>
                 <Label htmlFor="password">Jelszó</Label>
-                <button 
-                  type="button" 
-                  onClick={() => setView('forgot_password')}
-                  className="text-xs text-muted-foreground hover:text-primary hover:underline transition-colors"
-                >
-                  Elfelejtett jelszó?
-                </button>
               </div>
               <Input
                 id="password"
@@ -332,12 +325,7 @@ const Auth = () => {
               {isLoading ? 'Betöltés...' : 'Bejelentkezés'}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Még nincs fiókja?{' '}
-            <Link to="/solo-register" className="text-primary hover:underline font-medium">
-              Regisztráció
-            </Link>
-          </p>
+
         </CardContent>
       </Card>
     </div>
