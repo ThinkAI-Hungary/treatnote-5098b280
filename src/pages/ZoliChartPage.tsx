@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DentalChart } from '@/components/patients/dental-chart';
 import { NativeVoiceRecordingPanel } from '@/components/voice/NativeVoiceRecordingPanel';
+import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
+import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
 import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import { isVoxisJob } from '@/lib/voxisUtils';
 import { useProfile } from '@/hooks/useProfile';
@@ -11,7 +13,6 @@ import { ToothModel } from '@/components/patients/dental-chart/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
 import { LogOut, Loader2, Trash2 } from 'lucide-react';
-import { DENTAL_STATUSES } from '@/components/patients/dental-chart/constants';
 
 export default function ZoliChartPage() {
   const { user, loading, signOut } = useAuth();
@@ -22,10 +23,10 @@ export default function ZoliChartPage() {
   const [patient, setPatient] = useState<any>(null);
   const [patientLoading, setPatientLoading] = useState(true);
   const [selectedNativeJobId, setSelectedNativeJobId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Voice-extracted tooth data — shown in the chart without saving to DB
   const [extractedToothData, setExtractedToothData] = useState<Record<string, ToothModel> | undefined>(undefined);
-  const [jobTexts, setJobTexts] = useState<{ raw: string; cleaned: string } | null>(null);
 
   // Load patient details
   useEffect(() => {
@@ -47,8 +48,9 @@ export default function ZoliChartPage() {
     }
   }, [user]);
 
-  // Load voice history to detect job completion
+  // Load voice history to detect job completion and drive VerdiktDisplay
   const { jobs: unifiedJobs, refetch: unifiedRefetch } = useUnifiedVoiceHistory(patientId);
+  const selectedJob = selectedNativeJobId ? unifiedJobs.find(j => j.id === selectedNativeJobId) : null;
 
   // When selected job completes with a voxis result, auto-apply extracted data to chart (no DB save)
   useEffect(() => {
@@ -65,11 +67,6 @@ export default function ZoliChartPage() {
         }
       });
       setExtractedToothData(newData);
-      // Show raw and cleaned text
-      setJobTexts({
-        raw: (job as any).raw_audio_text || '',
-        cleaned: (job as any).claude_cleaned_text || '',
-      });
     }
   }, [unifiedJobs, selectedNativeJobId, patientId]);
 
@@ -84,7 +81,8 @@ export default function ZoliChartPage() {
         .eq('patient_id', patientId);
       if (error) throw error;
       setExtractedToothData({});
-      setJobTexts(null);
+      setSelectedNativeJobId(null);
+      setRefreshTrigger(prev => prev + 1);
       toast.success("Összes státusz adat sikeresen törölve!");
     } catch (err: any) {
       console.error("Error resetting patient status:", err);
@@ -199,14 +197,61 @@ export default function ZoliChartPage() {
             onJobStarted={(jobId) => {
               setSelectedNativeJobId(jobId);
               setExtractedToothData({}); // clear chart for fresh start on each new recording
-              setJobTexts(null);
               unifiedRefetch();
             }}
             onJobComplete={(jobId) => {
               setSelectedNativeJobId(jobId);
               unifiedRefetch();
+              setRefreshTrigger(prev => prev + 1);
             }}
           />
+        )}
+
+        {/* VerdiktDisplay — same as normal status page */}
+        {(selectedJob || selectedNativeJobId) && (
+          <div key={selectedJob?.id || selectedNativeJobId} className="w-full animate-in fade-in slide-in-from-top-6 duration-300">
+            <VerdiktDisplay
+              isLoading={selectedJob ? selectedJob.status === 'processing' : true}
+              responseData={selectedJob?.result}
+              isSelectedJob={true}
+              selectedJobMode={selectedJob?.mode}
+              selectedJobPaciensId={patientId}
+              selectedJobError={selectedJob?.error}
+              selectedJobStatus={selectedJob?.status || 'processing'}
+              jobId={selectedJob?.id || selectedNativeJobId!}
+              progressPercent={(selectedJob as any)?.progress_percent || 0}
+              progressMessage={(selectedJob as any)?.progress_message || "Inicializálás..."}
+              rawAudioText={(selectedJob as any)?.raw_audio_text}
+              claudeCleanedText={(selectedJob as any)?.claude_cleaned_text}
+              onComplaintSubmitted={unifiedRefetch}
+              onClose={() => setSelectedNativeJobId(null)}
+              onViewInChart={() => setSelectedNativeJobId(null)}
+              onTerminate={async () => {
+                const targetJob = selectedJob || { id: selectedNativeJobId, isFlexi: false };
+                const table = (targetJob as any).isFlexi ? 'voice_jobs' : 'native_voice_jobs';
+                const { error } = await supabase
+                  .from(table)
+                  .update({ status: 'error', error: 'Megszakítva felhasználó által', completed_at: new Date().toISOString() })
+                  .eq('id', (targetJob as any).id);
+                if (error) {
+                  toast.error('Hiba a megszakítás során!');
+                } else {
+                  toast.info('Feldolgozás megszakítva.');
+                  unifiedRefetch();
+                }
+              }}
+              voxisReviewPanelNode={
+                isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result ? (
+                  <VoxisReviewPanel
+                    jobId={selectedJob.id}
+                    patientId={patientId}
+                    resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
+                    isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
+                  />
+                ) : undefined
+              }
+            />
+          </div>
         )}
 
         <DentalChart
@@ -215,89 +260,6 @@ export default function ZoliChartPage() {
           readonly={false}
           overrideData={extractedToothData}
         />
-
-        {/* Transcript + Extracted data display */}
-        {jobTexts && (jobTexts.raw || jobTexts.cleaned || extractedToothData) && (
-          <div className="w-full space-y-4 pt-3 border-t border-gray-200">
-
-            {/* Raw transcript */}
-            {jobTexts.raw && (
-              <div>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Eredeti szöveg (hangfelismerés)
-                </div>
-                <div className="text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg p-3 leading-relaxed whitespace-pre-wrap">
-                  {jobTexts.raw}
-                </div>
-              </div>
-            )}
-
-            {/* Extracted tooth data table */}
-            {extractedToothData && Object.keys(extractedToothData).length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Beírt adatok
-                </div>
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fog</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Állapot</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Felszín</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mob.</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tasak</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Íny</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kop.érz.</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Periap.</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Megjegyzés</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(extractedToothData)
-                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                        .map(([toothNum, tooth], idx) => {
-                          const statusLabel = tooth.status
-                            ? tooth.status.split(',').map(s => {
-                                const def = DENTAL_STATUSES.find(d => d.id === s.trim());
-                                return def ? def.name : s.trim();
-                              }).join(', ')
-                            : '—';
-                          return (
-                            <tr key={toothNum} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                              <td className="px-3 py-2 font-bold text-gray-900">{toothNum}</td>
-                              <td className="px-3 py-2 text-gray-700">{statusLabel}</td>
-                              <td className="px-3 py-2 text-gray-600 font-mono">{tooth.surfaces || '—'}</td>
-                              <td className="px-3 py-2 text-gray-600">{tooth.mobility != null ? tooth.mobility : '—'}</td>
-                              <td className="px-3 py-2 text-gray-600">{tooth.pocket_depth_mm != null ? `${tooth.pocket_depth_mm} mm` : '—'}</td>
-                              <td className="px-3 py-2 text-gray-600">{tooth.gum_recession_mm != null ? `${tooth.gum_recession_mm} mm` : '—'}</td>
-                              <td className="px-3 py-2">
-                                {tooth.percussion_sensitive === true
-                                  ? <span className="text-red-600 font-semibold">Igen</span>
-                                  : tooth.percussion_sensitive === false
-                                    ? <span className="text-gray-400">Nem</span>
-                                    : '—'}
-                              </td>
-                              <td className="px-3 py-2">
-                                {tooth.periapical_lesion === true
-                                  ? <span className="text-red-600 font-semibold">Igen</span>
-                                  : tooth.periapical_lesion === false
-                                    ? <span className="text-gray-400">Nem</span>
-                                    : '—'}
-                              </td>
-                              <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={tooth.notes || ''}>
-                                {tooth.notes || '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
