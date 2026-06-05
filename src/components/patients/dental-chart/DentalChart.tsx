@@ -39,6 +39,12 @@ const ALL_TEETH = [...UPPER_ALL, ...LOWER_ALL];
 const dentalChartCache: Record<string, Record<string, ToothModel>> = {};
 const treatmentMarkersCache: Record<string, Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>>> = {};
 
+export function clearDentalChartCache(patientId: string) {
+  delete dentalChartCache[patientId];
+  delete treatmentMarkersCache[patientId];
+}
+
+
 export function DentalChart({
   patientId,
   toothScale = 1.5,

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { DentalChart } from '@/components/patients/dental-chart';
+import { DentalChart, clearDentalChartCache } from '@/components/patients/dental-chart';
 import { NativeVoiceRecordingPanel } from '@/components/voice/NativeVoiceRecordingPanel';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
@@ -90,21 +90,58 @@ export default function ZoliChartPage() {
     fetchPatient();
   }, [user, authLoading]);
 
-  // Function to delete status data for this patient
+  // Function to delete status data for ZOLIPROBA
   const handleResetChartData = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      // 1. Delete dental_chart_history first to avoid foreign key violations with dental_chart
+      const { error: historyError } = await supabase
+        .from('dental_chart_history')
+        .delete()
+        .eq('patient_id', ZOLI_PATIENT_ID);
+      if (historyError) throw historyError;
+
+      // 2. Delete dental_chart
+      const { error: chartError } = await supabase
         .from('dental_chart')
         .delete()
         .eq('patient_id', ZOLI_PATIENT_ID);
+      if (chartError) throw chartError;
 
-      if (error) throw error;
+      // 3. Delete patient_treatment_plans (which cascades and deletes patient_treatment_plan_items)
+      const { error: planError } = await supabase
+        .from('patient_treatment_plans')
+        .delete()
+        .eq('patient_id', ZOLI_PATIENT_ID);
+      if (planError) throw planError;
 
-      toast.success('Minden fogstátusz adat sikeresen törölve a páciens alól!');
+      // 4. Delete native_voice_jobs
+      const { error: nativeVoiceError } = await supabase
+        .from('native_voice_jobs')
+        .delete()
+        .eq('treatnote_patient_id', ZOLI_PATIENT_ID);
+      if (nativeVoiceError) throw nativeVoiceError;
+
+      // 5. Delete voice_jobs
+      const { error: voiceError } = await supabase
+        .from('voice_jobs')
+        .delete()
+        .eq('treatnote_patient_id', ZOLI_PATIENT_ID);
+      if (voiceError) throw voiceError;
+
+      // 6. Clear local storage selected tooth selection
+      localStorage.removeItem(`selected_tooth_${ZOLI_PATIENT_ID}`);
+
+      // 7. Clear client-side dental chart cache
+      clearDentalChartCache(ZOLI_PATIENT_ID);
+
+      // 8. Refetch unified voice history
+      await unifiedRefetch();
+
+      toast.success('Minden státusz- és felvételi adat sikeresen törölve a páciens alól!');
       setRefreshTrigger(prev => prev + 1); // Triggers re-mount and re-fetch in DentalChart
     } catch (err: any) {
-      console.error('Error deleting dental chart data:', err);
+      console.error('Error resetting patient status data:', err);
       toast.error('Hiba történt a törlés során: ' + err.message);
     } finally {
       setIsDeleting(false);
