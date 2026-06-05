@@ -1,8 +1,36 @@
 import time
 import requests
+import os
 from playwright.sync_api import sync_playwright
 
-CAP_KEY = 'CAP-3ECFF88172E05B522EEA9F0F6176C8D85C96C21C8388B1666F00EA4CF7E47C71'
+# Load credentials dynamically from env or .env/.env.local file
+def _load_env_secret(key_name: str, default_val: str = "") -> str:
+    val = os.environ.get(key_name, "")
+    if val:
+        return val.strip()
+    
+    # Fallback to local files
+    for filename in [".env.local", ".env"]:
+        for path in [
+            filename,
+            os.path.join(os.path.dirname(__file__), filename),
+            os.path.join(os.path.dirname(__file__), "..", filename)
+        ]:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line or line.startswith("#"):
+                                continue
+                            parts = line.split("=", 1)
+                            if len(parts) == 2 and parts[0].strip() == key_name:
+                                return parts[1].strip().strip('"').strip("'")
+                except Exception:
+                    pass
+    return default_val
+
+CAP_KEY = _load_env_secret("CAPSOLVER_API_KEY")
 
 def solve_captcha(website_url, website_key):
     """Ask Capsolver to solve the reCAPTCHA token in the background"""

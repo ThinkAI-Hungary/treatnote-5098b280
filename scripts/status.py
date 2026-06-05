@@ -18,8 +18,35 @@ NAV_TIMEOUT_MS   = 30000
 TOOTH_PAUSE      = 1.0     # pause between teeth (increased)
 BUTTON_PAUSE     = 0.2     # pause between button clicks (increased)
 
+# Load credentials dynamically from env or .env/.env.local file
+def _load_env_secret(key_name: str, default_val: str = "") -> str:
+    val = os.environ.get(key_name, "")
+    if val:
+        return val.strip()
+    
+    # Fallback to local files
+    for filename in [".env.local", ".env"]:
+        for path in [
+            filename,
+            os.path.join(os.path.dirname(__file__), filename),
+            os.path.join(os.path.dirname(__file__), "..", filename)
+        ]:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line or line.startswith("#"):
+                                continue
+                            parts = line.split("=", 1)
+                            if len(parts) == 2 and parts[0].strip() == key_name:
+                                return parts[1].strip().strip('"').strip("'")
+                except Exception:
+                    pass
+    return default_val
+
 SUPABASE_URL = "https://bpjzgapmoyhtgryglcke.supabase.co"
-SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwanpnYXBtb3lodGdyeWdsY2tlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMxMDI4MywiZXhwIjoyMDgwODg2MjgzfQ.uBOJ6vZyjryFNULweNFecPdY4ZjslVjsl3HCXiSOI2E"
+SUPABASE_SERVICE_KEY = _load_env_secret("SUPABASE_SERVICE_KEY")
 
 _log_buffer: list = []
 _screenshot_buffer: list = []
