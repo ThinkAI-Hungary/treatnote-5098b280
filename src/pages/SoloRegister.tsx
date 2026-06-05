@@ -106,7 +106,7 @@ export default function SoloRegister() {
     // ── Email confirmation pending screen ───────────────────────────────────
     if (registered) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950">
+            <div className="min-h-screen flex items-center justify-center p-4 bg-white">
                 {!isDark && <StarField />}
                 <Card className="relative z-10 w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm text-center">
                     <CardHeader>
@@ -138,7 +138,7 @@ export default function SoloRegister() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-white">
             {!isDark && <StarField />}
             <Card className="relative z-10 w-full max-w-md border-primary/20 bg-card/95 backdrop-blur-sm">
                 <CardHeader className="text-center">

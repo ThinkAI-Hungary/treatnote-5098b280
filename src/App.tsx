@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
@@ -41,6 +41,7 @@ const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const Register = lazy(() => import("./pages/Register"));
 const SoloRegister = lazy(() => import("./pages/SoloRegister"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ZoliChartPage = lazy(() => import("./pages/ZoliChartPage"));
 
 import { GlobalAuthMessage } from "@/components/GlobalAuthMessage";
 
@@ -94,11 +95,12 @@ const App = () => {
               <GlobalAuthMessage />
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<Navigate to="/auth" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/accept-invitation" element={<Suspense fallback={<PageLoader />}><AcceptInvitation /></Suspense>} />
                 <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
                 <Route path="/solo-register" element={<Suspense fallback={<PageLoader />}><SoloRegister /></Suspense>} />
+                <Route path="/zoli-chart" element={<Suspense fallback={<PageLoader />}><ZoliChartPage /></Suspense>} />
 
 
                 {/* Authenticated routes - Layout wrapper stays mounted */}

@@ -591,28 +591,17 @@ export function DentalChart({
   // The visual difference when crossAtSide is handled by CSS transform: scale()
   // which doesn't change layout, so the white background never jumps.
   const baseScale = toothScale * 1.95;
-  const visualScaleRatio = crossAtSide ? (crossFitRatio ?? 0.64) : 1;
+  const visualScaleRatio = crossFitRatio ?? (crossAtSide ? 0.64 : 1);
 
-  // Dynamically calculate cross fit ratio when crossAtSide,
-  // so the cross fills the right column with 10px margins.
+  // Dynamically calculate cross fit ratio so the cross fits the container
   useEffect(() => {
-    if (!crossAtSide) {
-      setCrossFitRatio(null);
-      return;
-    }
-
     const rightCol = rightColumnRef.current;
-    const crossEl = crossInnerRef.current;
-    if (!rightCol || !crossEl) return;
-
-    // Measure the cross's natural width (at baseScale, no transform)
-    if (crossNaturalWidth.current === 0) {
-      crossNaturalWidth.current = crossEl.scrollWidth;
-    }
+    if (!rightCol) return;
 
     const calcFit = () => {
-      const availableWidth = rightCol.clientWidth - 20; // 10px padding each side
-      const naturalW = crossNaturalWidth.current || crossEl.scrollWidth;
+      const padding = crossAtSide ? 20 : 32; // 10px padding each side when side, 16px when centered
+      const availableWidth = rightCol.clientWidth - padding;
+      const naturalW = 16 * 30 * baseScale + 80;
       if (naturalW > 0) {
         const ratio = Math.min(1, availableWidth / naturalW);
         setCrossFitRatio(ratio);
@@ -777,7 +766,7 @@ export function DentalChart({
         )}
       </div>
 
-      <CardContent className="w-full p-4 flex flex-col-reverse xl:flex-row gap-6 justify-start xl:items-stretch">
+      <CardContent className="w-full p-4 flex flex-col xl:flex-row gap-6 justify-start xl:items-stretch">
         {/* Left Side: Editors */}
         <AnimatePresence mode="wait" onExitComplete={() => {
           // Panel is now fully removed from DOM. Column is 100% wide.
@@ -889,10 +878,10 @@ export function DentalChart({
         {/* Right Side: The chart itself */}
         <div
           ref={rightColumnRef}
-          className={`w-full xl:flex-1 min-w-0 flex flex-col gap-4 ${isSingleEditorOpen ? "xl:min-h-[880px]" : ""}`}
+          className={`w-full xl:flex-1 min-w-0 flex flex-col gap-4 overflow-hidden ${isSingleEditorOpen ? "xl:min-h-[880px]" : ""}`}
         >
           {readonly ? (
-            <div className="w-full min-w-max pt-4 pb-2 flex justify-center overflow-x-auto">
+            <div className="w-full pt-4 pb-2 flex justify-center overflow-x-auto">
               <ZsigmondyCross
                 data={data}
                 onToothClick={handleToothClick}
@@ -907,7 +896,7 @@ export function DentalChart({
           ) : (
             <div
               ref={crossWrapperRef}
-              className="w-full min-w-max flex justify-center overflow-visible"
+              className="w-full flex justify-center overflow-visible"
               style={{
                 paddingTop: crossAtSide ? '10px' : '16px',
                 paddingBottom: crossAtSide ? '10px' : '8px',
@@ -918,14 +907,15 @@ export function DentalChart({
               <div
                 ref={crossInnerRef}
                 style={{
-                  marginLeft: crossAtSide ? '0' : 'auto',
-                  marginRight: crossAtSide ? undefined : 'auto',
+                  width: `${(16 * 30 * baseScale + 80) * visualScaleRatio}px`,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
                 }}
               >
                 <div
                   style={{
                     transform: `scale(${visualScaleRatio})`,
-                    transformOrigin: crossAtSide ? 'left center' : 'center center',
+                    transformOrigin: 'left center',
                     transition: 'transform 0.55s cubic-bezier(0.33, 1, 0.68, 1)',
                   }}
                 >
