@@ -282,6 +282,7 @@ export default function ZoliChartPage() {
                   unifiedRefetch();
                 }
               }}
+            />
           </div>
         )}
       </div>
