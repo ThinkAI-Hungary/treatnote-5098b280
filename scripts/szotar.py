@@ -17,35 +17,8 @@ UJ_AJANLAT_URL_SABLON: str = "https://{aldomain}.flexi-dent.hu/hu/complex-offers
 TUTORIAL_MODAL_BEZAR_GOMB_SELECTOR: str = "#offerTutorialModal_FinishButton"
 COFF_PATIENT_HIDDEN_SELECTOR: str = "#coff_patient"
 
-# Load credentials dynamically from env or .env/.env.local file
-def _load_env_secret(key_name: str, default_val: str = "") -> str:
-    val = os.environ.get(key_name, "")
-    if val:
-        return val.strip()
-    
-    # Fallback to local files
-    for filename in [".env.local", ".env"]:
-        for path in [
-            filename,
-            os.path.join(os.path.dirname(__file__), filename),
-            os.path.join(os.path.dirname(__file__), "..", filename)
-        ]:
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        for line in f:
-                            line = line.strip()
-                            if not line or line.startswith("#"):
-                                continue
-                            parts = line.split("=", 1)
-                            if len(parts) == 2 and parts[0].strip() == key_name:
-                                return parts[1].strip().strip('"').strip("'")
-                except Exception:
-                    pass
-    return default_val
-
 SUPABASE_URL: str = "https://bpjzgapmoyhtgryglcke.supabase.co"
-SUPABASE_SERVICE_KEY: str = _load_env_secret("SUPABASE_SERVICE_KEY")
+SUPABASE_SERVICE_KEY: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwanpnYXBtb3lodGdyeWdsY2tlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMxMDI4MywiZXhwIjoyMDgwODg2MjgzfQ.uBOJ6vZyjryFNULweNFecPdY4ZjslVjsl3HCXiSOI2E"
 SUPABASE_TABLA: str = "szotar_kezelesek"
 SUPABASE_ON_CONFLICT: str = "telephely_id,category,name"
 SUPABASE_SERVICE_ROLE_ENV: str = "SUPABASE_SERVICE_ROLE_KEY"

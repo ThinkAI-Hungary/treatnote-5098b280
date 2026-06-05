@@ -10,23 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Loader2, History, Stethoscope, User, Search, Maximize2, X, Hash, Filter, Share2 } from 'lucide-react';
-import { format, differenceInMinutes, isToday, isYesterday, isThisWeek, isThisYear } from 'date-fns';
+import { format, differenceInMinutes, isToday, isYesterday } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import statusesData from '@/components/patients/dental-chart/statuses.json';
 import { WheelDatePicker } from '@/components/ui/wheel-date-picker';
 
-/** Apple-stílusú relatív dátumformázás magyarul */
+/** Mindig pontos dátumot mutat (soha nem napnevet) */
 function formatSmartDate(dateStr: string): string {
   const d = new Date(dateStr);
   const time = format(d, 'HH:mm');
   if (isToday(d))     return `Ma, ${time}`;
   if (isYesterday(d)) return `Tegnap, ${time}`;
-  if (isThisWeek(d, { weekStartsOn: 1 }))
-    return `${format(d, 'EEEE', { locale: hu })}, ${time}`;
-  if (isThisYear(d))
-    return `${format(d, 'MMM d.', { locale: hu })} ${time}`;
-  return `${format(d, 'yyyy. MMM d.', { locale: hu })} ${time}`;
+  return `${format(d, 'yyyy. MM. dd.', { locale: hu })} ${time}`;
 }
 
 const statusNames: Record<string, string> = {};
@@ -153,7 +149,7 @@ export function PatientHistoryPanel({
             userId: h.changed_by,
             profile: profilesMap[h.changed_by],
             summary,
-            icon: <span className="text-blue-500 font-bold font-serif">W</span>,
+            icon: <span className="text-lg leading-none">🦷</span>,
             rawData: h,
             relatedTeeth: [String(h.tooth_number)]
           };
@@ -317,6 +313,53 @@ export function PatientHistoryPanel({
     const fields = renderStatusChangeFields(record);
     if (!fields && record.operation !== 'INSERT') return <p className="text-sm text-muted-foreground italic">Nincs érdemi változás.</p>;
     return fields;
+  };
+
+  /** Render ALL raw data fields for a record in a readable table */
+  const renderAllRawData = (rawData: any) => {
+    if (!rawData) return null;
+    const skipKeys = new Set(['id', 'patient_id', 'created_at']);
+    const fieldLabels: Record<string, string> = {
+      tooth_number: 'Fogszám',
+      operation: 'Művelet',
+      changed_by: 'Módosító',
+      changed_at: 'Módosítva',
+      old_state: 'Régi állapot',
+      new_state: 'Új állapot',
+      status: 'Státusz',
+      surfaces: 'Felszínek',
+      notes: 'Megjegyzés',
+      mobility: 'Mozgathatóság',
+      pocket_depth_mm: 'Tasakmélység (mm)',
+      gum_recession_mm: 'Ínyvisszahúzódás (mm)',
+      percussion_sensitive: 'Kopogtatás-érzékeny',
+      periapical_lesion: 'Periapikális elváltozás',
+      dental_signs: 'Jelek (BNO)',
+      prosthetic_type: 'Protetika',
+      implant_system: 'Implantátum',
+    };
+
+    const entries = Object.entries(rawData).filter(([k]) => !skipKeys.has(k));
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="mt-4 border rounded-lg overflow-hidden">
+        <div className="bg-muted/30 px-4 py-2 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider">Teljes rekord adatok</div>
+        <div className="divide-y">
+          {entries.map(([key, val]) => (
+            <div key={key} className="grid grid-cols-[180px_1fr] text-sm">
+              <div className="px-4 py-2 font-medium text-muted-foreground bg-muted/10 border-r">{fieldLabels[key] || key}</div>
+              <div className="px-4 py-2 break-all">
+                {val === null || val === undefined ? <span className="text-muted-foreground italic">—</span>
+                  : typeof val === 'object' ? <pre className="text-xs font-mono whitespace-pre-wrap bg-muted/20 p-2 rounded">{JSON.stringify(val, null, 2)}</pre>
+                  : typeof val === 'boolean' ? (val ? 'Igen' : 'Nem')
+                  : String(val)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const renderTreatmentPlanDetails = (plan: any, filterToothStr?: string) => {
@@ -642,7 +685,12 @@ export function PatientHistoryPanel({
             </span>
           </div>
           <div className="flex-1 overflow-y-auto p-6">
-            {selectedEvent?.type === 'status_change' && renderStatusChanges(selectedEvent.rawData)}
+            {selectedEvent?.type === 'status_change' && (
+              <>
+                {renderStatusChanges(selectedEvent.rawData)}
+                {renderAllRawData(selectedEvent.rawData)}
+              </>
+            )}
             {selectedEvent?.type === 'batched_status_change' && (
               <div className="space-y-6">
                 {selectedEvent.batchedEvents?.map((ev: any, i: number) => (
@@ -654,6 +702,7 @@ export function PatientHistoryPanel({
                       </span>
                     </div>
                     {renderStatusChanges(ev)}
+                    {renderAllRawData(ev)}
                     {i < (selectedEvent.batchedEvents?.length || 0) - 1 && <div className="h-px bg-border my-4" />}
                   </div>
                 ))}

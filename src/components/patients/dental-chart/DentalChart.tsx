@@ -39,12 +39,6 @@ const ALL_TEETH = [...UPPER_ALL, ...LOWER_ALL];
 const dentalChartCache: Record<string, Record<string, ToothModel>> = {};
 const treatmentMarkersCache: Record<string, Record<string, Array<{ visual_icon: string; visual_color: string; status: string }>>> = {};
 
-export function clearDentalChartCache(patientId: string) {
-  delete dentalChartCache[patientId];
-  delete treatmentMarkersCache[patientId];
-}
-
-
 export function DentalChart({
   patientId,
   toothScale = 1.5,
@@ -141,14 +135,13 @@ export function DentalChart({
   const crossInnerRef = useRef<HTMLDivElement>(null);
   const crossPrevRect = useRef<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const crossNaturalWidth = useRef<number>(0);
-  const [crossFitRatio, setCrossFitRatio] = useState<number | null>(null);
+  const [dynamicScale, setDynamicScale] = useState<number>(toothScale * 1.95);
   const [rightHeight, setRightHeight] = useState<number | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1280);
+      setIsDesktop(window.innerWidth >= 1400);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -593,33 +586,41 @@ export function DentalChart({
     // Closing is handled by onExitComplete below
   }, [isEditorOpen]);
 
-  // Always render at the LARGER scale — layout footprint stays constant.
-  // The visual difference when crossAtSide is handled by CSS transform: scale()
-  // which doesn't change layout, so the white background never jumps.
-  const baseScale = toothScale * 1.95;
-  const visualScaleRatio = crossFitRatio ?? (crossAtSide ? 0.64 : 1);
+  // The ideal (maximum) scale at which the teeth render.
+  const idealScale = toothScale * 1.95;
 
-  // Dynamically calculate cross fit ratio so the cross fits the container
+  // Dynamically compute scale from container width.
+  // Each tooth = 30px * scale, 16 teeth + gaps + divider + padding
+  // Total width ≈ 480*scale + 88. Solving: scale = (availableWidth - 88) / 480
   useEffect(() => {
     const rightCol = rightColumnRef.current;
     if (!rightCol) return;
 
-    const calcFit = () => {
-      const padding = crossAtSide ? 20 : 32; // 10px padding each side when side, 16px when centered
-      const availableWidth = rightCol.clientWidth - padding;
-      const naturalW = 16 * 30 * baseScale + 80;
-      if (naturalW > 0) {
-        const ratio = Math.min(1, availableWidth / naturalW);
-        setCrossFitRatio(ratio);
-      }
+    const calcScale = () => {
+      const margin = crossAtSide ? 20 : 0;
+      const availableWidth = rightCol.clientWidth - margin;
+      if (availableWidth <= 0) return;
+
+      const maxScale = (availableWidth - 88) / 480;
+      const newScale = Math.max(0.5, Math.min(idealScale, maxScale));
+      setDynamicScale(newScale);
     };
 
-    calcFit();
+    // Double-rAF ensures the browser has completed layout (including
+    // animated panels entering/exiting) before we measure the container.
+    let raf1: number, raf2: number;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(calcScale);
+    });
 
-    const observer = new ResizeObserver(calcFit);
+    const observer = new ResizeObserver(calcScale);
     observer.observe(rightCol);
-    return () => observer.disconnect();
-  }, [crossAtSide, baseScale]);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [loading, crossAtSide, isEditorOpen, idealScale]); // re-run when editor opens/closes
 
   // FLIP animation: after crossAtSide changes, measure position delta
   // and animate from old position to new.
@@ -655,18 +656,10 @@ export function DentalChart({
     const card = cardRef.current;
     if (!card) return;
 
-    let isFirstRun = true;
-
     const updateHeight = () => {
-      if (isFirstRun) {
-        // On first run, just record the natural height without setting explicit height.
-        // This ensures the cross is visible on initial render.
-        isFirstRun = false;
-        return;
-      }
-
       const currentHeight = card.offsetHeight;
       // Temporarily remove explicit height to measure natural content height
+      const prevTransition = card.style.transition;
       card.style.transition = 'none';
       card.style.height = 'auto';
       const naturalHeight = card.offsetHeight;
@@ -683,11 +676,23 @@ export function DentalChart({
       }
     };
 
+    // Initial measurement with a delay to let AnimatePresence animations settle
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(updateHeight);
+    });
+
+    // Also re-measure after a longer delay (for framer-motion animations ~350ms)
+    const timeout = setTimeout(updateHeight, 400);
+
     const observer = new ResizeObserver(updateHeight);
     Array.from(card.children).forEach(child => observer.observe(child));
 
-    return () => observer.disconnect();
-  }, [isEditorOpen, crossAtSide]);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+    };
+  }, [isEditorOpen, crossAtSide, selectedTooth]);
 
   if (loading) {
     return (
@@ -772,7 +777,7 @@ export function DentalChart({
         )}
       </div>
 
-      <CardContent className="w-full p-4 flex flex-col xl:flex-row gap-6 justify-start xl:items-stretch">
+      <CardContent className={`w-full p-4 flex gap-6 justify-start ${isDesktop ? 'flex-row items-stretch' : 'flex-col-reverse'}`}>
         {/* Left Side: Editors */}
         <AnimatePresence mode="wait" onExitComplete={() => {
           // Panel is now fully removed from DOM. Column is 100% wide.
@@ -792,7 +797,7 @@ export function DentalChart({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -15 }}
               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full xl:w-[38%] xl:shrink-0 flex flex-col gap-4 xl:min-h-0"
+              className={`flex flex-col gap-4 ${isDesktop ? 'w-[38%] shrink-0 min-h-0' : 'w-full'}`}
               style={isDesktop && rightHeight ? { height: `${rightHeight}px` } : undefined}
             >
               {/* Multi-select bulk toolbar */}
@@ -884,10 +889,10 @@ export function DentalChart({
         {/* Right Side: The chart itself */}
         <div
           ref={rightColumnRef}
-          className={`w-full xl:flex-1 min-w-0 flex flex-col gap-4 overflow-hidden ${isSingleEditorOpen ? "xl:min-h-[880px]" : ""}`}
+          className={`w-full min-w-0 flex flex-col gap-4 ${isDesktop ? 'flex-1' : ''} ${isSingleEditorOpen && isDesktop ? 'min-h-[880px]' : ''}`}
         >
           {readonly ? (
-            <div className="w-full pt-4 pb-2 flex justify-center overflow-x-auto">
+            <div className="w-full pt-4 pb-2 flex justify-center">
               <ZsigmondyCross
                 data={data}
                 onToothClick={handleToothClick}
@@ -896,13 +901,13 @@ export function DentalChart({
                 selectedTeeth={selectedTeeth}
                 treatmentMarkersMap={treatmentMarkersMap}
                 bridgePreview={bridgePreview}
-                scale={baseScale}
+                scale={dynamicScale}
               />
             </div>
           ) : (
             <div
               ref={crossWrapperRef}
-              className="w-full flex justify-center overflow-visible"
+              className="w-full flex justify-center"
               style={{
                 paddingTop: crossAtSide ? '10px' : '16px',
                 paddingBottom: crossAtSide ? '10px' : '8px',
@@ -913,36 +918,27 @@ export function DentalChart({
               <div
                 ref={crossInnerRef}
                 style={{
-                  width: `${(16 * 30 * baseScale + 80) * visualScaleRatio}px`,
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
+                  marginLeft: crossAtSide ? '0' : 'auto',
+                  marginRight: crossAtSide ? undefined : 'auto',
                 }}
               >
-                <div
-                  style={{
-                    transform: `scale(${visualScaleRatio})`,
-                    transformOrigin: 'left center',
-                    transition: 'transform 0.55s cubic-bezier(0.33, 1, 0.68, 1)',
-                  }}
-                >
-                  <ZsigmondyCross
-                    data={data}
-                    onToothClick={handleToothClick}
-                    showBabyTeeth={showBabyTeeth}
-                    selectedTooth={selectedTooth}
-                    selectedTeeth={selectedTeeth}
-                    treatmentMarkersMap={treatmentMarkersMap}
-                    bridgePreview={bridgePreview}
-                    scale={baseScale}
-                  />
-                </div>
+                <ZsigmondyCross
+                  data={data}
+                  onToothClick={handleToothClick}
+                  showBabyTeeth={showBabyTeeth}
+                  selectedTooth={selectedTooth}
+                  selectedTeeth={selectedTeeth}
+                  treatmentMarkersMap={treatmentMarkersMap}
+                  bridgePreview={bridgePreview}
+                  scale={dynamicScale}
+                />
               </div>
             </div>
           )}
 
           {/* Spacer to push clinical detail cards to the bottom on desktop */}
-          {isSingleEditorOpen && (
-            <div className="hidden xl:block xl:flex-1" />
+          {isSingleEditorOpen && isDesktop && (
+            <div className="flex-1" />
           )}
 
           {/* Parodontológia & Protetika panels statically below the teeth when selected */}

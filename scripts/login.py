@@ -29,36 +29,9 @@ USER_AGENT = (
 SIKER_MARKER: str = "header-btn-patients"
 HIBA_MARKER: str = "xalert-in"
 
-# Load credentials dynamically from env or .env/.env.local file
-def _load_env_secret(key_name: str, default_val: str = "") -> str:
-    val = os.environ.get(key_name, "")
-    if val:
-        return val.strip()
-    
-    # Fallback to local files
-    for filename in [".env.local", ".env"]:
-        for path in [
-            filename,
-            os.path.join(os.path.dirname(__file__), filename),
-            os.path.join(os.path.dirname(__file__), "..", filename)
-        ]:
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        for line in f:
-                            line = line.strip()
-                            if not line or line.startswith("#"):
-                                continue
-                            parts = line.split("=", 1)
-                            if len(parts) == 2 and parts[0].strip() == key_name:
-                                return parts[1].strip().strip('"').strip("'")
-                except Exception:
-                    pass
-    return default_val
-
 # Supabase config for error reporting (hardcoded)
 SUPABASE_URL = "https://bpjzgapmoyhtgryglcke.supabase.co"
-SUPABASE_SERVICE_KEY = _load_env_secret("SUPABASE_SERVICE_KEY")
+SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwanpnYXBtb3lodGdyeWdsY2tlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMxMDI4MywiZXhwIjoyMDgwODg2MjgzfQ.uBOJ6vZyjryFNULweNFecPdY4ZjslVjsl3HCXiSOI2E"
 
 # In-memory log buffer
 _log_buffer: list = []
@@ -435,7 +408,7 @@ def bejelentkezes_playwright(aldomain: str, email: str, jelszo: str) -> int:
                 import time as _ct
                 import requests as _req
 
-                CAP_KEY = _load_env_secret("CAPSOLVER_API_KEY")
+                CAP_KEY = "CAP-3ECFF88172E05B522EEA9F0F6176C8D85C96C21C8388B1666F00EA4CF7E47C71"
 
                 # Extract sitekey from .g-recaptcha or iframe src
                 _sitekey = None

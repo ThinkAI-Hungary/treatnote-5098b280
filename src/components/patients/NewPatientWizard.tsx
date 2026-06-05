@@ -135,7 +135,7 @@ export function NewPatientWizard({
       for (let i = currentStep; i < stepId; i++) {
         const valid = await validateStep(i);
         if (!valid) {
-           toast.error('Olyan oldalra nem ugorhat, amíg a jelenlegi adatok hiányosak!');
+           toast.error('Még nem mehet át arra az oldalra, mivel ez az oldal hiányos!');
            setCurrentStep(i); // keep them at the first invalid step
            return;
         }

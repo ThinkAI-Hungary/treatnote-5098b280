@@ -228,8 +228,13 @@ export function SelectedTeethHistoryPanel({ patientId, selectedTeeth }: Selected
   const getStatusName = (statusCode: string) => {
     if (!statusCode || statusCode === 'healthy') return 'Egészséges';
     const flatStatuses = Object.values(DENTAL_STATUSES).flat();
-    const statusDef = flatStatuses.find(s => s.id === statusCode);
-    return statusDef ? statusDef.name : statusCode;
+    // Handle comma-separated status codes
+    const codes = statusCode.split(',').map(c => c.trim()).filter(Boolean);
+    const names = codes.map(code => {
+      const statusDef = flatStatuses.find(s => s.id === code);
+      return statusDef ? statusDef.name : code;
+    });
+    return names.join(', ');
   };
 
   const formatValue = (val: any) => {

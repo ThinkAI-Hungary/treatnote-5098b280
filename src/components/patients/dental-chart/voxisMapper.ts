@@ -9,7 +9,7 @@ const surfaceMap: Record<string, string> = {
   'Gingivo_B.': 'C',
   'Buccalis': 'V',
   'Pal_Ling': 'L',
-  'Incizalis': 'O', 
+  'Incizalis': 'O',
   // Caries or fillings might combine these, but in Voxis flexident schema they are separate items like Tomes.Esztetikus.Occlusalis_-_Tomes_Esztetikus
 };
 
@@ -23,7 +23,7 @@ const statusMap: Record<string, string> = {
   'Altalanos.Lecsiszolt_fog': 'resected_tooth',
   'Altalanos.Rezekalt_fog': 'resected_tooth_ok',
   'Altalanos.Csontpotlas': 'bone_graft',
-  
+
   // Implants
   'Implant.Altalanos.Nobel': 'implant_nobel',
   'Implant.Altalanos.AlphaBio': 'implant_alphabio',
@@ -45,13 +45,13 @@ const statusMap: Record<string, string> = {
   'Caries.Altalanos.Gyok._caries_3_-_Caries': 'tooth_root_caries',
   'Caries.Altalanos.Gyok._caries_2_-_Caries': 'tooth_root_caries',
   'Caries.Altalanos.Gyok._caries_1_-_Caries': 'tooth_root_caries',
-  
+
   // Fillings
   'Tomes_Amalgam': 'filling_amalgam',
   'Tomes_Esztetikus': 'filling_esthetic',
   'Tomes_Ideiglenes': 'filling_temporary',
   'Tomes_Arany': 'filling_gold',
-  
+
   // Core Buildup
   'Csonkfelepites_Cetac-Molar': 'corebuildup_cetacmolar',
   'Csonkfelepites_Vitremer': 'corebuildup_vitremer',
@@ -97,7 +97,7 @@ const statusMap: Record<string, string> = {
   'Kompozit_-_Betetek_Inlay': 'inlay_composite',
   'Keramia_-_Betetek_Inlay': 'inlay_ceramic',
   'Fembetet_-_Betetek_Inlay': 'metal_insert_inlay',
-  
+
   'Arany_-_Betetek_Onlay': 'onlay_gold',
   'Kompozit_-_Betetek_Onlay': 'onlay_composite',
   'Keramia_-_Betetek_Onlay': 'onlay_ceramic',
@@ -115,13 +115,13 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
   for (const tNum of toothNumbers) {
     const aiData = resultJson[tNum];
     if (!aiData) continue;
-    
+
     // Ensure active_properties is an array even if missing from JSON payload
     aiData.active_properties = Array.isArray(aiData.active_properties) ? aiData.active_properties : [];
-    
+
     // We start with existing tooth model if available to preserve id
     const existing = existingData[tNum] || { tooth_number: tNum, patient_id: patientId };
-    
+
     // Determine the new statuses and surfaces
     const newStatuses: string[] = [];
     const surfaceSet = new Set<string>();
@@ -130,7 +130,7 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
       // 1. Direct matched (e.g. Altalanos.Foghiany)
       if (statusMap[propPath]) {
         if (!newStatuses.includes(statusMap[propPath])) {
-           newStatuses.push(statusMap[propPath]);
+          newStatuses.push(statusMap[propPath]);
         }
         continue;
       }
@@ -138,41 +138,41 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
       // 2. Parsed based on suffix and surface keyword
       const suffixMatch = Object.keys(statusMap).find(k => propPath.endsWith(k));
       if (suffixMatch) {
-         if (!newStatuses.includes(statusMap[suffixMatch])) {
-            newStatuses.push(statusMap[suffixMatch]);
-         }
+        if (!newStatuses.includes(statusMap[suffixMatch])) {
+          newStatuses.push(statusMap[suffixMatch]);
+        }
       }
 
       // Try to extract surface from the path (e.g. Tomes.Esztetikus.Occlusalis...)
       for (const [key, val] of Object.entries(surfaceMap)) {
-         if (propPath.includes(key)) {
-           surfaceSet.add(val);
-         }
+        if (propPath.includes(key)) {
+          surfaceSet.add(val);
+        }
       }
     }
 
     // Special fallback for generic groups if we didn't find specific ones but have caries group
     if (aiData.active_properties.some((p: string) => p.includes('Caries.Altalanos'))) {
-       if (!newStatuses.includes('caries')) newStatuses.push('caries');
+      if (!newStatuses.includes('caries')) newStatuses.push('caries');
     }
 
     // Generic fallback based on Megjegyzes if still healthy (no specific status found)
     if (newStatuses.length === 0 && aiData.Megjegyzes) {
       const lowerNotes = String(aiData.Megjegyzes).toLowerCase();
       if (lowerNotes.includes('hídtag') || lowerNotes.includes('hidtag')) {
-         newStatuses.push('bridge_metal_ceramic'); 
+        newStatuses.push('bridge_metal_ceramic');
       } else if (lowerNotes.includes('híd') || lowerNotes.includes('hid')) {
-         newStatuses.push('bridge_metal_ceramic');
+        newStatuses.push('bridge_metal_ceramic');
       } else if (lowerNotes.includes('korona')) {
-         newStatuses.push('crown_metal_ceramic');
+        newStatuses.push('crown_metal_ceramic');
       } else if (lowerNotes.includes('hiányzik') || lowerNotes.includes('hiány') || lowerNotes.includes('foghiany')) {
-         newStatuses.push('missing');
+        newStatuses.push('missing');
       } else if (lowerNotes.includes('gyökértömött') || lowerNotes.includes('gyokertomott') || lowerNotes.includes('gyökérkezel')) {
-         newStatuses.push('rootcanal_final');
+        newStatuses.push('rootcanal_final');
       } else if (lowerNotes.includes('implant')) {
-         newStatuses.push('implant_foreign');
+        newStatuses.push('implant_foreign');
       } else if (lowerNotes.includes('tömés') || lowerNotes.includes('tomes')) {
-         newStatuses.push('filling_esthetic');
+        newStatuses.push('filling_esthetic');
       }
     }
 
@@ -183,28 +183,28 @@ export function mapVoxisToModels(resultJson: any, existingData: Record<string, T
     // Wait, let's keep all statuses that the AI detected. We just join them.
 
     let finalStatus = newStatuses.length > 0 ? newStatuses.join(',') : (existing.status || 'healthy');
-    
+
     // Sort surfaces M O D V L C and separate by comma for legacy array compatibility
-    const finalSurfaces = Array.from(surfaceSet).sort((a,b) => "MODVLC".indexOf(a) - "MODVLC".indexOf(b)).join(',') || null;
+    const finalSurfaces = Array.from(surfaceSet).sort((a, b) => "MODVLC".indexOf(a) - "MODVLC".indexOf(b)).join(',') || null;
 
     // Clean up notes (remove trailing spaces, backticks, fix visual bug)
     let cleanNotes = String(aiData.Megjegyzes || '').replace(/[`]/g, '').trim();
 
     // Check if we have specific clinical data
-    const hasSpecificData = aiData.Mobilitas !== undefined || 
-                            aiData.Tasakmelyseg_mm !== undefined || 
-                            aiData.Inyvisszahuzodas_mm !== undefined ||
-                            aiData.Kopogtatas_erzekeny !== undefined ||
-                            aiData.Erzekenyseg !== undefined ||
-                            aiData.Periapikalis_elvaltozas !== undefined ||
-                            aiData.Egyeb_jelek !== undefined ||
-                            aiData.Protetika_tipusa !== undefined ||
-                            aiData.Anyag !== undefined ||
-                            aiData.Fogszin !== undefined ||
-                            aiData.Implant_rendszer !== undefined ||
-                            aiData.Implant_atmero_mm !== undefined ||
-                            aiData.Implant_hossz_mm !== undefined ||
-                            aiData.Beultetes_datuma !== undefined;
+    const hasSpecificData = aiData.Mobilitas !== undefined ||
+      aiData.Tasakmelyseg_mm !== undefined ||
+      aiData.Inyvisszahuzodas_mm !== undefined ||
+      aiData.Kopogtatas_erzekeny !== undefined ||
+      aiData.Erzekenyseg !== undefined ||
+      aiData.Periapikalis_elvaltozas !== undefined ||
+      aiData.Egyeb_jelek !== undefined ||
+      aiData.Protetika_tipusa !== undefined ||
+      aiData.Anyag !== undefined ||
+      aiData.Fogszin !== undefined ||
+      aiData.Implant_rendszer !== undefined ||
+      aiData.Implant_atmero_mm !== undefined ||
+      aiData.Implant_hossz_mm !== undefined ||
+      aiData.Beultetes_datuma !== undefined;
 
     // Only update if there's actually a change (or a note or specific data)
     if (aiData.active_properties.length > 0 || cleanNotes || hasSpecificData) {

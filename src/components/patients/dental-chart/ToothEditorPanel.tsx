@@ -48,7 +48,7 @@ function SurfaceDiagram({
           className="cursor-pointer transition-colors"
           onClick={() => onToggle('C')}
         />
-        <text x={5} y={8} fontSize="4" fill="hsl(var(--muted-foreground))">C</text>
+        <text x={25} y={3} textAnchor="middle" dominantBaseline="middle" fontSize="6" fontWeight="bold" fill={activeSurfaces.includes('C') ? baseColor : 'hsl(var(--muted-foreground))'}>C</text>
         
         {/* Inner 5 zones */}
         {(['V', 'D', 'L', 'M', 'O'] as SurfaceId[]).map(s => {

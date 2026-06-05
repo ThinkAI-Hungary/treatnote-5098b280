@@ -134,6 +134,8 @@ function LayoutHeader() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-snug break-words">{entry.message}</p>
                       <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(entry.timestamp).toLocaleDateString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                        {' '}
                         {new Date(entry.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </p>
                     </div>
@@ -237,8 +239,12 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const { fetchRequests } = useShareRequestsStore();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/');
+    if (!loading) {
+      if (!user) {
+        navigate('/');
+      } else if (user.email === 'zoli@thinkai.hu') {
+        navigate('/zoli-chart');
+      }
     }
   }, [user, loading, navigate]);
 

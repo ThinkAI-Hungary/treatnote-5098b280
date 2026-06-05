@@ -188,39 +188,55 @@ export async function extractActions(
   supabase?: SupabaseClient,
   enableThinking?: boolean
 ): Promise<ExtractResult> {
-  const openaiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiKey) {
-    throw new Error('OPENAI_API_KEY required');
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY required');
   }
 
   // Get clinic-customized templates (applies overrides)
   const templates = await getClinicTemplates(telephelyId, supabase);
   const systemPrompt = buildSystemPrompt(templates);
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const body: Record<string, unknown> = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: enableThinking ? 16000 : 4096,
+    messages: [{ role: 'user', content: `Kérlek elemezd a következő diktálást és bontsd le atomi akciókra:\n\n"${transcript}"` }],
+  };
+
+  // Extended thinking mode: system prompt goes into user message, thinking budget set
+  if (enableThinking) {
+    body.thinking = { type: 'enabled', budget_tokens: 10000 };
+    // With thinking enabled, system prompt must be in the messages
+    body.messages = [
+      { role: 'user', content: `${systemPrompt}\n\n---\n\nKérlek elemezd a következő diktálást és bontsd le atomi akciókra:\n\n"${transcript}"` },
+    ];
+  } else {
+    body.system = systemPrompt;
+  }
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiKey}`,
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Kérlek elemezd a következő diktálást és bontsd le atomi akciókra:\n\n"${transcript}"` }
-      ],
-      temperature: 0.1,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const errBody = await res.text();
-    throw new Error(`OpenAI error: ${res.status} ${errBody}`);
+    throw new Error(`Claude error: ${res.status} ${errBody}`);
   }
 
-  const data = await res.json() as Record<string, any>;
-  const rawText = data.choices?.[0]?.message?.content || '';
-  const tokensUsed = data.usage?.total_tokens || 0;
+  const data = await res.json() as Record<string, unknown>;
+  const content = data.content as Array<{ type: string; text?: string }>;
+  
+  // With thinking, content has both 'thinking' and 'text' blocks — find the text block
+  const textBlock = content?.find(c => c.type === 'text');
+  const rawText = textBlock?.text || '';
+  const usage = data.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+  const tokensUsed = (usage?.input_tokens || 0) + (usage?.output_tokens || 0);
 
   // Parse JSON from response
   const jsonMatch = rawText.match(/\[[\s\S]*\]/);

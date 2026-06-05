@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Loader2, AlertCircle, Book, FileText, Search, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Loader2, AlertCircle, Book, FileText, Search, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -147,69 +147,16 @@ function formatTreatnotePayload(payload: any): string {
 }
 
 // ── Panel 1: Original Text ──
-function OriginalTextPanel({ rawText, cleanedText, text }: { rawText?: string; cleanedText?: string; text?: string }) {
-  const displayRaw = rawText || text;
-  
-  if (!displayRaw && !cleanedText) {
-    return (
-      <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-sparkle-blue" />
-          Eredeti szöveg
-        </h4>
-        <p className="text-sm text-muted-foreground">Nincs elérhető szöveg.</p>
-      </div>
-    );
-  }
-
-  if (displayRaw && !cleanedText) {
-    return (
-      <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-sparkle-blue" />
-          Nyers átirat (STT)
-        </h4>
-        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
-          {displayRaw}
-        </p>
-      </div>
-    );
-  }
-
-  if (!displayRaw && cleanedText) {
-    return (
-      <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm bg-gradient-to-br from-primary/5 to-accent/5">
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-sparkle-blue" />
-          AI-tisztított szöveg
-        </h4>
-        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
-          {cleanedText}
-        </p>
-      </div>
-    );
-  }
-
+function OriginalTextPanel({ text }: { text?: string }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="relative rounded-xl border border-border/40 bg-card p-5 shadow-sm">
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          Nyers átirat (STT)
-        </h4>
-        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
-          {displayRaw}
-        </p>
-      </div>
-      <div className="relative rounded-xl border border-border/40 bg-card p-5 shadow-sm bg-gradient-to-br from-primary/5 to-accent/5">
-        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-sparkle-blue" />
-          AI-tisztított szöveg
-        </h4>
-        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
-          {cleanedText}
-        </p>
-      </div>
+    <div className="relative rounded-xl border border-border/40 bg-card p-5 h-full shadow-sm">
+      <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+        <FileText className="h-4 w-4 text-sparkle-blue" />
+        Eredeti szöveg
+      </h4>
+      <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap font-mono" style={{ wordBreak: 'break-word' }}>
+        {text || 'N/A'}
+      </p>
     </div>
   );
 }
@@ -716,10 +663,7 @@ export function VerdiktDisplay({
             </TabsList>
             <div className="mt-4">
               <TabsContent value="original">
-                <OriginalTextPanel 
-                  rawText={rawAudioText || payload?.kezdeti_szoveg || payload?.transcriber?.text} 
-                  cleanedText={claudeCleanedText || payload?.tisztitott_szoveg} 
-                />
+                <OriginalTextPanel text={rawAudioText || claudeCleanedText || payload?.kezdeti_szoveg || payload?.tisztitott_szoveg || payload?.transcriber?.text} />
               </TabsContent>
               {effectiveJobMode !== 'voxis' && effectiveJobMode !== 'ambulans' && (
                 <TabsContent value="semantic">

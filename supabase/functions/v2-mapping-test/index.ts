@@ -72,41 +72,20 @@ ${candidateList}
 
 Válaszolj KIZÁRÓLAG JSON-ban: {"pick": <sorszám vagy 0>, "confidence": <0.0-1.0>}`;
 
-  const modelsToTry = [
-    'claude-3-5-sonnet-20241022',
-    'claude-3-5-sonnet-20240620',
-    'claude-3-5-haiku-20241022',
-    'claude-3-haiku-20240307',
-    'claude-3-opus-20240229'
-  ];
-
-  let lastError = "";
-  for (const model of modelsToTry) {
-    console.log(`Trying model: ${model}`);
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
-    });
-
-    if (res.ok) {
-      console.log(`SUCCESS with model: ${model}`);
-      const data = await res.json() as any;
-      const text = data.content?.[0]?.text || '';
-      try {
-        const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}');
-        if (parsed.pick === 0 || parsed.pick > candidates.length) return null;
-        const chosen = candidates[parsed.pick - 1];
-        return { bestId: chosen.id, bestName: chosen.name, confidence: parsed.confidence || 0.5 };
-      } catch { return null; }
-    } else {
-      const errText = await res.text();
-      console.warn(`Failed model ${model}: ${res.status} ${errText}`);
-      lastError += ` [${model}: ${res.status} ${errText}]`;
-    }
-  }
-
-  throw new Error(`All Anthropic models failed. Accumulated: ${lastError}`);
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json() as any;
+  const text = data.content?.[0]?.text || '';
+  try {
+    const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    if (parsed.pick === 0 || parsed.pick > candidates.length) return null;
+    const chosen = candidates[parsed.pick - 1];
+    return { bestId: chosen.id, bestName: chosen.name, confidence: parsed.confidence || 0.5 };
+  } catch { return null; }
 }
 
 // ── LLM refinement (improved: batch 5 actions, with categories) ──
@@ -146,7 +125,7 @@ Válaszolj KIZÁRÓLAG valid JSON tömbbel:
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
   });
   if (!res.ok) return new Map();
   const data = await res.json() as any;

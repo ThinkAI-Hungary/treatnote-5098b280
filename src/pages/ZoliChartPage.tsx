@@ -1,218 +1,175 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/hooks/useProfile';
-import { supabase } from '@/integrations/supabase/client';
-import { DentalChart, clearDentalChartCache } from '@/components/patients/dental-chart';
+import { DentalChart } from '@/components/patients/dental-chart';
 import { NativeVoiceRecordingPanel } from '@/components/voice/NativeVoiceRecordingPanel';
 import { VerdiktDisplay } from '@/components/voice/VerdiktDisplay';
 import { VoxisReviewPanel } from '@/components/patients/dental-chart/VoxisReviewPanel';
 import { useUnifiedVoiceHistory } from '@/hooks/useUnifiedVoiceHistory';
 import { isVoxisJob } from '@/lib/voxisUtils';
+import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/useToastMessage';
-import { Button } from '@/components/ui/button';
-import { Loader2, Trash2, LogOut } from 'lucide-react';
-
-const ZOLI_PATIENT_ID = '79f33d18-42a6-45ac-8f0d-d6dfacd0fca9';
+import { LogOut, Loader2, Trash2 } from 'lucide-react';
 
 export default function ZoliChartPage() {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { profile } = useProfile();
+
+  const patientId = "79f33d18-42a6-45ac-8f0d-d6dfacd0fca9";
   const [patient, setPatient] = useState<any>(null);
-  const [loadingPatient, setLoadingPatient] = useState(true);
-  const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+  const [patientLoading, setPatientLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedNativeJobId, setSelectedNativeJobId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Hook for unified voice history
-  const { jobs: unifiedJobs, refetch: unifiedRefetch } = useUnifiedVoiceHistory(ZOLI_PATIENT_ID);
+  // Load patient details
+  useEffect(() => {
+    if (user && user.email === 'zoli@thinkai.hu') {
+      setPatientLoading(true);
+      supabase.from('patient_alap_adatok')
+        .select('*')
+        .eq('id', patientId)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error loading ZOLIPROBA patient:', error);
+            toast.error('Hiba a ZOLIPROBA paciens betöltésekor');
+          } else {
+            setPatient(data);
+          }
+          setPatientLoading(false);
+        });
+    }
+  }, [user]);
 
+  // Load voice history
+  const { jobs: unifiedJobs, refetch: unifiedRefetch } = useUnifiedVoiceHistory(patientId);
   const selectedJob = selectedNativeJobId ? unifiedJobs.find(j => j.id === selectedNativeJobId) : null;
 
-  // Memoize parsed result to prevent infinite render loops in child components
-  const selectedJobResultJson = useMemo(() => {
-    if (!selectedJob?.result) return null;
-    return typeof selectedJob.result === 'string'
-      ? JSON.parse(selectedJob.result)
-      : selectedJob.result;
-  }, [selectedJob?.id, selectedJob?.result]);
-
-  // Protect the page - redirect to login if not logged in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
+  const handleResetStatus = async () => {
+    if (!window.confirm("Biztosan törölni szeretné a ZOLIPROBA paciens összes státusz adatát? Ezt nem lehet visszavonni!")) {
+      return;
     }
-  }, [user, authLoading, navigate]);
-
-  // Load the specific ZOLIPROBA patient data
-  useEffect(() => {
-    if (authLoading || !user) return;
-
-    const fetchPatient = async () => {
-      setLoadingPatient(true);
-      try {
-        let { data, error } = await supabase
-          .from('patient_alap_adatok')
-          .select('*')
-          .eq('id', ZOLI_PATIENT_ID)
-          .single();
-
-        if (error) {
-          // If the patient record doesn't exist by ID, try finding any record named ZOLIPROBA
-          console.warn('Patient by ID not found, trying query by name...');
-          const { data: nameQuery, error: nameError } = await supabase
-            .from('patient_alap_adatok')
-            .select('*')
-            .eq('vezeteknev', 'ZOLIPROBA')
-            .limit(1);
-
-          if (!nameError && nameQuery && nameQuery.length > 0) {
-            setPatient(nameQuery[0]);
-          } else {
-            // Fallback mock patient representation so the page still loads the component
-            setPatient({
-              id: ZOLI_PATIENT_ID,
-              vezeteknev: 'ZOLIPROBA',
-              keresztnev: 'Páciens',
-              flexident_id: null
-            });
-          }
-        } else {
-          setPatient(data);
-        }
-      } catch (err) {
-        console.error('Error fetching patient:', err);
-        // Silent fallback so UI never crashes
-        setPatient({
-          id: ZOLI_PATIENT_ID,
-          vezeteknev: 'ZOLIPROBA',
-          keresztnev: 'Páciens'
-        });
-      } finally {
-        setLoadingPatient(false);
-      }
-    };
-
-    fetchPatient();
-  }, [user, authLoading]);
-
-  // Function to delete status data for ZOLIPROBA
-  const handleResetChartData = async () => {
-    setIsDeleting(true);
+    
     try {
-      // 1. Delete dental_chart_history first to avoid foreign key violations with dental_chart
-      const { error: historyError } = await supabase
-        .from('dental_chart_history')
-        .delete()
-        .eq('patient_id', ZOLI_PATIENT_ID);
-      if (historyError) throw historyError;
-
-      // 2. Delete dental_chart
-      const { error: chartError } = await supabase
+      const { error } = await supabase
         .from('dental_chart')
         .delete()
-        .eq('patient_id', ZOLI_PATIENT_ID);
-      if (chartError) throw chartError;
-
-      // 3. Delete patient_treatment_plans (which cascades and deletes patient_treatment_plan_items)
-      const { error: planError } = await supabase
-        .from('patient_treatment_plans')
-        .delete()
-        .eq('patient_id', ZOLI_PATIENT_ID);
-      if (planError) throw planError;
-
-      // 4. Delete native_voice_jobs
-      const { error: nativeVoiceError } = await supabase
-        .from('native_voice_jobs')
-        .delete()
-        .eq('treatnote_patient_id', ZOLI_PATIENT_ID);
-      if (nativeVoiceError) throw nativeVoiceError;
-
-      // 5. Delete voice_jobs
-      const { error: voiceError } = await supabase
-        .from('voice_jobs')
-        .delete()
-        .eq('treatnote_patient_id', ZOLI_PATIENT_ID);
-      if (voiceError) throw voiceError;
-
-      // 6. Clear local storage selected tooth selection
-      localStorage.removeItem(`selected_tooth_${ZOLI_PATIENT_ID}`);
-
-      // 7. Clear client-side dental chart cache
-      clearDentalChartCache(ZOLI_PATIENT_ID);
-
-      // 8. Refetch unified voice history
-      await unifiedRefetch();
-
-      // 9. Reset selected job ID to clear the Verdikt panel and avoid dangling state loading loop
-      setSelectedNativeJobId(null);
-
-      toast.success('Minden státusz- és felvételi adat sikeresen törölve a páciens alól!');
-      setRefreshTrigger(prev => prev + 1); // Triggers re-mount and re-fetch in DentalChart
+        .eq('patient_id', patientId);
+        
+      if (error) throw error;
+      
+      toast.success("Összes státusz adat sikeresen törölve!");
+      setRefreshTrigger(prev => prev + 1);
     } catch (err: any) {
-      console.error('Error resetting patient status data:', err);
-      toast.error('Hiba történt a törlés során: ' + err.message);
-    } finally {
-      setIsDeleting(false);
+      console.error("Error resetting patient status:", err);
+      toast.error("Hiba a törlés során: " + (err.message || "Ismeretlen hiba"));
     }
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/auth');
-  };
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (user.email !== 'zoli@thinkai.hu') {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, loading, navigate]);
 
-  if (authLoading || profileLoading || loadingPatient) {
+  if (loading || !user || user.email !== 'zoli@thinkai.hu' || patientLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Betöltés...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-900" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-foreground p-6 sm:p-10 space-y-6">
-      {/* Header controls bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Zoli-Chart</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Páciens: <span className="font-semibold text-foreground">{patient?.vezeteknev} {patient?.keresztnev}</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button 
-            variant="destructive" 
-            onClick={handleResetChartData} 
-            disabled={isDeleting}
-            className="h-10 px-4 font-semibold shadow-sm flex items-center gap-2"
+    <div className="min-h-screen w-full bg-white p-6 text-black flex flex-col items-center zoli-chart-page">
+      <style>{`
+        /* Strip card borders, shadows, backgrounds */
+        .zoli-chart-page .rounded-xl,
+        .zoli-chart-page .border,
+        .zoli-chart-page .border-b,
+        .zoli-chart-page .shadow-sm {
+          border: none !important;
+          box-shadow: none !important;
+          background: white !important;
+        }
+        .zoli-chart-page .bg-muted\/20,
+        .zoli-chart-page .bg-muted\/5 {
+          background: white !important;
+        }
+        /* Make sure baby teeth switcher text is readable on white */
+        .zoli-chart-page label, 
+        .zoli-chart-page span {
+          color: black !important;
+        }
+        .zoli-chart-page .text-muted-foreground {
+          color: #4b5563 !important; /* gray-600 */
+        }
+        /* Enable scrollbars inside Zoli chart page & for the main window body/html */
+        body::-webkit-scrollbar,
+        html::-webkit-scrollbar,
+        .zoli-chart-page::-webkit-scrollbar,
+        .zoli-chart-page *::-webkit-scrollbar {
+          width: 8px !important;
+          height: 8px !important;
+          display: block !important;
+        }
+        body::-webkit-scrollbar-thumb,
+        html::-webkit-scrollbar-thumb,
+        .zoli-chart-page::-webkit-scrollbar-thumb,
+        .zoli-chart-page *::-webkit-scrollbar-thumb {
+          background-color: rgba(139, 92, 246, 0.3) !important; /* purple-500 with opacity */
+          border-radius: 4px !important;
+        }
+        body::-webkit-scrollbar-track,
+        html::-webkit-scrollbar-track,
+        .zoli-chart-page::-webkit-scrollbar-track,
+        .zoli-chart-page *::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        body, html,
+        .zoli-chart-page,
+        .zoli-chart-page * {
+          scrollbar-width: thin !important;
+          scrollbar-color: rgba(139, 92, 246, 0.3) transparent !important;
+        }
+        body, html {
+          overflow: auto !important;
+        }
+      `}</style>
+
+      {/* Header bar with logout */}
+      <div className="w-full max-w-6xl flex justify-between items-center mb-4 pr-4 border-b pb-2">
+        <h1 className="text-xl font-bold">Státusz rögzítés (ZOLIPROBA)</h1>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleResetStatus}
+            className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition-colors font-medium"
           >
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            Státusz adatok törlése
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="h-10 px-4 font-semibold shadow-sm flex items-center gap-2"
+            <Trash2 className="w-3.5 h-3.5" />
+            Kartoték ürítése
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="w-3.5 h-3.5" />
             Kijelentkezés
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 max-w-6xl mx-auto">
-        {/* Compact recording bar above the dental chart */}
-        <div className="w-full">
+      <div className="w-full max-w-6xl space-y-4 bg-white">
+        {patient && (
           <NativeVoiceRecordingPanel
-            treatnotePatientId={ZOLI_PATIENT_ID}
+            treatnotePatientId={patientId}
             isFlexi={profile?.voice_recording_preference === 'flexident'}
-            flexiPatientId={patient?.flexident_id}
+            flexiPatientId={patient.flexident_id}
             forceMode="voxis"
             variant="compact"
             onJobStarted={(jobId) => {
@@ -225,18 +182,14 @@ export default function ZoliChartPage() {
               setRefreshTrigger(prev => prev + 1);
             }}
           />
-        </div>
+        )}
 
-        {/* Dental chart */}
-        <div className="w-full">
-          <DentalChart
-            patientId={ZOLI_PATIENT_ID}
-            toothScale={1.5}
-            readonly={false}
-            onSelectionChange={setSelectedTeeth}
-            key={`chart-${refreshTrigger}`}
-          />
-        </div>
+        <DentalChart 
+          patientId={patientId} 
+          toothScale={1.5} 
+          readonly={false} 
+          key={`chart-${refreshTrigger}`}
+        />
 
         {/* VerdiktDisplay below the chart */}
         {(selectedJob || selectedNativeJobId) && (
@@ -246,7 +199,7 @@ export default function ZoliChartPage() {
               responseData={selectedJob?.result}
               isSelectedJob={true}
               selectedJobMode={selectedJob?.mode}
-              selectedJobPaciensId={selectedJob?.treatnote_patient_id || ZOLI_PATIENT_ID}
+              selectedJobPaciensId={patientId}
               selectedJobError={selectedJob?.error}
               selectedJobStatus={selectedJob?.status || 'processing'}
               jobId={selectedJob?.id || selectedNativeJobId!}
@@ -258,16 +211,6 @@ export default function ZoliChartPage() {
               onComplaintSubmitted={unifiedRefetch}
               onClose={() => setSelectedNativeJobId(null)}
               onViewInChart={() => setSelectedNativeJobId(null)}
-              voxisReviewPanelNode={
-                isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result ? (
-                  <VoxisReviewPanel 
-                    jobId={selectedJob.id}
-                    patientId={ZOLI_PATIENT_ID}
-                    resultJson={selectedJobResultJson}
-                    isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
-                  />
-                ) : undefined
-              }
               onTerminate={async () => {
                 const targetJob = selectedJob || { id: selectedNativeJobId, isFlexi: false };
                 const table = targetJob.isFlexi ? 'voice_jobs' : 'native_voice_jobs';
@@ -282,6 +225,16 @@ export default function ZoliChartPage() {
                   unifiedRefetch();
                 }
               }}
+              voxisReviewPanelNode={
+                isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result ? (
+                  <VoxisReviewPanel 
+                    jobId={selectedJob.id}
+                    patientId={patientId}
+                    resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
+                    isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
+                  />
+                ) : undefined
+              }
             />
           </div>
         )}

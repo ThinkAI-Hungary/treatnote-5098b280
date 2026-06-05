@@ -26,22 +26,6 @@ export async function transcribeAudio(
   formData.append('tag_audio_events', 'false');
   formData.append('diarize', 'false');
 
-  const keyterms = [
-    "fémkerámia", "cirkon", "cirkónium", "préskerámia", "aranykerámia",
-    "híd", "hídtag", "pillér", "korona", "gyökérkezelés", "gyökértömött",
-    "extractio", "foghúzás", "lyukas", "szuvas", "szuvasodás", "tejfog",
-    "implant", "implantátum", "csontpótlás", "sinuslift", "depurálás",
-    "All-on-4", "All-on-6", "radix", "mobilitás", "tasakmélység", "ínyvisszahúzódás",
-    "kopogtatásra érzékeny", "hidegre érzékeny", "melegre érzékeny", "ráharapásra érzékeny",
-    "foghány", "barázdazárás", "csonkfelépítés", "inlay", "onlay", "overlay", "héj", "veneer",
-    "Zsigmondy", "FDI", "kvadráns",
-    "tizenegyes", "tizenkettes", "tizenhármas", "tizennégyes", "tizenötös", "tizenhatos", "tizenhetes", "tizennyolcas",
-    "huszonegyes", "huszonkettes", "huszonhármas", "huszonnégyes", "huszonötös", "huszonhatos", "huszonhetes", "huszonnyolcas",
-    "harmincegyes", "harminckettes", "harminchármas", "harmincnégyes", "harmincötös", "harminchatos", "harminchetes", "harmincnyolcas",
-    "negyvenegyes", "negyvenkettes", "negyvenhármas", "negyvennégyes", "negyvenötös", "negyvenhatos", "negyvenhetes", "negyvennyolcas"
-  ];
-  keyterms.forEach(term => formData.append('keyterms', term));
-
   const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
     method: 'POST',
     headers: {

@@ -400,9 +400,8 @@ export function ZsigmondyToothCell({
 
             {/* Treatment plan markers (from treatment plan editor) */}
             {treatmentMarkers && treatmentMarkers.length > 0 && (
-              <div className={`absolute flex gap-[1px] ${
-                isUpper ? '-bottom-1 left-1/2 -translate-x-1/2' : '-top-1 left-1/2 -translate-x-1/2'
-              }`}>
+              <div className={`absolute flex gap-[1px] ${isUpper ? '-bottom-1 left-1/2 -translate-x-1/2' : '-top-1 left-1/2 -translate-x-1/2'
+                }`}>
                 {treatmentMarkers.slice(0, 3).map((marker, i) => (
                   <div
                     key={i}

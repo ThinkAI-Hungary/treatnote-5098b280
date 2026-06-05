@@ -222,27 +222,14 @@ GYÓGYSZEREK:
 5) Megjegyzés: {.../nincs adat}`;
 
 async function callClaude(system: string, userText: string, apiKey: string): Promise<string> {
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!openaiKey) throw new Error("Missing OPENAI_API_KEY");
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${openaiKey}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userText }
-      ],
-      temperature: 0.1
-    })
+    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-5-20250929", max_tokens: 4096, system, messages: [{ role: "user", content: userText }] })
   });
-  if (!res.ok) throw new Error(`OpenAI error: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Claude error: ${await res.text()}`);
   const d = await res.json();
-  return d.choices[0].message.content;
+  return d.content[0].text;
 }
 
 async function matchDentalBno(evidenceTexts: string[], openaiKey: string, supabaseAdmin: any): Promise<any[][]> {
@@ -291,27 +278,10 @@ export async function processAmbulansInternally(
       if (!audio) throw new Error("Hiányzó hangfájl.");
       const fd = new FormData();
       fd.append("file", audio, audio.name || "audio.webm");
-      fd.append("model_id", "scribe_v2");
+      fd.append("model_id", "scribe_v1");
       fd.append("language_code", "hu");
       fd.append("diarize", "true");
       fd.append("timestamp_granularity", "word");
-
-      const keyterms = [
-        "fémkerámia", "cirkon", "cirkónium", "préskerámia", "aranykerámia",
-        "híd", "hídtag", "pillér", "korona", "gyökérkezelés", "gyökértömött",
-        "extractio", "foghúzás", "lyukas", "szuvas", "szuvasodás", "tejfog",
-        "implant", "implantátum", "csontpótlás", "sinuslift", "depurálás",
-        "All-on-4", "All-on-6", "radix", "mobilitás", "tasakmélység", "ínyvisszahúzódás",
-        "kopogtatásra érzékeny", "hidegre érzékeny", "melegre érzékeny", "ráharapásra érzékeny",
-        "foghány", "barázdazárás", "csonkfelépítés", "inlay", "onlay", "overlay", "héj", "veneer",
-        "Zsigmondy", "FDI", "kvadráns",
-        "tizenegyes", "tizenkettes", "tizenhármas", "tizennégyes", "tizenötös", "tizenhatos", "tizenhetes", "tizennyolcas",
-        "huszonegyes", "huszonkettes", "huszonhármas", "huszonnégyes", "huszonötös", "huszonhatos", "huszonhetes", "huszonnyolcas",
-        "harmincegyes", "harminckettes", "harminchármas", "harmincnégyes", "harmincötös", "harminchatos", "harminchetes", "harmincnyolcas",
-        "negyvenegyes", "negyvenkettes", "negyvenhármas", "negyvennégyes", "negyvenötös", "negyvenhatos", "negyvenhetes", "negyvennyolcas"
-      ];
-      keyterms.forEach(term => fd.append("keyterms", term));
-
       const r = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
         method: "POST", headers: { "xi-api-key": apiKeys.elevenlabs }, body: fd
       });
@@ -321,13 +291,13 @@ export async function processAmbulansInternally(
     await updateProgress(25, "Szöveggé alakítva. Adatmezők kinyerése...");
     await appendTrace("1 - ElevenLabs STT", "completed", { preview: transcript.substring(0, 100) });
 
-    // ── STEP 2: GPT-4o-mini Strukturált kinyerés ──────────────────────────
-    await appendTrace("2 - GPT-4o-mini Strukturált kinyerés", "processing");
+    // ── STEP 2: GPT-4.1 Structured Output ──────────────────────────
+    await appendTrace("2 - GPT-4.1 Strukturált kinyerés", "processing");
     const gptRes = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKeys.openai}`, "content-type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1",
         temperature: 0,
         response_format: { type: "json_schema", json_schema: { name: "AmbulansAdatlapExtraction", strict: true, schema: AMBULANS_SCHEMA } },
         messages: [
@@ -336,11 +306,11 @@ export async function processAmbulansInternally(
         ]
       })
     });
-    if (!gptRes.ok) throw new Error(`GPT-4o-mini hiba: ${await gptRes.text()}`);
+    if (!gptRes.ok) throw new Error(`GPT-4.1 hiba: ${await gptRes.text()}`);
     const gptData = await gptRes.json();
     const extracted = JSON.parse(gptData.choices[0].message.content);
     await updateProgress(45, "Adatok kinyerve. BNO kódok párosítása...");
-    await appendTrace("2 - GPT-4o-mini Strukturált kinyerés", "completed");
+    await appendTrace("2 - GPT-4.1 Strukturált kinyerés", "completed");
 
     // ── STEP 3: Dental BNO Matcher ──────────────────────────────────
     await appendTrace("3 - Fogorvosi BNO párosítás (K00-K14)", "processing");
