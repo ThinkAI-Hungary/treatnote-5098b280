@@ -247,6 +247,16 @@ export default function ZoliChartPage() {
               onComplaintSubmitted={unifiedRefetch}
               onClose={() => setSelectedNativeJobId(null)}
               onViewInChart={() => setSelectedNativeJobId(null)}
+              voxisReviewPanelNode={
+                isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result ? (
+                  <VoxisReviewPanel 
+                    jobId={selectedJob.id}
+                    patientId={ZOLI_PATIENT_ID}
+                    resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
+                    isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
+                  />
+                ) : undefined
+              }
               onTerminate={async () => {
                 const targetJob = selectedJob || { id: selectedNativeJobId, isFlexi: false };
                 const table = targetJob.isFlexi ? 'voice_jobs' : 'native_voice_jobs';
