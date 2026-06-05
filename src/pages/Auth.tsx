@@ -172,7 +172,7 @@ const Auth = () => {
   // ── Email megerősítve képernyő ─────────────────────────────────────────────
   if (view === 'email_confirmed') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-white p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
@@ -196,7 +196,7 @@ const Auth = () => {
   // ── Új jelszó megadása (Recovery Mode) ──────────────────────────────────────
   if (view === 'recovery_mode') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-white p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-sparkle-blue/10">
@@ -244,7 +244,7 @@ const Auth = () => {
   // ── Elfelejtett jelszó form ───────────────────────────────────────────────
   if (view === 'forgot_password') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 p-4">
+      <div className="flex min-h-screen items-center justify-center bg-white p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-semibold">Elfelejtett jelszó</CardTitle>
@@ -285,7 +285,7 @@ const Auth = () => {
 
   // ── Bejelentkezési form ───────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-white p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold">

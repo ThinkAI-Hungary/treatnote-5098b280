@@ -43,12 +43,14 @@ export function DentalChart({
   patientId,
   toothScale = 1.5,
   readonly = false,
-  onSelectionChange
+  onSelectionChange,
+  overrideData,
 }: {
   patientId: string;
   toothScale?: number;
   readonly?: boolean;
   onSelectionChange?: (selectedTeeth: string[]) => void;
+  overrideData?: Record<string, ToothModel>;
 }) {
   const { profile } = useProfile();
 
@@ -128,6 +130,15 @@ export function DentalChart({
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, []);
+
+  // Apply overrideData when provided (voice extraction result - displayed without saving to DB)
+  useEffect(() => {
+    if (overrideData !== undefined) {
+      setData(overrideData);
+      // Also update the cache so that if fetchChart runs after, it won't immediately overwrite
+      dentalChartCache[patientId] = overrideData;
+    }
+  }, [overrideData, patientId]);
 
   // Dynamic height tracking for Left Column
   const rightColumnRef = useRef<HTMLDivElement>(null);
