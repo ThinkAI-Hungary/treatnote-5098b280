@@ -1035,7 +1035,7 @@ export async function processVoxisInternally(jobId: string, audioBuffer: File | 
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4.1",
+        model: "gpt-4o-mini",
         messages,
         temperature: 0,
         max_tokens: maxTokens
@@ -1047,33 +1047,30 @@ export async function processVoxisInternally(jobId: string, audioBuffer: File | 
   };
 
   const callAnthropic = async (systemPrompt: string, prompt: string, apiKey: string) => {
-    if (!apiKey) throw new Error("Missing ANTHROPIC_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiKey) throw new Error("Missing OPENAI_API_KEY");
     
-    const payload = {
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: systemPrompt,
-      temperature: 0.1,
-      messages: [
-        { role: "user", content: prompt }
-      ]
-    };
-    
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
+            "Authorization": `Bearer ${openaiKey}`,
             "content-type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+            model: "gpt-4o",
+            temperature: 0.1,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: prompt }
+            ]
+        })
     });
     
     if (!response.ok) {
-        throw new Error(`Anthropic error: ${await response.text()}`);
+        throw new Error(`OpenAI error: ${await response.text()}`);
     }
     const data = await response.json();
-    return data.content[0].text;
+    return data.choices[0].message.content;
   };
 
   // OpenAI Structured Outputs with proper JSON Schema (matching n8n workflow)
@@ -1085,7 +1082,7 @@ export async function processVoxisInternally(jobId: string, audioBuffer: File | 
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4.1",
+        model: "gpt-4o-mini",
         messages,
         temperature: 0,
         response_format: {
@@ -1216,11 +1213,27 @@ export async function processVoxisInternally(jobId: string, audioBuffer: File | 
       if (!audioBuffer) throw new Error("Missing audio file for ElevenLabs and no override transcript provided.");
       const formData = new FormData();
       formData.append("file", audioBuffer, audioBuffer.name || "audio.webm");
-      formData.append("model_id", "scribe_v1");
+      formData.append("model_id", "scribe_v2");
       formData.append("language_code", "hu");
       formData.append("diarize", "true");
       formData.append("timestamp_granularity", "word");
       formData.append("audio_events", "true");
+
+      const keyterms = [
+        "fémkerámia", "cirkon", "cirkónium", "préskerámia", "aranykerámia",
+        "híd", "hídtag", "pillér", "korona", "gyökérkezelés", "gyökértömött",
+        "extractio", "foghúzás", "lyukas", "szuvas", "szuvasodás", "tejfog",
+        "implant", "implantátum", "csontpótlás", "sinuslift", "depurálás",
+        "All-on-4", "All-on-6", "radix", "mobilitás", "tasakmélység", "ínyvisszahúzódás",
+        "kopogtatásra érzékeny", "hidegre érzékeny", "melegre érzékeny", "ráharapásra érzékeny",
+        "foghány", "barázdazárás", "csonkfelépítés", "inlay", "onlay", "overlay", "héj", "veneer",
+        "Zsigmondy", "FDI", "kvadráns",
+        "tizenegyes", "tizenkettes", "tizenhármas", "tizennégyes", "tizenötös", "tizenhatos", "tizenhetes", "tizennyolcas",
+        "huszonegyes", "huszonkettes", "huszonhármas", "huszonnégyes", "huszonötös", "huszonhatos", "huszonhetes", "huszonnyolcas",
+        "harmincegyes", "harminckettes", "harminchármas", "harmincnégyes", "harmincötös", "harminchatos", "harminchetes", "harmincnyolcas",
+        "negyvenegyes", "negyvenkettes", "negyvenhármas", "negyvennégyes", "negyvenötös", "negyvenhatos", "negyvenhetes", "negyvennyolcas"
+      ];
+      keyterms.forEach(term => formData.append("keyterms", term));
 
       if (!apiKeys.elevenlabs) {
         throw new Error(`Missing ELEVENLABS_API_KEY environment variable. Please configure it in Supabase Secrets.`);
@@ -1470,7 +1483,7 @@ MEGJEGYZÉS MEZŐ HASZNÁLATA:
         transcript_length: transcript.length,
       },
       step2_claude_cleaner: {
-        model: "claude-sonnet-4-6",
+        model: "claude-3-5-sonnet-20241022",
         duration_ms: timings.step2_claude_cleaner_ms,
         system_prompt: CLEANER_PROMPT.substring(0, 500) + "...",
         response: cleanedText,
@@ -1480,7 +1493,7 @@ MEGJEGYZÉS MEZŐ HASZNÁLATA:
         chunks: chunks,
       },
       step4_quadrant_extractors: {
-        model: "gpt-4.1",
+        model: "gpt-4o-mini",
         mode: "structured_outputs",
         duration_ms: timings.step4_quadrants_ms,
         ...quadrantTraces,
