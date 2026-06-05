@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -30,6 +30,14 @@ export default function ZoliChartPage() {
   const { jobs: unifiedJobs, refetch: unifiedRefetch } = useUnifiedVoiceHistory(ZOLI_PATIENT_ID);
 
   const selectedJob = selectedNativeJobId ? unifiedJobs.find(j => j.id === selectedNativeJobId) : null;
+
+  // Memoize parsed result to prevent infinite render loops in child components
+  const selectedJobResultJson = useMemo(() => {
+    if (!selectedJob?.result) return null;
+    return typeof selectedJob.result === 'string'
+      ? JSON.parse(selectedJob.result)
+      : selectedJob.result;
+  }, [selectedJob?.id, selectedJob?.result]);
 
   // Protect the page - redirect to login if not logged in
   useEffect(() => {
@@ -137,6 +145,9 @@ export default function ZoliChartPage() {
 
       // 8. Refetch unified voice history
       await unifiedRefetch();
+
+      // 9. Reset selected job ID to clear the Verdikt panel and avoid dangling state loading loop
+      setSelectedNativeJobId(null);
 
       toast.success('Minden státusz- és felvételi adat sikeresen törölve a páciens alól!');
       setRefreshTrigger(prev => prev + 1); // Triggers re-mount and re-fetch in DentalChart
@@ -252,7 +263,7 @@ export default function ZoliChartPage() {
                   <VoxisReviewPanel 
                     jobId={selectedJob.id}
                     patientId={ZOLI_PATIENT_ID}
-                    resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
+                    resultJson={selectedJobResultJson}
                     isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
                   />
                 ) : undefined
@@ -271,17 +282,6 @@ export default function ZoliChartPage() {
                   unifiedRefetch();
                 }
               }}
-              voxisReviewPanelNode={
-                isVoxisJob(selectedJob?.mode, selectedJob?.result) && selectedJob?.status === 'completed' && selectedJob?.result ? (
-                  <VoxisReviewPanel 
-                    jobId={selectedJob.id}
-                    patientId={ZOLI_PATIENT_ID}
-                    resultJson={typeof selectedJob.result === 'string' ? JSON.parse(selectedJob.result) : selectedJob.result}
-                    isNewest={(unifiedJobs?.filter(j => isVoxisJob(j.mode, j.result) && j.status === 'completed')?.[0]?.id || '') === selectedJob.id}
-                  />
-                ) : undefined
-              }
-            />
           </div>
         )}
       </div>
