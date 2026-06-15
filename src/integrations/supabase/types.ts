@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -305,6 +305,7 @@ export type Database = {
           default_item_id: string
           id: string
           is_active: boolean | null
+          is_locked: boolean | null
           price: number | null
           telephely_id: string
           updated_at: string | null
@@ -314,6 +315,7 @@ export type Database = {
           default_item_id: string
           id?: string
           is_active?: boolean | null
+          is_locked?: boolean | null
           price?: number | null
           telephely_id: string
           updated_at?: string | null
@@ -323,6 +325,7 @@ export type Database = {
           default_item_id?: string
           id?: string
           is_active?: boolean | null
+          is_locked?: boolean | null
           price?: number | null
           telephely_id?: string
           updated_at?: string | null
@@ -346,11 +349,15 @@ export type Database = {
       }
       clinic_treatment_items_stdl: {
         Row: {
+          aliases: string[] | null
           applicable_statuses: string[] | null
           category: string
           created_at: string | null
+          embedding_status: string | null
           id: string
           is_active: boolean | null
+          is_default: boolean | null
+          is_locked: boolean | null
           is_per_tooth: boolean | null
           name: string
           price: number | null
@@ -363,11 +370,15 @@ export type Database = {
           visual_icon: string
         }
         Insert: {
+          aliases?: string[] | null
           applicable_statuses?: string[] | null
           category: string
           created_at?: string | null
+          embedding_status?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
+          is_locked?: boolean | null
           is_per_tooth?: boolean | null
           name: string
           price?: number | null
@@ -380,11 +391,15 @@ export type Database = {
           visual_icon?: string
         }
         Update: {
+          aliases?: string[] | null
           applicable_statuses?: string[] | null
           category?: string
           created_at?: string | null
+          embedding_status?: string | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean | null
+          is_locked?: boolean | null
           is_per_tooth?: boolean | null
           name?: string
           price?: number | null
@@ -414,9 +429,13 @@ export type Database = {
           display_name: string | null
           id: string
           is_active: boolean
+          is_locked: boolean
           is_solo: boolean
+          last_invoice_period: string | null
+          last_invoice_stripe_id: string | null
           livemode: boolean
           name: string
+          payment_status: string
           seats: number
           slug: string
           stripe_customer_id: string | null
@@ -434,9 +453,13 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean
+          is_locked?: boolean
           is_solo?: boolean
+          last_invoice_period?: string | null
+          last_invoice_stripe_id?: string | null
           livemode?: boolean
           name: string
+          payment_status?: string
           seats?: number
           slug: string
           stripe_customer_id?: string | null
@@ -454,9 +477,13 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean
+          is_locked?: boolean
           is_solo?: boolean
+          last_invoice_period?: string | null
+          last_invoice_stripe_id?: string | null
           livemode?: boolean
           name?: string
+          payment_status?: string
           seats?: number
           slug?: string
           stripe_customer_id?: string | null
@@ -503,6 +530,7 @@ export type Database = {
       }
       default_treatment_items: {
         Row: {
+          aliases: string[] | null
           applicable_statuses: string[] | null
           category: string | null
           created_at: string | null
@@ -517,6 +545,7 @@ export type Database = {
           visual_icon: string | null
         }
         Insert: {
+          aliases?: string[] | null
           applicable_statuses?: string[] | null
           category?: string | null
           created_at?: string | null
@@ -531,6 +560,7 @@ export type Database = {
           visual_icon?: string | null
         }
         Update: {
+          aliases?: string[] | null
           applicable_statuses?: string[] | null
           category?: string | null
           created_at?: string | null
@@ -1273,6 +1303,9 @@ export type Database = {
           progress_percent: number | null
           raw_audio_text: string | null
           result: Json | null
+          rpa_result: Json | null
+          rpa_status: string | null
+          rpa_url: string | null
           status: string
           telephely_id: string | null
           trace_info: Json | null
@@ -1294,6 +1327,9 @@ export type Database = {
           progress_percent?: number | null
           raw_audio_text?: string | null
           result?: Json | null
+          rpa_result?: Json | null
+          rpa_status?: string | null
+          rpa_url?: string | null
           status?: string
           telephely_id?: string | null
           trace_info?: Json | null
@@ -1315,6 +1351,9 @@ export type Database = {
           progress_percent?: number | null
           raw_audio_text?: string | null
           result?: Json | null
+          rpa_result?: Json | null
+          rpa_status?: string | null
+          rpa_url?: string | null
           status?: string
           telephely_id?: string | null
           trace_info?: Json | null
@@ -1733,13 +1772,6 @@ export type Database = {
             referencedRelation: "patient_treatment_plans"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "patient_treatment_plan_items_treatment_item_id_fkey"
-            columns: ["treatment_item_id"]
-            isOneToOne: false
-            referencedRelation: "clinic_treatment_items_stdl"
-            referencedColumns: ["id"]
-          },
         ]
       }
       patient_treatment_plans: {
@@ -1890,6 +1922,38 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "feltoltott_pdf"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_usage: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          job_id: string
+          job_type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          job_type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          job_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_usage_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2166,13 +2230,6 @@ export type Database = {
           visit_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "rule_items_stdl_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "clinic_treatment_items_stdl"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "rule_items_stdl_visit_id_fkey"
             columns: ["visit_id"]
@@ -2717,6 +2774,7 @@ export type Database = {
       }
       telephely: {
         Row: {
+          clinical_interview_answers: Json | null
           company_id: string
           created_at: string | null
           display_name: string | null
@@ -2724,12 +2782,14 @@ export type Database = {
           id: string
           name: string
           probapaciens_neve: string | null
+          setup_completed_at: string | null
           share_code: string
           updated_at: string | null
           use_default_library: boolean | null
           voice_recording_preference: string | null
         }
         Insert: {
+          clinical_interview_answers?: Json | null
           company_id: string
           created_at?: string | null
           display_name?: string | null
@@ -2737,12 +2797,14 @@ export type Database = {
           id?: string
           name: string
           probapaciens_neve?: string | null
+          setup_completed_at?: string | null
           share_code: string
           updated_at?: string | null
           use_default_library?: boolean | null
           voice_recording_preference?: string | null
         }
         Update: {
+          clinical_interview_answers?: Json | null
           company_id?: string
           created_at?: string | null
           display_name?: string | null
@@ -2750,6 +2812,7 @@ export type Database = {
           id?: string
           name?: string
           probapaciens_neve?: string | null
+          setup_completed_at?: string | null
           share_code?: string
           updated_at?: string | null
           use_default_library?: boolean | null
@@ -3045,6 +3108,288 @@ export type Database = {
         }
         Relationships: []
       }
+      v2_clinic_defaults: {
+        Row: {
+          created_at: string | null
+          id: string
+          overrides: Json
+          telephely_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          overrides?: Json
+          telephely_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          overrides?: Json
+          telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_clinic_defaults_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: true
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_clinic_mappings: {
+        Row: {
+          atomic_action_slug: string
+          conditions: Json | null
+          confidence: number | null
+          created_at: string | null
+          disabled: boolean | null
+          id: string
+          reviewed: boolean | null
+          reviewed_at: string | null
+          szotar_kezeles_id: string | null
+          szotar_kezeles_name: string | null
+          telephely_id: string
+        }
+        Insert: {
+          atomic_action_slug: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          szotar_kezeles_id?: string | null
+          szotar_kezeles_name?: string | null
+          telephely_id: string
+        }
+        Update: {
+          atomic_action_slug?: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          szotar_kezeles_id?: string | null
+          szotar_kezeles_name?: string | null
+          telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_clinic_mappings_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_clinic_mappings_stdl: {
+        Row: {
+          atomic_action_slug: string
+          conditions: Json | null
+          confidence: number | null
+          created_at: string | null
+          disabled: boolean | null
+          id: string
+          reviewed: boolean | null
+          reviewed_at: string | null
+          stdl_treatment_item_id: string | null
+          stdl_treatment_item_name: string | null
+          telephely_id: string
+        }
+        Insert: {
+          atomic_action_slug: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          stdl_treatment_item_id?: string | null
+          stdl_treatment_item_name?: string | null
+          telephely_id: string
+        }
+        Update: {
+          atomic_action_slug?: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          stdl_treatment_item_id?: string | null
+          stdl_treatment_item_name?: string | null
+          telephely_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_clinic_mappings_stdl_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_clinic_protocol_overrides: {
+        Row: {
+          added_actions: string[] | null
+          created_at: string | null
+          custom_triggers: string[] | null
+          excluded_actions: string[] | null
+          id: string
+          is_disabled: boolean | null
+          protocol_slug: string
+          telephely_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          added_actions?: string[] | null
+          created_at?: string | null
+          custom_triggers?: string[] | null
+          excluded_actions?: string[] | null
+          id?: string
+          is_disabled?: boolean | null
+          protocol_slug: string
+          telephely_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          added_actions?: string[] | null
+          created_at?: string | null
+          custom_triggers?: string[] | null
+          excluded_actions?: string[] | null
+          id?: string
+          is_disabled?: boolean | null
+          protocol_slug?: string
+          telephely_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_clinic_protocol_overrides_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_protocol_templates: {
+        Row: {
+          atomic_actions: Json
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_global: boolean | null
+          name_hu: string
+          reviewed: boolean | null
+          slug: string
+          telephely_id: string | null
+          triggers: Json
+          updated_at: string | null
+          visits: Json
+        }
+        Insert: {
+          atomic_actions?: Json
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_global?: boolean | null
+          name_hu: string
+          reviewed?: boolean | null
+          slug: string
+          telephely_id?: string | null
+          triggers?: Json
+          updated_at?: string | null
+          visits?: Json
+        }
+        Update: {
+          atomic_actions?: Json
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_global?: boolean | null
+          name_hu?: string
+          reviewed?: boolean | null
+          slug?: string
+          telephely_id?: string | null
+          triggers?: Json
+          updated_at?: string | null
+          visits?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_protocol_templates_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_sessions: {
+        Row: {
+          clinical_validation_report: Json | null
+          created_at: string | null
+          doctor_id: string | null
+          id: string
+          llm_raw_response: string | null
+          patient_ref: string | null
+          pipeline_output: Json | null
+          review_status: string | null
+          telephely_id: string
+          timing: Json | null
+          tokens_used: number | null
+          transcript: string | null
+        }
+        Insert: {
+          clinical_validation_report?: Json | null
+          created_at?: string | null
+          doctor_id?: string | null
+          id?: string
+          llm_raw_response?: string | null
+          patient_ref?: string | null
+          pipeline_output?: Json | null
+          review_status?: string | null
+          telephely_id: string
+          timing?: Json | null
+          tokens_used?: number | null
+          transcript?: string | null
+        }
+        Update: {
+          clinical_validation_report?: Json | null
+          created_at?: string | null
+          doctor_id?: string | null
+          id?: string
+          llm_raw_response?: string | null
+          patient_ref?: string | null
+          pipeline_output?: Json | null
+          review_status?: string | null
+          telephely_id?: string
+          timing?: Json | null
+          tokens_used?: number | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_sessions_telephely_id_fkey"
+            columns: ["telephely_id"]
+            isOneToOne: false
+            referencedRelation: "telephely"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_job_complaints: {
         Row: {
           complaint_text: string
@@ -3297,6 +3642,55 @@ export type Database = {
         }
         Returns: number
       }
+      get_all_voice_jobs_count: {
+        Args: {
+          p_company_id?: string
+          p_has_complaints?: boolean
+          p_source?: string
+          p_status?: string
+          p_telephely_id?: string
+          p_user_id?: string
+        }
+        Returns: number
+      }
+      get_all_voice_jobs_paginated: {
+        Args: {
+          p_company_id?: string
+          p_has_complaints?: boolean
+          p_limit: number
+          p_offset: number
+          p_source?: string
+          p_status?: string
+          p_telephely_id?: string
+          p_user_id?: string
+        }
+        Returns: {
+          audio_url: string
+          claude_cleaned_text: string
+          company_id: string
+          company_name: string
+          created_at: string
+          duration_seconds: number
+          error: string
+          id: string
+          mode: string
+          paciens_id: string
+          progress_message: string
+          progress_percent: number
+          raw_audio_text: string
+          result: Json
+          source_table: string
+          status: string
+          telephely_id: string
+          trace_info: Json
+          trace_logs: Json
+          user_complaint: string
+          user_complaint_date: string
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
       get_bno_codes_without_embeddings: {
         Args: { p_limit?: number }
         Returns: {
@@ -3317,6 +3711,34 @@ export type Database = {
         Args: never
         Returns: {
           company_name: string
+        }[]
+      }
+      get_complaints_paginated: {
+        Args: {
+          p_company_id?: string
+          p_limit: number
+          p_offset: number
+          p_status?: string
+        }
+        Returns: {
+          claude_cleaned_text: string
+          company_name: string
+          complaint_id: string
+          complaint_status: string
+          complaint_text: string
+          created_at: string
+          created_by: string
+          job_error: string
+          job_id: string
+          job_mode: string
+          job_status: string
+          raw_audio_text: string
+          result: Json
+          source_table: string
+          telephely_name: string
+          total_count: number
+          user_email: string
+          user_full_name: string
         }[]
       }
       get_global_voice_jobs: {
@@ -3557,7 +3979,7 @@ export type Database = {
           p_szotar_kezeles_id: string
           p_text_source: string
         }
-        Returns: string
+        Returns: undefined
       }
       upsert_treatment_embedding: {
         Args: {
@@ -3711,4 +4133,3 @@ export const Constants = {
     },
   },
 } as const
-
