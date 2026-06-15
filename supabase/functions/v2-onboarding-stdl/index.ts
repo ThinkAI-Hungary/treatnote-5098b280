@@ -165,26 +165,44 @@ async function runMappingPipeline(telephelyId: string, supabase: any, onProgress
     
   const useDefaultLibrary = telephelyData?.use_default_library ?? false;
 
-  // 1. Fetch clinic specific items
-  let query = supabase
+  // 1. Fetch clinic specific items + locked default items via clinic_item_overrides
+  const itemsQuery = supabase
     .from('clinic_treatment_items_stdl')
     .select('id, name, category, is_default, is_locked')
     .eq('telephely_id', telephelyId)
     .eq('is_active', true)
     .limit(5000);
 
-  if (!useDefaultLibrary) {
-    // If default library is off, only get custom items OR locked default items
-    query = query.or('is_default.eq.false,is_locked.eq.true');
+  const overridesQuery = supabase
+    .from('clinic_item_overrides')
+    .select('default_item_id, is_locked, is_active')
+    .eq('telephely_id', telephelyId);
+
+  const [itemsRes, overridesRes] = await Promise.all([itemsQuery, overridesQuery]);
+
+  if (itemsRes.error) throw new Error(`Hiba a szótár betöltésekor: ${itemsRes.error.message}`);
+  if (overridesRes.error) throw new Error(`Hiba az override-ok betöltésekor: ${overridesRes.error.message}`);
+
+  const allItems = itemsRes.data || [];
+  const overrides = overridesRes.data || [];
+  const lockedDefaultIds = new Set(
+    overrides.filter((o: any) => o.is_locked && o.is_active !== false).map((o: any) => o.default_item_id)
+  );
+
+  let szotarItems: any[];
+  if (useDefaultLibrary) {
+    // Use full library (default + custom)
+    szotarItems = allItems;
+  } else {
+    // Custom items + default items locked via overrides
+    szotarItems = allItems.filter((i: any) => !i.is_default || i.is_locked || lockedDefaultIds.has(i.id));
   }
 
-  const { data: customItems, error: szError } = await query;
-
-  if (szError) throw new Error(`Hiba a szótár betöltésekor: ${szError.message}`);
-
-  let szotarItems = customItems || [];
-
-  if (!szotarItems.length) throw new Error('Nem található aktív szótár elem ehhez a telephelyhez.');
+  if (!szotarItems.length) {
+    throw new Error(
+      'Nem található aktív szótár elem ehhez a telephelyhez. Engedélyezze az alap szótár használatát, vagy adjon hozzá / zárjon (locked) tételeket a szótárhoz.'
+    );
+  }
 
   onProgress?.(5, `${szotarItems.length} szótár tétel betöltve. Embedding generálás...`);
 
