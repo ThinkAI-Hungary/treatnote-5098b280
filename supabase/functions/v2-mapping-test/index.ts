@@ -75,7 +75,7 @@ Válaszolj KIZÁRÓLAG JSON-ban: {"pick": <sorszám vagy 0>, "confidence": <0.0-
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-sonnet-4-5-20250929', max_tokens: 200, messages: [{ role: 'user', content: prompt }] }),
   });
   if (!res.ok) return null;
   const data = await res.json() as any;
@@ -125,7 +125,7 @@ Válaszolj KIZÁRÓLAG valid JSON tömbbel:
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-sonnet-4-5-20250929', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
   });
   if (!res.ok) return new Map();
   const data = await res.json() as any;

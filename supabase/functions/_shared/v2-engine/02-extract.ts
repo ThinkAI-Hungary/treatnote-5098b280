@@ -198,7 +198,7 @@ export async function extractActions(
   const systemPrompt = buildSystemPrompt(templates);
 
   const body: Record<string, unknown> = {
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: enableThinking ? 16000 : 4096,
     messages: [{ role: 'user', content: `Kérlek elemezd a következő diktálást és bontsd le atomi akciókra:\n\n"${transcript}"` }],
   };
