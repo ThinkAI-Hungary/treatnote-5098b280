@@ -7,7 +7,6 @@ import { format } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import DENTAL_STATUSES from '@/components/patients/dental-chart/statuses.json';
 
 interface ToothHistoryDialogProps {
   patientId: string;
@@ -83,19 +82,9 @@ export function ToothHistoryDialog({ patientId, isOpen, onOpenChange }: ToothHis
     }
   };
 
-  const getStatusName = (statusCode: string) => {
-    if (!statusCode || statusCode === 'healthy') return 'Egészséges';
-    const flatStatuses = (DENTAL_STATUSES as any[]);
-    const codes = statusCode.split(',').map(c => c.trim()).filter(Boolean);
-    return codes.map(code => {
-      const def = flatStatuses.find(s => s.id === code);
-      return def ? def.name : code;
-    }).join(', ');
-  };
-
   const renderChanges = (record: HistoryRecord) => {
     if (record.operation === 'INSERT') {
-      return <div className="text-sm text-muted-foreground mt-1">Új fog bejegyzés rögzítve (Státusz: <span className="font-medium text-foreground">{getStatusName(record.new_state?.status || '')}</span>)</div>;
+      return <div className="text-sm text-muted-foreground mt-1">Új fog bejegyzés rögzítve (Státusz: <span className="font-medium text-foreground">{record.new_state?.status || 'N/A'}</span>)</div>;
     }
     if (record.operation === 'DELETE') {
       return <div className="text-sm text-destructive mt-1">Fog bejegyzés törölve.</div>;
@@ -126,15 +115,13 @@ export function ToothHistoryDialog({ patientId, isOpen, onOpenChange }: ToothHis
       const oldVal = oldState[key];
       const newVal = newState[key];
       if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-        const displayOld = key === 'status' ? getStatusName(String(oldVal || '')) : formatValue(oldVal);
-        const displayNew = key === 'status' ? getStatusName(String(newVal || '')) : formatValue(newVal);
         changes.push(
           <div key={key} className="text-sm mt-1 grid grid-cols-[140px_1fr] gap-2 items-center">
             <span className="font-medium text-muted-foreground text-xs">{fieldsToTrack[key]}:</span>
             <span className="flex items-center gap-2">
-              <span className="line-through text-muted-foreground/60">{displayOld}</span>
+              <span className="line-through text-muted-foreground/60">{formatValue(oldVal)}</span>
               <span className="text-xs">→</span>
-              <span className="font-semibold">{displayNew}</span>
+              <span className="font-semibold">{formatValue(newVal)}</span>
             </span>
           </div>
         );

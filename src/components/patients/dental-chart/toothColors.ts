@@ -43,9 +43,9 @@ export function getToothColors(status: string | undefined): ToothColorScheme {
   }
 
   const statuses = status.split(',').map(s => s.trim());
-
+  
   // Check for plan markers
-  const hasPlanMarker = statuses.some(s =>
+  const hasPlanMarker = statuses.some(s => 
     s === 'teeth_extraction_mark' || s === 'crown_needed' || s === 'replace_needed'
   );
 
@@ -89,26 +89,26 @@ export function getToothColors(status: string | undefined): ToothColorScheme {
 }
 
 const GROUP_COLORS: Record<string, { main: string; root: string; badge: string }> = {
-  'Caries': { main: '#ef4444', root: '#ef4444', badge: '#ef4444' },
-  'Caries (szekunder)': { main: '#dc2626', root: '#dc2626', badge: '#dc2626' },
-  'Tömés': { main: '#3b82f6', root: '#3b82f6', badge: '#3b82f6' },
-  'Korona': { main: '#f59e0b', root: '#f59e0b', badge: '#f59e0b' },
-  'Híd': { main: '#8b5cf6', root: '#8b5cf6', badge: '#8b5cf6' },
-  'Implant': { main: '#10b981', root: '#10b981', badge: '#10b981' },
-  'Felépítmények': { main: '#059669', root: '#059669', badge: '#059669' },
-  'Gyökértömés': { main: '#ec4899', root: '#ec4899', badge: '#ec4899' },
+  'Caries':              { main: '#ef4444', root: '#ef4444', badge: '#ef4444' },
+  'Caries (szekunder)':  { main: '#dc2626', root: '#dc2626', badge: '#dc2626' },
+  'Tömés':               { main: '#3b82f6', root: '#3b82f6', badge: '#3b82f6' },
+  'Korona':              { main: '#f59e0b', root: '#f59e0b', badge: '#f59e0b' },
+  'Híd':                 { main: '#8b5cf6', root: '#8b5cf6', badge: '#8b5cf6' },
+  'Implant':             { main: '#10b981', root: '#10b981', badge: '#10b981' },
+  'Felépítmények':       { main: '#059669', root: '#059669', badge: '#059669' },
+  'Gyökértömés':         { main: '#ec4899', root: '#ec4899', badge: '#ec4899' },
   'Retrográd gyökértömés': { main: '#db2777', root: '#db2777', badge: '#db2777' },
-  'Protézis': { main: '#6366f1', root: '#6366f1', badge: '#6366f1' },
-  'Periapicalis': { main: '#f97316', root: '#f97316', badge: '#f97316' },
-  'Gyökércsap': { main: '#a855f7', root: '#a855f7', badge: '#a855f7' },
-  'Speciális': { main: '#f97316', root: '#f97316', badge: '#f97316' },
-  'Betétek': { main: '#14b8a6', root: '#14b8a6', badge: '#14b8a6' },
-  'Héjak': { main: '#06b6d4', root: '#06b6d4', badge: '#06b6d4' },
-  'Csonkfelépítés': { main: '#64748b', root: '#64748b', badge: '#64748b' },
-  'Élpótlás': { main: '#0ea5e9', root: '#0ea5e9', badge: '#0ea5e9' },
-  'Letört fog': { main: '#f97316', root: '#f97316', badge: '#f97316' },
-  'Általános': { main: '#6b7280', root: '#6b7280', badge: '#6b7280' },
-  'Ideiglenes ragasztás': { main: '#fbbf24', root: '#fbbf24', badge: '#fbbf24' },
+  'Protézis':            { main: '#6366f1', root: '#6366f1', badge: '#6366f1' },
+  'Periapicalis':        { main: '#f97316', root: '#f97316', badge: '#f97316' },
+  'Gyökércsap':          { main: '#a855f7', root: '#a855f7', badge: '#a855f7' },
+  'Speciális':           { main: '#f97316', root: '#f97316', badge: '#f97316' },
+  'Betétek':             { main: '#14b8a6', root: '#14b8a6', badge: '#14b8a6' },
+  'Héjak':               { main: '#06b6d4', root: '#06b6d4', badge: '#06b6d4' },
+  'Csonkfelépítés':      { main: '#64748b', root: '#64748b', badge: '#64748b' },
+  'Élpótlás':            { main: '#0ea5e9', root: '#0ea5e9', badge: '#0ea5e9' },
+  'Letört fog':          { main: '#f97316', root: '#f97316', badge: '#f97316' },
+  'Általános':           { main: '#6b7280', root: '#6b7280', badge: '#6b7280' },
+  'Ideiglenes ragasztás':{ main: '#fbbf24', root: '#fbbf24', badge: '#fbbf24' },
 };
 
 /**

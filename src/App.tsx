@@ -40,7 +40,6 @@ const Billing = lazy(() => import("./pages/Billing"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const Register = lazy(() => import("./pages/Register"));
 const SoloRegister = lazy(() => import("./pages/SoloRegister"));
-const ZoliChartPage = lazy(() => import("./pages/ZoliChartPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 import { GlobalAuthMessage } from "@/components/GlobalAuthMessage";
@@ -100,7 +99,6 @@ const App = () => {
                 <Route path="/accept-invitation" element={<Suspense fallback={<PageLoader />}><AcceptInvitation /></Suspense>} />
                 <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
                 <Route path="/solo-register" element={<Suspense fallback={<PageLoader />}><SoloRegister /></Suspense>} />
-                <Route path="/zoli-chart" element={<Suspense fallback={<PageLoader />}><ZoliChartPage /></Suspense>} />
 
 
                 {/* Authenticated routes - Layout wrapper stays mounted */}

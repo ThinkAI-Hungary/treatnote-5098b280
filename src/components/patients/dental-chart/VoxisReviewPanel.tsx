@@ -46,7 +46,7 @@ export function VoxisReviewPanel({
   const checkMissingSurface = (statusStr?: string | null, surfacesStr?: string | null) => {
     if (surfacesStr) return false;
     if (!statusStr || statusStr === 'healthy') return false;
-
+    
     const parts = statusStr.split(',').map(s => s.trim());
     return parts.some(p => {
       const st = DENTAL_STATUSES.find(s => s.id === p);
@@ -72,7 +72,7 @@ export function VoxisReviewPanel({
           });
         }
         setOriginalData(map);
-
+        
         const mappedUpdates = mapVoxisToModels(resultJson, map, patientId);
         setUpdates(mappedUpdates);
         if (mappedUpdates.length > 0) {
@@ -100,24 +100,24 @@ export function VoxisReviewPanel({
             const targetId = u.id || originalData[u.tooth_number!]?.id;
             let safeObj = { ...u };
             if (safeObj.implant_date) {
-              const hunMonths: Record<string, string> = {
-                'január': '01', 'február': '02', 'március': '03', 'április': '04',
-                'május': '05', 'június': '06', 'július': '07', 'augusztus': '08',
-                'szeptember': '09', 'október': '10', 'november': '11', 'december': '12',
-                'jan': '01', 'feb': '02', 'már': '03', 'ápr': '04',
-                'máj': '05', 'jún': '06', 'júl': '07', 'aug': '08',
-                'szep': '09', 'okt': '10', 'nov': '11', 'dec': '12'
-              };
-              const lowerDate = safeObj.implant_date.toLowerCase();
-              let match = lowerDate.match(/(\d{4})[\.\-\s]+([a-záéíóöőúüű]+)[\.\-\s]+(\d{1,2})/);
-              if (match) {
-                const m = hunMonths[match[2]];
-                if (m) safeObj.implant_date = `${match[1]}-${m}-${match[3].padStart(2, '0')}`;
-              }
-
-              if (!/^\d{4}-\d{2}-\d{2}$/.test(safeObj.implant_date)) {
-                safeObj.implant_date = null; // Drop invalid date format to save the rest of the payload
-              }
+               const hunMonths: Record<string, string> = {
+                  'január': '01', 'február': '02', 'március': '03', 'április': '04',
+                  'május': '05', 'június': '06', 'július': '07', 'augusztus': '08',
+                  'szeptember': '09', 'október': '10', 'november': '11', 'december': '12',
+                  'jan': '01', 'feb': '02', 'már': '03', 'ápr': '04',
+                  'máj': '05', 'jún': '06', 'júl': '07', 'aug': '08',
+                  'szep': '09', 'okt': '10', 'nov': '11', 'dec': '12'
+               };
+               const lowerDate = safeObj.implant_date.toLowerCase();
+               let match = lowerDate.match(/(\d{4})[\.\-\s]+([a-záéíóöőúüű]+)[\.\-\s]+(\d{1,2})/);
+               if (match) {
+                 const m = hunMonths[match[2]];
+                 if (m) safeObj.implant_date = `${match[1]}-${m}-${match[3].padStart(2, '0')}`;
+               }
+               
+               if (!/^\d{4}-\d{2}-\d{2}$/.test(safeObj.implant_date)) {
+                 safeObj.implant_date = null; // Drop invalid date format to save the rest of the payload
+               }
             }
 
             const payload: any = {
@@ -153,10 +153,10 @@ export function VoxisReviewPanel({
       if (error) throw error;
 
       toast.success('Fogászati státusz sikeresen frissítve!');
-
+      
       // Dispatch event to force DentalChart to refetch
       window.dispatchEvent(new CustomEvent('dental-chart-updated'));
-
+      
       // Optionally re-fetch locally to reflect changes
       const map = { ...originalData };
       updates.forEach(u => {
@@ -166,7 +166,7 @@ export function VoxisReviewPanel({
       });
       setOriginalData(map);
       setUpdates([]);
-
+      
     } catch (err: any) {
       console.error('Error saving multiple teeth:', err);
       toast.error('Hiba a mentés során: ' + (err.message || 'Ismeretlen hiba'));
@@ -196,8 +196,8 @@ export function VoxisReviewPanel({
           AI Státuszfelvétel Áttekintés
         </CardTitle>
         <CardDescription>
-          {isNewest
-            ? "Kérjük, ellenőrizze és hagyja jóvá a fogászati státusz módosításait."
+          {isNewest 
+            ? "Kérjük, ellenőrizze és hagyja jóvá a fogászati státusz módosításait." 
             : "Egy korábbi státuszfelvétel módosításainak archívuma. Mentés már nem lehetséges."}
         </CardDescription>
       </CardHeader>
@@ -218,51 +218,50 @@ export function VoxisReviewPanel({
               {updates.map((update) => {
                 const missingSurface = checkMissingSurface(update.status, update.surfaces);
                 return (
-                  <button
-                    key={update.tooth_number}
-                    onClick={() => setSelectedTooth(update.tooth_number!)}
-                    className={cn(
-                      "w-full flex items-center justify-between p-3 rounded-md border transition-all text-left group",
-                      selectedTooth === update.tooth_number
-                        ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                <button
+                  key={update.tooth_number}
+                  onClick={() => setSelectedTooth(update.tooth_number!)}
+                  className={cn(
+                    "w-full flex items-center justify-between p-3 rounded-md border transition-all text-left group",
+                    selectedTooth === update.tooth_number 
+                      ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20" 
+                      : missingSurface
+                        ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
+                        : "bg-card hover:bg-muted/50 border-border/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold",
+                      selectedTooth === update.tooth_number 
+                        ? "bg-primary text-primary-foreground" 
                         : missingSurface
-                          ? "bg-destructive/5 border-destructive/30 hover:bg-destructive/10"
-                          : "bg-card hover:bg-muted/50 border-border/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold",
-                        selectedTooth === update.tooth_number
-                          ? "bg-primary text-primary-foreground"
-                          : missingSurface
-                            ? "bg-destructive text-destructive-foreground"
-                            : "bg-muted text-muted-foreground"
-                      )}>
-                        {update.tooth_number}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={cn("text-sm font-medium leading-none", missingSurface && "text-destructive font-semibold")}>
-                          {getStatusName(update.status)}
-                        </span>
-                        {update.surfaces ? (
-                          <span className="text-xs text-muted-foreground mt-1">Felszín: {update.surfaces}</span>
-                        ) : missingSurface ? (
-                          <span className="text-xs text-destructive font-bold mt-1">Nincs felület kiválasztva!</span>
-                        ) : null}
-                      </div>
+                          ? "bg-destructive text-destructive-foreground"
+                          : "bg-muted text-muted-foreground"
+                    )}>
+                      {update.tooth_number}
                     </div>
-                    <ChevronRight className={cn(
-                      "h-4 w-4 transition-colors",
-                      selectedTooth === update.tooth_number
-                        ? "text-primary"
-                        : missingSurface
-                          ? "text-destructive"
-                          : "text-muted-foreground group-hover:text-foreground"
-                    )} />
-                  </button>
-                )
-              })}
+                    <div className="flex flex-col">
+                      <span className={cn("text-sm font-medium leading-none", missingSurface && "text-destructive font-semibold")}>
+                        {getStatusName(update.status)}
+                      </span>
+                      {update.surfaces ? (
+                        <span className="text-xs text-muted-foreground mt-1">Felszín: {update.surfaces}</span>
+                      ) : missingSurface ? (
+                        <span className="text-xs text-destructive font-bold mt-1">Nincs felület kiválasztva!</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <ChevronRight className={cn(
+                    "h-4 w-4 transition-colors",
+                    selectedTooth === update.tooth_number 
+                      ? "text-primary" 
+                      : missingSurface
+                        ? "text-destructive"
+                        : "text-muted-foreground group-hover:text-foreground"
+                  )} />
+                </button>
+              )})}
             </div>
           </ScrollArea>
         </div>
@@ -294,7 +293,7 @@ export function VoxisReviewPanel({
                       <Badge variant="outline" className="mt-2">{selectedOriginal.surfaces}</Badge>
                     )}
                   </div>
-
+                  
                   <ArrowRight className="hidden xl:block h-6 w-6 text-muted-foreground" />
 
                   {/* After Card */}
@@ -310,7 +309,7 @@ export function VoxisReviewPanel({
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-border/50">
-                  {(selectedUpdate.mobility !== undefined ||
+                  {(selectedUpdate.mobility !== undefined || 
                     selectedUpdate.pocket_depth_mm !== undefined ||
                     selectedUpdate.gum_recession_mm !== undefined ||
                     selectedUpdate.percussion_sensitive !== undefined ||
@@ -324,98 +323,98 @@ export function VoxisReviewPanel({
                     selectedUpdate.implant_diameter !== undefined ||
                     selectedUpdate.implant_length !== undefined ||
                     selectedUpdate.implant_date !== undefined) && (
-                      <div className="grid gap-2">
-                        <span className="text-xs font-medium text-muted-foreground uppercase">Kinyert Specifikus Adatok</span>
-                        <div className="flex flex-col gap-1 p-4 bg-primary/5 border border-primary/10 rounded-md shadow-sm">
+                    <div className="grid gap-2">
+                       <span className="text-xs font-medium text-muted-foreground uppercase">Kinyert Specifikus Adatok</span>
+                       <div className="flex flex-col gap-1 p-4 bg-primary/5 border border-primary/10 rounded-md shadow-sm">
                           {selectedUpdate.mobility !== undefined && selectedUpdate.mobility !== null && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Mobilitás (1-4)</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.mobility}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Mobilitás (1-4)</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.mobility}</span>
                             </div>
                           )}
                           {selectedUpdate.pocket_depth_mm !== undefined && selectedUpdate.pocket_depth_mm !== null && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Tasakmélység</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.pocket_depth_mm} mm</span>
+                               <span className="text-sm font-medium text-muted-foreground">Tasakmélység</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.pocket_depth_mm} mm</span>
                             </div>
                           )}
                           {selectedUpdate.gum_recession_mm !== undefined && selectedUpdate.gum_recession_mm !== null && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Ínyvisszahúzódás</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.gum_recession_mm} mm</span>
+                               <span className="text-sm font-medium text-muted-foreground">Ínyvisszahúzódás</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.gum_recession_mm} mm</span>
                             </div>
                           )}
                           {selectedUpdate.percussion_sensitive ? (
                             <div className="flex items-center justify-between border-b border-red-200 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-red-600">Kopogtatásra érzékeny</span>
-                              <span className="text-sm font-bold text-red-600">Igen</span>
+                               <span className="text-sm font-medium text-red-600">Kopogtatásra érzékeny</span>
+                               <span className="text-sm font-bold text-red-600">Igen</span>
                             </div>
                           ) : null}
                           {selectedUpdate.periapical_lesion ? (
                             <div className="flex items-center justify-between border-b border-red-200 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-red-600">Periapikális elváltozás</span>
-                              <span className="text-sm font-bold text-red-600">Látható</span>
+                               <span className="text-sm font-medium text-red-600">Periapikális elváltozás</span>
+                               <span className="text-sm font-bold text-red-600">Látható</span>
                             </div>
                           ) : null}
                           {selectedUpdate.sensitivity && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Érzékenység</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.sensitivity}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Érzékenység</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.sensitivity}</span>
                             </div>
                           )}
                           {selectedUpdate.dental_signs && selectedUpdate.dental_signs.length > 0 && (
                             <div className="flex flex-col border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Tünetek / Jelek</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {selectedUpdate.dental_signs.map(sign => <Badge key={sign} variant="secondary" className="bg-white">{sign}</Badge>)}
-                              </div>
+                               <span className="text-sm font-medium text-muted-foreground">Tünetek / Jelek</span>
+                               <div className="flex flex-wrap gap-1 mt-1">
+                                 {selectedUpdate.dental_signs.map(sign => <Badge key={sign} variant="secondary" className="bg-white">{sign}</Badge>)}
+                               </div>
                             </div>
                           )}
                           {selectedUpdate.prosthetic_type && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Protetika</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.prosthetic_type}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Protetika</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.prosthetic_type}</span>
                             </div>
                           )}
                           {selectedUpdate.prosthetic_material && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Pótlás Anyaga</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.prosthetic_material}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Pótlás Anyaga</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.prosthetic_material}</span>
                             </div>
                           )}
                           {selectedUpdate.prosthetic_shade && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Fogszín</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.prosthetic_shade}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Fogszín</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.prosthetic_shade}</span>
                             </div>
                           )}
                           {selectedUpdate.implant_system && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Implant Rendszer</span>
-                              <span className="text-sm font-semibold text-primary">{selectedUpdate.implant_system}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Implant Rendszer</span>
+                               <span className="text-sm font-semibold text-primary">{selectedUpdate.implant_system}</span>
                             </div>
                           )}
                           {selectedUpdate.implant_diameter !== undefined && selectedUpdate.implant_diameter !== null && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Implant Átmérő</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.implant_diameter} mm</span>
+                               <span className="text-sm font-medium text-muted-foreground">Implant Átmérő</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.implant_diameter} mm</span>
                             </div>
                           )}
                           {selectedUpdate.implant_length !== undefined && selectedUpdate.implant_length !== null && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Implant Hossz</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.implant_length} mm</span>
+                               <span className="text-sm font-medium text-muted-foreground">Implant Hossz</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.implant_length} mm</span>
                             </div>
                           )}
                           {selectedUpdate.implant_date && (
                             <div className="flex items-center justify-between border-b border-primary/10 pb-1 last:border-0 last:pb-0">
-                              <span className="text-sm font-medium text-muted-foreground">Beültetés Dátuma</span>
-                              <span className="text-sm font-semibold">{selectedUpdate.implant_date}</span>
+                               <span className="text-sm font-medium text-muted-foreground">Beültetés Dátuma</span>
+                               <span className="text-sm font-semibold">{selectedUpdate.implant_date}</span>
                             </div>
                           )}
-                        </div>
-                      </div>
-                    )}
+                       </div>
+                    </div>
+                  )}
 
                   <div className="grid gap-2">
                     <span className="text-xs font-medium text-muted-foreground uppercase">AI Megjegyzés</span>
