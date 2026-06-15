@@ -174,7 +174,7 @@ Diagnosztizáld a pipeline teljesítményét. Minden hibánál állapítsd meg, 
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1500,
+        max_tokens: 4096,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -187,13 +187,39 @@ Diagnosztizáld a pipeline teljesítményét. Minden hibánál állapítsd meg, 
 
     const result = await response.json();
     const raw = result.content?.[0]?.text?.trim() || '{}';
+    const stopReason = result.stop_reason;
 
-    let assessment;
-    try {
-      assessment = JSON.parse(raw);
-    } catch {
+    // Try multiple parsing strategies
+    let assessment: any = null;
+    const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+
+    assessment = tryParse(raw);
+    if (!assessment) {
+      // Strip markdown code fences
+      const fenced = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+      assessment = tryParse(fenced);
+    }
+    if (!assessment) {
+      // Extract outermost JSON object
       const match = raw.match(/\{[\s\S]*\}/);
-      assessment = match ? JSON.parse(match[0]) : { score: 0, verdict: 'FAIL', summary: 'Nem sikerült az értékelés', findings: [] };
+      if (match) assessment = tryParse(match[0]);
+    }
+    if (!assessment && stopReason === 'max_tokens') {
+      // Truncated — try to recover by closing the JSON
+      const lastClose = raw.lastIndexOf('}');
+      if (lastClose > 0) {
+        const trimmed = raw.substring(0, lastClose + 1);
+        assessment = tryParse(trimmed);
+      }
+    }
+    if (!assessment) {
+      console.error('[V2 Assess] Failed to parse Claude response. stop_reason:', stopReason, 'raw length:', raw.length, 'preview:', raw.substring(0, 500));
+      assessment = {
+        score: 0,
+        verdict: 'FAIL',
+        summary: `Nem sikerült az értékelés feldolgozása (stop_reason: ${stopReason || 'unknown'}). Próbáld újra.`,
+        findings: [],
+      };
     }
 
     return new Response(
