@@ -457,8 +457,6 @@ ${finalJson}`;
                                                 </div>
                                             )}
 
-                                            )}
-
                                             {/* Applied Rules Section */}
                                             {job.result?.execution_report_human?.talalatok?.length > 0 && (
                                                 <div className="rounded-lg border border-primary/20 bg-background/50 overflow-hidden mb-4">
