@@ -381,7 +381,7 @@ Válaszolj KIZÁRÓLAG valid JSON-nal, a következő formátumban:
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     }),

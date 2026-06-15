@@ -97,7 +97,7 @@ Válaszolj KIZÁRÓLAG JSON-ban:
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 200,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -333,7 +333,7 @@ Válaszolj KIZÁRÓLAG JSON tömbbel, ${batch.length} elemmel:
           method: 'POST',
           headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-sonnet-4-5-20250929',
             max_tokens: 1000,
             messages: [{ role: 'user', content: batchPrompt }],
           }),
